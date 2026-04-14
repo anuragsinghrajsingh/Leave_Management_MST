@@ -490,15 +490,33 @@
                 <div class="popup-history-tabs" id="popupHistoryTabs" role="tablist" aria-label="Leave history categories">
                     <button type="button" class="popup-history-tab is-active" data-history-status="pending" role="tab" aria-selected="true">
                         <span class="popup-history-tab-label">Pending</span>
-                        <span class="popup-history-tab-count" id="detailPendingTableCount">0</span>
+                        <span class="popup-history-tab-count-wrapper">
+                            <span class="popup-history-tab-filter-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            </span>
+                            <span class="popup-history-tab-count" id="detailPendingTableCount">0</span>
+                            <span class="popup-history-tab-filter-indicator"></span>
+                        </span>
                     </button>
                     <button type="button" class="popup-history-tab" data-history-status="approved" role="tab" aria-selected="false">
                         <span class="popup-history-tab-label">Approved</span>
-                        <span class="popup-history-tab-count" id="detailApprovedTableCount">0</span>
+                        <span class="popup-history-tab-count-wrapper">
+                            <span class="popup-history-tab-filter-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            </span>
+                            <span class="popup-history-tab-count" id="detailApprovedTableCount">0</span>
+                            <span class="popup-history-tab-filter-indicator"></span>
+                        </span>
                     </button>
                     <button type="button" class="popup-history-tab" data-history-status="rejected" role="tab" aria-selected="false">
                         <span class="popup-history-tab-label">Rejected</span>
-                        <span class="popup-history-tab-count" id="detailRejectedTableCount">0</span>
+                        <span class="popup-history-tab-count-wrapper">
+                            <span class="popup-history-tab-filter-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            </span>
+                            <span class="popup-history-tab-count" id="detailRejectedTableCount">0</span>
+                            <span class="popup-history-tab-filter-indicator"></span>
+                        </span>
                     </button>
                 </div>
 
@@ -681,6 +699,24 @@
         rejected: 1
     };
     const POPUP_HISTORY_PAGE_SIZE = 5;
+
+    function syncPopupTabFilterIndicators()
+    {
+        const statuses = ["pending", "approved", "rejected"];
+        statuses.forEach(function (status)
+        {
+            const filters = popupHistoryFilters[status];
+            const tab = document.querySelector(`.popup-history-tab[data-history-status="${status}"]`);
+
+            if (!tab)
+            {
+                return;
+            }
+
+            const hasActiveFilter = !!(filters.leave_type || filters.month || filters.from_date || filters.to_date);
+            tab.classList.toggle("has-filter", hasActiveFilter);
+        });
+    }
 
     function ensureFlashMessagesContainer()
     {
@@ -1155,9 +1191,19 @@
         const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         let viewYear = null;
         let manualYear = false;
+        let openedAt = 0;
 
         const getToday = function ()
         {
+            const parts = String("{% now 'Y-m' %}").split("-");
+            const serverYear = Number(parts[0]);
+            const serverMonth = Number(parts[1]);
+
+            if (Number.isFinite(serverYear) && Number.isFinite(serverMonth) && serverYear > 2000)
+            {
+                return { year: serverYear, month: serverMonth };
+            }
+
             const now = new Date();
             return { year: now.getFullYear(), month: now.getMonth() + 1 };
         };
@@ -1206,6 +1252,7 @@
             trigger.setAttribute("aria-expanded", "false");
             viewYear = null;
             manualYear = false;
+            openedAt = 0;
             syncDisplay();
         };
 
@@ -1214,8 +1261,9 @@
             const selected = getSelected();
             const today = getToday();
 
-            // If the user didn't explicitly navigate years, the selected year must win.
-            if (!manualYear || !Number.isFinite(viewYear))
+            // Only set viewYear if it hasn't been set yet (null after close or first init).
+            // Callers (open, prev, next, current, clear) are responsible for setting viewYear.
+            if (!Number.isFinite(viewYear))
             {
                 viewYear = selected ? selected.year : today.year;
             }
@@ -1241,8 +1289,9 @@
                     button.classList.add("is-selected");
                 }
 
-                button.addEventListener("click", function ()
+                button.addEventListener("click", function (e)
                 {
+                    e.stopPropagation();
                     hiddenInput.value = formatMonthValue(viewYear, monthNumber);
                     syncDisplay();
                     hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1252,9 +1301,6 @@
 
                 grid.appendChild(button);
             });
-
-            // Defensive: ensure header always matches the view year.
-            currentNode.textContent = String(viewYear);
         };
 
         const open = function ()
@@ -1284,31 +1330,33 @@
 
             manualYear = false;
 
-            // 1) Normalize first so legacy values like "Apr 2026" become "2026-04"
-            const normalizedSelected = getMonthFromHidden();
+            // Normalize any legacy values like "Apr 2026" → "2026-04"
+            getMonthFromHidden();
 
-            // 2) Compute selected from normalized hidden value and set the calendar year
-            const selected = normalizedSelected || getToday();
-            viewYear = selected.year;
-            currentNode.textContent = String(viewYear);
+            // Set viewYear from the selected value or current year (do NOT auto-seed the hidden input,
+            // otherwise the mutual exclusion with date pickers deadlocks)
+            var nowForYear = new Date();
+            var currentYear = nowForYear.getFullYear();
+            var selected = getMonthFromHidden();
+            viewYear = (selected && Number.isFinite(selected.year)) ? selected.year : currentYear;
+
+            // Record open timestamp to guard against phantom clicks on nav buttons
+            openedAt = Date.now();
+
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
             syncDisplay();
             render();
 
-            // Final safety: if any stale year sneaks in (old DOM state), snap back to the hidden value after open.
-            requestAnimationFrame(function ()
-            {
-                if (!shell.classList.contains("open"))
-                {
-                    return;
-                }
-                forceViewYearFromHidden();
-                render();
-            });
+            // Force the header text AFTER render, as an absolute safety net
+            currentNode.textContent = String(viewYear);
         };
 
-        trigger.addEventListener("click", open);
+        trigger.addEventListener("click", function (e)
+        {
+            e.stopPropagation();
+            open();
+        });
         trigger.addEventListener("keydown", function (event)
         {
             if (event.key === "Enter" || event.key === " ")
@@ -1320,8 +1368,12 @@
 
         if (prevButton)
         {
-            prevButton.addEventListener("click", function ()
+            prevButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
+                // Ignore phantom clicks that fire immediately after the calendar opens
+                // (the prev button can land under the cursor when the panel appears)
+                if (Date.now() - openedAt < 300) { return; }
                 const baseYear = Number.isFinite(viewYear) ? viewYear : getSelectedOrToday().year;
                 viewYear = baseYear - 1;
                 manualYear = true;
@@ -1331,8 +1383,11 @@
 
         if (nextButton)
         {
-            nextButton.addEventListener("click", function ()
+            nextButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
+                // Ignore phantom clicks that fire immediately after the calendar opens
+                if (Date.now() - openedAt < 300) { return; }
                 const baseYear = Number.isFinite(viewYear) ? viewYear : getSelectedOrToday().year;
                 viewYear = baseYear + 1;
                 manualYear = true;
@@ -1342,8 +1397,9 @@
 
         if (currentButton)
         {
-            currentButton.addEventListener("click", function ()
+            currentButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
                 const today = getToday();
                 manualYear = false;
                 viewYear = today.year;
@@ -1357,8 +1413,9 @@
 
         if (clearButton)
         {
-            clearButton.addEventListener("click", function ()
+            clearButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
                 manualYear = false;
                 hiddenInput.value = "";
                 viewYear = getToday().year;
@@ -1563,9 +1620,7 @@
                 : (previewDate || selectedDate || getPreferredOpenDate());
             const normalizedToday = getTodayDate();
             const minimumDate = getMinimumSelectableDate();
-            const sourceViewDate = hiddenInput.name === "from_date" && shell.classList.contains("open")
-                ? getTodayDate()
-                : (shell._viewDate || previewDate || getViewDate());
+            const sourceViewDate = shell._viewDate || previewDate || getViewDate();
             const viewDate = new Date(sourceViewDate.getFullYear(), sourceViewDate.getMonth(), 1);
             const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
             const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
@@ -1631,6 +1686,8 @@
 
         };
 
+        var dateOpenedAt = 0;
+
         const open = function ()
         {
             if (hiddenInput.disabled || shell.classList.contains("is-disabled"))
@@ -1640,20 +1697,10 @@
 
             const isOpen = shell.classList.contains("open");
 
-            document.querySelectorAll(".popup-filter-date-shell.open").forEach(function (openShell)
+            document.querySelectorAll(".popup-filter-month-shell.open, .popup-filter-date-shell.open, .popup-filter-leave-shell.open").forEach(function (openShell)
             {
                 openShell.classList.remove("open");
-                const openTrigger = openShell.querySelector(".date-trigger");
-                if (openTrigger)
-                {
-                    openTrigger.setAttribute("aria-expanded", "false");
-                }
-            });
-
-            document.querySelectorAll(".popup-filter-leave-shell.open").forEach(function (openShell)
-            {
-                openShell.classList.remove("open");
-                const openTrigger = openShell.querySelector(".popup-filter-leave-trigger");
+                const openTrigger = openShell.querySelector(".month-trigger, .date-trigger, .popup-filter-leave-trigger");
                 if (openTrigger)
                 {
                     openTrigger.setAttribute("aria-expanded", "false");
@@ -1680,10 +1727,11 @@
             shell.classList.toggle("open-up", openUp);
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
+            dateOpenedAt = Date.now();
             render();
         };
 
-        trigger.addEventListener("click", open);
+        trigger.addEventListener("click", function (e) { e.stopPropagation(); open(); });
         trigger.addEventListener("keydown", function (event)
         {
             if (event.key === "Enter" || event.key === " ")
@@ -1695,8 +1743,10 @@
 
         if (prevButton)
         {
-            prevButton.addEventListener("click", function ()
+            prevButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
+                if (Date.now() - dateOpenedAt < 300) { return; }
                 shell._viewDate = new Date(shell._viewDate.getFullYear(), shell._viewDate.getMonth() - 1, 1);
                 render();
             });
@@ -1704,8 +1754,10 @@
 
         if (nextButton)
         {
-            nextButton.addEventListener("click", function ()
+            nextButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
+                if (Date.now() - dateOpenedAt < 300) { return; }
                 shell._viewDate = new Date(shell._viewDate.getFullYear(), shell._viewDate.getMonth() + 1, 1);
                 render();
             });
@@ -1810,10 +1862,10 @@
         trigger.addEventListener("click", function ()
         {
             const willOpen = !shell.classList.contains("open");
-            document.querySelectorAll(".popup-filter-leave-shell.open").forEach(function (openShell)
+            document.querySelectorAll(".popup-filter-month-shell.open, .popup-filter-date-shell.open, .popup-filter-leave-shell.open").forEach(function (openShell)
             {
                 openShell.classList.remove("open");
-                const openTrigger = openShell.querySelector(".popup-filter-leave-trigger");
+                const openTrigger = openShell.querySelector(".month-trigger, .date-trigger, .popup-filter-leave-trigger");
                 if (openTrigger)
                 {
                     openTrigger.setAttribute("aria-expanded", "false");
@@ -2262,10 +2314,12 @@
 
                 if (toDateInput)
                 {
-                    toDateInput.disabled = hasMonth;
+                    const hasFromDate = !!(fromDateInput && fromDateInput.value);
+                    const toDisabled = hasMonth || !hasFromDate;
+                    toDateInput.disabled = toDisabled;
                     if (datePickerShells[1])
                     {
-                        datePickerShells[1].classList.toggle("is-disabled", hasMonth);
+                        datePickerShells[1].classList.toggle("is-disabled", toDisabled);
                     }
                 }
             };
@@ -2311,6 +2365,7 @@
                     to_date: String(formData.get("to_date") || "")
                 };
                 setPopupHistoryPage(status, 1);
+                syncPopupTabFilterIndicators();
 
                 closeModal();
                 renderPopupHistoryTable(currentEmployeeDetail);
@@ -2323,6 +2378,7 @@
             {
                 popupHistoryFilters[status] = createEmptyPopupHistoryFilter();
                 setPopupHistoryPage(status, 1);
+                syncPopupTabFilterIndicators();
                 closeModal();
                 renderPopupHistoryTable(currentEmployeeDetail);
             });
@@ -3544,7 +3600,7 @@
                 </td>
                 <td>
                     <div class="reason-box rejection-box">
-                        <p class="reason-text action-reason-text" data-full="${escapeHtml(rejectionReason)}" ${reasonMetaAttributes} data-modal-title="Rejection reason" data-updated="${escapeHtml(leave.rejected_at || "-")}" data-updated-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-updated-count="1" data-updated-label="Rejected At">${escapeHtml(rejectionReason)}</p>
+                        <p class="reason-text action-reason-text" data-full="${escapeHtml(rejectionReason)}" ${reasonMetaAttributes} data-modal-title="${escapeHtml(leave.type)} Rejection Reason" data-updated="${escapeHtml(leave.rejected_at || "-")}" data-updated-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-updated-count="1" data-updated-label="Rejected At">${escapeHtml(rejectionReason)}</p>
                     </div>
                 </td>
             </tr>
@@ -3944,6 +4000,7 @@
 
     function renderPopupHistoryTable(selected)
     {
+        syncPopupTabFilterIndicators();
         const tableBody = document.getElementById("detailTableBody");
         const detailTableCount = document.getElementById("detailTableCount");
         const definition = popupHistoryDefinitions[activePopupHistoryStatus] || popupHistoryDefinitions.pending;
@@ -4199,6 +4256,7 @@
             {
                 popupHistoryFilters[activePopupHistoryStatus] = nextState;
                 setPopupHistoryPage(activePopupHistoryStatus, 1);
+                syncPopupTabFilterIndicators();
                 renderPopupHistoryTable(currentEmployeeDetail);
             };
 
