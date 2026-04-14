@@ -1,0 +1,208 @@
+{% comment %} 
+<!--
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage All Leaves</title>
+    <<!-- Shared Header -->
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+
+    <!-- Admin Styles -->
+    <link rel="stylesheet" href="{% static 'css/manage_all.css' %}">
+</head>
+<body>
+
+<header>
+    <h1>Manage All Leaves</h1>
+    <input type="checkbox" id="menu-toggle">
+    <label for="menu-toggle" class="hamburger">&#9776;</label>
+
+    <nav class="nav-links">
+        <a href="{% url 'hr_dashboard' %}">Reports</a>
+        <a href="{% url 'employee_details' %}">Employees</a>
+        <a href="{% url 'reports' %}">Manage All</a>
+        
+    </nav>
+
+    <div class="profile-dropdown">
+        <input type="checkbox" id="profile-toggle">
+        <label for="profile-toggle" class="profile-icon">
+            <img src="user.png">
+        </label>
+        <div class="dropdown-content">
+            <div class="user-info">
+                <img src="user.png">
+                <p>HR User</p>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="container full">
+
+        <div class="card full-width">
+            <h2>All Leave Requests</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Status</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td>John Doe</td>
+                        <td>Casual</td>
+                        <td>2025-01-10</td>
+                        <td>2025-01-11</td>
+                        <td class="pending">Pending</td>
+                        <td>Family event</td>
+                    </tr>
+
+                    <tr>
+                        <td>Priya Sharma</td>
+                        <td>Sick</td>
+                        <td>2025-01-12</td>
+                        <td>2025-01-13</td>
+                        <td class="approved">Approved</td>
+                        <td>Medical</td>
+                    </tr>
+
+                    <tr>
+                        <td>Rahul Kumar</td>
+                        <td>Earned</td>
+                        <td>2025-01-15</td>
+                        <td>2025-01-20</td>
+                        <td class="rejected">Rejected</td>
+                        <td>Workload high</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</main>
+
+<footer>© 2025 Leave Management | HR</footer>
+
+</body>
+</html> 
+
+-->
+
+{% endcomment %}
+
+
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage All Leaves</title>
+
+    <!-- Shared Header -->
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'css/manage_all.css' %}">
+</head>
+<body>
+
+<header>
+    <h1>Manage All Leaves</h1>
+
+    <input type="checkbox" id="menu-toggle">
+    <label for="menu-toggle" class="hamburger">&#9776;</label>
+
+    <nav class="nav-links">
+        <a href="{% url 'hr_dashboard' %}">Dashboard</a>
+        <a href="{% url 'employee_details' %}">Employees</a>
+        <a href="{% url 'reports' %}">Reports</a>
+    </nav>
+
+    <div class="profile-dropdown">
+        <input type="checkbox" id="profile-toggle">
+        <label for="profile-toggle" class="profile-icon">
+            <img src="{% static 'images/user.png' %}">
+        </label>
+
+        <div class="dropdown-content">
+            <div class="user-info">
+                <img src="{% static 'images/user.png' %}" alt="User">
+                <p>{{ request.user.username }}</p>
+            </div>
+
+            <a href="{% url 'logout' %}" class="logout-btn">⏻ Logout</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="container full">
+
+        <div class="card full-width">
+            <h2>All Leave Requests</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Status</th>
+                        <th>Reason</th>
+                        <th>Rejection Reason</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for leave in leaves %}
+                    <tr>
+                        <td>{{ leave.user.username }}</td>
+                        <td>{{ leave.leave_type }}</td>
+                        <td>{{ leave.from_date }}</td>
+                        <td>{{ leave.to_date }}</td>
+
+                        <td class="
+                            {% if leave.status == 'Pending' %}pending
+                            {% elif leave.status == 'Approved' %}approved
+                            {% elif leave.status == 'Rejected' %}rejected
+                            {% endif %}
+                        ">
+                            {{ leave.status }}
+                        </td>
+
+                        <td>{{ leave.reason }}</td>
+
+                        <td>
+                            {% if leave.rejection_reason %}
+                                {{ leave.rejection_reason }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">No leave requests found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</main>
+
+<footer>© 2025 Leave Management | HR</footer>
+
+</body>
+</html>

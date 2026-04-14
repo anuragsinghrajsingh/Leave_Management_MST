@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block page_skeleton %}
+    <div class="page-skeleton-overlay" data-page-skeleton>
+        <div class="page-skeleton-shell">
+            <div class="page-skeleton-topbar">
+                <span class="skeleton-chip"></span>
+                <span class="skeleton-bar title"></span>
+                <span class="skeleton-bar nav"></span>
+                <span class="skeleton-icon"></span>
+                <span class="skeleton-avatar"></span>
+            </div>
+
+            <div class="page-skeleton-body">
+                <div class="page-skeleton-row equal-2">
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-30"></span>
+                                <span class="skeleton-line w-70"></span>
+                                <span class="skeleton-line w-60"></span>
+                            </div>
+                            <div class="page-skeleton-stat-grid cols-2">
+                                <div class="skeleton-card sm">
+                                    <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center">
+                                        <span class="skeleton-line w-40"></span>
+                                        <span class="skeleton-line w-30"></span>
+                                    </div>
+                                </div>
+                                <div class="skeleton-card sm">
+                                    <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center">
+                                        <span class="skeleton-line w-40"></span>
+                                        <span class="skeleton-line w-30"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-50"></span>
+                                <span class="skeleton-line w-80"></span>
+                                <span class="skeleton-line w-60"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page-skeleton-grid cols-3">
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                </div>
+
+                <div class="page-skeleton-row equal-2">
+                    <div class="skeleton-card lg">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-100"></span>
+                                <span class="skeleton-line w-80"></span>
+                                <span class="skeleton-line w-60"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card lg">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-100"></span>
+                                <span class="skeleton-line w-80"></span>
+                                <span class="skeleton-line w-60"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skeleton-card lg page-skeleton-table">
+                    <div class="page-skeleton-table-header">
+                        <span class="skeleton-line w-40"></span>
+                        <span class="skeleton-chip wide"></span>
+                    </div>
+                    <div class="page-skeleton-table-head">
+                        <span class="skeleton-line w-70"></span>
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-80"></span>
+                        <span class="skeleton-line w-60"></span>
+                        <span class="skeleton-line w-50"></span>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-70"></span><span class="skeleton-line w-50"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-30"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-100"></span><span class="skeleton-line w-80"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-80"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-60"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block header %}
+    <div class="header-title-group">
+        <span class="header-title-icon dashboard-title-icon" aria-hidden="true">
+            <span class="header-title-icon-shape icon-home"></span>
+        </span>
+        <h1>Dashboard</h1>
+    </div>
+
+    <button type="button" class="hamburger" aria-label="Open navigation menu">&#9776;</button>
+
+    <nav class="nav-links">
+        <a href="{% url 'apply_leave' %}">
+            <span class="nav-shortcut-icon apply-nav-icon"><span class="badge-shape badge-form"></span></span>
+            <span>Apply Leave</span>
+        </a>
+        <a href="{% url 'my_leave' %}">
+            <span class="nav-shortcut-icon leave-nav-icon"><span class="badge-shape badge-calendar"></span></span>
+            <span>My Leaves</span>
+        </a>
+    </nav>
+
+    <div class="header-actions">
+        {% include "includes/communication_dropdown.html" %}
+
+        <div class="notification-dropdown" data-notification-api="{% url 'employee_notifications' %}" data-notification-empty="No leave updates right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
+            <button type="button" class="notification-trigger" aria-label="Leave status notifications" aria-expanded="false">
+                <span class="notification-bell"></span>
+                <span class="notification-count{% if not employee_notification_count %} hidden{% endif %}" data-countup data-countup-target="{{ employee_notification_count }}">{{ employee_notification_count }}</span>
+                <span class="notification-new-badge hidden" data-notification-new-badge></span>
+            </button>
+
+            <div class="notification-panel employee-notification-panel">
+                <div class="notification-panel-header">
+                    <div>
+                        <p class="eyebrow">Alerts</p>
+                        <h3>Leave updates</h3>
+                    </div>
+                    <div class="notification-panel-meta">
+                        <span class="notification-new-pill hidden" data-notification-new-pill></span>
+                        <span class="notification-meta" data-notification-total data-countup data-countup-target="{{ employee_notification_count }}">{{ employee_notification_count }}</span>
+                    </div>
+                </div>
+
+                <div class="notification-list-actions notification-list-actions-bar">
+                    <button type="button" class="notification-mark-read-btn hidden" data-notification-mark-read>Mark all read</button>
+                </div>
+                <div class="notification-list" data-notification-list>
+                    {% for item in employee_notifications %}
+                        <a href="{{ item.target_url }}" class="notification-item notification-item-{{ item.leave_type_class }} notification-item-status-{{ item.status_class|default:'default' }}{% if item.is_new %} is-new{% elif item.is_read %} is-read{% endif %}" data-notification-item data-notification-id="{{ item.id }}" data-notification-read="{{ item.is_read|yesno:'true,false' }}" data-notification-new="{{ item.is_new|yesno:'true,false' }}" data-notification-leave-id="{{ item.id }}" data-notification-target-panel="{{ item.target_panel|default:'' }}">
+                            <div class="notification-visual">
+                                {% if item.photo_url %}
+                                    <img src="{{ item.photo_url }}" alt="{{ item.display_name }}" class="notification-avatar">
+                                {% else %}
+                                    <span class="notification-avatar notification-avatar-fallback" aria-label="{{ item.display_name }}" data-avatar-fallback data-full-name="{{ item.display_name }}" data-username="{{ item.username|default:item.display_name }}"></span>
+                                {% endif %}
+                                <span class="notification-type notification-type-compact notification-status-text notification-status-text-{{ item.status_class|default:'default' }}">{{ item.leave_type }}</span>
+                            </div>
+                            <div class="notification-copy">
+                                <span class="notification-name">{{ item.headline_text|default:item.display_name|title }}</span>
+                                <small class="notification-subtitle">{{ item.schedule_text }}</small>
+                                <small class="notification-meta-line">
+                                    <span class="notification-time">{% if item.updated_text %}Updated {{ item.updated_text }}{% else %}Applied {{ item.applied_text }}{% endif %}</span>
+                                </small>
+                            </div>
+                        </a>
+                    {% empty %}
+                        <div class="notification-empty">No leave updates right now.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-dropdown profile-header-dropdown">
+            <button type="button" class="profile-icon profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false">
+                {% if request.user.profile.profile_photo %}
+                    <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                {% else %}
+                    <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-hidden="true"></span>
+                {% endif %}
+            </button>
+
+            <div class="dropdown-content">
+                <div class="user-info">
+                {% if request.user.profile.profile_photo %}
+                    <div class="user-info-media">
+                        <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                    </div>
+                {% else %}
+                    <span class="profile-avatar-shell profile-avatar-initials dropdown-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-hidden="true"></span>
+                {% endif %}
+                <div>
+                    {% with full_name=request.user.get_full_name first_name=request.user.first_name last_name=request.user.last_name %}
+                        <p class="user-info-name">
+                            <a href="{% url 'profile' %}">
+                                {% if full_name and full_name|length > 14 and first_name and last_name %}
+                                    {{ first_name }} {{ last_name|slice:":1" }}.
+                                {% elif full_name %}
+                                    {{ full_name }}
+                                {% else %}
+                                    {{ request.user.username }}
+                                {% endif %}
+                            </a>
+                        </p>
+                    {% endwith %}
+                    <small>Employee workspace</small>
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <section class="page-shell dashboard-page-shell">
+        <section class="workspace dashboard-workspace">
+        <div class="dashboard-layout">
+            <section class="left-panel">
+                <article class="card hero-card">
+                    <div class="hero-copy">
+                        <p class="section-kicker section-kicker-simple">Leave overview</p>
+                        <h2 class="hero-title">
+                            <span class="hero-greeting-row">
+                                <span class="hero-title-mark" aria-hidden="true">✦</span>
+                                <span class="hero-greeting-prefix">Welcome</span>
+                                <span class="hero-greeting-focus">back,</span>
+                            </span>
+                            <span class="hero-name-row">
+                                <span class="hero-name">{{ request.user.get_full_name }}</span>
+                            </span>
+                        </h2>
+                        <p class="hero-subtitle">Track your balance, review request status, and keep the next few days in view.</p>
+                    </div>
+
+                        <div class="hero-balance">
+                            <div class="balance-ring">
+                                <div class="balance-ring-inner">
+                                    <span class="balance-value" data-countup data-countup-target="{{ leaves_remaining }}" data-countup-decimals="2">{{ leaves_remaining }}</span>
+                                    <span class="balance-caption">leave left</span>
+                                    <span class="balance-total-meta">
+                                        <span class="balance-total-label">out of</span>
+                                        <span class="balance-total-value">{{ sick_total|add:earned_total|floatformat:"-2" }}</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                        <div class="quote-box">
+                            <span id="quoteText">Stay consistent, success follows.</span>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="dashboard-row dashboard-row-overview">
+                    <article class="card overview-card">
+                        <div class="section-head section-head-simple">
+                            <h3 class="balance-heading-simple">Balance</h3>
+                        </div>
+
+                        <div class="balance-type-grid">
+                            <article class="stat-card balance-type-card earned-balance-card">
+                                <p class="stat-label">Earned</p>
+                                <p class="count" data-countup data-countup-target="{{ earned_remaining }}" data-countup-decimals="2">{{ earned_remaining }}</p>
+                                <small>{{ earned_used|floatformat:"-2" }} used of {{ earned_total|floatformat:"-2" }}</small>
+                            </article>
+
+                            <article class="stat-card balance-type-card sick-balance-card">
+                                <p class="stat-label">Sick</p>
+                                <p class="count" data-countup data-countup-target="{{ sick_remaining }}" data-countup-decimals="2">{{ sick_remaining }}</p>
+                                <small>{{ sick_used|floatformat:"-2" }} used of {{ sick_total|floatformat:"-2" }}</small>
+                            </article>
+
+                            <article class="stat-card balance-type-card casual-balance-card">
+                                <p class="stat-label">Casual</p>
+                                <p class="count" data-countup data-countup-target="{{ casual_used }}" data-countup-decimals="2">{{ casual_used }}</p>
+                                <small>{{ casual_used|floatformat:"-2" }} used so far</small>
+                            </article>
+                        </div>
+
+                        <div class="overview-stats">
+                            <article class="stat-card approved-card">
+                                <p class="stat-label">Approved</p>
+                                <p class="count" data-countup data-countup-target="{{ approved_count }}">{{ approved_count }}</p>
+                                <small>Requests accepted</small>
+                            </article>
+
+                            <article class="stat-card pending-card">
+                                <p class="stat-label">Pending</p>
+                                <p class="count" data-countup data-countup-target="{{ pending_count }}">{{ pending_count }}</p>
+                                {% if pending_count > 2 %}
+                                    <div class="warning-text stat-alert">Needs attention</div>
+                                {% else %}
+                                    <small>Awaiting review</small>
+                                {% endif %}
+                            </article>
+
+                            <article class="stat-card rejected-card">
+                                <p class="stat-label">Rejected</p>
+                                <p class="count" data-countup data-countup-target="{{ rejected_count }}">{{ rejected_count }}</p>
+                                <small>Requests declined</small>
+                            </article>
+                        </div>
+                    </article>
+                </div>
+
+            </section>
+
+            <section class="right-panel">
+                <div class="global-line">
+                    <div class="line-dot" id="activeDot"></div>
+                </div>
+
+                <div class="leave-wrapper">
+                    <article class="main-leave-card upcoming">
+                        <div class="section-head section-head-topcard">
+                            <span class="corner-kicker corner-next">Next Up</span>
+                            <h2 class="main-heading">Upcoming leave</h2>
+                        </div>
+                        <div class="main-divider"></div>
+
+                        <div class="inner-leave-container">
+                            <div class="inner-leave-card short" onmouseenter="activateLine(this)">
+                                <div class="card-top">
+                                    <div class="icon-badge-group">
+                                        <div class="icon-badge icon-clock">&#9719;</div>
+                                        <span class="icon-label {% if next_short_leave and next_short_leave.leave_type == 'Half' %}icon-label-half{% else %}icon-label-short{% endif %}">
+                                            {% if next_short_leave %}{{ next_short_leave.leave_type }}{% else %}Short{% endif %}
+                                        </span>
+                                    </div>
+                                    <span class="type-tag">Time Based</span>
+                                </div>
+
+                                <div class="card-body">
+                                    {% if next_short_leave %}
+                                        <div class="time-block">
+                                            <span>{{ next_short_leave.from_datetime|time:"h:i A" }}</span>
+                                            <span class="arrow">&rarr;</span>
+                                            <span>{{ next_short_leave.to_datetime|time:"h:i A" }}</span>
+                                        </div>
+                                        <p class="leave-date">{{ next_short_leave.from_date }}</p>
+                                        <p class="leave-meta applied-time" data-created-time="{{ next_short_leave.created_at|date:'c' }}" data-updated-time="{{ next_short_leave.updated_at|date:'c' }}"></p>
+                                        <p class="leave-meta leave-duration leave-type-short">
+                                            {% if next_short_leave.leave_type == "Half" %}
+                                                Half day for 4 hours
+                                            {% else %}
+                                                Short leave for 2 hours
+                                            {% endif %}
+                                        </p>
+
+                                        <div class="leave-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" data-from="{{ next_short_leave.from_datetime|date:'Y-m-d H:i:s' }}"></div>
+                                            </div>
+                                            <div class="progress-text">
+                                                {% if context_next_short_today %}
+                                                    <span class="live-countdown" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"></span>
+                                                {% else %}
+                                                    {{ next_short_days }} days left
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <p class="empty">No short leave planned</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="inner-leave-card full" onmouseenter="activateLine(this)">
+                                <div class="card-top">
+                                    <div class="icon-badge-group">
+                                        <div class="icon-badge icon-flag">&#9873;</div>
+                                        <span class="icon-label icon-label-full">
+                                            {% if next_full_leave %}{{ next_full_leave.leave_type }}{% else %}Full{% endif %}
+                                        </span>
+                                    </div>
+                                    <span class="type-tag">Full Day</span>
+                                </div>
+
+                                <div class="card-body">
+                                    {% if next_full_leave %}
+                                        <div class="date-range">
+                                            <span>{{ next_full_leave.from_date }}</span>
+                                            <span class="arrow">&rarr;</span>
+                                            <span>{{ next_full_leave.to_date }}</span>
+                                        </div>
+                                        <p class="leave-meta applied-time" data-created-time="{{ next_full_leave.created_at|date:'c' }}" data-updated-time="{{ next_full_leave.updated_at|date:'c' }}"></p>
+
+                                        <div class="leave-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" data-from="{{ next_full_leave.from_date|date:'Y-m-d' }}"></div>
+                                            </div>
+                                            <div class="progress-text">{{ next_full_days }} days left</div>
+                                        </div>
+                                    {% else %}
+                                        <p class="empty">No full leave planned</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="main-leave-card last">
+                        <div class="section-head section-head-topcard">
+                            <span class="corner-kicker corner-history">History</span>
+                            <h2 class="main-heading">Last leave</h2>
+                        </div>
+                        <div class="main-divider"></div>
+
+                        <div class="inner-leave-container">
+                            <div class="inner-leave-card short" onmouseenter="activateLine(this)">
+                                <div class="card-top">
+                                    <div class="icon-badge-group">
+                                        <div class="icon-badge icon-clock">&#9719;</div>
+                                        <span class="icon-label {% if last_short_leave and last_short_leave.leave_type == 'Half' %}icon-label-half{% else %}icon-label-short{% endif %}">
+                                            {% if last_short_leave %}{{ last_short_leave.leave_type }}{% else %}Short{% endif %}
+                                        </span>
+                                    </div>
+                                    <span class="type-tag">Time Based</span>
+                                </div>
+
+                                <div class="card-body">
+                                    {% if last_short_leave %}
+                                        <div class="time-block">
+                                            <span>{{ last_short_leave.from_datetime|time:"h:i A" }}</span>
+                                            <span class="arrow">&rarr;</span>
+                                            <span>{{ last_short_leave.to_datetime|time:"h:i A" }}</span>
+                                        </div>
+                                        <p class="leave-date">{{ last_short_leave.from_date }}</p>
+                                        <p class="leave-meta applied-time" data-created-time="{{ last_short_leave.created_at|date:'c' }}" data-updated-time="{{ last_short_leave.updated_at|date:'c' }}"></p>
+                                        <p class="leave-meta leave-duration leave-type-short">
+                                            {% if last_short_leave.leave_type == "Half" %}
+                                                Half day for 4 hours
+                                            {% else %}
+                                                Short leave for 2 hours
+                                            {% endif %}
+                                        </p>
+                                    {% else %}
+                                        <p class="empty">No short leave recorded</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="inner-leave-card full" onmouseenter="activateLine(this)">
+                                <div class="card-top">
+                                    <div class="icon-badge-group">
+                                        <div class="icon-badge icon-flag">&#9873;</div>
+                                        <span class="icon-label icon-label-full">
+                                            {% if last_full_leave %}{{ last_full_leave.leave_type }}{% else %}Full{% endif %}
+                                        </span>
+                                    </div>
+                                    <span class="type-tag">Full Day</span>
+                                </div>
+
+                                <div class="card-body">
+                                    {% if last_full_leave %}
+                                        <div class="date-range">
+                                            <span>{{ last_full_leave.from_date }}</span>
+                                            <span class="arrow">&rarr;</span>
+                                            <span>{{ last_full_leave.to_date }}</span>
+                                        </div>
+                                        <p class="leave-meta applied-time" data-created-time="{{ last_full_leave.created_at|date:'c' }}" data-updated-time="{{ last_full_leave.updated_at|date:'c' }}"></p>
+                                        <p class="leave-meta leave-duration leave-type-fulltype">
+                                            {{ last_full_leave.duration|default:1 }} day{% if last_full_leave.duration|default:1 > 1 %}s{% endif %}
+                                        </p>
+                                    {% else %}
+                                        <p class="empty">No full leave recorded</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <article class="main-leave-card recent">
+                    <div class="section-head section-head-topcard">
+                        <span class="corner-kicker corner-recent">Recent</span>
+                        <h2 class="main-heading">Recent activity</h2>
+                    </div>
+                    <div class="main-divider"></div>
+
+                    <div id="activityContainer" onmouseenter="activateLine(this)" class="activity-grid">
+                        {% for leave in recent_leaves|slice:":3" %}
+                            <div class="activity-card {{ leave.status|lower }} {% if leave.leave_type == 'Short' %}activity-short{% elif leave.leave_type == 'Half' %}activity-half{% endif %}">
+                                <div class="activity-header">
+                                    <span class="leave-type {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Casual' %}leave-type-casual{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">{{ leave.leave_type }}</span>
+                                    <span class="status {{ leave.status|lower }}">{{ leave.status }}</span>
+                                </div>
+
+                                <div class="activity-body">
+                                    {% if leave.leave_type == "Short" or leave.leave_type == "Half" %}
+                                        <p class="date-line">
+                                            <strong>{{ leave.from_date|date:"M j, Y" }}</strong>
+                                        </p>
+                                        <p class="date-line time-line">
+                                            <strong>{{ leave.from_datetime|time:"h:i A" }}</strong>
+                                            <span class="arrow">&rarr;</span>
+                                            <strong>{{ leave.to_datetime|time:"h:i A" }}</strong>
+                                        </p>
+                                    {% else %}
+                                        <p class="date-line">
+                                            <strong>{{ leave.from_date|date:"M j, Y" }}</strong>
+                                            <span class="arrow">&rarr;</span>
+                                            <strong>{{ leave.to_date|date:"M j, Y" }}</strong>
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <div class="activity-extra">
+                                    <p class="applied-time" data-created-time="{{ leave.created_at|date:'c' }}" data-updated-time="{{ leave.updated_at|date:'c' }}"></p>
+                                    <p class="activity-duration {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Casual' %}leave-type-casual{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">
+                                        {% if leave.leave_type == "Short" %}
+                                            Short leave for <span class="duration-number" data-unit="hour">2</span> hours
+                                        {% elif leave.leave_type == "Half" %}
+                                            Half day for <span class="duration-number" data-unit="hour">4</span> hours
+                                        {% else %}
+                                            <span class="duration-number" data-unit="day">{{ leave.duration }}</span> day{% if leave.duration > 1 %}s{% endif %}
+                                        {% endif %}
+                                    </p>
+
+                                    <div class="reason-box {% if leave.leave_type != 'Short' and leave.leave_type != 'Half' %}reason-box-full-day{% endif %}">
+                                        <div class="reason-label">Reason</div>
+                                        <div class="reason-divider"></div>
+                                        <div class="reason-content" data-full="{{ leave.reason|escape }}">
+                                            {{ leave.reason|truncatechars:60 }}
+                                            {% if leave.reason|length > 60 %}
+                                                <span class="more-btn" data-reason="{{ leave.reason|escape }}">more</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="empty-state">No recent activity</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
+                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} onclick="prevPage()">Prev</button>
+                        <span id="pageNumber">Page {{ context_current_page }} of {{ context_total_pages }}</span>
+                        <button class="next-btn" {% if not has_next %}disabled{% endif %} onclick="nextPage()">Next</button>
+                    </div>
+                </article>
+            </section>
+        </div>
+
+        </section>
+    </section>
+
+    <div id="reasonModal" class="reason-modal" aria-hidden="true">
+        <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
+        <div class="reason-modal-box" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
+            <div class="reason-modal-header">
+                <div class="reason-modal-heading-group">
+                    <span class="reason-modal-icon">R</span>
+                    <div>
+                        <h3 id="reasonModalTitle">Leave Reason</h3>
+                        <p class="reason-modal-subtitle">Request details and submitted note</p>
+                    </div>
+                </div>
+                <button type="button" class="reason-modal-close" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
+            </div>
+            <div class="reason-modal-content" id="reasonModalContent"></div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

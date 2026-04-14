@@ -1,0 +1,87 @@
+{% for leave in approved_leaves %}
+    <tr class="leave-row leave-row-{{ leave.leave_type|lower }}" data-leave-id="{{ leave.id }}" data-leave-panel="approved-panel" data-leave-type="{{ leave.leave_type }}" data-from-date="{{ leave.from_date|date:'Y-m-d' }}" data-to-date="{{ leave.to_date|date:'Y-m-d' }}">
+        <td class="sn-cell">{{ forloop.counter }}</td>
+        <td>
+            <span class="leave-pill leave-pill-{{ leave.leave_type|lower }}">
+                <span class="leave-pill-symbol" aria-hidden="true"></span>
+                <span class="leave-pill-code">
+                    {% if leave.leave_type == "Short" %}S{% elif leave.leave_type == "Half" %}H{% else %}{{ leave.leave_type|slice:":1"|upper }}{% endif %}
+                </span>
+                <span class="leave-pill-name">{{ leave.leave_type }}</span>
+            </span>
+        </td>
+        <td>
+            <div class="schedule-block">
+                <div class="schedule-line">
+                    <span class="meta-icon" data-meta-icon="calendar" aria-hidden="true"></span>
+                    <strong>{{ leave.from_date|date:"M d, Y" }}</strong>
+                    <span class="range-arrow">&rarr;</span>
+                    <strong>{{ leave.to_date|date:"M d, Y" }}</strong>
+                </div>
+                <div class="schedule-line schedule-time {% if leave.leave_type == 'Short' %}schedule-time-short{% elif leave.leave_type == 'Half' %}schedule-time-half{% endif %}">
+                    <span class="meta-icon" data-meta-icon="clock" aria-hidden="true"></span>
+                    {% if leave.from_datetime and leave.to_datetime %}
+                        <span>{{ leave.from_datetime|time:"h:i A" }}</span>
+                        <span class="range-arrow">&rarr;</span>
+                        <span>{{ leave.to_datetime|time:"h:i A" }}</span>
+                    {% else %}
+                        <span>Full day</span>
+                    {% endif %}
+                </div>
+            </div>
+        </td>
+        <td>
+            <div class="days-block js-days-block"
+                 data-leave-type="{{ leave.leave_type }}"
+                 data-from-date="{{ leave.from_date|date:'Y-m-d' }}"
+                 data-to-date="{{ leave.to_date|date:'Y-m-d' }}">
+                <strong class="js-days-value days-counter">1</strong>
+                <span class="js-days-label">day</span>
+            </div>
+        </td>
+        <td>
+            <div class="applied-block">
+                <div class="applied-line">
+                    <span class="meta-icon" data-meta-icon="calendar" aria-hidden="true"></span>
+                    <strong data-relative-datetime="{{ leave.created_at|date:'c' }}">{{ leave.created_at|date:"M d, Y" }}</strong>
+                </div>
+                <div class="applied-line">
+                    <span class="meta-icon" data-meta-icon="clock" aria-hidden="true"></span>
+                    <span>{{ leave.created_at|date:"h:i A" }}</span>
+                </div>
+            </div>
+        </td>
+        <td>
+            {% if leave.approved_at %}
+            <div class="applied-block">
+                <div class="applied-line">
+                    <span class="meta-icon meta-icon-approved" data-meta-icon="approved" aria-hidden="true"></span>
+                    <strong data-relative-datetime="{{ leave.approved_at|date:'c' }}">{{ leave.approved_at|date:"M d, Y" }}</strong>
+                </div>
+                <div class="applied-line">
+                    <span class="meta-icon meta-icon-approved-time" data-meta-icon="clock" aria-hidden="true"></span>
+                    <span>{{ leave.approved_at|date:"h:i A" }}</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="applied-block">
+                <div class="applied-line">
+                    <span class="meta-icon meta-icon-approved" data-meta-icon="approved" aria-hidden="true"></span>
+                    <strong>-</strong>
+                </div>
+            </div>
+            {% endif %}
+        </td>
+        <td>
+            <div class="reason-box">
+                <p class="reason-text js-inline-reason"
+                   data-full="{{ leave.reason|escape }}"
+                   data-title="Leave Reason">{{ leave.reason }}</p>
+            </div>
+        </td>
+    </tr>
+{% empty %}
+    <tr class="table-empty-row">
+        <td colspan="7">No approved leaves</td>
+    </tr>
+{% endfor %}

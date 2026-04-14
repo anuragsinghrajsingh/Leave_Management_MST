@@ -1,0 +1,2656 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <link rel="stylesheet" href="{% static 'css/header.css' %}">
+        <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+        <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+        <title>My Profile</title>
+
+        <meta name="csrf-token" content="{{ csrf_token }}">
+    </head>
+
+    <body>
+
+        {% if messages %}
+        <div class="message-container">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ================= HEADER ================= -->
+
+        <header>
+            <h1>My Profile</h1>
+
+            <nav class="nav-links">
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                <a href="{% url 'apply_leave' %}">Apply Leave</a>
+                <a href="{% url 'my_leave' %}">My Leaves</a>
+            </nav>
+
+            <div class="profile-dropdown">
+                <input type="checkbox" id="profile-toggle">
+
+                <label for="profile-toggle" class="profile-icon">
+                    {% if profile.profile_photo %}
+                    <img src="{{ profile.profile_photo.url }}">
+                    {% else %}
+                    <img src="{% static 'images/user.jpg' %}">
+                    {% endif %}
+                </label>
+
+                <div class="dropdown-content">
+                    <a href="javascript:void(0)" onclick="openPasswordModal()" class="dropdown-item pass">
+                        🔒 Change Password
+                    </a>
+                    <a href="{% url 'logout' %}" class="logout-btn">⏻ Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- ================= MAIN ================= -->
+
+        <div class="profile-wrapper">
+
+            <!-- ================= LEFT ================= -->
+
+            <div class="left-profile">
+                <div class="card-box profile-card">
+
+                    <!-- PROFILE TOP -->
+
+                    <div class="profile-top">
+                        <div class="profile-info">
+
+                            <div class="profile-avatar-container">
+                                {% if profile.profile_photo %}
+                                <img src="{{ profile.profile_photo.url }}" class="avatar" onclick="openViewPhoto()">
+                                {% else %}
+                                <img src="{% static 'images/user.jpg' %}" class="avatar" onclick="openViewPhoto()">
+                                {% endif %}
+
+                                <div class="avatar-edit-overlay" onclick="openEditPhoto(event)">
+                                    Change
+                                </div>
+                            </div>
+
+                            <div class="profile-text">
+                                <div class="profile-name">{{ request.user.get_full_name }}</div>
+                                <div class="profile-role">{{ profile.role }}</div>
+                                <div class="username">@ {{ request.user.username }}</div>
+                            </div>
+                        </div>
+
+                        <!-- PROFILE COMPLETION -->
+
+                        <div class="completion-chart">
+                            <svg viewBox="0 0 36 36" class="circular-chart">
+                                <path class="circle-bg" d="M18 2 a 16 16 0 0 1 0 32 a 16 16 0 0 1 0 -32" />
+                                <path id="completionCircle" class="circle" style="--progress: {{ completion_percentage }}"
+                                    stroke-dasharray="0,100" d="M18 2 a 16 16 0 0 1 0 32 a 16 16 0 0 1 0 -32" />
+                                <text id="completionText" x="18" y="20" class="percentage"> {{ completion_percentage }}% </text>
+                            </svg>
+                            <div class="chart-label">Profile Completion</div>
+                        </div>
+                    </div>
+
+                    <!-- EMPLOYEE DETAILS -->
+
+                    <div class="employee-card">
+                        <center> <h3>Employee Details</h3> </center><hr><br>
+
+                        <div class="detail-grid">
+
+                            <div class="detail-item">
+                                <div class="detail-label">Employee ID</div>
+                                <div class="detail-value">{{ profile.employee_id }}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Department</div>
+                                <div class="detail-value">{{ profile.department }}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Role</div>
+                                <div class="detail-value">{{ profile.role }}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Date of Joining</div>
+                                <div class="detail-value">{{ profile.date_of_joining }}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Email</div>
+                                <div class="detail-value">{{ request.user.email }}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Phone</div>
+                                <div class="detail-value">{{ profile.phone }}</div>
+                            </div>
+
+                            <!-- ADDRESS -->
+
+                            <div class="detail-item full-width">
+                                <div class="detail-label">
+                                    Address
+                                    <span class="edit-icon" onclick="editField('address')">✎</span>
+                                    <span id="addressDirty" class="unsaved-dot hidden">●</span>
+                                </div>
+
+                                <div id="addressText" class="detail-value">
+                                    {{ profile.address }}
+                                </div>
+
+                                <input type="text"
+                                    id="addressInput"
+                                    class="edit-input hidden"
+                                    value="{{ profile.address }}"
+                                    data-field="address">
+
+                                <div id="addressSaved" class="save-indicator hidden">✔ Saved</div>
+                                <div id="addressError" class="field-error hidden"></div>
+                            </div>
+
+                            <!-- BIO -->
+
+                            <div class="detail-item full-width">
+                                <div class="detail-label">
+                                    About Me
+                                    <span class="edit-icon" onclick="editField('bio')">✎</span>
+                                    <span id="bioDirty" class="unsaved-dot hidden">●</span>
+                                </div>
+
+                                <div id="bioText" class="detail-value">
+                                    {{ profile.bio|default:"Employee profile information." }}
+                                </div>
+
+                                <textarea id="bioInput"
+                                    class="edit-input hidden"
+                                    maxlength="250"
+                                    data-field="bio"
+                                    oninput="countWords()">{{ profile.bio }}</textarea>
+
+                                <div id="bioCounter" class="bio-counter hidden">0 / 50 words</div>
+                                <div id="bioSaved" class="save-indicator hidden">✔ Saved</div>
+                                <div id="bioError" class="field-error hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NOTIFICATIONS -->
+
+                    <div class="notification-card">
+                        <center><h3>Notifications</h3></center>
+                        <div class="notification-item">🔔 Leave approved <span>2h ago</span></div>
+                        <div class="notification-item">📢 Holiday announced <span>1 day ago</span></div>
+                        <div class="notification-item">⚠ Policy update <span>3 days ago</span></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= RIGHT ================= -->
+
+            <div class="right-profile">
+
+                <!-- LEAVE CARDS -->
+
+                <div class="leave-stats-grid">
+
+                    <div class="leave-card earned">
+                        <div class="leave-header">Earned Leave</div>
+                        <div class="leave-row">
+                            <div>Total - <span>{{ balance.earned_total }}</span></div>
+                            <div>Used - <span>{{ balance.earned_used }}</span></div>
+                            <div>Remaining - <span>{{ earned_remaining }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="leave-card sick">
+                        <div class="leave-header">Sick Leave</div>
+                        <div class="leave-row">
+                            <div>Total - <span>{{ balance.sick_total }}</span></div>
+                            <div>Used - <span>{{ balance.sick_used }}</span></div>
+                            <div>Remaining - <span>{{ sick_remaining }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="leave-card total">
+                        <div class="leave-header">All Leave</div>
+                        <div class="leave-row">
+                            <div>Total - <span>27</span></div>
+                            <div>Used - <span>{{ total_used }}</span></div>
+                            <div>Remaining - <span>{{ total_remaining }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="leave-card casual">
+                        <div class="leave-header">Casual Leave</div>
+                        <div class="leave-row">
+                            <div>Used - <span>{{ balance.unpaid }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="leave-card short">
+                        <div class="leave-header">Short Leave</div>
+                        <div class="leave-row">
+                            <div>Total - <span>2</span></div>
+                            <div>Used - <span>{{ short_taken }}</span></div>
+                            <div>Remaining - <span>{{ short_remaining }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="leave-card half">
+                        <div class="leave-header">Half Leave</div>
+                        <div class="leave-row">
+                            <div>Total - <span>1</span></div>
+                            <div>Used - <span>{{ half_taken }}</span></div>
+                            <div>Remaining - <span>{{ half_remaining }}</span></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- CHARTS -->
+
+                <div class="chart-grid">
+
+                    <div class="card-box chart-card">
+                        <h3>Full Leave Usage</h3><br>
+                        <canvas id="leaveChart"></canvas>
+                    </div>
+
+                    <div class="card-box chart-card">
+                        <h3>Short / Half Leave Usage</h3><br>
+                        <canvas id="shortHalfChart"></canvas>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+        <!-- VIEW PROFILE PHOTO MODAL -->
+
+        <div id="viewPhotoModal" class="modal">
+            <div class="modal-content photo-view-modal">
+                <span class="modal-close" onclick="closeViewPhoto()">&times;</span>
+
+                {% comment %} <img  src="{{ request.user.profile.profile_photo.url }}"  id="viewProfileImg" class="photo-view-img" > {% endcomment %}
+
+                {% if request.user.profile.profile_photo %}
+                    <img src="{{ request.user.profile.profile_photo.url }}" id="viewProfileImg" class="photo-view-img">
+                {% else %}
+                    <img src="{% static 'images\user.jpg' %}" id="viewProfileImg" class="photo-view-img">
+                {% endif %}
+                
+            </div>
+        </div>
+
+        <!-- EDIT PROFILE PHOTO MODAL -->
+
+        <div id="editPhotoModal" class="modal">
+            <div class="modal-content photo-edit-modal">
+                <span class="modal-close" onclick="closeEditPhoto()">&times;</span>
+                <center><h3>Update Profile Photo</h3></center>
+
+                <form id="photoForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="update_photo" value="1">  <!-- Check This -->
+
+                    <div id="uploadArea" class="upload-area">
+                        <input  type="file"  name="profile_photo" id="photoInput" accept="image/*" hidden >
+                        <b><span>Drag & Drop Image</span><br><br>
+                        <span> ------ or ------ </span><br><br>
+                        <span>Click to Upload</span><br></b>
+                    </div>
+
+                    <center><div id="photoError" class="field-error hidden"></div></center>
+
+                    <!-- EDIT CONTROLS -->
+                    <div id="editorLayer" class="editor-layer hidden">
+                        <span class="editor-close" onclick="resetEditor()">✕</span>
+
+                        <div id="editorControls" class="editor-controls hidden">
+                            <button type="button" onclick="zoomOut()">−</button>
+                            <input type="range" id="zoomSlider" min="0" max="100" value="0">
+                            <button type="button" onclick="zoomIn()">+</button>
+                            <button type="button" onclick="resetZoom()">⟲</button>
+                            <button type="button" onclick="rotateImage()" title="Rotate">🔄</button>
+                        </div>
+
+                        <img id="cropImage" crossorigin="anonymous">
+
+                        <div class="avatar-preview-box">
+                            <div class="avatar-preview">
+                                <img id="previewAvatar">
+                            </div>
+                            <span class="preview-label">Preview</span>
+                        </div>
+                    </div>
+
+                    <button type="button" id="uploadPhotoBtn" class="upload-btn hidden" onclick="saveCroppedImage()">
+                        <span id="uploadText">Upload Photo</span>
+                        <span id="uploadLoader" class="btn-loader hidden"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- =====================================================
+        PASSWORD CHANGE MODAL
+        ===================================================== -->
+
+        <div id="passwordModal" class="modal">
+            <div class="modal-content">
+
+                <!-- CLOSE BUTTON -->
+                <span class="modal-close" onclick="closePasswordModal()" title="Close">&times;</span>
+
+                <center><h2>Change Password</h2></center>
+
+                <form method="POST">
+
+                    {% csrf_token %}
+
+                    <input type="hidden" name="change_password" value="1">    <!-- Check This -->
+
+                    <!-- CURRENT PASSWORD -->
+                    <div class="form-group">
+                        <label>Current Password</label>
+
+                        <div class="password-wrapper {% if password_form.old_password.errors %}input-error{% endif %}">
+                            {{ password_form.old_password }}
+                            <span class="toggle-pass" onclick="togglePassword(this)" title="Show / Hide Password"> 👁️ </span>
+                            <span class="clear-pass" onclick="clearPassword(this)" title="Clear this field"> &times; </span>
+                        </div>
+
+                        {% for error in password_form.old_password.errors %}
+                            <div class="field-error">
+                                
+                                {{ error }}
+
+                            </div>
+                        {% endfor %} 
+
+                        {% comment %} <div class="field-error">
+                            {{ password_form.old_password.errors|striptags }}
+                        </div> {% endcomment %}
+
+                        <div id="currentWarning" class="password-warning" style="display:none;">
+                            Please enter your current password first
+                        </div>
+                    </div>
+
+
+                    <!-- NEW PASSWORD -->
+                    <div class="form-group">
+                        <label>New Password</label>
+
+                        <div class="password-wrapper {% if password_form.new_password1.errors %}input-error{% endif %}">
+                            {{ password_form.new_password1 }}
+                            <span class="toggle-pass" onclick="togglePassword(this)">👁️</span>
+                            <span class="clear-pass" onclick="clearPassword(this)" title="Clear this field"> &times; </span>
+                        </div>
+
+                       
+                        {% for error in password_form.new_password1.errors %}
+                            <div class="field-error">{{ error }}</div>
+                        {% endfor %} 
+
+
+                        {% comment %} 
+                        <div class="field-error">
+                            {{ password_form.new_password1.errors|striptags }}
+                        </div> 
+                        {% endcomment %}
+
+                        <div class="password-strength-wrapper">
+                            <div class="password-rules" id="passwordRules" style="display:none">
+                                <div id="ruleLength">✗ 8 characters</div>
+                                <div id="ruleUpper">✗ 1 uppercase letter</div>
+                                <div id="ruleNumber">✗ 1 number</div>
+                                <div id="ruleSymbol">✗ 1 symbol</div>
+                            </div>
+                            <div id="passwordStrengthContainer" style="display:none;">
+                                <div class="strength-bar">
+                                    <div id="strengthFill"></div>
+                                </div>
+                                <div id="passwordStrength" class="password-strength-text"></div>
+                            </div>
+                            <div id="passwordStrength" class="password-strength-text"></div>
+                        </div>
+                    </div>
+
+
+                    <!-- CONFIRM PASSWORD -->
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+
+                        <div class="password-wrapper {% if password_form.new_password2.errors %}input-error{% endif %}">
+                            {{ password_form.new_password2 }}
+                            <span class="toggle-pass" onclick="togglePassword(this)">👁️</span>
+                            <span class="clear-pass" onclick="clearPassword(this)" title="Clear this field"> &times; </span>
+                        </div>
+
+                       
+                        {% for error in password_form.new_password2.errors %}
+                            <div class="field-error">{{ error }}</div>
+                        {% endfor %} 
+                        
+
+                        {% comment %} 
+                        <div class="field-error">
+                            {{ password_form.new_password2.errors|striptags }}
+                        </div> 
+                        {% endcomment %}
+
+                        <div id="passwordMatch" class="password-match"></div>
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button type="submit" id="updatePasswordBtn" class="update-btn" disabled> Update Password </button>
+                        <button type="button" onclick="closePasswordModal()" class="cancel-btn"> Cancel </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+
+        
+
+
+        <!-- =====================================================
+        SCRIPTS
+        ====================================================== -->
+
+        <script src="https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+        <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+
+        <script>
+
+
+
+            function getCSRFToken() 
+            {
+                return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            }
+
+
+
+
+            const leaveCtx = document.getElementById("leaveChart");
+
+            /* ✅ ADDED: usage check */
+            const casualUsed = {{ balance.unpaid }};
+            const sickUsed = {{ balance.sick_used }};
+            const earnedUsed = {{ balance.earned_used }};
+
+            const noLeaveUsed = (casualUsed === 0 && sickUsed === 0 && earnedUsed === 0);
+
+            /* ================= EXISTING CODE ================= */
+
+            let mouseX = 0;
+            let mouseY = 0;
+
+            document.addEventListener("mousemove", (e) => 
+            {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+
+
+            /* ✅ ADDED: condition before chart (ONLY LINE CHANGE) */
+            if (!noLeaveUsed)
+            new Chart(leaveCtx, 
+            {
+                type: "pie",
+                data: 
+                {
+                    labels: ["Casual", "Sick", "Earned"],
+                    datasets: [
+                    {
+                        data: [
+                            {{ balance.unpaid }},
+                            {{ balance.sick_used }},
+                            {{ balance.earned_used }}
+                        ],
+                        backgroundColor: 
+                        [
+                            "#23eff6",
+                            "#ec2e2b",
+                            "#22c55e",
+                        ],
+                        borderWidth: 2,
+                        borderColor: "#ffffff",
+                        hoverOffset: 18
+                    }]
+                },
+
+                options: 
+                {
+                    animation:
+                    {
+                        animateRotate:true,
+                        duration:1500,
+                        easing:"easeOutQuart",
+                    },
+
+                    plugins: 
+                    {
+                        legend:
+                        {
+                            position:"bottom",
+                            labels:
+                            {
+                                boxWidth:14,
+                                boxHeight:14,
+                                padding:15,
+                                font:
+                                {
+                                    size:16,
+                                    weight:"600"
+                                }
+                            }
+                        },
+
+                        tooltip:
+                        {
+                            enabled: false,
+                            external: externalTooltipHandler,
+
+                            backgroundColor:"#111827",
+                            titleColor:"#ffffff",
+                            bodyColor:"#e5e7eb",
+                            padding:12,
+                            displayColors:false,
+
+                            callbacks:
+                            {
+                                title:function(context)
+                                {
+                                    const label = context[0].chart.data.labels[context[0].dataIndex];
+
+                                    const titles=
+                                    {
+                                        "Casual":"🌴 Casual Leave Usage",
+                                        "Sick":"💊 Sick Leave Details",
+                                        "Earned":"⭐ Earned Leave Details"
+                                    };
+
+                                    return titles[label] || label;
+                                },
+
+                                label:function(context)
+                                {
+                                    const label = context.chart.data.labels[context.dataIndex];
+                                    const used = context.raw;
+
+                                    if(label==="Casual")
+                                    {
+                                        return `Used: ${used}`;
+                                    }
+
+                                    if(label==="Sick")
+                                    {
+                                        const total = {{ balance.sick_total }};
+                                        const remaining = total - used;
+                                        const percent = ((used/total)*100).toFixed(1);
+
+                                        return [
+                                            `Used: ${used}`,
+                                            `Remaining: ${remaining}`,
+                                            `Total: ${total}`,
+                                            `Usage: ${percent}%`
+                                        ];
+                                    }
+
+                                    if(label==="Earned")
+                                    {
+                                        const total = {{ balance.earned_total }};
+                                        const remaining = total - used;
+                                        const percent = ((used/total)*100).toFixed(1);
+
+                                        return [
+                                            `Used: ${used}`,
+                                            `Remaining: ${remaining}`,
+                                            `Total: ${total}`,
+                                            `Usage: ${percent}%`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+
+            /* ================= YOUR EXISTING TOOLTIP ================= */
+
+            function externalTooltipHandler(context) 
+            {
+                const { chart, tooltip } = context;
+
+                let tooltipEl = document.getElementById("chart-tooltip");
+
+                if (!tooltipEl) 
+                {
+                    tooltipEl = document.createElement("div");
+                    tooltipEl.id = "chart-tooltip";
+                    tooltipEl.innerHTML = `
+                        <div class="tooltip-glass">
+                            <div class="tooltip-content"></div>
+                            <div class="tooltip-arrow"></div>
+                        </div>
+                    `;
+                    document.body.appendChild(tooltipEl);
+                }
+
+                const content = tooltipEl.querySelector(".tooltip-content");
+
+                if (tooltip.opacity === 0) 
+                {
+                    tooltipEl.style.opacity = 0;
+                    tooltipEl.style.transform = "translateY(6px) scale(0.95)";
+                    return;
+                }
+
+                const index = tooltip.dataPoints[0].dataIndex;
+                const label = chart.data.labels[index];
+                const value = tooltip.dataPoints[0].raw;
+
+                let html = "";
+
+                if (label === "Casual") 
+                {
+                    html = `
+                        <div class="tooltip-title">🌴 Casual Leave</div>
+                        <div class="tooltip-row">Used: <b>${value}</b></div>
+                    `;
+                }
+
+                if (label === "Sick") 
+                {
+                    const total = {{ balance.sick_total }};
+                    const remaining = total - value;
+                    const percent = ((value / total) * 100).toFixed(1);
+
+                    html = `
+                        <div class="tooltip-title">💊 Sick Leave</div>
+                        <div class="tooltip-row">Used: <b>${value}</b></div>
+                        <div class="tooltip-row">Remaining: <b>${remaining}</b></div>
+                        <div class="tooltip-row">Total: <b>${total}</b></div>
+                        <div class="tooltip-row highlight">Usage: ${percent}%</div>
+                    `;
+                }
+
+                if (label === "Earned") 
+                {
+                    const total = {{ balance.earned_total }};
+                    const remaining = total - value;
+                    const percent = ((value / total) * 100).toFixed(1);
+
+                    html = `
+                        <div class="tooltip-title">⭐ Earned Leave</div>
+                        <div class="tooltip-row">Used: <b>${value}</b></div>
+                        <div class="tooltip-row">Remaining: <b>${remaining}</b></div>
+                        <div class="tooltip-row">Total: <b>${total}</b></div>
+                        <div class="tooltip-row highlight">Usage: ${percent}%</div>
+                    `;
+                }
+
+                if (!html) 
+                {
+                    html = `<b>${label}</b><br>Value: ${value}`;
+                }
+
+                content.innerHTML = html;
+
+                const rect = chart.canvas.getBoundingClientRect();
+
+                let y = mouseY;
+                const tooltipWidth = tooltipEl.offsetWidth;
+
+                const isRightSide = (mouseX - rect.left) > rect.width / 2;
+
+                let x;
+
+                if (isRightSide) 
+                {
+                    x = rect.right - 5;
+                    tooltipEl.classList.add("right");
+                    tooltipEl.classList.remove("left");
+                } 
+                else 
+                {
+                    x = rect.left - tooltipWidth + 5;
+                    tooltipEl.classList.add("left");
+                    tooltipEl.classList.remove("right");
+                }
+
+                tooltipEl.style.top = (y - tooltipEl.offsetHeight / 2) + "px";
+                tooltipEl.style.transition = "top 0.08s linear";
+                tooltipEl.style.left = x + "px";
+
+                tooltipEl.style.opacity = 1;
+                tooltipEl.style.transform = "translateY(0) scale(1)";
+            }
+
+
+            /* ✅ ADDED: message block (BOTTOM) */
+            if (noLeaveUsed)
+            {
+                leaveCtx.style.display = "none";
+
+                const msg = document.createElement("div");
+                msg.innerText = "No leaves have been utilized";
+
+                msg.style.textAlign = "center";
+                msg.style.fontWeight = "600";
+                msg.style.color = "#6b7280";
+                msg.style.marginTop = "20px";
+                msg.style.fontSize = "14px";
+
+                leaveCtx.parentNode.appendChild(msg);
+            }
+
+
+
+
+
+
+
+            const shortUsed = {{ short_taken }};
+            const halfUsed = {{ half_taken }};
+
+            const chartEl = document.getElementById("shortHalfChart");
+
+            /* 🚫 IF NO USAGE → SHOW MESSAGE */
+            if (shortUsed === 0 && halfUsed === 0) 
+            {
+                chartEl.style.display = "none";
+
+                const msg = document.createElement("div");
+                msg.innerText = "This leave type has not been utilized";
+
+                msg.style.textAlign = "center";
+                msg.style.fontWeight = "600";
+                msg.style.color = "#6b7280";
+                msg.style.marginTop = "20px";
+                msg.style.fontSize = "14px";
+
+                chartEl.parentNode.appendChild(msg);
+            }
+
+            /* ✅ IF ANY USAGE → SHOW CHART */
+            else 
+            {
+                new Chart(chartEl, 
+                {
+                    type: "doughnut",
+
+                    data:
+                    {
+                        labels: ["Short", "Half"],
+                        datasets: [
+                        {
+                            data: [shortUsed, halfUsed],   // ✅ using USED values
+
+                            backgroundColor:
+                            [
+                                "#6366f1",
+                                "#f59e0b"
+                            ],
+
+                            borderWidth: 2,
+                            borderColor: "#ffffff",
+                            hoverOffset: 18
+                        }]
+                    },
+
+                    options:
+                    {
+                        cutout: "65%",
+
+                        animation:
+                        {
+                            duration: 1500,
+                            easing: "easeOutQuart"
+                        },
+
+                        plugins:
+                        {
+                            legend:
+                            {
+                                position: "bottom",
+                                labels:
+                                {
+                                    boxWidth: 14,
+                                    boxHeight : 14, 
+                                    padding: 15,
+                                    font:
+                                    {
+                                        size: 16,
+                                        weight: "600"
+                                    }
+                                }
+                            },
+
+                            tooltip:
+                            {
+                                enabled: true,
+
+                                backgroundColor: "rgba(17, 24, 39, 0.9)",
+                                borderColor: "rgba(255,255,255,0.15)",
+                                borderWidth: 1,
+
+                                cornerRadius: 12,
+                                padding: 12,
+
+                                titleColor: "#ffffff",
+                                bodyColor: "#e5e7eb",
+
+                                displayColors: false,
+
+                                titleFont:
+                                {
+                                    size: 13,
+                                    weight: "600"
+                                },
+
+                                bodyFont:
+                                {
+                                    size: 12
+                                },
+
+                                bodySpacing: 4,
+                                titleSpacing: 6,
+
+                                caretSize: 6,
+
+                                callbacks:
+                                {
+                                    title: function(context)
+                                    {
+                                        const label = context[0].label;
+
+                                        const titles =
+                                        {
+                                            "Short": "⏱ Short Leave",
+                                            "Half": "🌓 Half Day Leave"
+                                        };
+
+                                        return titles[label] || label;
+                                    },
+
+                                    label: function(context)
+                                    {
+                                        const label = context.label;
+                                        const used = context.raw;
+
+                                        let total = 0;
+
+                                        if (label === "Short") total = 2;
+                                        if (label === "Half") total = 1;
+
+                                        const remaining = total - used;
+                                        const percent = total > 0 ? ((used / total) * 100).toFixed(0) : 0;
+
+                                        return [
+                                            `Used: ${used}`,
+                                            `Remaining: ${remaining}`,
+                                            `Total: ${total}`,
+                                            `Usage: ${percent}%`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+
+
+
+
+
+
+            function showSaved(id) 
+            {
+                const el = document.getElementById(id + "Saved");
+                el.classList.add("show");
+
+                setTimeout(() => 
+                {
+                    el.classList.remove("show");
+                }, 1500);
+            }
+
+
+
+
+
+            setTimeout(function()
+            {
+                document.querySelectorAll(".message").forEach(function(msg)
+                {
+                    msg.style.opacity = "0";
+
+                    setTimeout(()=>msg.remove(),300);
+                });
+
+            },4000);
+
+
+            const tabs = document.querySelectorAll(".tab");
+            const contents = document.querySelectorAll(".tab-content");
+
+            tabs.forEach(tab => 
+            {
+                tab.addEventListener("click", () => 
+                {
+                    tabs.forEach(t => t.classList.remove("active"));
+                    contents.forEach(c => c.classList.remove("active"));
+
+                    tab.classList.add("active");
+                    document.getElementById(tab.dataset.tab).classList.add("active");
+                });
+            });
+
+            function countWords()
+            {
+                const textarea = document.getElementById("bioInput");
+                const counter = document.getElementById("bioCounter");
+
+                let words = textarea.value.trim().split(/\s+/);
+
+                if (textarea.value.trim() === "")
+                {
+                    words = [];
+                }
+
+                if (words.length > 50)
+                {
+                    textarea.value = words.slice(0, 50).join(" ");
+                    words = textarea.value.trim().split(/\s+/);
+                }
+
+                counter.innerText = words.length + " / 50 words";
+            }
+
+
+            /* =====================================================
+            INLINE PROFILE EDITING SYSTEM
+            ===================================================== */
+
+            document.querySelectorAll(".edit-input").forEach(input =>
+            {
+                input.addEventListener("blur", saveField);
+
+                input.addEventListener("keydown", function(e)
+                {
+                    if(e.key === "Enter" && this.tagName !== "TEXTAREA")
+                    {
+                        e.preventDefault();
+                        saveField.call(this);
+                    }
+                });
+            });
+
+            document.querySelectorAll(".edit-input").forEach(input =>
+            {
+                input.addEventListener("input", function()
+                {
+                    const field = this.dataset.field;
+                    const dot = document.getElementById(field + "Dirty");
+
+                    if(!dot) return;
+
+                    /* compare with original value */
+                    if(this.value !== this.dataset.original)
+                    {
+                        dot.classList.remove("hidden");
+                    }
+                    else
+                    {
+                        dot.classList.add("hidden");
+                    }
+                });
+            });
+
+            document.addEventListener("keydown", function(e)
+            {
+                if(e.key === "Enter" && e.target.tagName !== "TEXTAREA")
+                {
+                    e.preventDefault();
+                }
+            });
+
+            document.addEventListener("keydown", function(e)
+            {
+                if(e.key === "Escape")
+                {
+                    document.querySelectorAll(".edit-input").forEach(input =>
+                    {
+                        if(!input.classList.contains("hidden"))
+                        {
+                            cancelEdit(input);
+                        }
+                    });
+                }
+            });
+
+            function cancelEdit(input)
+            {
+                const field = input.dataset.field;
+
+                const text = document.getElementById(field + "Text");
+
+                input.classList.add("hidden");
+                text.style.display = "block";
+
+                /* reset value to original */
+                input.value = text.innerText;
+
+                /* hide validation */
+                const error = document.getElementById(field + "Error");
+                if(error) error.classList.add("hidden");
+
+                /* hide counter */
+                const counter = document.getElementById("bioCounter");
+                if(counter) counter.classList.add("hidden");
+
+                const dot = document.getElementById(field + "Dirty");
+                if(dot) dot.classList.add("hidden");
+            }
+
+
+            /* =====================================================
+            EDIT FIELD
+            ===================================================== */
+
+            function editField(field)
+            {
+                const text = document.getElementById(field + "Text");
+                const input = document.getElementById(field + "Input");
+                const counter = document.getElementById("bioCounter");
+
+                if(!input.classList.contains("hidden"))
+                {
+                    saveField.call(input);
+                    return;
+                }
+
+                text.style.display = "none";
+                input.classList.remove("hidden");
+
+                /* store original value */
+                input.dataset.original = input.value;
+
+                input.focus();
+
+                if(field === "bio")
+                {
+                    counter.classList.remove("hidden");
+                    countWords();
+                }
+            }
+
+
+            /* =====================================================
+            SAVE FIELD (AJAX)
+            ===================================================== */
+
+            let lastCompletion = parseInt( document.getElementById("completionText").innerText) || 0;
+
+
+            function updateCompletionUI(newPercent)
+            {
+                const text = document.getElementById("completionText");
+                const circle = document.getElementById("completionCircle");
+
+                const oldPercent = parseInt(text.textContent.replace("%","")) || 0;
+                const diff = newPercent - oldPercent;
+                
+
+                // 🎨 COLOR
+                if(diff > 0)
+                    circle.style.stroke = "#22c55e";
+                else if(diff < 0)
+                    circle.style.stroke = "#ef4444";
+
+                // ✨ SHOW DIFF
+                showCompletionDiff(diff);
+
+                // 🎬 ANIMATION
+                const duration = 600;
+                const start = performance.now();
+
+                function animate(time)
+                {
+                    const progress = Math.min((time - start) / duration, 1);
+                    const ease = 1 - Math.pow(1 - progress, 3);
+
+                    const value = Math.round(oldPercent + (newPercent - oldPercent) * ease);
+
+                    text.innerHTML = value + "%";
+                    circle.style.setProperty("--progress", value);
+
+                    if(progress < 1)
+                    {
+                        requestAnimationFrame(animate);
+                    }
+                    else
+                    {
+                        lastCompletion = newPercent;  // ✅ update AFTER animation
+
+                        {% comment %} setTimeout(() =>
+                        {
+                            circle.style.stroke = "#3b82f6"; // reset blue
+                        }, 800); {% endcomment %}
+                    }
+                }
+
+                requestAnimationFrame(animate);
+                checkCompletionBadges(newPercent);
+            }
+
+
+            function showCompletionDiff(diff)
+            {
+                if(diff === 0) return;
+
+                const el = document.createElement("div");
+                el.className = "completion-diff";
+
+                if(diff > 0)
+                {
+                    el.innerText = "+" + Math.abs(diff) + "%";
+                    el.classList.add("increase");
+                }
+                else
+                {
+                    el.innerText = "-" + Math.abs(diff) + "%";
+                    el.classList.add("decrease");
+                }
+
+                document.querySelector(".completion-chart").appendChild(el);
+
+                setTimeout(() => el.classList.add("show"), 10);
+                setTimeout(() => el.remove(), 1200);
+            }
+
+
+            {% comment %} 
+            function showCompletionGain(oldVal, newVal)
+            {
+                const diff = newVal - oldVal;
+
+                if(diff <= 0) return;
+
+                const el = document.createElement("div");
+                el.innerText = "+" + diff + "%";
+                el.className = "completion-gain";
+
+                document.querySelector(".completion-chart").appendChild(el);
+
+                setTimeout(() =>
+                {
+                    el.classList.add("show");
+                }, 10);
+
+                setTimeout(() =>
+                {
+                    el.remove();
+                }, 1200);
+            } 
+            {% endcomment %}
+
+
+            let confettiTriggered = false;
+            
+            function launchConfetti()
+            {
+                confetti({
+                    particleCount: 120,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+                // burst effect
+                setTimeout(() =>
+                {
+                    confetti({
+                        particleCount: 80,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 }
+                    });
+
+                    confetti({
+                        particleCount: 80,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 }
+                    });
+                }, 200);
+            }
+
+            function checkCompletionBadges(percent)
+            {
+                if(percent >= 100)
+                {
+                    showBadge("🏆 Profile Master");
+
+                    {% comment %} 
+                    if(!confettiTriggered)
+                    {
+                        launchConfetti();
+                        confettiTriggered = true;
+                    } 
+                    {% endcomment %}
+
+                    launchConfetti();
+                }
+                else if(percent >= 80)
+                {
+                    showBadge("🔥 Almost There");
+                }
+                else if(percent >= 50)
+                {
+                    showBadge("💪 Halfway Done");
+                }
+            }
+
+
+
+            function showBadge(text)
+            {
+                const badge = document.createElement("div");
+                badge.className = "completion-badge";
+                badge.innerText = text;
+
+                document.body.appendChild(badge);
+
+                setTimeout(() => badge.classList.add("show"), 10);
+
+                setTimeout(() =>
+                {
+                    badge.classList.remove("show");
+
+                    setTimeout(() => badge.remove(), 300);
+                }, 2000);
+            }
+
+
+
+            function saveField()
+            {
+                const field = this.dataset.field;
+
+                if(!field) return;
+                
+                const value = this.value;
+
+                const text = document.getElementById(field + "Text");
+                const input = this;
+                const indicator = document.getElementById(field + "Saved");
+                const counter = document.getElementById("bioCounter");
+
+                fetch("{% url 'profile' %}",
+                {
+                    method:"POST",
+                    headers:
+                    {
+                        "Content-Type":"application/json",
+                        "X-CSRFToken": getCSRFToken() || getCookie("csrftoken")
+                    },
+                    body: JSON.stringify(
+                    {
+                        field: field,
+                        value: value,
+                        update_inline: true
+                    })
+                })
+                .then(res => res.json())
+                .then(data =>
+                {
+                    if(data.error)
+                    {
+                        const errorBox = document.getElementById(field + "Error");
+
+                        if(errorBox)
+                        {
+                            errorBox.innerText = data.error;
+                            errorBox.classList.remove("hidden");
+                        }
+                        return;
+                    }
+
+                    /* Update UI */
+                    text.innerText = value;
+
+                    if(data.completion !== undefined)
+                    {
+                        updateCompletionUI(data.completion);
+                    }
+
+                    const dot = document.getElementById(field + "Dirty");
+                    if(dot) dot.classList.add("hidden");
+
+                    /* update original value */
+                    input.dataset.original = value;
+
+                    /* hide validation error */
+                    const errorBox = document.getElementById(field + "Error");
+                    if(errorBox) errorBox.classList.add("hidden");
+
+                    input.classList.add("hidden");
+                    text.style.display = "block";
+
+                    /* hide word counter */
+                    if(counter) counter.classList.add("hidden");
+
+                    /* saved animation */
+                    if(indicator)
+                    {
+                        indicator.classList.remove("hidden");
+                        indicator.classList.add("show");
+
+                        setTimeout(()=>
+                        {
+                            indicator.classList.remove("show");
+                            indicator.classList.add("hidden");
+                        },2000);
+                    }
+                })
+                .catch(err => console.error(err));
+            }
+
+
+
+
+
+
+            /* =====================================================
+            MODAL OPEN / CLOSE
+            ===================================================== */
+
+            function openPasswordModal()
+            {
+                const modal = document.getElementById("passwordModal");
+                modal.style.display = "flex";
+
+                document.body.style.overflow = "hidden";
+            }
+
+            function closePasswordModal()
+            {
+                const modal = document.getElementById("passwordModal");
+                modal.style.display = "none";
+
+                const form = modal.querySelector("form");
+                {% comment %} form.reset(); {% endcomment %}
+
+                // only clear inputs manually (safe)
+                form.querySelectorAll("input").forEach(input =>
+                {
+                    if(input.type !== "hidden")  // keep csrf token safe
+                    {
+                        input.value = "";
+                    }
+                });
+
+                document.getElementById("passwordRules").style.display = "none";
+
+                document.getElementById("passwordStrength").innerText = "";
+                document.getElementById("strengthFill").style.width = "0%";
+
+                document.getElementById("passwordMatch").innerText = "";
+                document.getElementById("currentWarning").style.display = "none";
+                document.getElementById("passwordStrengthContainer").style.display = "none";
+
+                document.getElementById("updatePasswordBtn").disabled = true;
+
+                /* reset password visibility icons */
+                document.querySelectorAll(".toggle-pass").forEach(icon =>
+                {
+                    icon.innerText = "👁️";
+                });
+
+                form.querySelectorAll("input").forEach(input =>
+                {
+                    if(input.type === "text")
+                    {
+                        input.type = "password";
+                    }
+                });
+
+
+
+                {% comment %} 
+                document.querySelectorAll("#passwordModal input").forEach(input =>
+                {
+                    input.value = "";
+                }); 
+                {% endcomment %}
+
+                
+
+                /* REMOVE FIELD ERRORS */
+                // ❌ DO NOT REMOVE ELEMENTS → just hide text
+                document.querySelectorAll("#passwordModal .field-error").forEach(e =>
+                {
+                    e.innerText = "";
+                    e.style.display = "none";
+                });
+
+                document.querySelectorAll("#passwordModal .input-error").forEach(e =>
+                {
+                    e.classList.remove("input-error");
+                });
+
+                {% comment %} document.querySelectorAll(".input-error").forEach(e => 
+                {
+                    e.classList.remove("input-error");
+                }); {% endcomment %}
+
+            }
+
+            document.addEventListener("DOMContentLoaded", function()
+            {
+                const hasPasswordErrors = {{ password_form.errors|yesno:"true,false" }};
+
+                if(hasPasswordErrors)
+                {
+                    openPasswordModal();
+                }
+            });
+
+
+            /* CLOSE MODAL ON OUTSIDE CLICK */
+
+            window.onclick = function(event)
+            {
+                const passwordModal = document.getElementById("passwordModal");
+                const viewphoto = document.getElementById("viewPhotoModal");
+                const editphoto = document.getElementById("editPhotoModal");
+
+                if (event.target === passwordModal)
+                {
+                    closePasswordModal();
+                }
+
+                if (event.target === viewphoto)
+                {
+                    closeViewPhoto();
+                }
+
+                if (event.target === editphoto)
+                {
+                    closeEditPhoto();
+                }
+            };
+
+
+            /* ESC KEY CLOSE */
+
+            document.addEventListener("keydown", function(e)
+            {
+                const passwordModal = document.getElementById("passwordModal");
+                const viewphoto = document.getElementById("viewPhotoModal");
+                const editphoto = document.getElementById("editPhotoModal");
+
+                if (e.key === "Escape" )
+                {
+                    if(passwordModal)
+                    {
+                        closePasswordModal();
+                    }
+
+                    if(viewphoto)
+                    {
+                        closeViewPhoto();
+                    }
+
+                    if(editphoto)
+                    {
+                        closeEditPhoto();
+                    }
+                }
+            });
+
+
+            /* =====================================================
+            SHOW / HIDE PASSWORD
+            ===================================================== */
+
+            function togglePassword(icon)
+            {
+                const input = icon.parentElement.querySelector("input");
+
+                if(input.type === "password")
+                {
+                    input.type = "text";
+                    icon.innerText = "🙈";
+                }
+                else
+                {
+                    input.type = "password";
+                    icon.innerText = "👁️";
+                }
+            }
+
+
+            /* =====================================================
+            PASSWORD STRENGTH CHECK
+            ===================================================== */
+
+            document.addEventListener("DOMContentLoaded", function ()
+            {
+                const oldPass = document.getElementById("id_old_password");
+                const newPass = document.getElementById("id_new_password1");
+                const confirmPass = document.getElementById("id_new_password2");
+                document.getElementById("id_old_password").required = true;
+
+                newPass.readOnly = true;
+                confirmPass.readOnly = true;
+
+                const strengthText = document.getElementById("passwordStrength");
+                const strengthFill = document.getElementById("strengthFill");
+
+                const matchText = document.getElementById("passwordMatch");
+
+                const updateBtn = document.getElementById("updatePasswordBtn");
+
+                const ruleLength = document.getElementById("ruleLength");
+                const ruleUpper = document.getElementById("ruleUpper");
+                const ruleNumber = document.getElementById("ruleNumber");
+                const ruleSymbol = document.getElementById("ruleSymbol");
+
+                const warning = document.getElementById("currentWarning");
+
+                function showCurrentPasswordWarning()
+                {
+                    warning.style.display = "block";
+                }
+
+                /* if user clicks disabled new password */
+
+                newPass.addEventListener("click", function()
+                {
+                    if(newPass.readOnly)
+                    {
+                        showCurrentPasswordWarning();
+                    }
+                });
+
+                /* if user clicks disabled confirm password */
+
+                confirmPass.addEventListener("click", function()
+                {
+                    if(confirmPass.readOnly)
+                    {
+                        return;
+                    }
+
+                    if(oldPass.value.trim() === "")
+                    {
+                        warning.style.display = "block";
+                    }
+                });
+
+                oldPass.addEventListener("input", function()
+                {
+                    if(oldPass.value.trim() !== "")
+                    {
+                        newPass.readOnly = false;
+                        warning.style.display = "none";
+                    }
+                    else
+                    {
+                        newPass.readOnly = true;
+                        confirmPass.readOnly = true;
+                    }
+                });
+
+                function validatePassword()
+                {
+                    const value = newPass.value;
+
+                    let validLength = value.length >= 8;
+                    let validUpper = /[A-Z]/.test(value);
+                    let validNumber = /[0-9]/.test(value);
+                    let validSymbol = /[^A-Za-z0-9]/.test(value);
+
+                    ruleLength.className = validLength ? "rule-valid" : "rule-invalid";
+                    ruleUpper.className = validUpper ? "rule-valid" : "rule-invalid";
+                    ruleNumber.className = validNumber ? "rule-valid" : "rule-invalid";
+                    ruleSymbol.className = validSymbol ? "rule-valid" : "rule-invalid";
+
+                    ruleLength.innerText = (validLength ? "✓" : "✗") + " 8 characters";
+                    ruleUpper.innerText = (validUpper ? "✓" : "✗") + " 1 uppercase letter";
+                    ruleNumber.innerText = (validNumber ? "✓" : "✗") + " 1 number";
+                    ruleSymbol.innerText = (validSymbol ? "✓" : "✗") + " 1 symbol";
+
+
+                    /* strength calculation */
+
+                    let score = 0;
+                    if (validLength) score++;
+                    if (validUpper) score++;
+                    if (validNumber) score++;
+                    if (validSymbol) score++;
+
+                    if (score <= 1)
+                    {
+                        strengthText.innerText = "Weak Password";
+                        strengthText.className = "password-strength-text strength-weak";
+                        strengthFill.style.width = "33%";
+                        strengthFill.style.background = "#e74c3c"; // red for medium
+                    }
+                    else if (score === 2 || score === 3)
+                    {
+                        strengthText.innerText = "Medium Password";
+                        strengthText.className = "password-strength-text strength-medium";
+                        strengthFill.style.width = "66%";
+                        strengthFill.style.background = "#f39c12"; // orange for medium
+                    }
+                    else
+                    {
+                        strengthText.innerText = "Strong Password";
+                        strengthText.className = "password-strength-text strength-strong";
+                        strengthFill.style.width = "100%";
+                        strengthFill.style.background = "#27ae60"; // green for medium
+                    }
+
+                    if(validLength && validUpper && validNumber && validSymbol)
+                    {
+                        confirmPass.readOnly = false;
+                    }
+                    else
+                    {
+                        confirmPass.readOnly = true;
+                    }
+
+                    checkMatch();
+                    updateButtonState();
+                }
+
+                function checkMatch()
+                {
+                    const oldValue = oldPass.value;
+                    const newValue = newPass.value;
+                    const confirmValue = confirmPass.value;
+
+                    let validRules =
+                        newValue.length >= 8 &&
+                        /[A-Z]/.test(newValue) &&
+                        /[0-9]/.test(newValue) &&
+                        /[^A-Za-z0-9]/.test(newValue);
+
+                    if(confirmPass.readOnly)
+                    {
+                        matchText.innerText = "";
+                        return;
+                    }
+
+                    if (confirmValue.length === 0)
+                    {
+                        matchText.innerText = "";
+                        return;
+                    }
+
+                    if (newValue === oldValue)
+                    {
+                        matchText.innerText = "New password cannot be same as old password";
+                        matchText.className = "password-match match-error";
+                        return;
+                    }
+
+                    if (confirmValue !== newValue)
+                    {
+                        matchText.innerText = "Passwords do not match";
+                        matchText.className = "password-match match-error";
+                    }
+                    else
+                    {
+                        matchText.innerText = "Passwords match";
+                        matchText.className = "password-match match-success";
+                    }
+
+
+                    if(
+                        oldPass.value !== "" &&
+                        validRules &&
+                        confirmValue === newValue &&
+                        newValue !== oldValue
+                    )
+
+                    updateButtonState();
+                }
+
+                function updateButtonState()
+                {
+                    const oldValue = oldPass.value.trim();
+                    const newValue = newPass.value;
+                    const confirmValue = confirmPass.value;
+
+                    const validRules =
+                        newValue.length >= 8 &&
+                        /[A-Z]/.test(newValue) &&
+                        /[0-9]/.test(newValue) &&
+                        /[^A-Za-z0-9]/.test(newValue);
+
+                    if(
+                        oldValue !== "" &&
+                        validRules &&
+                        confirmValue !== "" &&
+                        confirmValue === newValue &&
+                        newValue !== oldValue
+                    )
+                    {
+                        updateBtn.disabled = false;
+                    }
+                    else
+                    {
+                        updateBtn.disabled = true;
+                    }
+                }
+
+                oldPass.addEventListener("input", function()
+                {
+                    if(oldPass.value.trim() !== "")
+                    {
+                        warning.style.display = "none";
+                    }
+                });
+
+                newPass.addEventListener("focus", function()
+                {
+                    if(oldPass.value.trim() === "")
+                    {
+                        warning.style.display = "block";
+                        this.blur();
+                    }
+                });
+
+                newPass.addEventListener("input", function()
+                {
+                    const rules = document.getElementById("passwordRules");
+                    const strengthBox = document.getElementById("passwordStrengthContainer");
+
+                    if(newPass.value.trim() !== "")
+                    {
+                        rules.style.display = "block";
+                        strengthBox.style.display = "block";
+                    }
+                    else
+                    {
+                        rules.style.display = "none";
+                        strengthBox.style.display = "none";
+                    }
+
+                    validatePassword();
+                });
+
+                confirmPass.addEventListener("focus", function()
+                {
+                    if(oldPass.value.trim() === "")
+                    {
+                        warning.style.display = "block";
+                        this.blur();
+                        return;
+                    }
+
+                    /* hide rules when confirm starts */
+                    document.getElementById("passwordRules").style.display = "none";
+                });
+
+                confirmPass.addEventListener("input", function()
+                {
+                    document.getElementById("passwordRules").style.display = "none";
+
+                    checkMatch();
+                    updateButtonState();
+                });
+            });
+
+            function clearPassword(icon)
+            {
+                const input = icon.parentElement.querySelector("input");
+                document.getElementById("updatePasswordBtn").disabled = true;
+                const strengthContainer = document.getElementById("passwordStrengthContainer");
+
+                input.value = "";
+                input.dispatchEvent(new Event("input"));
+
+                const newPass = document.getElementById("id_new_password1");
+                const confirmPass = document.getElementById("id_new_password2");
+
+                const rules = document.getElementById("passwordRules");
+                const strengthText = document.getElementById("passwordStrength");
+                const strengthFill = document.getElementById("strengthFill");
+                const matchText = document.getElementById("passwordMatch");
+                const warning = document.getElementById("currentWarning");
+
+                /* reset rules + strength */
+                if(newPass.value === "")
+                {
+                    rules.style.display = "none";
+                    strengthContainer.style.display = "none";
+
+                    strengthText.innerText = "";
+                    strengthFill.style.width = "0%";
+                }
+
+                /* reset confirm check */
+                if(confirmPass.value === "")
+                {
+                    matchText.innerText = "";
+                }
+
+                /* clear warning */
+                warning.style.display = "none";
+
+                /* lock confirm field again */
+                confirmPass.readOnly = true;
+            }
+
+
+            document.querySelectorAll("#passwordModal input").forEach(input =>
+            {
+                input.addEventListener("input", function()
+                {
+                    // remove error text
+                    const error = this.closest(".form-group").querySelector(".field-error");
+                    if(error)
+                    {
+                        error.innerText = "";
+                        error.style.display = "none";
+                    }
+
+                    // remove red border
+                    const wrapper = this.closest(".password-wrapper");
+                    if(wrapper)
+                    {
+                        wrapper.classList.remove("input-error");
+                    }
+                });
+            });
+
+
+
+
+            /* =========================================================
+            VIEW PHOTO MODAL
+            ========================================================= */
+
+            function openViewPhoto()
+            {
+                document.getElementById("viewPhotoModal").style.display = "flex";
+            }
+
+            function closeViewPhoto()
+            {
+                document.getElementById("viewPhotoModal").style.display = "none";
+            }
+
+            /* =========================================================
+            EDIT PHOTO MODAL
+            ========================================================= */
+
+            {% comment %} function openEditPhoto()
+            {
+                resetEditor();
+                document.getElementById("editPhotoModal").style.display = "flex";
+            } {% endcomment %}
+
+            function openEditPhoto()
+            {
+                resetEditor();
+
+                document.getElementById("photoError").classList.add("hidden");
+                document.getElementById("uploadArea").classList.remove("error");
+
+                document.getElementById("editPhotoModal").style.display = "flex";
+            }
+
+            function closeEditPhoto()
+            {
+                document.getElementById("editPhotoModal").style.display = "none";
+                resetEditor();
+            }
+
+            /* =========================================================
+            GLOBAL VARIABLES
+            ========================================================= */
+
+            let cropper = null;
+            let editing = false;
+
+            /* zoom configuration */
+
+            const MIN_ZOOM = 0.160;
+            const MAX_ZOOM = 3;
+            const ZOOM_STEP = 0.1;
+
+            let currentZoom = MIN_ZOOM;
+
+            /* DOM references */
+
+            const uploadArea  = document.getElementById("uploadArea");
+            const photoInput  = document.getElementById("photoInput");
+            const image       = document.getElementById("cropImage");
+
+            const editorLayer = document.getElementById("editorLayer");
+            const controls    = document.getElementById("editorControls");
+            const uploadBtn   = document.getElementById("uploadPhotoBtn");
+
+            const zoomSlider  = document.getElementById("zoomSlider");
+            const previewImg  = document.getElementById("previewAvatar");
+
+            /* =========================================================
+            UPDATE ZOOM STATE
+            Keeps slider + buttons synchronized
+            ========================================================= */
+
+            function updateZoomState()
+            {
+                if(!cropper) return;
+
+                const percent = ((currentZoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 100;
+
+                if(zoomSlider)
+                {
+                    zoomSlider.value = Math.max(0, Math.min(100, percent));
+                }
+
+                const zoomInBtn = document.getElementById("zoomInBtn");
+                const zoomOutBtn = document.getElementById("zoomOutBtn");
+                const resetZoomBtn = document.getElementById("resetZoomBtn");
+
+                if(zoomInBtn)
+                {
+                    zoomInBtn.disabled = currentZoom >= MAX_ZOOM;
+                }
+
+                if(zoomOutBtn)
+                {
+                    zoomOutBtn.disabled = currentZoom <= MIN_ZOOM;
+                }
+
+                if(resetZoomBtn)
+                {
+                    resetZoomBtn.disabled = currentZoom === MIN_ZOOM;
+                }
+            }
+
+
+            /* =========================================================
+            UPLOAD AREA CLICK
+            ========================================================= */
+
+            uploadArea.addEventListener("click", function()
+            {
+                if(editing) return;
+
+                photoInput.click();
+            });
+
+            /* =========================================================
+            FILE SELECT / IMAGE LOAD
+            ========================================================= */
+
+            photoInput.addEventListener("change", function()
+            {
+                const file = this.files[0];
+
+                if(!file) return;
+
+                // ✅ ADD THIS BLOCK
+                const allowed = ["image/jpeg", "image/png", "image/webp"];
+
+                if (!allowed.includes(file.type))
+                {
+                    showPhotoError("Only JPG, PNG or WEBP images allowed.");
+                    this.value = "";
+                    return;
+                }
+
+                if (file.size > 3 * 1024 * 1024)
+                {
+                    showPhotoError("Image must be under 3MB.");
+                    this.value = "";
+                    return;
+                }
+
+                const url = URL.createObjectURL(file);
+                image.src = url;
+
+                image.onload = function()
+                {
+                    uploadArea.style.display = "none";
+
+                    editorLayer.classList.remove("hidden");
+                    controls.classList.remove("hidden");
+                    uploadBtn.classList.remove("hidden");
+
+                    editing = true;
+
+                    if(cropper)
+                    {
+                        cropper.destroy();
+                    }
+
+                    cropper = new Cropper(image,
+                    {
+                        aspectRatio:1,
+                        viewMode:1,
+                        dragMode:'move',
+                        autoCropArea:0.6,
+                        background:false,
+                        responsive:true,
+                        wheelZoomRatio:0.1,
+
+                        /* when cropper ready */
+
+                        ready: async function ()
+                        {
+                            currentZoom = MIN_ZOOM;
+
+                            cropper.zoomTo(currentZoom);
+
+                            zoomSlider.value = 0;
+
+                            updateZoomState();
+
+                            // ✅ THIS IS THE CORRECT PLACE
+                            await centerFace(image);
+                        },
+                        /* zoom event (mouse wheel sync) */
+
+                        zoom(event)
+                        {
+                            currentZoom = event.detail.ratio;
+
+                            currentZoom =
+                                Math.max(MIN_ZOOM,
+                                Math.min(MAX_ZOOM, currentZoom));
+
+                            updateZoomState();
+                        },
+
+                        /* live preview */
+
+                        crop()
+                        {
+                            const canvas = cropper.getCroppedCanvas({
+                                width:150,
+                                height:150
+                            });
+
+                            previewImg.src = canvas.toDataURL();
+                        }
+                    });
+
+                };
+            });
+
+
+            /* =========================================================
+            DRAG & DROP SUPPORT
+            ========================================================= */
+
+            uploadArea.addEventListener("dragover", function(e)
+            {
+                e.preventDefault();
+            });
+
+            uploadArea.addEventListener("drop", function(e)
+            {
+                e.preventDefault();
+
+                const file = e.dataTransfer.files[0];
+                if (!file) return;
+
+                const allowed = ["image/jpeg", "image/png", "image/webp"];
+
+                if (!allowed.includes(file.type))
+                {
+                    showPhotoError("Only JPG, PNG or WEBP images allowed.");
+                    return;
+                }
+
+                if (file.size > 3 * 1024 * 1024)
+                {
+                    showPhotoError("Image must be under 3MB.");
+                    return;
+                }
+
+                photoInput.files = e.dataTransfer.files;
+                photoInput.dispatchEvent(new Event("change"));
+            });
+
+
+            /* =========================================================
+            ZOOM BUTTONS
+            ========================================================= */
+
+            function zoomIn()
+            {
+                if(!cropper) return;
+
+                if(currentZoom >= MAX_ZOOM) return;
+
+                currentZoom += ZOOM_STEP;
+
+                cropper.zoomTo(currentZoom);
+
+                updateZoomState();
+            }
+
+            function zoomOut()
+            {
+                if(!cropper) return;
+
+                if(currentZoom <= MIN_ZOOM) return;
+
+                currentZoom -= ZOOM_STEP;
+
+                cropper.zoomTo(currentZoom);
+
+                updateZoomState();
+            }
+
+
+            /* =========================================================
+            SLIDER CONTROL
+            ========================================================= */
+
+            zoomSlider.addEventListener("input", function()
+            {
+                if(!cropper) return;
+
+                const percent = this.value / 100;
+
+                currentZoom =
+                    MIN_ZOOM + percent * (MAX_ZOOM - MIN_ZOOM);
+
+                cropper.zoomTo(currentZoom);
+
+                updateZoomState();
+            });
+
+
+            /* =========================================================
+            RESET ZOOM
+            ========================================================= */
+
+            function resetZoom()
+            {
+                if(!cropper) return;
+
+                currentZoom = MIN_ZOOM;
+                currentRotation = 0; // 🔥 add this
+
+                cropper.zoomTo(currentZoom);
+                cropper.rotateTo(0); // 🔥 reset rotation too
+
+                updateZoomState();
+            }
+
+
+            /* =========================================================
+            SAVE CROPPED IMAGE
+            ========================================================= */
+
+
+            function showPhotoError(msg)
+            {
+                const errorBox = document.getElementById("photoError");
+                const uploadArea = document.getElementById("uploadArea");
+
+                if(!errorBox || !uploadArea) return;  // ✅ prevent crash as removing error-field result in making csrf token empty/null 
+
+                errorBox.innerText = msg;
+                errorBox.classList.remove("hidden");
+
+                uploadArea.classList.add("error");
+
+                setTimeout(() =>
+                {
+                    errorBox.classList.add("hidden");
+                    uploadArea.classList.remove("error");
+                }, 4000);
+            }
+
+
+            function saveCroppedImage()
+            {
+                if(!cropper) return;
+
+                const uploadBtn = document.getElementById("uploadPhotoBtn");
+                const loader = document.getElementById("uploadLoader");
+                const text = document.getElementById("uploadText");
+
+                /* START LOADING */
+                uploadBtn.disabled = true;
+                loader.classList.remove("hidden");
+                text.innerText = "Uploading...";
+
+
+                const canvas = cropper.getCroppedCanvas(
+                {
+                    width:400,
+                    height:400
+                });
+
+                canvas.toBlob(function(blob)
+                {
+                    const formData = new FormData();
+
+                    formData.append("profile_photo", blob, "avatar.jpg");
+                    formData.append("update_photo","1");
+
+                    fetch("{% url 'profile' %}",
+                    {
+                        method:"POST",
+                        body:formData,
+                        credentials: "same-origin",
+                        headers:
+                        {
+                            "X-CSRFToken": getCSRFToken() || getCookie("csrftoken")
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => 
+                    {
+                        /* STOP LOADING */
+                        uploadBtn.disabled = false;
+                        loader.classList.add("hidden");
+                        text.innerText = "Upload Photo";
+
+                        if(data.error)
+                        {
+                            showPhotoError(data.error);
+                            return;
+                        }
+
+                        /* UPDATE PROFILE PHOTO IN UI */
+                        const avatar = document.querySelector(".avatar");
+                        const viewPhoto = document.getElementById("viewProfileImg");
+                        const headerAvatar = document.querySelector(".profile-icon img");
+
+                        const newURL = data.photo_url + "?t=" + Date.now();
+
+                        /* update all profile images */
+                        [avatar, viewPhoto, headerAvatar].forEach(img =>
+                        {
+                            if(!img) return;
+
+                            img.classList.remove("avatar-updating");
+
+                            setTimeout(() =>
+                            {
+                                img.src = newURL;
+                                img.classList.add("avatar-updating");
+                            }, 50);
+                        });
+
+                        if(data.completion !== undefined)
+                        {
+                            updateCompletionUI(data.completion);
+                        }
+
+                        closeEditPhoto();
+                    })
+                    .catch(() =>
+                    {
+                        uploadBtn.disabled = false;
+                        loader.classList.add("hidden");
+                        text.innerText = "Upload Photo";
+
+                        showPhotoError("Upload failed. Please try again.");
+                    });
+                });
+            }
+
+
+
+            /* =====================================================
+            GET DJANGO CSRF TOKEN
+            ===================================================== */
+
+            function getCookie(name)
+            {
+                let cookieValue = null;
+
+                if (document.cookie && document.cookie !== "")
+                {
+                    const cookies = document.cookie.split(";");
+
+                    for (let i = 0; i < cookies.length; i++)
+                    {
+                        const cookie = cookies[i].trim();
+
+                        if (cookie.substring(0, name.length + 1) === (name + "="))
+                        {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+
+                return cookieValue;
+            }
+
+
+            /* =========================================================
+            RESET EDITOR
+            Resets everything when modal closes or image cancelled
+            ========================================================= */
+
+            function resetEditor()
+            {
+                if(cropper)
+                {
+                    cropper.destroy();
+                    cropper = null;
+                }
+
+                editing = false;
+
+                currentRotation = 0;
+
+                /* reset file input */
+                photoInput.value = "";
+
+                /* reset image */
+                image.src = "";
+
+                /* show upload area again */
+                uploadArea.style.display = "flex";
+
+                /* hide editor */
+                editorLayer.classList.add("hidden");
+                controls.classList.add("hidden");
+                uploadBtn.classList.add("hidden");
+
+                /* reset zoom */
+                currentZoom = MIN_ZOOM;
+                zoomSlider.value = 0;
+
+                /* reset preview */
+
+                if(previewImg)
+                {
+                    previewImg.src = "";
+                }
+            }
+
+
+            /* =========================================================
+            FACE DETECTION (AUTO CENTER)
+            ========================================================= */
+            
+            {% comment %} let faceModelLoaded = false;
+
+            async function loadFaceModel() 
+            {
+                if (faceModelLoaded) return;
+
+                if (typeof faceapi === "undefined") {
+                    console.error("faceapi not loaded");
+                    return;
+                }
+
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');                
+                faceModelLoaded = true;
+
+                console.log("Face model loaded");
+            }
+
+
+            async function centerFace(imageElement) 
+            {
+                try 
+                {
+                    await loadFaceModel();
+
+                    await new Promise(r => setTimeout(r, 300));
+
+                    const detection = await faceapi.detectSingleFace(
+                        imageElement,
+                        new faceapi.TinyFaceDetectorOptions(
+                        {
+                            inputSize: 512,
+                            scoreThreshold: 0.2
+                        })
+                    );
+
+                    if (!detection) return;
+
+                    const face = detection.box;
+
+                    const canvasData = cropper.getCanvasData();
+
+                    const imgWidth = imageElement.naturalWidth;
+                    const imgHeight = imageElement.naturalHeight;
+
+                    const scaleX = canvasData.width / imgWidth;
+                    const scaleY = canvasData.height / imgHeight;
+
+                    // 🎯 FACE CENTER (scaled)
+                    let centerX = canvasData.left + (face.x + face.width / 2) * scaleX;
+
+                    // 🧠 SHIFT UP (more forehead, less chest)
+                    let centerY = canvasData.top + (face.y + face.height * 0.35) * scaleY;
+
+                    // 📐 AUTO ZOOM based on face size
+                    const faceWidthScaled = face.width * scaleX;
+                    const desiredFaceRatio = 0.6; // how much of crop box face should fill
+
+                    const cropBox = cropper.getCropBoxData();
+
+                    const newWidth = faceWidthScaled / desiredFaceRatio;
+                    const newHeight = newWidth; // square aspect
+
+                    // ⚡ SMOOTH TRANSITION
+                    animateCrop(
+                    {
+                        left: centerX - newWidth / 2,
+                        top: centerY - newHeight / 2,
+                        width: newWidth,
+                        height: newHeight
+                    });
+
+                } 
+                catch (err) 
+                {
+                    console.error("Face detection failed:", err);
+                }
+            }
+
+            function animateCrop(target) 
+            {
+                const duration = 300;
+                const start = performance.now();
+                const initial = cropper.getCropBoxData();
+
+                function animate(time) 
+                {
+                    const progress = Math.min((time - start) / duration, 1);
+                    const ease = 1 - Math.pow(1 - progress, 3); // easeOut
+
+                    cropper.setCropBoxData(
+                    {
+                        left: initial.left + (target.left - initial.left) * ease,
+                        top: initial.top + (target.top - initial.top) * ease,
+                        width: initial.width + (target.width - initial.width) * ease,
+                        height: initial.height + (target.height - initial.height) * ease
+                    });
+
+                    if (progress < 1) 
+                    {
+                        requestAnimationFrame(animate);
+                    }
+                }
+
+                requestAnimationFrame(animate);
+            } {% endcomment %}
+
+
+            /* =========================================================
+            🔥 FULL AI FACE SYSTEM (FINAL)
+            ========================================================= */
+
+            let faceModelLoaded = false;
+            let previewFrame;
+
+            /* ================= LOAD MODELS ================= */
+
+            async function loadFaceModel() 
+            {
+                if (faceModelLoaded) return;
+
+                const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
+
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+
+                faceModelLoaded = true;
+                console.log("Models loaded ✅");
+            }
+
+            /* ================= EYE ANGLE ================= */
+
+            function getEyeAngle(landmarks) 
+            {
+                const leftEye = landmarks.getLeftEye()[0];
+                const rightEye = landmarks.getRightEye()[3];
+
+                const dx = rightEye.x - leftEye.x;
+                const dy = rightEye.y - leftEye.y;
+
+                return Math.atan2(dy, dx) * (180 / Math.PI);
+            }
+
+            /* ================= SMOOTH CROP ================= */
+
+            function animateCrop(target) 
+            {
+                const duration = 300;
+                const start = performance.now();
+                const initial = cropper.getCropBoxData();
+
+                function animate(time) 
+                {
+                    const progress = Math.min((time - start) / duration, 1);
+                    const ease = 1 - Math.pow(1 - progress, 3);
+
+                    cropper.setCropBoxData(
+                    {
+                        left: initial.left + (target.left - initial.left) * ease,
+                        top: initial.top + (target.top - initial.top) * ease,
+                        width: initial.width + (target.width - initial.width) * ease,
+                        height: initial.height + (target.height - initial.height) * ease
+                    });
+
+                    if (progress < 1) requestAnimationFrame(animate);
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            /* ================= MAIN AI FACE LOGIC ================= */
+
+            async function centerFace(imageElement) 
+            {
+                try 
+                {
+                    await loadFaceModel();
+
+                    await new Promise(r => setTimeout(r, 300));
+
+                    const detections = await faceapi
+                        .detectAllFaces(imageElement, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks(true);
+
+                    if (!detections.length) return;
+
+                    // 👥 BEST FACE
+                    let best = detections[0];
+                    detections.forEach(d => 
+                    {
+                        if (d.detection.box.area > best.detection.box.area) 
+                        {
+                            best = d;
+                        }
+                    });
+
+                    const face = best.detection.box;
+                    const landmarks = best.landmarks;
+
+                    // 🎯 ALIGN FACE
+                    {% comment %} const angle = getEyeAngle(landmarks);
+                    if (Math.abs(angle) > 2) 
+                    {
+                        cropper.rotateTo(angle);
+                    } {% endcomment %}
+
+                    const canvasData = cropper.getCanvasData();
+                    const scaleX = canvasData.width / imageElement.naturalWidth;
+                    const scaleY = canvasData.height / imageElement.naturalHeight;
+
+                    // 🧠 SMART POSITION
+                    let centerX = canvasData.left + (face.x + face.width / 2) * scaleX;
+                    let centerY = canvasData.top + (face.y + face.height * 0.35) * scaleY;
+
+                    // 🔍 AUTO ZOOM
+                    const faceWidthScaled = face.width * scaleX;
+                    const size = faceWidthScaled / 0.6;
+
+                    animateCrop(
+                        {
+                        left: centerX - size / 2,
+                        top: centerY - size / 2,
+                        width: size,
+                        height: size
+                    });
+
+                } 
+                catch (err) 
+                {
+                    console.error("Face detection failed:", err);
+                }
+            }
+
+            let currentRotation = 0;
+
+            function rotateImage()
+            {
+                if (!cropper) return;
+
+                currentRotation += 15; // rotate by 15 degrees
+                cropper.rotateTo(currentRotation);
+            }
+
+        </script>
+    </body>
+</html>

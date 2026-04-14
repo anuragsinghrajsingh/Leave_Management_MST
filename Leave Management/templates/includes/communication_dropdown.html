@@ -1,0 +1,213 @@
+{% load static %}
+
+<div
+    class="communication-dropdown"
+    data-communication-api="{% url 'communications_feed' %}"
+    data-communication-post="{% url 'communications_send' %}"
+    data-role="{{ request.user.role }}"
+    data-communication-user-key="{{ request.user.role }}:{{ request.user.id }}"
+    data-empty-text="{{ communication_empty_text|default:'No announcements or messages yet.' }}"
+>
+    <button type="button" class="communication-trigger" aria-label="Open announcements and messages" aria-expanded="false">
+        <span class="communication-icon" aria-hidden="true"></span>
+        <span class="communication-count{% if not communication_count %} hidden{% endif %}" data-communication-total>{{ communication_count }}</span>
+        <span class="communication-new-badge hidden" data-communication-new-badge></span>
+    </button>
+
+    <div class="communication-panel">
+        <div class="communication-panel-header">
+            <div>
+                <h3>Announcements & Messages</h3>
+            </div>
+            <div class="communication-panel-meta">
+                <span class="communication-meta" data-communication-total-meta>{{ communication_count }}</span>
+            </div>
+        </div>
+
+        <div class="communication-panel-body">
+            {% if request.user.role != "HR" %}
+                <div class="communication-panel-tabs">
+                    <button type="button" class="communication-panel-tab is-active" data-communication-page-target="announcement">
+                        <span>Announcements</span>
+                        <span class="communication-tab-count" data-communication-page-count="announcement">0</span>
+                    </button>
+                    <button type="button" class="communication-panel-tab" data-communication-page-target="compose">
+                        <span>Messages</span>
+                        <span class="communication-tab-count" data-communication-page-count="compose">0</span>
+                    </button>
+                </div>
+            {% endif %}
+
+            <section class="communication-page{% if request.user.role == 'HR' %} is-active{% endif %}" data-communication-page="compose">
+                {% if request.user.role == "HR" %}
+                    <div class="communication-mode-switch">
+                        <button type="button" class="communication-mode-btn is-active" data-communication-mode="ANNOUNCEMENT">
+                            <span>Announcements</span>
+                            <span class="communication-tab-count" data-communication-mode-count="ANNOUNCEMENT">0</span>
+                        </button>
+                        <button type="button" class="communication-mode-btn" data-communication-mode="DIRECT">
+                            <span>Messages</span>
+                            <span class="communication-tab-count" data-communication-mode-count="DIRECT">0</span>
+                        </button>
+                    </div>
+                {% endif %}
+
+                <form class="communication-compose-form" data-communication-form>
+                    {% csrf_token %}
+                    {% if request.user.role == "HR" %}
+                        <input type="hidden" name="message_type" value="ANNOUNCEMENT" data-communication-type-input>
+                        <div class="communication-field communication-recipient-field hidden" data-communication-recipient-field>
+                            <label for="communicationRecipientSelect">Employee</label>
+                            <select id="communicationRecipientSelect" name="recipient_id">
+                                <option value="">Select employee</option>
+                                {% for item in communication_recipients %}
+                                    <option value="{{ item.id }}">{{ item.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% else %}
+                        <input type="hidden" name="message_type" value="DIRECT" data-communication-type-input>
+                    {% endif %}
+
+                    <div class="communication-field">
+                        <label for="communicationTitle-{{ request.user.role|lower }}" data-communication-title-label>Title</label>
+                        <input id="communicationTitle-{{ request.user.role|lower }}" type="text" name="title" maxlength="140" placeholder="{% if request.user.role == 'HR' %}Write a short title{% else %}Optional subject for HR{% endif %}" data-communication-title-input>
+                    </div>
+
+                    <div class="communication-field">
+                        <label for="communicationBody-{{ request.user.role|lower }}" data-communication-body-label>Message</label>
+                        <textarea id="communicationBody-{{ request.user.role|lower }}" name="body" rows="4" maxlength="1500" placeholder="{% if request.user.role == 'HR' %}Share the update you want employees to see{% else %}Write your message to HR{% endif %}" data-communication-body-input></textarea>
+                    </div>
+
+                    <div class="communication-form-actions">
+                        <p class="communication-feedback hidden" data-communication-feedback></p>
+                        <button type="submit" class="communication-submit-btn" data-communication-submit-btn>
+                            {% if request.user.role == "HR" %}Send update{% else %}Send to HR{% endif %}
+                        </button>
+                    </div>
+                </form>
+
+                {% if request.user.role == "HR" %}
+                    <div class="communication-list" data-communication-list="hr">
+                        <div class="communication-list-actions">
+                            <button type="button" class="communication-mark-read-btn" data-communication-mark-read data-communication-mark-target="direct">Mark all messages as read</button>
+                        </div>
+                        {% for item in communication_items %}
+                            <article
+                                class="communication-item communication-item-{{ item.type_class }} communication-item-{{ item.direction_class }}{% if item.is_new %} is-new{% elif item.is_read and not item.is_outgoing %} is-read{% endif %}"
+                                data-communication-id="{{ item.id }}"
+                                data-communication-type="{{ item.type_class }}"
+                                data-communication-read="{{ item.is_read|yesno:'true,false' }}"
+                                data-communication-new="{{ item.is_new|yesno:'true,false' }}"
+                                data-communication-outgoing="{{ item.is_outgoing|yesno:'true,false' }}"
+                                data-communication-title="{{ item.title }}"
+                                data-communication-audience="{{ item.audience_label }}"
+                                data-communication-time="{{ item.created_at }}"
+                                data-communication-body="{{ item.body_full }}"
+                            >
+                                {% if item.photo_url %}
+                                    <img src="{{ item.photo_url }}" alt="{{ item.sender_name }}" class="communication-avatar">
+                                {% else %}
+                                    <span class="communication-avatar communication-avatar-fallback" data-avatar-fallback data-full-name="{{ item.sender_name }}" data-username="{{ item.username }}" aria-label="{{ item.sender_name }}"></span>
+                                {% endif %}
+                                <div class="communication-copy">
+                                    <div class="communication-copy-top">
+                                        <strong class="communication-title">{{ item.title }}</strong>
+                                        <span class="communication-tag">{{ item.type_label }}</span>
+                                    </div>
+                                    <p class="communication-audience">{{ item.audience_label }}</p>
+                                    <p class="communication-body">{{ item.body_preview }}</p>
+                                    <small class="communication-time">{{ item.created_at }}</small>
+                                </div>
+                            </article>
+                        {% empty %}
+                            <div class="communication-empty">No announcements or messages yet.</div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="communication-list" data-communication-list="direct">
+                        <div class="communication-list-actions">
+                            <button type="button" class="communication-mark-read-btn" data-communication-mark-read data-communication-mark-target="direct">Mark all messages as read</button>
+                        </div>
+                        {% for item in communication_items %}
+                            {% if item.type_class == "direct" %}
+                                <article
+                                    class="communication-item communication-item-{{ item.type_class }} communication-item-{{ item.direction_class }}{% if item.is_new %} is-new{% elif item.is_read and not item.is_outgoing %} is-read{% endif %}"
+                                    data-communication-id="{{ item.id }}"
+                                    data-communication-type="{{ item.type_class }}"
+                                    data-communication-read="{{ item.is_read|yesno:'true,false' }}"
+                                    data-communication-new="{{ item.is_new|yesno:'true,false' }}"
+                                    data-communication-outgoing="{{ item.is_outgoing|yesno:'true,false' }}"
+                                    data-communication-title="{{ item.title }}"
+                                    data-communication-audience="{{ item.audience_label }}"
+                                    data-communication-time="{{ item.created_at }}"
+                                    data-communication-body="{{ item.body_full }}"
+                                >
+                                    {% if item.photo_url %}
+                                        <img src="{{ item.photo_url }}" alt="{{ item.sender_name }}" class="communication-avatar">
+                                    {% else %}
+                                        <span class="communication-avatar communication-avatar-fallback" data-avatar-fallback data-full-name="{{ item.sender_name }}" data-username="{{ item.username }}" aria-label="{{ item.sender_name }}"></span>
+                                    {% endif %}
+                                    <div class="communication-copy">
+                                        <div class="communication-copy-top">
+                                            <strong class="communication-title">{{ item.title }}</strong>
+                                            <span class="communication-tag">{{ item.type_label }}</span>
+                                        </div>
+                                        <p class="communication-audience">{{ item.audience_label }}</p>
+                                        <p class="communication-body">{{ item.body_preview }}</p>
+                                        <small class="communication-time">{{ item.created_at }}</small>
+                                    </div>
+                                </article>
+                            {% endif %}
+                        {% empty %}
+                        {% endfor %}
+                        <div class="communication-empty{% for item in communication_items %}{% if item.type_class == 'direct' %} hidden{% endif %}{% endfor %}">No messages with HR yet.</div>
+                    </div>
+                {% endif %}
+            </section>
+
+            {% if request.user.role != "HR" %}
+            <section class="communication-page is-active" data-communication-page="announcement">
+                <div class="communication-list" data-communication-list="announcement">
+                    <div class="communication-list-actions">
+                        <button type="button" class="communication-mark-read-btn" data-communication-mark-read data-communication-mark-target="announcement">Mark the announcement as read</button>
+                    </div>
+                    {% for item in communication_items %}
+                        {% if item.type_class == "announcement" %}
+                            <article
+                                class="communication-item communication-item-{{ item.type_class }} communication-item-{{ item.direction_class }}{% if item.is_new %} is-new{% elif item.is_read and not item.is_outgoing %} is-read{% endif %}"
+                                data-communication-id="{{ item.id }}"
+                                data-communication-type="{{ item.type_class }}"
+                                data-communication-read="{{ item.is_read|yesno:'true,false' }}"
+                                data-communication-new="{{ item.is_new|yesno:'true,false' }}"
+                                data-communication-outgoing="{{ item.is_outgoing|yesno:'true,false' }}"
+                                data-communication-title="{{ item.title }}"
+                                data-communication-audience="{{ item.audience_label }}"
+                                data-communication-time="{{ item.created_at }}"
+                                data-communication-body="{{ item.body_full }}"
+                            >
+                                {% if item.photo_url %}
+                                    <img src="{{ item.photo_url }}" alt="{{ item.sender_name }}" class="communication-avatar">
+                                {% else %}
+                                    <span class="communication-avatar communication-avatar-fallback" data-avatar-fallback data-full-name="{{ item.sender_name }}" data-username="{{ item.username }}" aria-label="{{ item.sender_name }}"></span>
+                                {% endif %}
+                                <div class="communication-copy">
+                                    <div class="communication-copy-top">
+                                        <strong class="communication-title">{{ item.title }}</strong>
+                                        <span class="communication-tag">{{ item.type_label }}</span>
+                                    </div>
+                                    <p class="communication-audience">{{ item.audience_label }}</p>
+                                    <p class="communication-body">{{ item.body_preview }}</p>
+                                    <small class="communication-time">{{ item.created_at }}</small>
+                                </div>
+                            </article>
+                        {% endif %}
+                    {% empty %}
+                    {% endfor %}
+                    <div class="communication-empty{% for item in communication_items %}{% if item.type_class == 'announcement' %} hidden{% endif %}{% endfor %}">No announcements yet.</div>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+</div>

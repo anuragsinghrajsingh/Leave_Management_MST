@@ -1,0 +1,300 @@
+{% comment %} 
+
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+
+    <!-- Shared Header -->
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+
+    <!-- Admin Styles -->
+    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}">
+</head>
+<body>
+
+<header>
+    <h1>HR Panel</h1>
+
+    <input type="checkbox" id="menu-toggle">
+    <label for="menu-toggle" class="hamburger">&#9776;</label>
+
+    <nav class="nav-links">
+        <a href="{% url 'manage_all' %}">Manage All</a>
+        <a href="{% url 'employee_details' %}">Employees</a>
+        <a href="{% url 'reports' %}">Reports</a>
+    </nav>
+
+    <div class="profile-dropdown">
+        <input type="checkbox" id="profile-toggle">
+        <label for="profile-toggle" class="profile-icon">
+            <img src="user.png" >
+        </label>
+
+        <div class="dropdown-content">
+            <div class="user-info">
+                <img src="user.png">
+                <p>ASRS</p>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="container">
+
+        <!-- Stats -->
+        <div class="card stat">
+            <h3>Total Requests</h3>
+            <p class="count">54</p>
+        </div>
+
+        <div class="card stat">
+            <h3>Pending Approval</h3>
+            <p class="count pending-text">12</p>
+        </div>
+
+        <div class="card stat">
+            <h3>Approved</h3>
+            <p class="count approved-text">32</p>
+        </div>
+
+        <div class="card stat">
+            <h3>Rejected</h3>
+            <p class="count rejected-text">10</p>
+        </div>
+
+        <!-- Leave Approval Table -->
+        <div class="card full-width">
+            <h2>Pending Leave Requests</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td>John Doe</td>
+                        <td>Casual</td>
+                        <td>2025-01-10</td>
+                        <td>2025-01-12</td>
+                        <td>Family Function</td>
+                        <td>
+                            <button class="approve-btn">Approve</button>
+                            <button class="reject-btn" onclick="openReject()">Reject</button>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Priya Sharma</td>
+                        <td>Sick</td>
+                        <td>2025-01-15</td>
+                        <td>2025-01-16</td>
+                        <td>Medical Issue</td>
+                        <td>
+                            <button class="approve-btn">Approve</button>
+                            <button class="reject-btn" onclick="openReject()">Reject</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</main>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal">
+    <div class="modal-content">
+        <h3>Reject Leave</h3>
+        <textarea placeholder="Enter rejection reason..."></textarea>
+        <div class="modal-actions">
+            <button class="cancel-btn" onclick="closeReject()">Cancel</button>
+            <button class="reject-btn">Confirm Reject</button>
+        </div>
+    </div>
+</div>
+
+<footer>
+    © 2025 Leave Management System | Admin
+</footer>
+
+<script>
+function openReject() {
+    document.getElementById("rejectModal").style.display = "flex";
+}
+
+function closeReject() {
+    document.getElementById("rejectModal").style.display = "none";
+}
+</script>
+
+</body>
+</html> 
+
+{% endcomment %}
+
+
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HR Dashboard</title>
+
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}">
+</head>
+<body>
+
+<header>
+    <h1>Dashboard</h1>
+
+    <input type="checkbox" id="menu-toggle">
+    <label for="menu-toggle" class="hamburger">&#9776;</label>
+
+    <nav class="nav-links">
+        <a href="{% url 'manage_all' %}">Manage All</a>
+        <a href="{% url 'employee_details' %}">Employees</a>
+        <a href="{% url 'reports' %}">Reports</a>
+    </nav>
+
+    <div class="profile-dropdown">
+        <input type="checkbox" id="profile-toggle">
+        <label for="profile-toggle" class="profile-icon">
+            <img src="{% static 'images/user.png' %}">
+        </label>
+
+        <div class="dropdown-content">
+            <div class="user-info">
+                <img src="{% static 'images/user.png' %}">
+                <p>{{ request.user.username }}</p>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">⏻ Logout</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="container">
+
+        <!-- Stats -->
+        <div class="card stat">
+            <h3>Total Requests</h3>
+            <p class="count">{{ total }}</p>
+        </div>
+
+        <div class="card stat">
+            <h3>Pending Requests</h3>
+            <p class="count pending-text">{{ pending }}</p>
+        </div>
+
+        <div class="card stat">
+            <h3>Approved Requests</h3>
+            <p class="count approved-text">{{ approved }}</p>
+        </div>
+
+        <div class="card stat">
+            <h3>Rejected Requests</h3>
+            <p class="count rejected-text">{{ rejected }}</p>
+        </div>
+
+        <!-- Pending Leaves Table -->
+        <div class="card full-width">
+            <h2>Pending Leave Requests</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for leave in pending_leaves %}
+                        <tr>
+                            <td>{{ leave.user.username }}</td>
+                            <td>{{ leave.leave_type }}</td>
+                            <td>{{ leave.from_date }}</td>
+                            <td>{{ leave.to_date }}</td>
+                            <td>{{ leave.reason }}</td>
+                            <td>
+                                <!-- Approve -->
+                                <form method="POST" action="{% url 'approve_leave' leave.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button class="approve-btn"> Approve </button>
+                                </form>
+
+                                <!-- Reject -->
+                                <button class="reject-btn" onclick="openReject({{ leave.id }})"> Reject </button>
+                            </td>
+                        </tr>
+
+                    {% empty %}
+                        <tr>
+                            <td colspan="6">No pending leaves.</td>
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</main>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal">
+    <div class="modal-content">
+        <h3>Reject Leave</h3>
+
+        <form method="POST" id="rejectForm">
+            {% csrf_token %}
+            <textarea name="rejection_reason" placeholder="Enter rejection reason..." required></textarea>
+
+            <div class="modal-actions">
+                <button type="button" class="cancel-btn" onclick="closeReject()">Cancel</button>
+                <button type="submit" class="reject-btn">Confirm Reject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<footer>
+    © 2025 Leave Management System | HR
+</footer>
+
+<script>
+
+    function openReject(leaveId) 
+    {
+        const form = document.getElementById("rejectForm");
+        form.action = "/reject-leave/" + leaveId + "/";
+        document.getElementById("rejectModal").style.display = "flex";
+    }
+
+    function closeReject() 
+    {
+        document.getElementById("rejectModal").style.display = "none";
+    }
+
+</script>
+
+</body>
+</html>

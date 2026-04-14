@@ -1,0 +1,1519 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}HR Dashboard{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hr_notification_shared.css' %}">
+{% endblock %}
+
+{% block body_class %}hr-page{% endblock %}
+
+{% block page_skeleton %}
+    <div class="page-skeleton-overlay" data-page-skeleton>
+        <div class="page-skeleton-shell">
+            <div class="page-skeleton-topbar">
+                <span class="skeleton-chip"></span>
+                <span class="skeleton-bar title"></span>
+                <span class="skeleton-bar nav"></span>
+                <span class="skeleton-icon"></span>
+                <span class="skeleton-avatar"></span>
+            </div>
+
+            <div class="page-skeleton-body">
+                <div class="page-skeleton-row cols-2">
+                    <div class="skeleton-card lg">
+                        <div class="page-skeleton-panel-inner">
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-30"></span>
+                                <span class="skeleton-line w-80"></span>
+                                <span class="skeleton-line w-60"></span>
+                            </div>
+                            <div class="page-skeleton-stat-grid cols-4">
+                                <div class="skeleton-card sm">
+                                    <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center bottom">
+                                        <span class="skeleton-line w-50"></span>
+                                        <span class="skeleton-line w-30"></span>
+                                        <span class="skeleton-line w-60"></span>
+                                    </div>
+                                </div>
+                                <div class="skeleton-card sm">
+                                    <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center bottom">
+                                        <span class="skeleton-line w-50"></span>
+                                        <span class="skeleton-chip wide"></span>
+                                        <span class="skeleton-line w-30"></span>
+                                    </div>
+                                </div>
+                                <div class="skeleton-card sm">
+                                    <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center bottom">
+                                        <span class="skeleton-line w-50"></span>
+                                        <span class="skeleton-line w-30"></span>
+                                        <span class="skeleton-line w-60"></span>
+                                    </div>
+                                </div>
+                                <div class="skeleton-card sm">
+                                    <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center bottom">
+                                        <span class="skeleton-line w-50"></span>
+                                        <span class="skeleton-line w-30"></span>
+                                        <span class="skeleton-line w-60"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="page-skeleton-stack">
+                        <div class="skeleton-card md">
+                            <div class="page-skeleton-panel-inner">
+                                <span class="skeleton-line w-40"></span>
+                                <span class="skeleton-line w-100"></span>
+                                <div class="page-skeleton-card-copy center">
+                                    <span class="skeleton-line w-40"></span>
+                                    <span class="skeleton-line w-70"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="page-skeleton-stat-grid cols-2">
+                            <div class="skeleton-card sm">
+                                <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center bottom">
+                                    <span class="skeleton-line w-50"></span>
+                                    <span class="skeleton-line w-30"></span>
+                                    <span class="skeleton-line w-70"></span>
+                                </div>
+                            </div>
+                            <div class="skeleton-card sm">
+                                <div class="page-skeleton-panel-inner tight page-skeleton-card-copy center bottom">
+                                    <span class="skeleton-line w-50"></span>
+                                    <span class="skeleton-line w-30"></span>
+                                    <span class="skeleton-line w-70"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skeleton-card lg page-skeleton-table">
+                    <div class="page-skeleton-table-header">
+                        <span class="skeleton-line w-40"></span>
+                        <span class="skeleton-chip wide"></span>
+                    </div>
+                    <div class="page-skeleton-table-head">
+                        <span class="skeleton-line w-70"></span>
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-80"></span>
+                        <span class="skeleton-line w-40"></span>
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-70"></span>
+                        <span class="skeleton-line w-50"></span>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell">
+                            <div class="page-skeleton-avatar-line">
+                                <span class="skeleton-avatar"></span>
+                                <div class="page-skeleton-stack">
+                                    <span class="skeleton-line w-70"></span>
+                                    <span class="skeleton-line w-50"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-chip wide"></span></div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-100"></span>
+                            <span class="skeleton-line w-80"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell center">
+                            <span class="skeleton-line w-30"></span>
+                            <span class="skeleton-line w-40"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-60"></span>
+                            <span class="skeleton-line w-50"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-100"></span>
+                            <span class="skeleton-line w-80"></span>
+                        </div>
+                        <div class="page-skeleton-button-pair">
+                            <span class="skeleton-chip wide"></span>
+                            <span class="skeleton-chip wide"></span>
+                        </div>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell">
+                            <div class="page-skeleton-avatar-line">
+                                <span class="skeleton-avatar"></span>
+                                <div class="page-skeleton-stack">
+                                    <span class="skeleton-line w-60"></span>
+                                    <span class="skeleton-line w-40"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-chip wide"></span></div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-80"></span>
+                            <span class="skeleton-line w-70"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell center">
+                            <span class="skeleton-line w-30"></span>
+                            <span class="skeleton-line w-40"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-50"></span>
+                            <span class="skeleton-line w-40"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-80"></span>
+                            <span class="skeleton-line w-60"></span>
+                        </div>
+                        <div class="page-skeleton-button-pair">
+                            <span class="skeleton-chip wide"></span>
+                            <span class="skeleton-chip wide"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block header %}
+    <div class="header-title-group">
+        <span class="header-title-icon" aria-hidden="true">
+            <span class="header-title-icon-shape icon-grid"></span>
+        </span>
+        <h1>HR Dashboard</h1>
+    </div>
+
+    <button type="button" class="hamburger" aria-label="Open navigation menu">&#9776;</button>
+
+    <nav class="nav-links">
+        <a href="{% url 'manage_all' %}">
+            <span class="nav-shortcut-icon manage-badge"><span class="badge-shape badge-folder"></span></span>
+            <span>Manage All</span>
+        </a>
+        <a href="{% url 'employee_details' %}">
+            <span class="nav-shortcut-icon employee-badge"><span class="badge-shape badge-team"></span></span>
+            <span>Employees</span>
+        </a>
+        <a href="{% url 'reports' %}">
+            <span class="nav-shortcut-icon report-badge"><span class="badge-shape badge-chart"></span></span>
+            <span>Reports</span>
+        </a>
+    </nav>
+
+    <div class="header-actions">
+        {% include "includes/communication_dropdown.html" %}
+        {% include "includes/hr_notification_dropdown.html" %}
+
+        <div class="profile-dropdown">
+            <input type="checkbox" id="profile-toggle">
+            <label for="profile-toggle" class="profile-icon">
+                {% if request.user.profile.profile_photo %}
+                    <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                {% else %}
+                    <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-label="HR user"></span>
+                {% endif %}
+            </label>
+
+            <div class="dropdown-content">
+                <div class="user-info">
+                    {% if request.user.profile.profile_photo %}
+                        <span class="user-info-media">
+                            <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                        </span>
+                    {% else %}
+                        <span class="profile-avatar-shell profile-avatar-initials dropdown-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-label="HR user"></span>
+                    {% endif %}
+                    <div>
+                        <p>{{ request.user.get_full_name|default:request.user.username }}</p>
+                        <small>HR workspace</small>
+                    </div>
+                </div>
+                <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <section class="hr-dashboard-page">
+        <div class="hr-dashboard-shell">
+            <section class="hero-panel">
+                <div class="hero-main">
+                    <div class="hero-top-row">
+                        <div class="hero-copy">
+                            <p class="eyebrow">Operations overview</p>
+                            <h2>Track requests faster and keep HR decisions on schedule.</h2>
+                            <p class="hero-text">
+                                Check queue status, review urgent requests, and move quickly into the actions that need attention.
+                            </p>
+                        </div>
+
+                        <aside class="hero-quote-card">
+                            <span class="quote-label">Leadership quote</span>
+
+                            <div class="quote-content-block">
+                                <blockquote id="heroQuoteText" class="hero-quote-text">
+                                    The purpose of an organization is to enable common men to do uncommon things.
+                                </blockquote>
+                            </div>
+                        </aside>
+                    </div>
+
+                    <div class="hero-highlights">
+                        <article class="hero-highlight-card total-card">
+                            <span class="highlight-label">Total requests</span>
+                            <strong class="highlight-value" data-countup data-countup-target="{{ total }}">{{ total }}</strong>
+                            <p>All leave records in the system.</p>
+                        </article>
+
+                        <article class="hero-highlight-card pending-card">
+                            <span class="highlight-label">Pending</span>
+                            {% if pending >= 8 %}
+                                <span class="highlight-badge critical-badge">Critical</span>
+                            {% elif pending >= 4 %}
+                                <span class="highlight-badge busy-badge">Busy</span>
+                            {% else %}
+                                <span class="highlight-badge normal-badge">Normal</span>
+                            {% endif %}
+                            <strong class="highlight-value" data-countup data-countup-target="{{ pending }}">{{ pending }}</strong>
+                            <p>Needs review.</p>
+                        </article>
+
+                        <article class="hero-highlight-card approved-card">
+                            <span class="highlight-label">Approved</span>
+                            <strong class="highlight-value" data-countup data-countup-target="{{ approved }}">{{ approved }}</strong>
+                            <p>Requests already approved.</p>
+                        </article>
+
+                        <article class="hero-highlight-card rejected-card">
+                            <span class="highlight-label">Rejected</span>
+                            <strong class="highlight-value" data-countup data-countup-target="{{ rejected }}">{{ rejected }}</strong>
+                            <p>Requests declined after review.</p>
+                        </article>
+
+                        <article class="side-stat-card queue-stat-card">
+                            <span class="side-stat-label">Current queue</span>
+                            <strong class="side-stat-value" data-countup data-countup-target="{{ pending }}">{{ pending }}</strong>
+                            <p>{% if pending == 1 %}Request waiting for approval.{% else %}Requests waiting for approval.{% endif %}</p>
+                        </article>
+
+                        <article class="side-stat-card processed-stat-card">
+                            <span class="side-stat-label">Processed</span>
+                            <strong class="side-stat-value" data-countup data-countup-target="{{ approved|add:rejected }}">{{ approved|add:rejected }}</strong>
+                            <p>Requests already reviewed.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+            <section class="panel-card request-table-card">
+                <div class="table-header">
+                    <div>
+                        <h3 class="queue-title">Pending Leave Request Queue</h3>
+                    </div>
+                    <span class="table-count" data-countup data-countup-target="{{ pending }}" data-countup-suffix=" open">{{ pending }} open</span>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <colgroup>
+                            <col class="col-employee">
+                            <col class="col-type">
+                            <col class="col-schedule">
+                            <col class="col-days">
+                            <col class="col-applied">
+                            <col class="col-updated">
+                            <col class="col-reason">
+                            <col class="col-action">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">👤</span><span>Employee</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">🏷️</span><span>Type</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">📅</span><span>Schedule</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">⏳</span><span>Days</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">🕒</span><span>Applied</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">🔄</span><span>Updated</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">📝</span><span>Reason</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">⚡</span><span>Action</span></span></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for leave in pending_leaves %}
+                                <tr data-leave-row data-leave-id="{{ leave.id }}">
+                                    <td>
+                                        <div class="employee-cell">
+                                            {% if leave.user.profile.profile_photo %}
+                                                <img src="{{ leave.user.profile.profile_photo.url }}" alt="{{ leave.user.username }}" class="employee-avatar-image">
+                                            {% else %}
+                                                <span class="employee-avatar-fallback" aria-hidden="true">
+                                                    {% if leave.user.first_name %}
+                                                        {{ leave.user.first_name|slice:":1"|upper }}
+                                                    {% else %}
+                                                        {{ leave.user.username|slice:":1"|upper }}
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ leave.user.username }}</strong>
+                                                <small>Submitted for review</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="leave-pill
+                                            {% if leave.leave_type == 'Sick' %}leave-pill-sick
+                                            {% elif leave.leave_type == 'Casual' %}leave-pill-casual
+                                            {% elif leave.leave_type == 'Earned' %}leave-pill-earned
+                                            {% elif leave.leave_type == 'Short' %}leave-pill-short
+                                            {% elif leave.leave_type == 'Half' %}leave-pill-half
+                                            {% else %}leave-pill-default{% endif %}">
+                                            <span class="leave-pill-symbol">
+                                                {% if leave.leave_type == 'Sick' %}✚
+                                                {% elif leave.leave_type == 'Casual' %}☕
+                                                {% elif leave.leave_type == 'Earned' %}★
+                                                {% elif leave.leave_type == 'Short' %}⏱
+                                                {% elif leave.leave_type == 'Half' %}◐
+                                                {% else %}✦{% endif %}
+                                            </span>
+                                            <span class="leave-pill-code">{{ leave.leave_type|slice:":1"|upper }}</span>
+                                            <span class="leave-pill-name">{{ leave.leave_type }}</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="schedule-block">
+                                            <div class="schedule-line">
+                                                <span class="meta-icon">📅</span>
+                                                <strong>{{ leave.from_date|date:"M d, Y" }}</strong>
+                                                <span class="range-arrow">&rarr;</span>
+                                                <strong>{{ leave.to_date|date:"M d, Y" }}</strong>
+                                            </div>
+                                            <div class="schedule-line schedule-time {% if leave.leave_type == 'Short' %}schedule-time-short{% elif leave.leave_type == 'Half' %}schedule-time-half{% endif %}">
+                                                <span class="meta-icon">🕒</span>
+                                                {% if leave.from_datetime and leave.to_datetime %}
+                                                    <span>{{ leave.from_datetime|time:"h:i A" }}</span>
+                                                    <span class="range-arrow">&rarr;</span>
+                                                    <span>{{ leave.to_datetime|time:"h:i A" }}</span>
+                                                {% else %}
+                                                    <span>Full day</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="days-block" data-from="{{ leave.from_date|date:'Y-m-d' }}" data-to="{{ leave.to_date|date:'Y-m-d' }}">
+                                            <strong class="days-counter">0</strong>
+                                            <span class="days-label">day</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="applied-block">
+                                            <div class="applied-line">
+                                                <span class="meta-icon">📅</span>
+                                                <strong class="applied-relative" data-time="{{ leave.created_at|date:'c' }}">{{ leave.created_at|date:"M d, Y" }}</strong>
+                                            </div>
+                                            <div class="applied-line">
+                                                <span class="meta-icon">🕒</span>
+                                                <span class="applied-fallback-time">{{ leave.created_at|time:"h:i A" }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if leave.updated_at %}
+                                            <div class="applied-block">
+                                                <div class="applied-line">
+                                                    <span class="meta-icon meta-icon-updated">📆</span>
+                                                    <strong data-relative-datetime="{{ leave.updated_at|date:'c' }}" data-relative-count="{{ leave.no_of_times_updated|default:0 }}">{{ leave.updated_at|date:"M d, Y" }}{% if leave.no_of_times_updated %} ({{ leave.no_of_times_updated }}){% endif %}</strong>
+                                                </div>
+                                                <div class="applied-line">
+                                                    <span class="meta-icon meta-icon-updated-time">🕘</span>
+                                                    <span>{{ leave.updated_at|date:"h:i A" }}</span>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="applied-block">
+                                                <div class="applied-line">
+                                                    <span class="meta-icon meta-icon-updated">📆</span>
+                                                    <strong>-</strong>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="reason-box">
+                                            <p
+                                                class="reason-text"
+                                                id="reasonText{{ leave.id }}"
+                                                data-full="{{ leave.reason|escape }}"
+                                                data-employee="{{ leave.user.get_full_name|default:leave.user.username|title|escape }}"
+                                                data-leave-type="{{ leave.leave_type|escape }}"
+                                                data-leave-type-class="{% if leave.leave_type == 'Sick' %}sick{% elif leave.leave_type == 'Casual' %}casual{% elif leave.leave_type == 'Earned' %}earned{% elif leave.leave_type == 'Short' %}short{% elif leave.leave_type == 'Half' %}half{% else %}default{% endif %}"
+                                                data-schedule-date="{{ leave.from_date|date:'M d, Y' }} -> {{ leave.to_date|date:'M d, Y' }}"
+                                                data-schedule-time="{% if leave.from_datetime and leave.to_datetime %}{{ leave.from_datetime|time:'h:i A' }} -> {{ leave.to_datetime|time:'h:i A' }}{% else %}Full day{% endif %}"
+                                                data-days="{{ leave.from_date|date:'Y-m-d' }}|{{ leave.to_date|date:'Y-m-d' }}"
+                                                data-applied="{{ leave.created_at|date:'M d, Y h:i A' }}"
+                                                data-applied-iso="{{ leave.created_at|date:'c' }}"
+                                                data-updated="{% if leave.updated_at %}{{ leave.updated_at|date:'M d, Y h:i A' }}{% else %}-{% endif %}"
+                                                data-updated-iso="{% if leave.updated_at %}{{ leave.updated_at|date:'c' }}{% endif %}"
+                                                data-updated-count="{{ leave.no_of_times_updated|default:0 }}"
+                                            >
+                                                {{ leave.reason }}
+                                            </p>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-group">
+                                            <form method="POST" action="{% url 'approve_leave' leave.id %}" data-leave-action-form data-leave-id="{{ leave.id }}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="approve-btn">
+                                                    <span class="action-btn-icon">✓</span>
+                                                    <span>Approve</span>
+                                                </button>
+                                            </form>
+
+                                            <button type="button" class="reject-btn" onclick="openReject({{ leave.id }})">
+                                                <span class="action-btn-icon">×</span>
+                                                <span>Reject</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="8">
+                                        <div class="empty-table-state">
+                                            <strong>No pending leaves</strong>
+                                            <p>Everything is up to date for now.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if pending_leaves_paginator.num_pages > 1 %}
+                    <nav class="dashboard-table-pagination" aria-label="Pending leave table pagination">
+                        {% if pending_leaves.has_previous %}
+                            <a class="dashboard-page-btn dashboard-page-btn-nav" href="?queue_page=1" data-queue-page="1" data-no-page-skeleton="true">
+                                <span aria-hidden="true">&laquo;</span>
+                                <span>First</span>
+                            </a>
+                        {% else %}
+                            <span class="dashboard-page-btn dashboard-page-btn-nav is-disabled">
+                                <span aria-hidden="true">&laquo;</span>
+                                <span>First</span>
+                            </span>
+                        {% endif %}
+                        {% if pending_leaves.has_previous %}
+                            <a class="dashboard-page-btn dashboard-page-btn-nav" href="?queue_page={{ pending_leaves.previous_page_number }}" data-queue-page="{{ pending_leaves.previous_page_number }}" data-no-page-skeleton="true">
+                                <span aria-hidden="true">‹</span>
+                                <span>Prev</span>
+                            </a>
+                        {% else %}
+                            <span class="dashboard-page-btn dashboard-page-btn-nav is-disabled">
+                                <span aria-hidden="true">‹</span>
+                                <span>Prev</span>
+                            </span>
+                        {% endif %}
+
+                        <span class="dashboard-page-progress">{{ pending_leaves.number }} of {{ pending_leaves_paginator.num_pages }}</span>
+
+                        {% if pending_leaves.has_next %}
+                            <a class="dashboard-page-btn dashboard-page-btn-nav" href="?queue_page={{ pending_leaves.next_page_number }}" data-queue-page="{{ pending_leaves.next_page_number }}" data-no-page-skeleton="true">
+                                <span>Next</span>
+                                <span aria-hidden="true">›</span>
+                            </a>
+                        {% else %}
+                            <span class="dashboard-page-btn dashboard-page-btn-nav is-disabled">
+                                <span>Next</span>
+                                <span aria-hidden="true">›</span>
+                            </span>
+                        {% endif %}
+                        {% if pending_leaves.has_next %}
+                            <a class="dashboard-page-btn dashboard-page-btn-nav" href="?queue_page={{ pending_leaves_paginator.num_pages }}" data-queue-page="{{ pending_leaves_paginator.num_pages }}" data-no-page-skeleton="true">
+                                <span>Last</span>
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        {% else %}
+                            <span class="dashboard-page-btn dashboard-page-btn-nav is-disabled">
+                                <span>Last</span>
+                                <span aria-hidden="true">&raquo;</span>
+                            </span>
+                        {% endif %}
+                    </nav>
+                {% endif %}
+            </section>
+        </div>
+    </section>
+
+    <div id="rejectModal" class="reject-modal" aria-hidden="true">
+        <div class="reject-modal-overlay" onclick="closeReject()"></div>
+        <div class="reject-modal-dialog">
+            <div class="reject-modal-header">
+                <div>
+                    <p class="eyebrow">Decision note</p>
+                    <h3>Reject leave request</h3>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="closeReject()" aria-label="Close reject modal">&times;</button>
+            </div>
+
+            <form method="POST" id="rejectForm" class="reject-form" data-leave-action-form>
+                {% csrf_token %}
+                <label for="rejectionReason">Reason for rejection</label>
+                <textarea id="rejectionReason" name="rejection_reason" placeholder="Add a clear explanation for the employee..." required></textarea>
+
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeReject()">Cancel</button>
+                    <button type="submit" class="reject-btn">Confirm Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="reasonModal" class="reason-modal reason-theme-default" aria-hidden="true">
+        <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
+        <div class="reason-modal-dialog">
+            <div class="reason-modal-header">
+                <div class="reason-modal-heading">
+                    <h3 id="reasonModalTitle">Reason detail</h3>
+                    <span class="reason-modal-heading-divider" aria-hidden="true"></span>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
+            </div>
+            <div class="reason-modal-body">
+                <div class="reason-modal-top-row">
+                    <span class="reason-modal-chip reason-modal-name-chip" id="reasonModalEmployee">Employee</span>
+                    <span class="reason-modal-chip reason-modal-type-chip reason-modal-type-default" id="reasonModalLeaveType">Leave type</span>
+                    <span class="reason-modal-top-spacer" aria-hidden="true"></span>
+                </div>
+                <div class="reason-modal-meta-grid">
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">📅</span><span>Schedule</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="reasonModalScheduleDate">-</strong>
+                            <span id="reasonModalScheduleTime">-</span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">⏳</span><span>No. of days</span></span></span>
+                        <strong class="reason-meta-value" id="reasonModalDays">-</strong>
+                    </div>
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label" id="reasonModalAppliedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🕒</span><span>Applied</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="reasonModalApplied">-</strong>
+                            <span id="reasonModalAppliedTime">-</span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label" id="reasonModalUpdatedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🔄</span><span>0 updates</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="reasonModalUpdated">-</strong>
+                            <span id="reasonModalUpdatedTime">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="reason-field-card">
+                    <div class="reason-field-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">📝</span><span>Reason</span></span></div>
+                    <div id="reasonModalContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dashboardModalAnimationMs = 120;
+    let rejectModalCloseTimer = null;
+    let reasonModalCloseTimer = null;
+    let dashboardQueueRequest = null;
+    let dashboardLiveRefreshRequest = null;
+    let dashboardKnownNotificationSignature = null;
+    let activeReasonAnchor = null;
+
+    const heroQuotes = [
+        {
+            text: "The purpose of an organization is to enable common men to do uncommon things.",
+            author: "Peter Drucker",
+            source: "Management: Tasks, Responsibilities, Practices"
+        },
+        {
+            text: "Leadership is the art of accomplishing more than the science of management says is possible.",
+            author: "Colin Powell",
+            source: "The Powell Principles"
+        },
+        {
+            text: "You can't make good decisions unless you have good information and can separate facts from opinion and speculation.",
+            author: "Colin Powell",
+            source: "It Worked For Me: In Life and Leadership"
+        },
+        {
+            text: "Management is doing things right; leadership is doing the right things.",
+            author: "Peter Drucker",
+            source: "Management thinker"
+        },
+        {
+            text: "The best way to predict the future is to create it.",
+            author: "Peter Drucker",
+            source: "Leadership principle"
+        },
+        {
+            text: "Outstanding leaders go out of their way to boost the self-esteem of their personnel.",
+            author: "Sam Walton",
+            source: "Made in America"
+        },
+        {
+            text: "A leader is one who knows the way, goes the way, and shows the way.",
+            author: "John C. Maxwell",
+            source: "Leadership Gold"
+        },
+        {
+            text: "The growth and development of people is the highest calling of leadership.",
+            author: "Harvey S. Firestone",
+            source: "Leadership principle"
+        },
+        {
+            text: "Hire character. Train skill.",
+            author: "Peter Schutz",
+            source: "Leadership principle"
+        },
+        {
+            text: "People may take a job for more money, but they often leave it for more recognition.",
+            author: "Bob Nelson",
+            source: "1001 Ways to Reward Employees"
+        },
+        {
+            text: "Leadership is about making others better as a result of your presence.",
+            author: "Sheryl Sandberg",
+            source: "Leadership principle"
+        },
+        {
+            text: "The function of leadership is to produce more leaders, not more followers.",
+            author: "Ralph Nader",
+            source: "Leadership principle"
+        },
+        {
+            text: "Train people well enough so they can leave, treat them well enough so they don't want to.",
+            author: "Richard Branson",
+            source: "Leadership principle"
+        },
+        {
+            text: "Customers will never love a company until the employees love it first.",
+            author: "Simon Sinek",
+            source: "Leadership principle"
+        },
+        {
+            text: "When people are financially invested, they want a return. When people are emotionally invested, they want to contribute.",
+            author: "Simon Sinek",
+            source: "Start With Why"
+        },
+        {
+            text: "Great vision without great people is irrelevant.",
+            author: "Jim Collins",
+            source: "Good to Great"
+        },
+        {
+            text: "The way management treats associates is exactly how the associates will treat the customers.",
+            author: "Sam Walton",
+            source: "Made in America"
+        },
+        {
+            text: "Before you are a leader, success is all about growing yourself. When you become a leader, success is all about growing others.",
+            author: "Jack Welch",
+            source: "Leadership principle"
+        },
+        {
+            text: "To win in the marketplace you must first win in the workplace.",
+            author: "Doug Conant",
+            source: "Leadership principle"
+        },
+        {
+            text: "The speed of the boss is the speed of the team.",
+            author: "Lee Iacocca",
+            source: "Leadership principle"
+        },
+        {
+            text: "Effective leadership is not about making speeches or being liked; leadership is defined by results.",
+            author: "Peter Drucker",
+            source: "Management thinker"
+        },
+        {
+            text: "Do not hire a man who does your work for money, but him who does it for love of it.",
+            author: "Henry David Thoreau",
+            source: "Leadership principle"
+        },
+        {
+            text: "An organization's ability to learn, and translate that learning into action rapidly, is the ultimate competitive advantage.",
+            author: "Jack Welch",
+            source: "Leadership principle"
+        },
+        {
+            text: "Culture is simply a shared way of doing something with passion.",
+            author: "Brian Chesky",
+            source: "Leadership principle"
+        },
+        {
+            text: "Treat employees like they make a difference and they will.",
+            author: "Jim Goodnight",
+            source: "Leadership principle"
+        },
+        {
+            text: "Leaders think and talk about the solutions. Followers think and talk about the problems.",
+            author: "Brian Tracy",
+            source: "Leadership principle"
+        },
+        {
+            text: "Time is the scarcest resource, and unless it is managed, nothing else can be managed.",
+            author: "Peter Drucker",
+            source: "Management thinker"
+        }
+    ];
+
+    let currentHeroQuote = 0;
+
+    function renderHeroQuote(index)
+    {
+        const quote = heroQuotes[index];
+        const quoteText = document.getElementById("heroQuoteText");
+
+        if (!quoteText)
+        {
+            return;
+        }
+
+        quoteText.textContent = quote.text;
+    }
+
+    function rotateHeroQuote()
+    {
+        currentHeroQuote = (currentHeroQuote + 1) % heroQuotes.length;
+        renderHeroQuote(currentHeroQuote);
+    }
+
+    function updateRelativeAppliedTime()
+    {
+        document.querySelectorAll(".applied-relative").forEach(function (element)
+        {
+            const rawTime = element.dataset.time;
+            const formatted = formatRelativeLeaveAge(rawTime);
+            if (formatted)
+            {
+                element.textContent = formatted;
+            }
+        });
+    }
+
+    function formatRelativeLeaveAge(isoValue)
+    {
+        if (!isoValue)
+        {
+            return null;
+        }
+
+        const target = new Date(isoValue);
+
+        if (Number.isNaN(target.getTime()))
+        {
+            return null;
+        }
+
+        const now = new Date();
+        const diffMs = Math.max(0, now.getTime() - target.getTime());
+        const diffMinutes = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const minuteRemainder = diffMinutes % 60;
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMinutes < 1)
+        {
+            return "Just now";
+        }
+
+        if (diffMinutes < 60)
+        {
+            return diffMinutes + " min" + (diffMinutes > 1 ? "s" : "") + " ago";
+        }
+
+        if (diffHours < 24)
+        {
+            return diffHours + " hour" + (diffHours > 1 ? "s" : "") + ", " + minuteRemainder + " min ago";
+        }
+
+        if (diffDays === 1)
+        {
+            return "Yesterday";
+        }
+
+        if (diffDays < 7)
+        {
+            return diffDays + " days ago";
+        }
+
+        return null;
+    }
+
+    function formatPopupClockTime(isoValue, fallbackValue)
+    {
+        if (isoValue)
+        {
+            const target = new Date(isoValue);
+
+            if (!Number.isNaN(target.getTime()))
+            {
+                return target.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true
+                });
+            }
+        }
+
+        if (fallbackValue)
+        {
+            const match = String(fallbackValue).match(/(\d{1,2}:\d{2}\s?[AP]M)$/i);
+            if (match)
+            {
+                return match[1].replace(/\s+/g, " ").toUpperCase();
+            }
+        }
+
+        return "-";
+    }
+
+    function hydrateRelativeUpdatedDates()
+    {
+        document.querySelectorAll("[data-relative-datetime]").forEach(function (node)
+        {
+            const formatted = formatRelativeLeaveAge(node.dataset.relativeDatetime);
+            const count = Number.parseInt(node.dataset.relativeCount || "0", 10);
+
+            if (!formatted)
+            {
+                node.textContent = "-";
+                return;
+            }
+
+            node.textContent = count > 0 ? `${formatted} (${count})` : formatted;
+        });
+    }
+
+    function animateDayCounters()
+    {
+        document.querySelectorAll(".days-block").forEach(function (block)
+        {
+            const counter = block.querySelector(".days-counter");
+            const label = block.querySelector(".days-label");
+            const fromDate = new Date(block.dataset.from);
+            const toDate = new Date(block.dataset.to);
+            const dayDiff = Math.round((toDate - fromDate) / 86400000) + 1;
+            const target = Math.max(1, dayDiff);
+            const duration = 700;
+            const startTime = performance.now();
+
+            if (label)
+            {
+                label.textContent = target > 1 ? "days" : "day";
+            }
+
+            function step(now)
+            {
+                const progress = Math.min((now - startTime) / duration, 1);
+                counter.textContent = Math.round(target * progress);
+
+                if (progress < 1)
+                {
+                    requestAnimationFrame(step);
+                }
+            }
+
+            requestAnimationFrame(step);
+        });
+    }
+
+    function refreshDashboardQueueSectionState()
+    {
+        updateRelativeAppliedTime();
+        hydrateRelativeUpdatedDates();
+        animateDayCounters();
+        updateReasonButtons();
+        document.dispatchEvent(new CustomEvent("countup:refresh", {
+            detail: { root: document.querySelector(".request-table-card") || document }
+        }));
+        document.dispatchEvent(new CustomEvent("countup:refresh", {
+            detail: { root: document.querySelector(".hero-highlights") || document }
+        }));
+    }
+
+    function refreshDashboardLiveSections()
+    {
+        const heroHighlights = document.querySelector(".hero-highlights");
+        const queueCard = document.querySelector(".request-table-card");
+
+        if (!heroHighlights || !queueCard)
+        {
+            return;
+        }
+
+        if (dashboardLiveRefreshRequest && typeof dashboardLiveRefreshRequest.abort === "function")
+        {
+            dashboardLiveRefreshRequest.abort();
+        }
+
+        const controller = new AbortController();
+        dashboardLiveRefreshRequest = controller;
+
+        heroHighlights.classList.add("is-loading");
+        queueCard.classList.add("is-loading");
+
+        fetch(window.location.href, {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            signal: controller.signal
+        })
+            .then(function (response)
+            {
+                if (!response.ok)
+                {
+                    throw new Error("Unable to refresh dashboard.");
+                }
+
+                return response.text();
+            })
+            .then(function (html)
+            {
+                const parser = new DOMParser();
+                const nextDocument = parser.parseFromString(html, "text/html");
+                const nextHeroHighlights = nextDocument.querySelector(".hero-highlights");
+                const nextQueueCard = nextDocument.querySelector(".request-table-card");
+
+                if (!nextHeroHighlights || !nextQueueCard)
+                {
+                    throw new Error("Dashboard sections not found.");
+                }
+
+                heroHighlights.innerHTML = nextHeroHighlights.innerHTML;
+                queueCard.innerHTML = nextQueueCard.innerHTML;
+                refreshDashboardQueueSectionState();
+            })
+            .catch(function (error)
+            {
+                if (error.name !== "AbortError")
+                {
+                    window.location.reload();
+                }
+            })
+            .finally(function ()
+            {
+                if (dashboardLiveRefreshRequest === controller)
+                {
+                    dashboardLiveRefreshRequest = null;
+                }
+
+                heroHighlights.classList.remove("is-loading");
+                queueCard.classList.remove("is-loading");
+            });
+    }
+
+    function buildDashboardNotificationSignature(notifications)
+    {
+        if (!Array.isArray(notifications))
+        {
+            return "";
+        }
+
+        return notifications.map(function (item)
+        {
+            return [
+                String(item.id || ""),
+                String(item.leave_type || ""),
+                String(item.schedule_text || ""),
+                String(item.activity_text || ""),
+                String(item.updated_text || ""),
+                String(item.status_class || ""),
+                String(item.display_name || ""),
+                String(item.headline_text || "")
+            ].join("|");
+        }).join("||");
+    }
+
+    function loadDashboardQueuePage(pageNumber)
+    {
+        const queueCard = document.querySelector(".request-table-card");
+
+        if (!queueCard || !pageNumber)
+        {
+            return;
+        }
+
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set("queue_page", pageNumber);
+        const currentPage = Number.parseInt(new URL(window.location.href).searchParams.get("queue_page") || "1", 10);
+        const nextPage = Number.parseInt(pageNumber, 10);
+        const pagingDirectionClass = nextPage > currentPage ? "is-paging-forward" : "is-paging-backward";
+
+        if (dashboardQueueRequest && typeof dashboardQueueRequest.abort === "function")
+        {
+            dashboardQueueRequest.abort();
+        }
+
+        const controller = new AbortController();
+        dashboardQueueRequest = controller;
+
+        queueCard.classList.remove("is-paging-forward", "is-paging-backward");
+        queueCard.classList.add(pagingDirectionClass);
+        queueCard.classList.add("is-loading");
+
+        fetch(nextUrl.toString(), {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            signal: controller.signal
+        })
+            .then(function (response)
+            {
+                if (!response.ok)
+                {
+                    throw new Error("Unable to load queue page.");
+                }
+
+                return response.text();
+            })
+            .then(function (html)
+            {
+                const parser = new DOMParser();
+                const nextDocument = parser.parseFromString(html, "text/html");
+                const nextQueueCard = nextDocument.querySelector(".request-table-card");
+
+                if (!nextQueueCard)
+                {
+                    throw new Error("Queue section not found.");
+                }
+
+                queueCard.innerHTML = nextQueueCard.innerHTML;
+                window.history.replaceState({}, "", nextUrl.toString());
+                refreshDashboardQueueSectionState();
+            })
+            .catch(function (error)
+            {
+                if (error.name !== "AbortError")
+                {
+                    window.location.href = nextUrl.toString();
+                }
+            })
+            .finally(function ()
+            {
+                if (dashboardQueueRequest === controller)
+                {
+                    dashboardQueueRequest = null;
+                }
+
+                queueCard.classList.remove("is-loading");
+                setTimeout(function ()
+                {
+                    queueCard.classList.remove("is-paging-forward", "is-paging-backward");
+                }, 220);
+            });
+    }
+
+    renderHeroQuote(currentHeroQuote);
+    setInterval(rotateHeroQuote, 180000);
+    updateRelativeAppliedTime();
+    hydrateRelativeUpdatedDates();
+    animateDayCounters();
+    setInterval(updateRelativeAppliedTime, 60000);
+    setInterval(hydrateRelativeUpdatedDates, 60000);
+
+    function updateReasonButtons()
+    {
+        document.querySelectorAll(".reason-text").forEach(function (reasonText)
+        {
+            const fullText = reasonText.dataset.full || reasonText.textContent.trim();
+            reasonText.textContent = fullText;
+
+            if (reasonText.scrollHeight <= reasonText.clientHeight + 2)
+            {
+                reasonText.classList.remove("is-truncated");
+                return;
+            }
+
+            let trimmedText = fullText;
+
+            while (trimmedText.length > 0)
+            {
+                reasonText.textContent = trimmedText + "...more";
+
+                if (reasonText.scrollHeight <= reasonText.clientHeight + 2)
+                {
+                    reasonText.classList.add("is-truncated");
+                    reasonText.innerHTML = trimmedText + '<span class="reason-inline-more">...more</span>';
+                    return;
+                }
+
+                trimmedText = trimmedText.slice(0, -1).trimEnd();
+            }
+        });
+    }
+
+    function openReasonModal(reasonText)
+    {
+        const modal = document.getElementById("reasonModal");
+        const title = document.getElementById("reasonModalTitle");
+        const content = document.getElementById("reasonModalContent");
+        const employee = document.getElementById("reasonModalEmployee");
+        const leaveType = document.getElementById("reasonModalLeaveType");
+        const appliedLabel = document.getElementById("reasonModalAppliedLabel");
+        const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
+        const scheduleDate = document.getElementById("reasonModalScheduleDate");
+        const scheduleTime = document.getElementById("reasonModalScheduleTime");
+        const days = document.getElementById("reasonModalDays");
+        const applied = document.getElementById("reasonModalApplied");
+        const appliedTime = document.getElementById("reasonModalAppliedTime");
+        const updated = document.getElementById("reasonModalUpdated");
+        const updatedTime = document.getElementById("reasonModalUpdatedTime");
+
+        if (reasonModalCloseTimer)
+        {
+            clearTimeout(reasonModalCloseTimer);
+            reasonModalCloseTimer = null;
+        }
+
+        activeReasonAnchor = reasonText.closest(".reason-box") || reasonText;
+        const anchorRect = activeReasonAnchor.getBoundingClientRect();
+        const anchorCenterX = anchorRect.left + (anchorRect.width / 2);
+        const anchorCenterY = anchorRect.top + (anchorRect.height / 2);
+        const viewportCenterX = window.innerWidth / 2;
+        const viewportCenterY = window.innerHeight / 2;
+
+        modal.style.setProperty("--reason-origin-x", (anchorCenterX - viewportCenterX) + "px");
+        modal.style.setProperty("--reason-origin-y", (anchorCenterY - viewportCenterY) + "px");
+
+        const dayParts = String(reasonText.dataset.days || "").split("|");
+        let dayText = "-";
+        const appliedIso = reasonText.dataset.appliedIso || "";
+        const updatedIso = reasonText.dataset.updatedIso || "";
+        const updatedCount = Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0;
+        const scheduleDateText = (reasonText.dataset.scheduleDate || "-").replace(/\s*->\s*/g, " \u27F6 ");
+        const scheduleTimeText = (reasonText.dataset.scheduleTime || "-").replace(/\s*->\s*/g, " \u27F6 ");
+        const leaveTypeClass = reasonText.dataset.leaveTypeClass || "default";
+        const showScheduleTime = leaveTypeClass === "short" || leaveTypeClass === "half";
+
+        if (dayParts.length === 2)
+        {
+            const fromDate = new Date(dayParts[0]);
+            const toDate = new Date(dayParts[1]);
+
+            if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()))
+            {
+                const totalDays = Math.max(1, Math.round((toDate - fromDate) / 86400000) + 1);
+                dayText = totalDays + (totalDays === 1 ? " day" : " days");
+            }
+        }
+
+        title.textContent = "Reason detail";
+        modal.classList.remove("reason-theme-sick", "reason-theme-casual", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
+        modal.classList.add("reason-theme-" + leaveTypeClass);
+        employee.textContent = reasonText.dataset.employee || "Employee";
+        leaveType.textContent = (reasonText.dataset.leaveType || "Leave type") + " Leave";
+        leaveType.className = "reason-modal-chip reason-modal-type-chip reason-modal-type-" + leaveTypeClass;
+        scheduleDate.textContent = scheduleDateText;
+        scheduleTime.textContent = showScheduleTime ? scheduleTimeText : "";
+        scheduleTime.hidden = !showScheduleTime;
+        scheduleTime.classList.toggle("reason-modal-schedule-time-accent", showScheduleTime);
+        days.textContent = dayText;
+        appliedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🕒</span><span>Applied</span></span>';
+        const relativeApplied = formatRelativeLeaveAge(appliedIso);
+        const relativeUpdated = formatRelativeLeaveAge(updatedIso);
+        applied.textContent = relativeApplied || (reasonText.dataset.applied || "-");
+        appliedTime.textContent = formatPopupClockTime(appliedIso, reasonText.dataset.applied || "");
+        updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🔄</span><span>${updatedCount === 1 ? "1 update" : `${updatedCount} updates`}</span></span>`;
+        updated.textContent = updatedIso ? (relativeUpdated || (reasonText.dataset.updated || "-")) : "Not updated";
+        updatedTime.textContent = updatedIso ? formatPopupClockTime(updatedIso, reasonText.dataset.updated || "") : "-";
+        content.textContent = reasonText.dataset.full;
+        modal.classList.remove("is-closing");
+        modal.style.display = "flex";
+        requestAnimationFrame(() => modal.classList.add("is-open"));
+        modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeReasonModal()
+    {
+        const modal = document.getElementById("reasonModal");
+        const content = document.getElementById("reasonModalContent");
+        const employee = document.getElementById("reasonModalEmployee");
+        const leaveType = document.getElementById("reasonModalLeaveType");
+        const appliedLabel = document.getElementById("reasonModalAppliedLabel");
+        const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
+        const scheduleDate = document.getElementById("reasonModalScheduleDate");
+        const scheduleTime = document.getElementById("reasonModalScheduleTime");
+        const days = document.getElementById("reasonModalDays");
+        const applied = document.getElementById("reasonModalApplied");
+        const appliedTime = document.getElementById("reasonModalAppliedTime");
+        const updated = document.getElementById("reasonModalUpdated");
+        const updatedTime = document.getElementById("reasonModalUpdatedTime");
+
+        if (modal.style.display === "none")
+        {
+            return;
+        }
+
+        if (document.activeElement && modal.contains(document.activeElement) && typeof document.activeElement.blur === "function")
+        {
+            document.activeElement.blur();
+        }
+
+        modal.classList.remove("is-open");
+        modal.classList.add("is-closing");
+        modal.setAttribute("aria-hidden", "true");
+        reasonModalCloseTimer = setTimeout(function ()
+        {
+            modal.style.display = "none";
+            modal.classList.remove("is-closing");
+            modal.classList.remove("reason-theme-sick", "reason-theme-casual", "reason-theme-earned", "reason-theme-short", "reason-theme-half");
+            modal.classList.add("reason-theme-default");
+            content.textContent = "";
+            employee.textContent = "Employee";
+            leaveType.textContent = "Leave type";
+            leaveType.className = "reason-modal-chip reason-modal-type-chip reason-modal-type-default";
+            appliedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🕒</span><span>Applied</span></span>';
+            updatedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🔄</span><span>0 updates</span></span>';
+            scheduleDate.textContent = "-";
+            scheduleTime.textContent = "-";
+            scheduleTime.hidden = false;
+            scheduleTime.classList.remove("reason-modal-schedule-time-accent");
+            days.textContent = "-";
+            applied.textContent = "-";
+            appliedTime.textContent = "-";
+            updated.textContent = "-";
+            updatedTime.textContent = "-";
+            activeReasonAnchor = null;
+            reasonModalCloseTimer = null;
+        }, dashboardModalAnimationMs);
+    }
+
+    function openReject(leaveId)
+    {
+        const modal = document.getElementById("rejectModal");
+        const form = document.getElementById("rejectForm");
+        const textarea = document.getElementById("rejectionReason");
+
+        if (rejectModalCloseTimer)
+        {
+            clearTimeout(rejectModalCloseTimer);
+            rejectModalCloseTimer = null;
+        }
+
+        form.action = "/reject-leave/" + leaveId + "/";
+        form.dataset.leaveId = String(leaveId);
+        modal.classList.remove("is-closing");
+        modal.style.display = "flex";
+        requestAnimationFrame(() => modal.classList.add("is-open"));
+        modal.setAttribute("aria-hidden", "false");
+
+        textarea.focus();
+    }
+
+    function closeReject()
+    {
+        const modal = document.getElementById("rejectModal");
+        const textarea = document.getElementById("rejectionReason");
+        const form = document.getElementById("rejectForm");
+
+        if (modal.style.display === "none")
+        {
+            return;
+        }
+
+        modal.classList.remove("is-open");
+        modal.classList.add("is-closing");
+        modal.setAttribute("aria-hidden", "true");
+        rejectModalCloseTimer = setTimeout(function ()
+        {
+            modal.style.display = "none";
+            modal.classList.remove("is-closing");
+            textarea.value = "";
+            if (form)
+            {
+                form.removeAttribute("data-leave-id");
+            }
+            rejectModalCloseTimer = null;
+        }, dashboardModalAnimationMs);
+    }
+
+    function setLeaveActionBusyState(leaveId, isBusy)
+    {
+        if (!leaveId)
+        {
+            return;
+        }
+
+        const leaveRow = document.querySelector(`[data-leave-row][data-leave-id="${leaveId}"]`);
+
+        if (leaveRow)
+        {
+            leaveRow.classList.toggle("is-loading", Boolean(isBusy));
+        }
+
+        document.querySelectorAll(`[data-leave-action-form][data-leave-id="${leaveId}"] button[type="submit"], [data-leave-row][data-leave-id="${leaveId}"] .reject-btn`).forEach(function (button)
+        {
+            button.disabled = Boolean(isBusy);
+        });
+    }
+
+    function submitLeaveActionForm(form)
+    {
+        if (!form || form.dataset.submitting === "true")
+        {
+            return;
+        }
+
+        const leaveId = form.dataset.leaveId || "";
+        const formData = new FormData(form);
+
+        form.dataset.submitting = "true";
+        setLeaveActionBusyState(leaveId, true);
+
+        fetch(form.action, {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "Accept": "application/json"
+            },
+            body: formData
+        })
+            .then(function (response)
+            {
+                return response.json().catch(function ()
+                {
+                    return {};
+                }).then(function (payload)
+                {
+                    if (!response.ok)
+                    {
+                        throw new Error(payload.detail || "Unable to update this leave request right now.");
+                    }
+
+                    return payload;
+                });
+            })
+            .then(function ()
+            {
+                closeReject();
+                refreshDashboardLiveSections();
+            })
+            .catch(function (error)
+            {
+                window.alert(error.message || "Unable to update this leave request right now.");
+            })
+            .finally(function ()
+            {
+                delete form.dataset.submitting;
+                setLeaveActionBusyState(leaveId, false);
+            });
+    }
+
+    document.addEventListener("keydown", function (event)
+    {
+        if (event.key === "Escape")
+        {
+            closeReasonModal();
+            closeReject();
+        }
+    });
+
+    document.addEventListener("click", function (event)
+    {
+        const notificationToggle = document.getElementById("notification-toggle");
+        const notificationDropdown = document.querySelector(".notification-dropdown");
+        const queuePageLink = event.target.closest(".dashboard-page-btn[data-queue-page]");
+
+        if (
+            notificationToggle &&
+            notificationDropdown &&
+            notificationToggle.checked &&
+            !notificationDropdown.contains(event.target) &&
+            event.target !== notificationToggle
+        )
+        {
+            notificationToggle.checked = false;
+        }
+
+        if (queuePageLink)
+        {
+            event.preventDefault();
+            loadDashboardQueuePage(queuePageLink.dataset.queuePage);
+            return;
+        }
+
+        const reasonText = event.target.closest(".reason-text.is-truncated");
+        const reasonBox = event.target.closest(".reason-box");
+        const truncatedReason = reasonBox ? reasonBox.querySelector(".reason-text.is-truncated") : null;
+
+        if (!reasonText && !truncatedReason)
+        {
+            return;
+        }
+
+        openReasonModal(reasonText || truncatedReason);
+    });
+
+    document.addEventListener("submit", function (event)
+    {
+        const leaveActionForm = event.target.closest("[data-leave-action-form]");
+
+        if (!leaveActionForm)
+        {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (!leaveActionForm.dataset.leaveId)
+        {
+            const leaveIdMatch = String(leaveActionForm.action || "").match(/\/(\d+)\/?$/);
+
+            if (leaveIdMatch)
+            {
+                leaveActionForm.dataset.leaveId = leaveIdMatch[1];
+            }
+        }
+
+        submitLeaveActionForm(leaveActionForm);
+    });
+
+    window.addEventListener("hr-notification-state-sync", function (event)
+    {
+        const notifications = event && event.detail && Array.isArray(event.detail.notifications)
+            ? event.detail.notifications
+            : null;
+
+        if (!notifications)
+        {
+            return;
+        }
+
+        const nextSignature = buildDashboardNotificationSignature(notifications);
+
+        if (dashboardKnownNotificationSignature === null)
+        {
+            dashboardKnownNotificationSignature = nextSignature;
+            return;
+        }
+
+        if (nextSignature === dashboardKnownNotificationSignature)
+        {
+            return;
+        }
+
+        dashboardKnownNotificationSignature = nextSignature;
+        refreshDashboardLiveSections();
+    });
+
+    window.addEventListener("load", updateReasonButtons);
+    window.addEventListener("resize", updateReasonButtons);
+</script>
+{% endblock %}

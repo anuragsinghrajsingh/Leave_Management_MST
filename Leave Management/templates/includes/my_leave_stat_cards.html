@@ -1,0 +1,87 @@
+<div class="stat-card stat-card-sick">
+    <div class="stat-card-head">
+        <span class="stat-label">
+            <span class="stat-label-icon" aria-hidden="true">+</span>
+            <span>Sick</span>
+        </span>
+    </div>
+    <div class="stat-card-main">
+        <p class="count" data-countup data-countup-target="{{ sick_remaining }}" data-countup-decimals="2">{{ sick_remaining }}</p>
+    </div>
+    <div class="stat-card-foot">
+        <h2>Leaves Remaining</h2>
+        <p>
+            <span data-countup data-countup-target="{{ balance.sick_used }}" data-countup-decimals="2">{{ balance.sick_used }}</span>
+            used of
+            <span data-countup data-countup-target="{{ balance.sick_total }}" data-countup-decimals="2">{{ balance.sick_total }}</span>
+        </p>
+    </div>
+</div>
+
+<div class="stat-card stat-card-earned">
+    <div class="stat-card-head">
+        <span class="stat-label">
+            <span class="stat-label-icon" aria-hidden="true">&#9733;</span>
+            <span>Earned</span>
+        </span>
+    </div>
+    <div class="stat-card-main">
+        <p class="count" data-countup data-countup-target="{{ earned_remaining }}" data-countup-decimals="2">{{ earned_remaining }}</p>
+    </div>
+    <div class="stat-card-foot">
+        <h2>Leaves Remaining</h2>
+        <p>
+            <span data-countup data-countup-target="{{ balance.earned_used }}" data-countup-decimals="2">{{ balance.earned_used }}</span>
+            used of
+            <span data-countup data-countup-target="{{ balance.earned_total }}" data-countup-decimals="2">{{ balance.earned_total }}</span>
+        </p>
+    </div>
+</div>
+
+<div class="stat-card stat-card-casual">
+    <div class="stat-card-head">
+        <span class="stat-label">
+            <span class="stat-label-icon" aria-hidden="true">&#9749;</span>
+            <span>Casual</span>
+        </span>
+    </div>
+    <div class="stat-card-main">
+        <p class="count" data-countup data-countup-target="{{ balance.unpaid }}" data-countup-decimals="2">{{ balance.unpaid }}</p>
+    </div>
+    <div class="stat-card-foot">
+        <h2>Leaves Taken</h2>
+        <p>Current leave history</p>
+    </div>
+</div>
+
+<div class="stat-card stat-card-short">
+    <div class="stat-card-head">
+        <span class="stat-label">
+            <span class="stat-label-icon" aria-hidden="true">&#9684;</span>
+            <span>Short Leave</span>
+        </span>
+    </div>
+    <div class="stat-card-main">
+        <p class="count" data-countup data-countup-target="{{ short_taken_month }}">{{ short_taken_month }}</p>
+    </div>
+    <div class="stat-card-foot">
+        <h2>Short Leaves This Month</h2>
+        <p>Monthly quick-break usage</p>
+    </div>
+</div>
+
+<div class="stat-card stat-card-half">
+    <div class="stat-card-head">
+        <span class="stat-label">
+            <span class="stat-label-icon" aria-hidden="true">&#9680;</span>
+            <span>Half Day</span>
+        </span>
+    </div>
+    <div class="stat-card-main">
+        <p class="count" data-countup data-countup-target="{{ half_taken_month }}">{{ half_taken_month }}</p>
+    </div>
+    <div class="stat-card-foot">
+        <h2>Half Leaves This Month</h2>
+        <p>Monthly partial-day usage</p>
+    </div>
+</div>

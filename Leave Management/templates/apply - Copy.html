@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apply Leave</title>
+    <link rel="stylesheet" href="C:/Users/anurag/Documents/Anurag Singh/Leave Management/static/css/apply - Copy.css">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="workspace">
+            <div class="layout-grid">
+                <section class="primary-panel">
+                    <article class="apply-card">
+                        <div class="form-intro">
+                            <h1>Submit a leave request</h1>
+                        </div>
+
+                        <div class="form-highlights">
+                            <div class="highlight-chip">
+                                <span class="highlight-dot"></span>
+                                <span>Choose leave type</span>
+                            </div>
+                            <div class="highlight-chip">
+                                <span class="highlight-dot"></span>
+                                <span>Add date or time details</span>
+                            </div>
+                            <div class="highlight-chip">
+                                <span class="highlight-dot"></span>
+                                <span>Submit for approval</span>
+                            </div>
+                        </div>
+
+                        <form class="leave-form">
+                            <section class="form-panel featured-panel">
+                                <div class="panel-strip">
+                                    <span class="panel-index">01</span>
+                                    <span class="panel-title">Leave Type</span>
+                                </div>
+
+                                <div class="field-block">
+                                    <div class="custom-select select-shell leave-type-shell" id="leaveTypeDropdown">
+                                        <select id="leaveType" class="native-select" aria-hidden="true" tabindex="-1">
+                                            <option value="">Select leave type</option>
+                                            <option value="sick">Sick Leave</option>
+                                            <option value="casual">Casual Leave</option>
+                                            <option value="earned">Earned Leave</option>
+                                            <option value="short">Short (2 Hours)</option>
+                                            <option value="half">Half (4 Hours)</option>
+                                        </select>
+                                        <div class="custom-select-display">
+                                            <div class="custom-select-trigger" id="leaveTypeTrigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                                <span class="custom-select-value">Select leave type</span>
+                                                <span class="custom-select-icon" aria-hidden="true"></span>
+                                            </div>
+                                        </div>
+                                        <div class="custom-select-menu" id="leaveTypeMenu" role="listbox">
+                                            <button type="button" class="custom-option" data-value="sick">
+                                                <span class="option-title">Sick Leave</span>
+                                            </button>
+                                            <button type="button" class="custom-option" data-value="casual">
+                                                <span class="option-title">Casual Leave</span>
+                                            </button>
+                                            <button type="button" class="custom-option" data-value="earned">
+                                                <span class="option-title">Earned Leave</span>
+                                            </button>
+                                            <button type="button" class="custom-option" data-value="short">
+                                                <span class="option-title">Short (2 Hours)</span>
+                                            </button>
+                                            <button type="button" class="custom-option" data-value="half">
+                                                <span class="option-title">Half (4 Hours)</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="form-panel">
+                                <div class="panel-strip">
+                                    <span class="panel-index">02</span>
+                                    <span class="panel-title">Schedule Details</span>
+                                </div>
+
+                                <div class="field-row">
+                                    <div class="field-block">
+                                        <label for="fromDate">From Date</label>
+                                        <div class="custom-date-picker date-shell" id="fromDatePicker">
+                                            <input id="fromDate" type="hidden">
+                                            <div class="date-display">
+                                                <div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">
+                                                    <span class="date-value">dd-mm-yyyy</span>
+                                                    <span class="date-icon" aria-hidden="true"></span>
+                                                </div>
+                                            </div>
+                                            <div class="date-menu" role="dialog" aria-label="From date calendar">
+                                                <div class="date-menu-header">
+                                                    <button type="button" class="date-nav prev-month" aria-label="Previous month">‹</button>
+                                                    <div class="date-current"></div>
+                                                    <button type="button" class="date-nav next-month" aria-label="Next month">›</button>
+                                                </div>
+                                                <div class="date-weekdays">
+                                                    <span>Mo</span>
+                                                    <span>Tu</span>
+                                                    <span>We</span>
+                                                    <span>Th</span>
+                                                    <span>Fr</span>
+                                                    <span>Sa</span>
+                                                    <span>Su</span>
+                                                </div>
+                                                <div class="date-grid"></div>
+                                                <div class="date-actions">
+                                                    <button type="button" class="date-action today-action">Today</button>
+                                                    <button type="button" class="date-action clear-action">Clear</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field-block time-block hidden" id="fromTimeBlock">
+                                        <label>From Time</label>
+                                        <div class="time-grid">
+                                            <div class="custom-select select-shell time-select-shell" data-menu-label="Hour">
+                                                <select id="fromHour" class="native-select" aria-hidden="true" tabindex="-1">
+                                                    <option value="">Hour</option>
+                                                </select>
+                                                <div class="custom-select-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                                    <span class="custom-select-value">Hour</span>
+                                                    <span class="custom-select-icon" aria-hidden="true"></span>
+                                                </div>
+                                                <div class="custom-select-menu" role="listbox"></div>
+                                            </div>
+                                            <div class="custom-select select-shell time-select-shell" data-menu-label="Minute">
+                                                <select id="fromMinute" class="native-select" aria-hidden="true" tabindex="-1">
+                                                    <option value="">Minute</option>
+                                                </select>
+                                                <div class="custom-select-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                                    <span class="custom-select-value">Minute</span>
+                                                    <span class="custom-select-icon" aria-hidden="true"></span>
+                                                </div>
+                                                <div class="custom-select-menu" role="listbox"></div>
+                                            </div>
+                                            <div class="custom-select select-shell time-select-shell" data-menu-label="Period">
+                                                <select id="fromMeridiem" class="native-select" aria-hidden="true" tabindex="-1">
+                                                    <option value="AM">AM</option>
+                                                    <option value="PM">PM</option>
+                                                </select>
+                                                <div class="custom-select-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                                    <span class="custom-select-value">AM</span>
+                                                    <span class="custom-select-icon" aria-hidden="true"></span>
+                                                </div>
+                                                <div class="custom-select-menu" role="listbox"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="field-row">
+                                    <div class="field-block">
+                                        <label for="toDate">To Date</label>
+                                        <div class="custom-date-picker date-shell" id="toDatePicker">
+                                            <input id="toDate" type="hidden">
+                                            <div class="date-display">
+                                                <div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">
+                                                    <span class="date-value">dd-mm-yyyy</span>
+                                                    <span class="date-icon" aria-hidden="true"></span>
+                                                </div>
+                                            </div>
+                                            <div class="date-menu" role="dialog" aria-label="To date calendar">
+                                                <div class="date-menu-header">
+                                                    <button type="button" class="date-nav prev-month" aria-label="Previous month">‹</button>
+                                                    <div class="date-current"></div>
+                                                    <button type="button" class="date-nav next-month" aria-label="Next month">›</button>
+                                                </div>
+                                                <div class="date-weekdays">
+                                                    <span>Mo</span>
+                                                    <span>Tu</span>
+                                                    <span>We</span>
+                                                    <span>Th</span>
+                                                    <span>Fr</span>
+                                                    <span>Sa</span>
+                                                    <span>Su</span>
+                                                </div>
+                                                <div class="date-grid"></div>
+                                                <div class="date-actions">
+                                                    <button type="button" class="date-action today-action">Today</button>
+                                                    <button type="button" class="date-action clear-action">Clear</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field-block time-block hidden" id="toTimeBlock">
+                                        <label for="toTime">To Time</label>
+                                        <div class="input-shell readonly-shell">
+                                            <input id="toTime" type="text" readonly placeholder="Auto calculated">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="schedule-hint-row">
+                                    <span id="typeHint">Dates only for regular leave</span>
+                                </div>
+                            </section>
+
+                            <section class="form-panel">
+                                <div class="panel-strip">
+                                    <span class="panel-index">03</span>
+                                    <span class="panel-title">Reason</span>
+                                </div>
+
+                                <div class="field-block">
+                                    <div class="input-shell textarea-shell">
+                                        <textarea id="reason" placeholder="Write a short, professional reason..."></textarea>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div class="submit-row">
+                                <button type="button" class="submit-btn">Submit Leave</button>
+                            </div>
+                        </form>
+                    </article>
+                </section>
+
+                <aside class="side-panel">
+                    <article class="info-card instructions-card" id="instructionCard">
+                        <div class="panel-header">
+                            <div class="instruction-heading">
+                                <span class="instruction-tag">Instructions</span>
+                                <h3>Before you submit</h3>
+                                <p class="instruction-subtitle">A quick policy snapshot before you send the request.</p>
+                                <div class="instruction-divider"></div>
+                            </div>
+                            <button type="button" class="toggle-btn" id="toggleBtn">Hide</button>
+                        </div>
+
+                        <div class="panel-body" id="instructionContent">
+                            <div class="instruction-banner">
+                                <span class="instruction-banner-label">Important</span>
+                                <p class="instruction-note">Choose the correct leave type, add the right dates, and include time details only when needed.</p>
+                            </div>
+
+                            <div class="instruction-list">
+                                <div class="instruction-item">
+                                    <span class="instruction-number">01</span>
+                                    <div class="instruction-copy">
+                                        <strong>Use the right leave bucket</strong>
+                                        <p>Use Sick, Casual, or Earned leave for date-based requests.</p>
+                                    </div>
+                                </div>
+                                <div class="instruction-item">
+                                    <span class="instruction-number">02</span>
+                                    <div class="instruction-copy">
+                                        <strong>Use time fields only when needed</strong>
+                                        <p>Select Short or Half only when time fields are needed.</p>
+                                    </div>
+                                </div>
+                                <div class="instruction-item">
+                                    <span class="instruction-number">03</span>
+                                    <div class="instruction-copy">
+                                        <strong>Review before submit</strong>
+                                        <p>Check the start and end values carefully before submission.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="info-card upcoming-card">
+                        <div class="panel-header simple">
+                            <div>
+                                <span class="section-kicker">Overview</span>
+                                <h3>Upcoming Leave</h3>
+                            </div>
+                        </div>
+
+                        <div class="upcoming-grid">
+                            <div class="mini-tile short-tile">
+                                <div class="tile-top">
+                                    <span class="tile-icon">⚡</span>
+                                    <span class="tile-badge">Short / Half</span>
+                                </div>
+                                <div class="tile-main empty-main">
+                                    <p>No short leave planned</p>
+                                </div>
+                            </div>
+
+                            <div class="mini-tile full-tile">
+                                <div class="tile-top">
+                                    <span class="tile-icon">🌿</span>
+                                    <span class="tile-badge">Full Leave</span>
+                                </div>
+                                <div class="tile-main">
+                                    <strong>Sick</strong>
+                                    <div class="tile-dates">March 27, 2026 <span>→</span> March 27, 2026</div>
+                                    <div class="tile-progress">
+                                        <span class="progress-bar"></span>
+                                    </div>
+                                    <p>0 days left</p>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div class="bottom-grid">
+                        <article class="info-card compact-card holiday-tile">
+                            <div class="tile-top">
+                                <span class="tile-icon">📅</span>
+                                <span class="tile-badge">Holiday</span>
+                            </div>
+                            <div class="tile-main">
+                                <strong>Upcoming Holiday</strong>
+                                <div class="tile-dates">Friday</div>
+                                <p>Next public holiday on the calendar.</p>
+                            </div>
+                        </article>
+
+                        <article class="info-card compact-card balance-tile">
+                            <div class="tile-top">
+                                <span class="tile-icon">🧾</span>
+                                <span class="tile-badge">Balance</span>
+                            </div>
+                            <div class="tile-main">
+                                <strong>Leave Balance</strong>
+                                <div class="tile-dates">12 Days Available</div>
+                                <p>Available balance for future requests.</p>
+                            </div>
+                        </article>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const leaveType = document.getElementById("leaveType");
+        const fromTimeBlock = document.getElementById("fromTimeBlock");
+        const toTimeBlock = document.getElementById("toTimeBlock");
+        const fromHour = document.getElementById("fromHour");
+        const fromMinute = document.getElementById("fromMinute");
+        const fromMeridiem = document.getElementById("fromMeridiem");
+        const datePickers = Array.from(document.querySelectorAll(".custom-date-picker"));
+        const toTime = document.getElementById("toTime");
+        const typeHint = document.getElementById("typeHint");
+        const leaveTypeDropdown = document.getElementById("leaveTypeDropdown");
+        const leaveTypeTrigger = document.getElementById("leaveTypeTrigger");
+        const leaveTypeMenu = document.getElementById("leaveTypeMenu");
+        const leaveTypeValue = leaveTypeTrigger.querySelector(".custom-select-value");
+        const leaveTypeOptions = leaveTypeMenu.querySelectorAll(".custom-option");
+        const timeSelectDropdowns = Array.from(document.querySelectorAll(".time-select-shell"));
+        const instructionCard = document.getElementById("instructionCard");
+        const instructionContent = document.getElementById("instructionContent");
+        const toggleBtn = document.getElementById("toggleBtn");
+
+        for (let hour = 1; hour <= 12; hour += 1) {
+            const option = document.createElement("option");
+            const value = String(hour).padStart(2, "0");
+            option.value = value;
+            option.textContent = value;
+            fromHour.appendChild(option);
+        }
+
+        for (let minute = 0; minute < 60; minute += 1) {
+            const option = document.createElement("option");
+            const value = String(minute).padStart(2, "0");
+            option.value = value;
+            option.textContent = value;
+            fromMinute.appendChild(option);
+        }
+
+        function toggleTimeFields() {
+            const needsTime = leaveType.value === "short" || leaveType.value === "half";
+            const blocks = [fromTimeBlock, toTimeBlock];
+
+            if (needsTime) {
+                blocks.forEach((block) => {
+                    block.dataset.mode = "shown";
+                    block.classList.remove("leaving");
+                    if (block.classList.contains("hidden")) {
+                        block.classList.remove("hidden");
+                        block.classList.remove("entering");
+                        void block.offsetWidth;
+                        block.classList.add("entering");
+                    }
+                });
+            } else {
+                blocks.forEach((block) => {
+                    block.dataset.mode = "hidden";
+                    if (!block.classList.contains("hidden")) {
+                        block.classList.remove("entering");
+                        block.classList.remove("leaving");
+                        void block.offsetWidth;
+                        block.classList.add("leaving");
+                    }
+                });
+            }
+
+            typeHint.classList.remove("hint-animating");
+            void typeHint.offsetWidth;
+            typeHint.textContent = needsTime
+                ? "Time is required for Short and Half leave"
+                : "Dates only for regular leave";
+            typeHint.classList.add("hint-animating");
+
+            if (!needsTime) {
+                toTime.value = "";
+                fromHour.selectedIndex = 0;
+                fromMinute.selectedIndex = 0;
+                fromMeridiem.value = "AM";
+                timeSelectDropdowns.forEach(syncTimeSelect);
+            }
+        }
+
+        function closeLeaveTypeMenu() {
+            leaveTypeDropdown.classList.remove("open");
+            leaveTypeTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openLeaveTypeMenu() {
+            leaveTypeDropdown.classList.add("open");
+            leaveTypeTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        function setLeaveType(value) {
+            leaveType.value = value;
+            const selectedOption = Array.from(leaveTypeOptions).find((option) => option.dataset.value === value);
+            leaveTypeValue.textContent = selectedOption
+                ? selectedOption.querySelector(".option-title").textContent
+                : "Select leave type";
+
+            leaveTypeOptions.forEach((option) => {
+                option.classList.toggle("selected", option.dataset.value === value);
+            });
+
+            toggleTimeFields();
+            updateToTime();
+        }
+
+        function updateToTime() {
+            if (!(leaveType.value === "short" || leaveType.value === "half")) {
+                return;
+            }
+
+            const hour = parseInt(fromHour.value, 10);
+            const minute = parseInt(fromMinute.value, 10);
+
+            if (Number.isNaN(hour) || Number.isNaN(minute)) {
+                toTime.value = "";
+                return;
+            }
+
+            let hour24 = hour % 12;
+            if (fromMeridiem.value === "PM") {
+                hour24 += 12;
+            }
+
+            const duration = leaveType.value === "short" ? 2 : 4;
+            const totalMinutes = (hour24 * 60) + minute + (duration * 60);
+            const resultHour24 = Math.floor(totalMinutes / 60) % 24;
+            const resultMinute = totalMinutes % 60;
+            const meridiem = resultHour24 >= 12 ? "PM" : "AM";
+            const resultHour12 = (resultHour24 % 12) || 12;
+
+            toTime.value = `${String(resultHour12).padStart(2, "0")}:${String(resultMinute).padStart(2, "0")} ${meridiem}`;
+        }
+
+        function formatDisplayDate(date) {
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        function formatValueDate(date) {
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const year = date.getFullYear();
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseValueDate(value) {
+            if (!value) {
+                return null;
+            }
+
+            const [year, month, day] = value.split("-").map(Number);
+            if (!year || !month || !day) {
+                return null;
+            }
+
+            return new Date(year, month - 1, day);
+        }
+
+        function closeDatePickers() {
+            datePickers.forEach((picker) => {
+                picker.classList.remove("open");
+                picker.classList.remove("open-up");
+                picker.querySelector(".date-trigger")?.setAttribute("aria-expanded", "false");
+            });
+            document.querySelectorAll(".field-block.has-open-date-menu, .field-row.has-open-date-menu, .form-panel.has-open-date-menu").forEach((element) => {
+                element.classList.remove("has-open-date-menu");
+            });
+        }
+
+        function syncDatePicker(picker) {
+            const hiddenInput = picker.querySelector("input[type='hidden']");
+            const valueElement = picker.querySelector(".date-value");
+            const selectedDate = parseValueDate(hiddenInput.value);
+            valueElement.textContent = selectedDate ? formatDisplayDate(selectedDate) : "dd-mm-yyyy";
+        }
+
+        function renderDatePicker(picker) {
+            const hiddenInput = picker.querySelector("input[type='hidden']");
+            const currentLabel = picker.querySelector(".date-current");
+            const grid = picker.querySelector(".date-grid");
+            const selectedDate = parseValueDate(hiddenInput.value);
+            const viewDate = picker._viewDate || selectedDate || new Date();
+            const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+            const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
+            const firstDayIndex = (monthStart.getDay() + 6) % 7;
+            const daysInMonth = monthEnd.getDate();
+            const today = new Date();
+
+            currentLabel.textContent = monthStart.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+            grid.innerHTML = "";
+
+            for (let i = 0; i < firstDayIndex; i += 1) {
+                const dayButton = document.createElement("button");
+                dayButton.type = "button";
+                dayButton.className = "date-day muted";
+                dayButton.textContent = "";
+                dayButton.disabled = true;
+                grid.appendChild(dayButton);
+            }
+
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+                const dayButton = document.createElement("button");
+                dayButton.type = "button";
+                dayButton.className = "date-day";
+                dayButton.textContent = String(day);
+
+                const isToday =
+                    date.getFullYear() === today.getFullYear() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getDate() === today.getDate();
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                const isSelected =
+                    selectedDate &&
+                    date.getFullYear() === selectedDate.getFullYear() &&
+                    date.getMonth() === selectedDate.getMonth() &&
+                    date.getDate() === selectedDate.getDate();
+
+                if (isToday) {
+                    dayButton.classList.add("today");
+                }
+
+                if (isWeekend) {
+                    dayButton.classList.add("weekend");
+                }
+
+                if (isSelected) {
+                    dayButton.classList.add("selected");
+                }
+
+                dayButton.addEventListener("click", () => {
+                    hiddenInput.value = formatValueDate(date);
+                    syncDatePicker(picker);
+                    renderDatePicker(picker);
+                    closeDatePickers();
+                });
+
+                grid.appendChild(dayButton);
+            }
+
+            const cellsToAdd = 42 - grid.children.length;
+            for (let day = 1; day <= cellsToAdd; day += 1) {
+                const dayButton = document.createElement("button");
+                dayButton.type = "button";
+                dayButton.className = "date-day muted";
+                dayButton.textContent = "";
+                dayButton.disabled = true;
+                grid.appendChild(dayButton);
+            }
+        }
+
+        function buildDatePicker(picker) {
+            const trigger = picker.querySelector(".date-trigger");
+            const prevButton = picker.querySelector(".prev-month");
+            const nextButton = picker.querySelector(".next-month");
+            const todayButton = picker.querySelector(".today-action");
+            const clearButton = picker.querySelector(".clear-action");
+            const hiddenInput = picker.querySelector("input[type='hidden']");
+
+            picker._viewDate = parseValueDate(hiddenInput.value) || new Date();
+            syncDatePicker(picker);
+            renderDatePicker(picker);
+
+            trigger.addEventListener("click", () => {
+                const isOpen = picker.classList.contains("open");
+                closeDatePickers();
+                if (!isOpen) {
+                    const menu = picker.querySelector(".date-menu");
+                    const pickerRect = picker.getBoundingClientRect();
+                    const estimatedMenuHeight = menu ? Math.ceil(menu.getBoundingClientRect().height || 332) : 332;
+                    const spaceBelow = window.innerHeight - pickerRect.bottom;
+                    const forceOpenDown = window.innerWidth <= 700 && picker.id === "fromDatePicker";
+                    picker.classList.toggle("open-up", !forceOpenDown && spaceBelow < estimatedMenuHeight + 16);
+                    picker.classList.add("open");
+                    trigger.setAttribute("aria-expanded", "true");
+                    const block = picker.closest(".field-block");
+                    const row = picker.closest(".field-row");
+                    const panel = picker.closest(".form-panel");
+                    block?.classList.add("has-open-date-menu");
+                    row?.classList.add("has-open-date-menu");
+                    panel?.classList.add("has-open-date-menu");
+                    renderDatePicker(picker);
+                }
+            });
+
+            trigger.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    const isOpen = picker.classList.contains("open");
+                    closeDatePickers();
+                    if (!isOpen) {
+                        const menu = picker.querySelector(".date-menu");
+                        const pickerRect = picker.getBoundingClientRect();
+                        const estimatedMenuHeight = menu ? Math.ceil(menu.getBoundingClientRect().height || 332) : 332;
+                        const spaceBelow = window.innerHeight - pickerRect.bottom;
+                        const forceOpenDown = window.innerWidth <= 700 && picker.id === "fromDatePicker";
+                        picker.classList.toggle("open-up", !forceOpenDown && spaceBelow < estimatedMenuHeight + 16);
+                        picker.classList.add("open");
+                        trigger.setAttribute("aria-expanded", "true");
+                        const block = picker.closest(".field-block");
+                        const row = picker.closest(".field-row");
+                        const panel = picker.closest(".form-panel");
+                        block?.classList.add("has-open-date-menu");
+                        row?.classList.add("has-open-date-menu");
+                        panel?.classList.add("has-open-date-menu");
+                        renderDatePicker(picker);
+                    }
+                }
+            });
+
+            prevButton.addEventListener("click", () => {
+                picker._viewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() - 1, 1);
+                renderDatePicker(picker);
+            });
+
+            nextButton.addEventListener("click", () => {
+                picker._viewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() + 1, 1);
+                renderDatePicker(picker);
+            });
+
+            todayButton.addEventListener("click", () => {
+                const today = new Date();
+                hiddenInput.value = formatValueDate(today);
+                picker._viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                syncDatePicker(picker);
+                renderDatePicker(picker);
+                closeDatePickers();
+            });
+
+            clearButton.addEventListener("click", () => {
+                hiddenInput.value = "";
+                picker._viewDate = new Date();
+                syncDatePicker(picker);
+                renderDatePicker(picker);
+                closeDatePickers();
+            });
+        }
+
+        function closeTimeSelectMenus() {
+            timeSelectDropdowns.forEach((dropdown) => {
+                dropdown.classList.remove("open");
+                const trigger = dropdown.querySelector(".custom-select-trigger");
+                trigger.setAttribute("aria-expanded", "false");
+            });
+            document.querySelectorAll(".field-row.has-open-time-menu, .form-panel.has-open-time-menu").forEach((element) => {
+                element.classList.remove("has-open-time-menu");
+            });
+        }
+
+        function syncTimeSelect(dropdown) {
+            const nativeSelect = dropdown.querySelector("select");
+            const valueElement = dropdown.querySelector(".custom-select-value");
+            const options = dropdown.querySelectorAll(".custom-option");
+            const selectedOption = nativeSelect.options[nativeSelect.selectedIndex];
+
+            valueElement.textContent = selectedOption ? selectedOption.textContent : nativeSelect.options[0].textContent;
+
+            options.forEach((option) => {
+                option.classList.toggle("selected", option.dataset.value === nativeSelect.value);
+            });
+        }
+
+        function buildTimeSelect(dropdown) {
+            const nativeSelect = dropdown.querySelector("select");
+            const trigger = dropdown.querySelector(".custom-select-trigger");
+            const menu = dropdown.querySelector(".custom-select-menu");
+
+            if (!nativeSelect || !trigger || !menu) {
+                return;
+            }
+
+            const menuLabel = dropdown.dataset.menuLabel || "Select";
+            menu.innerHTML = "";
+            menu.setAttribute("data-menu-label", menuLabel);
+
+            Array.from(nativeSelect.options).forEach((option, index) => {
+                if (!option.value && index === 0) {
+                    return;
+                }
+
+                const optionButton = document.createElement("button");
+                optionButton.type = "button";
+                optionButton.className = "custom-option";
+                optionButton.dataset.value = option.value;
+
+                const title = document.createElement("span");
+                title.className = "option-title";
+                title.textContent = option.textContent;
+                optionButton.appendChild(title);
+
+                optionButton.addEventListener("click", () => {
+                    nativeSelect.value = option.value;
+                    syncTimeSelect(dropdown);
+                    closeTimeSelectMenus();
+                    nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                });
+
+                menu.appendChild(optionButton);
+            });
+
+            trigger.addEventListener("click", () => {
+                const isOpen = dropdown.classList.contains("open");
+                closeTimeSelectMenus();
+                if (!isOpen) {
+                    dropdown.classList.add("open");
+                    trigger.setAttribute("aria-expanded", "true");
+                    const row = dropdown.closest(".field-row");
+                    const panel = dropdown.closest(".form-panel");
+                    row?.classList.add("has-open-time-menu");
+                    panel?.classList.add("has-open-time-menu");
+                }
+            });
+
+            trigger.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    const isOpen = dropdown.classList.contains("open");
+                    closeTimeSelectMenus();
+                    if (!isOpen) {
+                        dropdown.classList.add("open");
+                        trigger.setAttribute("aria-expanded", "true");
+                        const row = dropdown.closest(".field-row");
+                        const panel = dropdown.closest(".form-panel");
+                        row?.classList.add("has-open-time-menu");
+                        panel?.classList.add("has-open-time-menu");
+                    }
+                }
+            });
+
+            syncTimeSelect(dropdown);
+        }
+
+        toggleBtn.addEventListener("click", () => {
+            const collapsed = instructionCard.classList.toggle("collapsed");
+            instructionContent.style.display = collapsed ? "none" : "block";
+            toggleBtn.textContent = collapsed ? "Show" : "Hide";
+        });
+
+        leaveTypeTrigger.addEventListener("click", () => {
+            if (leaveTypeDropdown.classList.contains("open")) {
+                closeLeaveTypeMenu();
+            } else {
+                openLeaveTypeMenu();
+            }
+        });
+
+        leaveTypeTrigger.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                if (leaveTypeDropdown.classList.contains("open")) {
+                    closeLeaveTypeMenu();
+                } else {
+                    openLeaveTypeMenu();
+                }
+            }
+        });
+
+        leaveTypeOptions.forEach((option) => {
+            option.addEventListener("click", () => {
+                setLeaveType(option.dataset.value);
+                closeLeaveTypeMenu();
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!leaveTypeDropdown.contains(event.target)) {
+                closeLeaveTypeMenu();
+            }
+
+            if (!timeSelectDropdowns.some((dropdown) => dropdown.contains(event.target))) {
+                closeTimeSelectMenus();
+            }
+
+            if (!datePickers.some((picker) => picker.contains(event.target))) {
+                closeDatePickers();
+            }
+        });
+
+        fromHour.addEventListener("change", updateToTime);
+        fromMinute.addEventListener("change", updateToTime);
+        fromMeridiem.addEventListener("change", updateToTime);
+        timeSelectDropdowns.forEach(buildTimeSelect);
+        datePickers.forEach(buildDatePicker);
+
+        [fromTimeBlock, toTimeBlock].forEach((block) => {
+            block.addEventListener("animationend", () => {
+                if (block.classList.contains("leaving") && block.dataset.mode === "hidden") {
+                    block.classList.add("hidden");
+                    block.classList.remove("leaving");
+                }
+
+                block.classList.remove("entering");
+            });
+        });
+
+        typeHint.addEventListener("animationend", () => {
+            typeHint.classList.remove("hint-animating");
+        });
+
+        setLeaveType("");
+    </script>
+</body>
+</html>

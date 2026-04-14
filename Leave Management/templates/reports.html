@@ -1,0 +1,757 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Reports{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hr_notification_shared.css' %}">
+{% endblock %}
+
+{% block body_class %}hr-page{% endblock %}
+
+{% block page_skeleton %}
+    <div class="page-skeleton-overlay" data-page-skeleton>
+        <div class="page-skeleton-shell">
+            <div class="page-skeleton-topbar">
+                <span class="skeleton-chip"></span>
+                <span class="skeleton-bar title"></span>
+                <span class="skeleton-bar nav"></span>
+                <span class="skeleton-icon"></span>
+                <span class="skeleton-avatar"></span>
+            </div>
+
+            <div class="page-skeleton-body">
+                <div class="page-skeleton-row equal-2">
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-30"></span>
+                                <span class="skeleton-line w-70"></span>
+                                <span class="skeleton-line w-80"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-skeleton-stack">
+                        <div class="skeleton-card sm">
+                            <div class="page-skeleton-panel-inner tight page-skeleton-card-copy">
+                                <span class="skeleton-line w-50"></span>
+                                <span class="skeleton-line w-60"></span>
+                                <span class="skeleton-line w-70"></span>
+                            </div>
+                        </div>
+                        <div class="skeleton-card sm">
+                            <div class="page-skeleton-panel-inner tight page-skeleton-card-copy">
+                                <span class="skeleton-line w-50"></span>
+                                <span class="skeleton-line w-60"></span>
+                                <span class="skeleton-line w-70"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page-skeleton-grid cols-4">
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                </div>
+
+                <div class="page-skeleton-row equal-2">
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <div class="page-skeleton-form-field full">
+                                <span class="skeleton-line w-30"></span>
+                                <span class="skeleton-bar w-100"></span>
+                            </div>
+                            <div class="page-skeleton-button-pair">
+                                <span class="skeleton-chip wide"></span>
+                                <span class="skeleton-chip wide"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <span class="skeleton-line w-100"></span>
+                            <span class="skeleton-line w-80"></span>
+                            <span class="skeleton-line w-70"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skeleton-card lg page-skeleton-table">
+                    <div class="page-skeleton-table-header">
+                        <span class="skeleton-line w-40"></span>
+                        <span class="skeleton-chip wide"></span>
+                    </div>
+                    <div class="page-skeleton-table-head">
+                        <span class="skeleton-line w-70"></span>
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-80"></span>
+                        <span class="skeleton-line w-60"></span>
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-70"></span>
+                        <span class="skeleton-line w-40"></span>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-80"></span>
+                            <span class="skeleton-line w-50"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-40"></span></div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-100"></span>
+                            <span class="skeleton-line w-70"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-60"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-50"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-70"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-30"></span></div>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-70"></span>
+                            <span class="skeleton-line w-40"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-40"></span></div>
+                        <div class="page-skeleton-table-cell">
+                            <span class="skeleton-line w-80"></span>
+                            <span class="skeleton-line w-60"></span>
+                        </div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-50"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-50"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-60"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-30"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block header %}
+    <div class="header-title-group">
+        <span class="header-title-icon" aria-hidden="true">
+            <span class="header-title-icon-shape icon-chart"></span>
+        </span>
+        <h1>Reports</h1>
+    </div>
+
+    <button type="button" class="hamburger" aria-label="Open navigation menu">&#9776;</button>
+
+    <nav class="nav-links">
+        <a href="{% url 'hr_dashboard' %}">
+            <span class="nav-shortcut-icon dashboard-badge"><span class="badge-shape badge-grid"></span></span>
+            <span>Dashboard</span>
+        </a>
+        <a href="{% url 'manage_all' %}">
+            <span class="nav-shortcut-icon manage-badge"><span class="badge-shape badge-folder"></span></span>
+            <span>Manage All</span>
+        </a>
+        <a href="{% url 'employee_details' %}">
+            <span class="nav-shortcut-icon employee-badge"><span class="badge-shape badge-team"></span></span>
+            <span>Employees</span>
+        </a>
+    </nav>
+
+    <div class="header-actions">
+        {% include "includes/communication_dropdown.html" %}
+        {% include "includes/hr_notification_dropdown.html" %}
+
+        <div class="profile-dropdown">
+            <input type="checkbox" id="profile-toggle">
+            <label for="profile-toggle" class="profile-icon">
+                {% if request.user.profile.profile_photo %}
+                    <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                {% else %}
+                    <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-label="HR user"></span>
+                {% endif %}
+            </label>
+            <div class="dropdown-content">
+                <div class="user-info">
+                    {% if request.user.profile.profile_photo %}
+                        <span class="user-info-media">
+                            <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                        </span>
+                    {% else %}
+                        <span class="profile-avatar-shell profile-avatar-initials dropdown-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-label="HR user"></span>
+                    {% endif %}
+                    <div>
+                        <p>{{ request.user.get_full_name|default:request.user.username }}</p>
+                        <small>HR workspace</small>
+                    </div>
+                </div>
+                <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <section class="reports-page">
+        <div class="reports-shell">
+            <section class="reports-hero">
+                <div class="hero-copy">
+                    <p class="eyebrow">HR analytics workspace</p>
+                    <h2>Clear leave reporting for faster HR decisions.</h2>
+                    <p class="hero-text">
+                        Review employee leave volume, approval flow, and pending workload in one clean reporting view.
+                        {% if selected_employee_name %}
+                            You are currently focused on <strong>{{ selected_employee_name }}</strong>.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="hero-aside">
+                    <article class="insight-card spotlight-card">
+                        <span class="insight-label">Top leave volume</span>
+                        {% if top_employee %}
+                            <strong>{{ top_employee.user.username }}</strong>
+                            <p>{{ top_employee.total }} total requests logged</p>
+                        {% else %}
+                            <strong>No report data</strong>
+                            <p>Employee trends will appear once leave requests are submitted.</p>
+                        {% endif %}
+                    </article>
+
+                    <article class="insight-card date-card">
+                        <span class="insight-label">Report snapshot</span>
+                        <strong>{% now "M d, Y" %}</strong>
+                        <p>{{ report_employee_count }} employee summaries in this view</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="reports-content-grid">
+                <article class="panel-card filter-panel async-surface-host" id="reportFilterPanel">
+                    <div class="filter-shell">
+                        <div class="panel-heading filter-heading">
+                            <div>
+                                <p class="eyebrow">Filters</p>
+                                <h3>Refine the report</h3>
+                                <p class="filter-caption">Choose an employee scope and instantly refresh the analytics view.</p>
+                            </div>
+                        </div>
+
+                        <form method="GET" class="report-filter-form">
+                            <label for="employeeFilter" class="field-label">Employee</label>
+                            <div class="filter-input-row">
+                                <div class="custom-select select-shell report-select-shell" id="employeeFilterDropdown">
+                                    <select id="employeeFilter" name="employee" class="native-select" aria-hidden="true" tabindex="-1">
+                                        <option value="">All Employees</option>
+                                        {% for emp in employees %}
+                                            <option value="{{ emp.id }}" {% if selected_employee == emp.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ emp.username }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="custom-select-display">
+                                        <div class="custom-select-trigger" id="employeeFilterTrigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                            <span class="custom-select-value">
+                                                {% if selected_employee_name %}{{ selected_employee_name }}{% else %}All Employees{% endif %}
+                                            </span>
+                                            <span class="custom-select-icon" aria-hidden="true"></span>
+                                        </div>
+                                    </div>
+                                    <div class="custom-select-menu" id="employeeFilterMenu" role="listbox">
+                                        <button type="button" class="custom-option{% if not selected_employee %} selected{% endif %}" data-value="">
+                                            <span class="option-title">All Employees</span>
+                                        </button>
+                                        {% for emp in employees %}
+                                            <button type="button" class="custom-option{% if selected_employee == emp.id|stringformat:'s' %} selected{% endif %}" data-value="{{ emp.id }}">
+                                                <span class="option-title">{{ emp.username }}</span>
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <button type="submit">Apply</button>
+                            </div>
+                        </form>
+
+                        <div class="filter-meta">
+                            <div class="meta-chip scope-chip">
+                                <span>Scope</span>
+                                <strong>{% if selected_employee_name %}{{ selected_employee_name }}{% else %}All employees{% endif %}</strong>
+                                <small>Current reporting focus</small>
+                            </div>
+                            <div class="meta-chip count-chip">
+                                <span>Employees shown</span>
+                                <strong id="employeesShownCount" data-countup data-countup-target="{{ report_employee_count }}">{{ report_employee_count }}</strong>
+                                <small>Summaries visible in the table</small>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="analytics-column">
+                    <section class="summary-grid summary-grid-compact">
+                        <article class="summary-card total-card">
+                            <span><span class="label-icon label-icon-total" aria-hidden="true">&#9710;</span><span>Total Requests</span></span>
+                            <strong id="reportTotalRequests" data-countup data-countup-target="{{ total_requests }}">{{ total_requests }}</strong>
+                            <p>Across the selected employee scope</p>
+                        </article>
+                        <article class="summary-card approved-card">
+                            <span><span class="label-icon label-icon-approved" aria-hidden="true">&#10003;</span><span>Approved</span></span>
+                            <strong id="reportApprovedTotal" data-countup data-countup-target="{{ approved_total }}">{{ approved_total }}</strong>
+                            <p id="reportApprovalRateCopy">{{ approval_rate_overall }}% overall approval rate</p>
+                        </article>
+                        <article class="summary-card pending-card">
+                            <span><span class="label-icon label-icon-pending" aria-hidden="true">&#9203;</span><span>Pending</span></span>
+                            <strong id="reportPendingTotal" data-countup data-countup-target="{{ pending_total }}">{{ pending_total }}</strong>
+                            <p>Requests still waiting for review</p>
+                        </article>
+                        <article class="summary-card rejected-card">
+                            <span><span class="label-icon label-icon-rejected" aria-hidden="true">&#10005;</span><span>Rejected</span></span>
+                            <strong id="reportRejectedTotal" data-countup data-countup-target="{{ rejected_total }}">{{ rejected_total }}</strong>
+                            <p>Requests that need follow-up or revision</p>
+                        </article>
+                    </section>
+
+                    <article class="panel-card insights-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">Quick insights</p>
+                                <h3>What stands out right now</h3>
+                            </div>
+                        </div>
+
+                        <div class="insight-list">
+                            <div class="insight-item">
+                                <span class="insight-kicker"><span class="label-icon label-icon-pending" aria-hidden="true">&#9203;</span><span>Action queue</span></span>
+                                <strong id="reportActionQueue"><span id="reportActionQueueValue" data-countup data-countup-target="{{ pending_total }}">{{ pending_total }}</span> pending requests</strong>
+                                <p>These are the records that may need immediate attention from HR.</p>
+                            </div>
+                            <div class="insight-item">
+                                <span class="insight-kicker"><span class="label-icon label-icon-coverage" aria-hidden="true">&#8801;</span><span>Coverage</span></span>
+                                <strong id="reportCoverage"><span id="reportCoverageValue" data-countup data-countup-target="{{ report_employee_count }}">{{ report_employee_count }}</span> employees included</strong>
+                                <p>The table below compares leave outcomes side by side for the current filter.</p>
+                            </div>
+                            <div class="insight-item">
+                                <span class="insight-kicker"><span class="label-icon label-icon-approved" aria-hidden="true">&#10003;</span><span>Decision quality</span></span>
+                                <strong id="reportDecisionQuality"><span id="reportDecisionQualityValue" data-countup data-countup-target="{{ approval_rate_overall }}">{{ approval_rate_overall }}</span>% approvals</strong>
+                                <p>A quick signal of how smoothly requests are moving through review.</p>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="panel-card report-table-panel async-surface-host" id="reportTablePanel">
+                <div class="panel-heading report-table-heading">
+                    <div>
+                        <p class="eyebrow">Employee overview</p>
+                        <h3><span class="section-title-icon" aria-hidden="true">&#9636;</span><span class="section-title-text">Leave summary by employee</span></h3>
+                    </div>
+                    <span class="panel-count" id="visibleReportCount" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" visible">{{ report_employee_count }} visible</span>
+                </div>
+
+                <div class="table-toolbar">
+                    <div class="search-field">
+                        <label for="reportSearch" class="sr-only">Search employee report rows</label>
+                        <span class="search-icon" aria-hidden="true"></span>
+                        <input type="search" id="reportSearch" placeholder="Search employee name, ID, or department">
+                    </div>
+                    <span class="panel-count table-toolbar-count" id="visibleReportCountMobile" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" visible">{{ report_employee_count }} visible</span>
+                </div>
+
+                <div class="report-table-wrapper">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#128100;</span><span class="table-head-text">Employee</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#9679;</span><span class="table-head-text">Total</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#10003;</span><span class="table-head-text">Approved</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#8987;</span><span class="table-head-text">Pending</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#10005;</span><span class="table-head-text">Rejected</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#37;</span><span class="table-head-text">Approval Rate</span></span></th>
+                                <th><span class="table-head-label"><span class="table-head-icon" aria-hidden="true">&#9783;</span><span class="table-head-text">Status Mix</span></span></th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="reportTableBody">
+                            {% for report in reports %}
+                                <tr
+                                    data-employee-name="{{ report.user.username|lower }}"
+                                    data-employee-id="{{ report.employee_id|lower }}"
+                                    data-department="{{ report.department|lower }}"
+                                >
+                                    <td>
+                                        <div class="employee-cell">
+                                            {% if report.photo_url %}
+                                                <img src="{{ report.photo_url }}" alt="{{ report.user.username }}" class="employee-avatar employee-avatar-photo">
+                                            {% else %}
+                                                <span class="employee-avatar">{{ report.user.username|slice:":1"|upper }}</span>
+                                            {% endif %}
+                                            <div class="employee-copy">
+                                                <strong>{{ report.user.username }}</strong>
+                                                <small>{{ report.employee_id }} | {{ report.department }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><span class="metric-chip total" data-countup data-countup-target="{{ report.total }}">{{ report.total }}</span></td>
+                                    <td><span class="metric-chip approved" data-countup data-countup-target="{{ report.approved }}">{{ report.approved }}</span></td>
+                                    <td><span class="metric-chip pending" data-countup data-countup-target="{{ report.pending }}">{{ report.pending }}</span></td>
+                                    <td><span class="metric-chip rejected" data-countup data-countup-target="{{ report.rejected }}">{{ report.rejected }}</span></td>
+                                    <td>
+                                        <div class="rate-cell">
+                                            <strong><span data-countup data-countup-target="{{ report.approval_rate }}">{{ report.approval_rate }}</span>%</strong>
+                                            <small>approved</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="status-mix">
+                                            <span class="mix-bar approved" style="width: {{ report.approved_rate }}%"></span>
+                                            <span class="mix-bar pending" style="width: {{ report.pending_rate }}%"></span>
+                                            <span class="mix-bar rejected" style="width: {{ report.rejected_rate }}%"></span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr id="reportEmptyRow">
+                                    <td colspan="7">
+                                        <div class="empty-table-state">
+                                            <strong>No report records found</strong>
+                                            <p>Leave analytics will show here after employees submit requests.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-table-state search-empty-state" id="reportSearchEmpty" hidden>
+                    <div class="search-empty-visual" aria-hidden="true">
+                        <div class="search-empty-orbit"></div>
+                        <div class="search-empty-icon"></div>
+                    </div>
+                    <div class="search-empty-copy">
+                        <strong>No matching employees</strong>
+                        <p>Try a different employee name or clear the current search.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const reportSearchInput = document.getElementById("reportSearch");
+    const reportTableBody = document.getElementById("reportTableBody");
+    const reportSearchEmpty = document.getElementById("reportSearchEmpty");
+    const visibleReportCount = document.getElementById("visibleReportCount");
+    const visibleReportCountMobile = document.getElementById("visibleReportCountMobile");
+    const employeesShownCount = document.getElementById("employeesShownCount");
+    const reportTotalRequests = document.getElementById("reportTotalRequests");
+    const reportApprovedTotal = document.getElementById("reportApprovedTotal");
+    const reportPendingTotal = document.getElementById("reportPendingTotal");
+    const reportRejectedTotal = document.getElementById("reportRejectedTotal");
+    const reportApprovalRateCopy = document.getElementById("reportApprovalRateCopy");
+    const reportActionQueue = document.getElementById("reportActionQueue");
+    const reportActionQueueValue = document.getElementById("reportActionQueueValue");
+    const reportCoverage = document.getElementById("reportCoverage");
+    const reportCoverageValue = document.getElementById("reportCoverageValue");
+    const reportDecisionQuality = document.getElementById("reportDecisionQuality");
+    const reportDecisionQualityValue = document.getElementById("reportDecisionQualityValue");
+    const employeeFilterDropdown = document.getElementById("employeeFilterDropdown");
+    const employeeFilterSelect = document.getElementById("employeeFilter");
+    const employeeFilterTrigger = document.getElementById("employeeFilterTrigger");
+    const employeeFilterMenu = document.getElementById("employeeFilterMenu");
+    const employeeFilterValue = employeeFilterTrigger ? employeeFilterTrigger.querySelector(".custom-select-value") : null;
+    const employeeFilterOptions = employeeFilterMenu ? Array.from(employeeFilterMenu.querySelectorAll(".custom-option")) : [];
+    const reportFilterForm = document.querySelector(".report-filter-form");
+    const reportFilterPanel = document.getElementById("reportFilterPanel");
+    const reportTablePanel = document.getElementById("reportTablePanel");
+
+    function runReportSurfaceTransition(surfaceElement, updateFn)
+    {
+        if (typeof updateFn !== "function")
+        {
+            return;
+        }
+
+        if (!surfaceElement || typeof window.startAsyncSurfaceSkeleton !== "function" || typeof window.finishAsyncSurfaceSkeleton !== "function")
+        {
+            updateFn();
+            return;
+        }
+
+        window.startAsyncSurfaceSkeleton(surfaceElement);
+
+        requestAnimationFrame(function ()
+        {
+            updateFn();
+
+            requestAnimationFrame(function ()
+            {
+                window.finishAsyncSurfaceSkeleton(surfaceElement);
+            });
+        });
+    }
+
+    function filterReportRows(searchValue)
+    {
+        if (!reportTableBody)
+        {
+            return;
+        }
+
+        const query = String(searchValue || "").trim().toLowerCase();
+        const rows = Array.from(reportTableBody.querySelectorAll("tr[data-employee-name]"));
+        let visibleRows = 0;
+        let totalRequests = 0;
+        let approvedTotal = 0;
+        let pendingTotal = 0;
+        let rejectedTotal = 0;
+
+        const animateMetric = function (element, value, options)
+        {
+            if (!element)
+            {
+                return;
+            }
+
+            const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+            const config = Object.assign({ duration: 280 }, options || {});
+            const suffix = config.suffix || "";
+            element.dataset.countupTarget = String(safeValue);
+            element.textContent = String(safeValue) + suffix;
+            if (typeof window.animateCountUp === "function")
+            {
+                window.animateCountUp(element, safeValue, config);
+            }
+            else
+            {
+                element.textContent = String(safeValue) + suffix;
+            }
+        };
+
+        const animateVisibleTableMetrics = function ()
+        {
+            if (typeof window.animateCountUp !== "function")
+            {
+                return;
+            }
+
+            rows.forEach(function (row)
+            {
+                if (row.hidden)
+                {
+                    return;
+                }
+
+                row.querySelectorAll("[data-countup]").forEach(function (element)
+                {
+                    const target = parseFloat(element.dataset.countupTarget || element.textContent || "0");
+                    if (!Number.isFinite(target))
+                    {
+                        return;
+                    }
+
+                    window.animateCountUp(element, target, { duration: 280 });
+                });
+            });
+        };
+
+        rows.forEach(function (row)
+        {
+            const haystack = [
+                row.dataset.employeeName || "",
+                row.dataset.employeeId || "",
+                row.dataset.department || ""
+            ].join(" ");
+            const isMatch = !query || haystack.includes(query);
+            row.hidden = !isMatch;
+
+            if (isMatch)
+            {
+                visibleRows += 1;
+                totalRequests += parseInt((row.children[1] ? row.children[1].textContent : "0").trim(), 10) || 0;
+                approvedTotal += parseInt((row.children[2] ? row.children[2].textContent : "0").trim(), 10) || 0;
+                pendingTotal += parseInt((row.children[3] ? row.children[3].textContent : "0").trim(), 10) || 0;
+                rejectedTotal += parseInt((row.children[4] ? row.children[4].textContent : "0").trim(), 10) || 0;
+            }
+        });
+
+        animateMetric(visibleReportCount, visibleRows, { suffix: " visible" });
+        animateMetric(visibleReportCountMobile, visibleRows, { suffix: " visible" });
+        animateMetric(employeesShownCount, visibleRows);
+        animateMetric(reportTotalRequests, totalRequests);
+        animateMetric(reportApprovedTotal, approvedTotal);
+        animateMetric(reportPendingTotal, pendingTotal);
+        animateMetric(reportRejectedTotal, rejectedTotal);
+
+        const approvalRate = totalRequests ? Math.round((approvedTotal / totalRequests) * 100) : 0;
+        if (reportApprovalRateCopy)
+        {
+            reportApprovalRateCopy.textContent = approvalRate + "% overall approval rate";
+        }
+        if (reportActionQueue)
+        {
+            animateMetric(reportActionQueueValue, pendingTotal);
+        }
+        if (reportCoverage)
+        {
+            animateMetric(reportCoverageValue, visibleRows);
+        }
+        if (reportDecisionQuality)
+        {
+            animateMetric(reportDecisionQualityValue, approvalRate);
+        }
+
+        animateVisibleTableMetrics();
+
+        if (reportSearchEmpty)
+        {
+            reportSearchEmpty.hidden = !query || visibleRows !== 0 || rows.length === 0;
+        }
+
+        document.dispatchEvent(new CustomEvent("countup:refresh", {
+            detail: {
+                root: reportTablePanel || document,
+                duration: 180
+            }
+        }));
+    }
+
+    function closeEmployeeFilterDropdown()
+    {
+        if (!employeeFilterDropdown || !employeeFilterTrigger)
+        {
+            return;
+        }
+
+        employeeFilterDropdown.classList.remove("open");
+        employeeFilterTrigger.setAttribute("aria-expanded", "false");
+    }
+
+    function openEmployeeFilterDropdown()
+    {
+        if (!employeeFilterDropdown || !employeeFilterTrigger)
+        {
+            return;
+        }
+
+        employeeFilterDropdown.classList.add("open");
+        employeeFilterTrigger.setAttribute("aria-expanded", "true");
+    }
+
+    function setEmployeeFilterValue(value, label)
+    {
+        if (!employeeFilterSelect || !employeeFilterValue)
+        {
+            return;
+        }
+
+        employeeFilterSelect.value = value;
+        employeeFilterValue.textContent = label;
+
+        employeeFilterOptions.forEach(function (option)
+        {
+            option.classList.toggle("selected", option.dataset.value === value);
+        });
+    }
+
+    if (reportSearchInput)
+    {
+        reportSearchInput.addEventListener("input", function ()
+        {
+            runReportSurfaceTransition(reportTablePanel, function ()
+            {
+                filterReportRows(reportSearchInput.value);
+            });
+        });
+    }
+
+    if (employeeFilterTrigger)
+    {
+        employeeFilterTrigger.addEventListener("click", function ()
+        {
+            const isOpen = employeeFilterDropdown.classList.contains("open");
+
+            if (isOpen)
+            {
+                closeEmployeeFilterDropdown();
+            }
+            else
+            {
+                openEmployeeFilterDropdown();
+            }
+        });
+
+        employeeFilterTrigger.addEventListener("keydown", function (event)
+        {
+            if (event.key === "Enter" || event.key === " ")
+            {
+                event.preventDefault();
+                const isOpen = employeeFilterDropdown.classList.contains("open");
+                if (isOpen)
+                {
+                    closeEmployeeFilterDropdown();
+                }
+                else
+                {
+                    openEmployeeFilterDropdown();
+                }
+            }
+
+            if (event.key === "Escape")
+            {
+                closeEmployeeFilterDropdown();
+            }
+        });
+    }
+
+    employeeFilterOptions.forEach(function (option)
+    {
+        option.addEventListener("click", function ()
+        {
+            setEmployeeFilterValue(option.dataset.value || "", option.textContent.trim());
+            closeEmployeeFilterDropdown();
+        });
+    });
+
+    if (reportFilterForm)
+    {
+        reportFilterForm.addEventListener("submit", function ()
+        {
+            if (typeof window.startAsyncSurfaceSkeleton === "function")
+            {
+                window.startAsyncSurfaceSkeleton(reportFilterPanel);
+                window.startAsyncSurfaceSkeleton(reportTablePanel);
+            }
+        });
+    }
+
+    filterReportRows(reportSearchInput ? reportSearchInput.value : "");
+
+    document.addEventListener("click", function (event)
+    {
+        const notificationToggle = document.getElementById("notification-toggle");
+        const notificationDropdown = document.querySelector(".notification-dropdown");
+
+        if (
+            notificationToggle &&
+            notificationDropdown &&
+            notificationToggle.checked &&
+            !notificationDropdown.contains(event.target) &&
+            event.target !== notificationToggle
+        )
+        {
+            notificationToggle.checked = false;
+        }
+
+        if (
+            employeeFilterDropdown &&
+            employeeFilterDropdown.classList.contains("open") &&
+            !employeeFilterDropdown.contains(event.target)
+        )
+        {
+            closeEmployeeFilterDropdown();
+        }
+    });
+</script>
+{% endblock %}

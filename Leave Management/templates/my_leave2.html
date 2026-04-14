@@ -1,0 +1,3140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Leaves{% endblock %}
+
+{% block extra_css %}
+
+    <link rel="stylesheet" href="{% static 'css/my_leave.css' %}">
+
+{% endblock %}
+
+{% block header %}
+    <h1>My Leaves</h1>
+
+    <input type="checkbox" id="menu-toggle">
+    <label for="menu-toggle" class="hamburger">&#9776;</label>
+
+    
+    <nav class="nav-links">
+        <button class="calendar-btn" onclick="openLeaveCalendar()">📅</button>
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'apply_leave' %}">Apply Leaves</a>
+    </nav>
+
+    <div class="profile-dropdown">
+        <input type="checkbox" id="profile-toggle">
+        <label for="profile-toggle" class="profile-icon">
+            {% comment %} <img src="{{ request.user.profile.profile_photo.url }}"> {% endcomment %}
+            {% if request.user.profile.profile_photo %}
+                <img src="{{ request.user.profile.profile_photo.url }}">
+            {% else %}
+                <img src="{% static 'images\user.jpg' %}">
+            {% endif %}
+        </label>
+
+        {% comment %}
+        <div class="dropdown-content">
+            <div class="user-info">
+                <img src="{% static 'images/user.jpg' %}">
+                <p><a href="{% url 'profile' %}">Anurag Singh</a></p>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div> 
+        {% endcomment %}
+
+        <div class="dropdown-content">
+            <div class="user-info">
+                {% comment %} <center><img src="{{ request.user.profile.profile_photo.url }}"></center> {% endcomment %}
+                <center>
+                    {% if request.user.profile.profile_photo %}
+                        <img src="{{ request.user.profile.profile_photo.url }}">
+                    {% else %}
+                        <img src="{% static 'images\user.jpg' %}">
+                    {% endif %}
+                </center>
+                <center><p><a href="{% url 'profile' %}"> {{ request.user.get_full_name }} </a></p><center>
+            </div>
+
+            <a href="{% url 'logout' %}" class="logout-btn">⏻ Logout</a>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+
+
+{% endblock %}
+
+
+{% block content %}
+
+<main>
+
+    <div class="stats-container">
+        <div class="stats-grid">
+
+            <div class="stat-card">
+                <h2>Total Remaining Leaves</h2>
+                <p class="count">{{ balance.total_leaves }}</p>
+            </div>
+
+            <div class="stat-card">
+                <h2>Sick Leaves Remaining</h2>
+                <p class="count">{{ sick_remaining }}</p>
+            </div>
+
+            <div class="stat-card">
+                <h2>Sick Leaves Used</h2>
+                <p class="count">{{ balance.sick_used }}</p>
+            </div>
+
+            <div class="stat-card">
+                <h2>Earned Leaves Remaining</h2>
+                <p class="count">{{ earned_remaining }}</p>
+            </div>
+
+            <div class="stat-card">
+                <h2>Earned Leaves Used</h2>
+                <p class="count">{{ balance.earned_used }}</p>
+            </div>
+
+            <div class="stat-card">
+                <h2>Casual Leaves Taken</h2>
+                <p class="count">{{ balance.unpaid }}</p>
+            </div>
+
+
+
+            <div class="stat-card">
+                <h2>Short Leaves this Month </h2>
+                <p class="count">{{ balance.unpaid }}</p>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <div class="container">
+
+        <!-- Stats Cards -->
+        <div class="card">
+
+            <h2>Pending Leaves</h2>
+
+            <button class="filter-btn" onclick="openFilterModal('Pending')">
+                🔍 <span>Filter</span>
+            </button>
+
+            {% comment %}
+
+            <!-- {% if selected_leave_type or selected_month or selected_from_date or selected_to_date %}
+            <div class="filter-badges">
+
+                {% if selected_leave_type %}
+                <span class="badge">
+                    🏷 {{ selected_leave_type }}
+                    <button onclick="removeFilter('leave_type')">✖</button>
+                </span>
+                {% endif %}
+
+                {% if selected_month %}
+                <span class="badge">
+                    🗓 {{ selected_month }}
+                    <button onclick="removeFilter('month')">✖</button>
+                </span>
+
+                {% elif selected_from_date or selected_to_date %}
+                <span class="badge">
+                    📅 {{ selected_from_date|default:"…" }} → {{ selected_to_date|default:"…" }}
+                    <button onclick="removeFilter('date_range')">✖</button>
+                </span>
+                {% endif %}
+
+            </div>
+            {% endif %} -->
+
+            {% endcomment %}
+
+
+            {% with f=filters.Pending %}
+                {% if f.leave_type or f.month or f.from_date or f.to_date %}
+                    <div class="filter-badges">
+
+                        {% if f.leave_type %}
+                            <span class="badge">
+                                🏷 {{ f.leave_type }}
+                                <a href="{% url 'clear_status_filter_field' 'Pending' 'leave_type' %}">✖</a>
+                            </span>
+                        {% endif %}
+
+                        {% if f.month %}
+                            <span class="badge">
+                                🗓 {{ f.month }}
+                                <a href="{% url 'clear_status_filter_field' 'Pending' 'month' %}">✖</a>
+                            </span>
+
+                        {% elif f.from_date or f.to_date %}
+                            <span class="badge">
+                                📅 {{ f.from_date|default:"…" }} → {{ f.to_date|default:"…" }}
+                                <a href="{% url 'clear_status_filter_field' 'Pending' 'date_range' %}">✖</a>
+                            </span>
+                        {% endif %}
+
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <table class="leave-table">
+                <thead>
+                    <tr>
+                        <th>Applied On</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>   
+                
+                <tbody>
+                    {% for leave in pending_leaves %}
+                        <tr>
+                            <td>{{ leave.created_at }}</td>
+                            <td>{{ leave.leave_type }}</td>
+                            <td>{{ leave.from_date }}</td>
+                            <td>{{ leave.to_date }}</td>
+                            <td>
+                                {% comment %}
+                                <!-- <button class="reason-btn"
+                                onclick="openModal('<h3><center>Reason</center></h3><p><textarea readonly>{{ leave.reason|escapejs }}</textarea></p>')"> My Reason
+                                </button> -->
+                                {% endcomment %}
+
+                                <button class="reason-btn" 
+                                    onclick="openReasonModal(this)" 
+                                    data-reason="{{ leave.reason|escape }}"> 
+                                    My Reason
+                                </button>
+
+                            </td>
+
+                            <td class="{{ leave.status|lower }}">{{ leave.status }}</td>
+
+                            <td class="action-cell">
+                                <div class="action-buttons">
+                                    <button class="edit-btn"
+                                        data-id="{{ leave.id }}"
+                                        data-type="{{ leave.leave_type }}"
+                                        data-from="{{ leave.from_date|date:'Y-m-d' }}"
+                                        data-to="{{ leave.to_date|date:'Y-m-d' }}"
+                                        data-reason="{{ leave.reason }}"
+                                        
+                                        {% comment %} 
+                                        <!-- data-fromdatetime="{{ leave.from_datetime|default:'' }}"
+                                        data-todatetime="{{ leave.to_datetime|default:'' }}" -->
+                                        {% endcomment %}
+
+                                        data-fromdatetime="{{ leave.from_datetime|date:'c' }}"
+                                        data-todatetime="{{ leave.to_datetime|date:'c' }}"
+                                        onclick="openEditLeave(this)">
+                                        Edit
+                                    </button>
+                                    
+                                    <form method="POST" action="{% url 'delete_leave' leave.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="delete-btn"
+                                            onclick="return confirm('Delete this leave?');">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">No pending leaves</td>
+                            </tr>
+                    
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            
+        </div>  
+
+        <div class="card">
+            
+            <h2>Approved Leaves</h2>
+
+            <button class="filter-btn" onclick="openFilterModal('Approved')">
+                🔍 <span>Filter</span>
+            </button>
+
+
+            {% with f=filters.Approved %}
+                {% if f.leave_type or f.month or f.from_date or f.to_date %}
+                    <div class="filter-badges">
+
+                        {% if f.leave_type %}
+                        <span class="badge">
+                            🏷 {{ f.leave_type }}
+                            <a href="{% url 'clear_status_filter_field' 'Approved' 'leave_type' %}">✖</a>
+                        </span>
+                        {% endif %}
+
+                        {% if f.month %}
+                        <span class="badge">
+                            🗓 {{ f.month }}
+                            <a href="{% url 'clear_status_filter_field' 'Approved' 'month' %}">✖</a>
+                        </span>
+
+                        {% elif f.from_date or f.to_date %}
+                        <span class="badge">
+                            📅 {{ f.from_date|default:"…" }} → {{ f.to_date|default:"…" }}
+                            <a href="{% url 'clear_status_filter_field' 'Approved' 'date_range' %}">✖</a>
+                        </span>
+                        {% endif %}
+
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+
+            <table class="leave-table">
+                <thead>
+                    <tr>
+                        <th>Approved On</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for leave in approved_leaves %}
+                        <tr>
+                            <td>{{ leave.created_at }}</td>
+                            <td>{{ leave.leave_type }}</td>
+                            <td>{{ leave.from_date }}</td>
+                            <td>{{ leave.to_date }}</td>
+                            <td>
+                                <button class="reason-btn" 
+                                    onclick="openReasonModal(this)" 
+                                    data-reason="{{ leave.reason|escape }}"> 
+                                    My Reason
+                                </button>
+                            </td>
+
+                            <td class="{{ leave.status|lower }}">{{ leave.status }}</td>
+                        </tr>
+                        
+                        {% empty %}
+                            <tr>
+                                <td colspan="6">No approved leaves</td>
+                            </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            
+            <h2>Rejected Leaves</h2>
+
+            <button class="filter-btn" onclick="openFilterModal('Rejected')">
+                🔍 <span>Filter</span>
+            </button>
+
+            {% with f=filters.Rejected %}
+                {% if f.leave_type or f.month or f.from_date or f.to_date %}
+                    <div class="filter-badges">
+
+                        {% if f.leave_type %}
+                        <span class="badge">
+                            🏷 {{ f.leave_type }}
+                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'leave_type' %}">✖</a>
+                        </span>
+                        {% endif %}
+
+                        {% if f.month %}
+                        <span class="badge">
+                            🗓 {{ f.month }}
+                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'month' %}">✖</a>
+                        </span>
+
+                        {% elif f.from_date or f.to_date %}
+                        <span class="badge">
+                            📅 {{ f.from_date|default:"…" }} → {{ f.to_date|default:"…" }}
+                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'date_range' %}">✖</a>
+                        </span>
+                        {% endif %}
+
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <table class="leave-table">
+                <thead>
+                    <tr>
+                        <th>Rejected On</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Status</th>
+                        <th>My Reason</th>
+                        <th>Rejection Reason</th>
+                    </tr>
+                </thead>
+            
+                <tbody>
+                    {% for leave in rejected_leaves %}
+                        <tr>
+                            <td>{{ leave.created_at }}</td>
+                            <td>{{ leave.leave_type }}</td>
+                            <td>{{ leave.from_date }}</td>
+                            <td>{{ leave.to_date }}</td>
+                            <td class="{{ leave.status|lower }}">{{ leave.status }}</td>
+                            <td>
+                                <button class="reason-btn" 
+                                    onclick="openReasonModal(this)" 
+                                    data-reason="{{ leave.reason|escape }}"> 
+                                    My Reason
+                                </button>
+                            </td>
+
+                            <td>
+                                <button class="reason-btn" 
+                                    onclick="openReasonModal(this)" 
+                                    data-reason="{{ leave.rejection_reason|escape }}"> 
+                                    Why Rejected?
+                                </button>
+                            </td>
+                        </tr>
+
+                        {% empty %}
+                            <tr>
+                                <td colspan="6">No rejected leaves</td>
+                            </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+<!-- ===== EDIT LEAVE TEMPLATE (HIDDEN) ===== -->
+<!-- ===== FORM HOME (NEVER MOVES) ===== -->
+
+    {% comment %} 
+    <div id="form-home" style="display:none;">
+        <div id="edit-leave-template">
+            <center><h3 >Edit your Leave</h3></center>
+
+            <form method="POST" id="edit-leave-form">
+                {% csrf_token %}
+
+                
+                <!-- <label>ID</label>
+                <textarea name="id" id="id"></textarea> -->
+                
+
+                <label>Leave Type</label>
+                <select name="leave_type" id="edit-leave-type" required>
+                    <option value="Casual">Casual</option>
+                    <option value="Sick">Sick</option>
+                    <option value="Earned">Earned</option>
+                </select>
+
+                <label>From</label>
+                
+                <!-- <input type="date" name="from_date" id="edit-from" onclick="handleFromDateClick()" required> -->
+                
+                <input type="date" name="from_date" id="edit-from" required>
+
+                <label>To</label>
+               
+                <!-- <input type="date" name="to_date" id="edit-to" onclick="handleToDateClick()" required> -->
+                
+                <input type="date" name="to_date" id="edit-to" required>
+
+                <label>Reason</label>
+                <textarea name="reason" id="edit-reason" required></textarea>
+
+                <center><button type="submit" class="apply-btn">Update</button></center>
+            </form>
+        </div>
+    </div> 
+    
+    {% endcomment %}
+
+
+    <div id="form-home" style="display:none;">
+        <div id="edit-leave-template">
+
+            <center><h3>Edit Your Leave</h3></center>
+
+            <form method="POST" id="edit-leave-form">
+                {% csrf_token %}
+
+                <!-- Leave Type -->
+                <label>Leave Type</label>
+                <select name="edit_leave_type" id="edit-leave-type" required>
+                    <option value="Short">Short (2 Hours)</option>
+                    <option value="Half">Half Day (4 Hours)</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Sick">Sick</option>
+                    <option value="Earned">Earned</option>
+                </select>
+
+                <!-- FROM ROW -->
+                <div class="row">
+                    <div id="edit_from_date_field" class="field">
+                        <label>From Date</label>
+                        <input type="date" name="from_date" id="edit-from" required>
+                    </div>
+
+                    <!-- TIME (only for Short/Half) -->
+                    <div id="edit_from_time_field" class="field" style="display:none;">
+                        <label>From Time</label>
+
+                        <input type="hidden" name="from_datetime" id="edit_from_datetime">
+                        
+                        <div id="edit-existing-time" style="display:none; margin-top:5px; color:#555; font-size:14px;"> </div>
+                        <input type="hidden" id="edit-existing-datetime">
+
+                        <div class="time-wrapper">
+                            <select id="edit-hour">
+                                <option value="">Hour</option>
+                            </select>
+
+                            <span><b>:</b></span>
+
+                            <select id="edit-minute">
+                                <option value="">Minute</option>
+                            </select>
+
+                            <input type="text" id="edit-ampm" value="AM/PM" readonly style="width:65px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TO ROW -->
+                <div class="row">
+                    <div id="edit_to_date_field" class="field">
+                        <label>To Date</label>
+                        <input type="date" name="to_date" id="edit-to" required>
+                    </div>
+
+                    <div class="field" id="edit_to_time_field" style="display:none;">
+                        <label>To Time</label>
+                        <input type="text" id="edit-to-time" readonly>
+                    </div>
+                </div>
+
+                <input type="hidden" name="to_datetime" id="edit_to_datetime">
+
+                <div id="edit-time-warning-container">
+                    <small id="edit-time-warning"></small>
+                </div>
+
+                <!-- Reason -->
+                <label>Reason</label>
+                <textarea name="reason" id="edit-reason" required></textarea>
+
+                <center>
+                    <button type="submit" class="apply-btn">Update</button>
+                </center>
+
+            </form>
+        </div>
+    </div>
+
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}" >
+</main>
+
+<script>
+
+    /*
+
+    function openLeaveCalendar() 
+    {
+        fetch("{% url 'leave_calendar_data' %}")
+
+            .then(res => res.json())
+            .then(leaves => 
+            {
+                const modalContent = document.getElementById("modal-content");
+                modalContent.innerHTML = "";
+
+                const title = document.createElement("h3");
+                title.textContent = "My Leave Calendar";
+                title.style.textAlign = "center";
+
+                const calendar = document.createElement("div");
+                calendar.className = "calendar-grid";
+
+                buildCalendar(calendar, leaves);
+
+                modalContent.appendChild(title);
+                modalContent.appendChild(calendar);
+
+                openModal();   // ✅ SAME AS YOUR REASON MODAL
+            });
+    }
+
+    function buildCalendar(container, leaves) 
+    {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay();
+
+        const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+        days.forEach(d => 
+        {
+            const header = document.createElement("div");
+            header.className = "calendar-header";
+            header.textContent = d;
+            container.appendChild(header);
+        });
+
+        for (let i = 0; i < firstDay; i++) 
+        {
+            container.appendChild(document.createElement("div"));
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) 
+        {
+            const cell = document.createElement("div");
+            cell.className = "calendar-cell";
+            cell.textContent = day;
+
+            const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+            const leave = leaves.find(l => dateStr >= l.from && dateStr <= l.to);
+
+            if (leave) 
+            {
+                cell.classList.add("leave", leave.status.toLowerCase());
+                const type = document.createElement("small");
+                type.textContent = leave.type;
+                cell.appendChild(document.createElement("br"));
+                cell.appendChild(type);
+            }
+
+            container.appendChild(cell);
+        }
+    }
+    
+    */
+
+    {% comment %} 
+    /*
+    function openLeaveCalendar() 
+    {
+        fetch("{% url 'leave_calendar_data' %}")
+            .then(res => res.json())
+            .then(leaves => 
+            {
+                const modalContent = document.getElementById("modal-content");
+                modalContent.innerHTML = "";
+
+                const title = document.createElement("h3");
+                title.textContent = "My Leave Calendar";
+                title.style.textAlign = "center";
+
+                const legend = document.createElement("div");
+                legend.className = "calendar-legend";
+                legend.innerHTML = `
+                    <span class="legend-item pending">Pending</span>
+                    <span class="legend-item approved">Approved</span>
+                    <span class="legend-item rejected">Rejected</span>
+                `;
+
+
+                const yearContainer = document.createElement("div");
+                yearContainer.className = "year-calendar";
+
+                const monthSelect = document.createElement("select");
+                monthSelect.className = "month-jump";
+
+                const year = new Date().getFullYear();
+
+                for (let m = 0; m < 12; m++) 
+                {
+                    const option = document.createElement("option");
+                    option.value = m;
+                    option.textContent = new Date(year, m).toLocaleString("default", { month: "long" });
+                    monthSelect.appendChild(option);
+                }
+
+                monthSelect.onchange = () => 
+                {
+                    document.getElementById(`month-${monthSelect.value}`)
+                        .scrollIntoView({ behavior: "smooth" });
+                };
+
+                for (let month = 0; month < 12; month++) 
+                {
+                    yearContainer.appendChild(buildMonthCalendar(year, month, leaves));
+                }
+
+                modalContent.appendChild(title);
+                modalContent.appendChild(legend);
+                modalContent.appendChild(monthSelect);
+                modalContent.appendChild(yearContainer);
+
+                const modalBox = document.querySelector(".modal-box");
+                modalBox.classList.add("wide");
+
+                openModal();   // ✅ your existing modal
+            });
+    } */
+    
+    {% endcomment %}
+
+    function openLeaveCalendar() 
+    {
+        fetch("{% url 'leave_calendar_data' %}")
+            .then(res => res.json())
+            .then(data => 
+            {
+                // Load all data (leaves, holidays, company closures) from response
+                const leaves = data.leaves;
+                const holidays = data.holidays;
+                {% comment %} 
+                // const companyClosures = data.company_closures; 
+                {% endcomment %}
+
+
+                /* ========================================= CLEAR PREVIOUS CONTENT ========================================= */
+                const modalContent = document.getElementById("modal-content");
+                modalContent.innerHTML = "";
+
+
+
+                /* ========================================= TITLE ================================================= */
+                const title = document.createElement("h3");
+                title.textContent = "My Leave Calendar";
+                title.classList.add("calendar-title");
+
+                {% comment %} 
+                /* title.style.textAlign = "center";
+                title.style.fontWeight = "700";      
+                title.style.fontSize = "24px";       
+                */ 
+                {% endcomment %}
+                
+
+
+                /* ========================================= LEGEND ================================================= */
+                const legend = document.createElement("div");
+                legend.className = "calendar-legend";
+                legend.innerHTML = `
+                    <span class="legend-item pending">Pending</span>
+                    <span class="legend-item approved">Approved</span>
+                    <span class="legend-item rejected">Rejected</span>
+                    <span class="legend-item public">National Holiday</span>
+                    <span class="legend-item company">Company Closed</span>
+                `;
+
+
+                
+                /* ====================================== Export Calendar ======================================== */
+
+                const info = {
+                    companyName: "MS Technology",
+                    watermark: "CONFIDENTIAL",
+                    logoBase64: null,
+                    userDisplayName: document.getElementById("export-user").dataset.username
+                };
+
+                {% comment %} 
+                // console.log("EXPORT USER:", info.userDisplayName); 
+                {% endcomment %}
+
+
+                const exportWrapper = document.createElement("div");
+                exportWrapper.className = "export-wrapper";
+
+                exportWrapper.innerHTML = `
+                    <select id="export-format">
+                        <option value="">Select format</option>
+                        <option value="csv">CSV</option>
+                        <option value="excel">Excel (.xlsx)</option>
+                        <option value="pdf">PDF</option>
+                        <option value="word">Word (.docx)</option>
+                        <option value="json">JSON</option>
+                        <option value="ics">iCal (.ics)</option>
+                        <option value="print">Print</option>
+                    </select>
+
+                    <select id="export-month">
+                        <option value="">Select Month</option>
+                        <option value="All">Whole Year</option>
+                        ${Array.from({length:12}).map((_,i)=>`
+                            <option value="${i}">
+                                ${new Date(0,i).toLocaleString("default",{month:"long"})}
+                            </option>
+                        `).join("")}
+                    </select>
+
+                    <button id="export-btn" class="export-btn" disabled> ⬇ Export</button>
+
+                    <span id="export-spinner" class="spinner hidden"></span>
+                `;
+
+                const exportFormat = exportWrapper.querySelector("#export-format");
+                const exportMonth  = exportWrapper.querySelector("#export-month");
+                const exportBtn    = exportWrapper.querySelector("#export-btn");
+                const spinner      = exportWrapper.querySelector("#export-spinner");
+
+                function toggleExportBtn() 
+                {
+                    exportBtn.disabled = !(exportFormat.value && exportMonth.value);
+                }
+
+                exportFormat.onchange = toggleExportBtn;
+                exportMonth.onchange  = toggleExportBtn;
+
+                // When export button is clicked, show spinner, filter leaves based on selected month, and 
+                // call export function with filtered data and selected format. Hide spinner after export is done.
+                exportBtn.onclick = () => 
+                {
+                    spinner.classList.remove("hidden");
+
+                    const selectedFormat = exportFormat.value;
+                    const selectedMonth  = exportMonth.value;
+
+                    const filteredLeaves = filterLeavesByMonth(leaves, selectedMonth);
+
+                    setTimeout(() => 
+                    {
+                        exportCalendar(filteredLeaves, selectedFormat, selectedMonth, info);
+                        spinner.classList.add("hidden");
+                    }, 300);
+                };
+
+
+
+                /* ========================================= MONTH JUMP ======================================== */
+                // This dropdown is for quick navigation within the calendar modal. 
+                // It does not affect export month selection, which is separate and allows "Whole Year" option.
+                const monthSelect = document.createElement("select");
+                monthSelect.className = "month-jump";
+
+                const year = new Date().getFullYear();
+                
+                for (let m = 0; m < 12; m++) 
+                {
+                    const option = document.createElement("option");
+                    option.value = m;
+                    option.textContent = new Date(year, m).toLocaleString("default", { month: "long" });
+                    monthSelect.appendChild(option);
+                }
+
+                {% comment %} 
+                // const currentMonth = new Date().getMonth();
+                // monthSelect.value = currentMonth; 
+                {% endcomment %}
+
+
+                {% comment %} 
+                /*monthSelect.onchange = () => 
+                {
+                    document.getElementById(`month-${monthSelect.value}`).scrollIntoView({ behavior: "smooth" });
+                }; */
+                {% endcomment %}
+
+                
+
+                // Declare expanded variable to track whether we are in compact mode (showing only selected month) or expanded mode (showing all months).
+                let expanded = false;
+                const currentMonthIndex = new Date().getMonth();
+                monthSelect.value = currentMonthIndex;
+
+
+                // Auto select current month in export (compact default)
+                // This is a bit tricky because monthSelect and exportMonth are different dropdowns, but we want them to be in sync for better UX.
+                exportMonth.value = currentMonthIndex;
+                // Compact mode default behaviour is to auto-select current month in export dropdown, because it makes sense that 
+                //if user is looking at current month in calendar, they are likely interested in exporting that month.
+                exportMonth.disabled = true;  // disable export month dropdown when month is selected in compact calendar view as first time calendar will open in compact view
+                toggleExportBtn();
+
+
+                // When month is selected from dropdown, if in compact mode, show that month and hide others. 
+                // If in expanded mode, scroll to that month.
+                monthSelect.onchange = () => 
+                {
+                    const selectedMonth = parseInt(monthSelect.value);
+
+                    if (!expanded) 
+                    {
+                        // 🔥 Compact mode → switch visible month
+                        Array.from(yearContainer.children).forEach((monthDiv, index) => 
+                        {
+                            if (index === selectedMonth) 
+                            {
+                                monthDiv.style.display = "block";
+
+                                // smooth fade switch
+                                monthDiv.style.opacity = "0";
+                                monthDiv.style.transform = "translateY(8px)";
+
+                                requestAnimationFrame(() => 
+                                {
+                                    monthDiv.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+                                    monthDiv.style.opacity = "1";
+                                    monthDiv.style.transform = "translateY(0)";
+                                });
+                            } 
+
+                            else 
+                            {
+                                monthDiv.style.display = "none";
+                            }
+                        });
+                        
+                        // Auto select current month in export (compact default)
+                        exportMonth.value = selectedMonth;
+                        exportMonth.disabled = true;  // disable export month dropdown when month is selected in calendar view
+                        toggleExportBtn();
+                    } 
+
+                    else 
+                    {
+                        // 🔥 Expanded mode → scroll to month
+                        const target = document.getElementById(`month-${selectedMonth}`);
+                        
+                        if (target) 
+                        {
+                            target.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
+                    }
+                };
+                
+                /* ===============================
+                    AUTO-SCROLL TO CURRENT MONTH
+                =============================== */
+                
+                // This is not used as of now because we are setting current month as default in dropdown. 
+                // But keeping it here for reference if we want to auto-scroll without dropdown selection in future.
+                
+                {% comment %} 
+
+                /*setTimeout(() => 
+                {
+                    const currentMonth = new Date().getMonth();
+                    const currentMonthDiv = document.getElementById(`month-${currentMonth}`);
+                    if (currentMonthDiv) 
+                    {
+                        currentMonthDiv.scrollIntoView({ behavior: "smooth" });
+                    }
+                }, 10); */
+                
+                {% endcomment %}
+
+
+
+                {% comment %} 
+                /*
+                // Calculate current month index to show only that month initially and hide others, and toggle button to show/hide all months
+
+                const toggleBtn = document.createElement("button");
+                toggleBtn.textContent = "Expand Full Year";
+                toggleBtn.className = "calendar-toggle-btn";
+                
+                let expanded = false;
+
+                // logic: when clicked, if currently showing only current month, show all months and change button text to "Show Only Current Month". 
+                // If currently showing all months, hide all except current month and change button text back to "Expand Full Year".
+
+                toggleBtn.onclick = () => 
+                {
+                    expanded = !expanded;
+
+                    Array.from(yearContainer.children).forEach((monthDiv) => 
+                    {
+                        monthDiv.style.display = expanded ? "block" : "none";
+                    });
+
+                    if (!expanded) 
+                    {
+                        // Show only current month again
+                        const currentMonth = new Date().getMonth();
+                        yearContainer.children[currentMonth].style.display = "block";
+                        toggleBtn.textContent = "Expand Full Year";
+                    } 
+                    
+                    else 
+                    {
+                        toggleBtn.textContent = "Show Only Current Month";
+                    }
+                }; */
+                
+                {% endcomment %}
+
+
+
+
+                /* ====================================== YEAR CONTAINER ====================================== */
+                const yearContainer = document.createElement("div");
+                yearContainer.className = "year-calendar";
+
+                for (let month = 0; month < 12; month++) 
+                {
+                    yearContainer.appendChild( buildMonthCalendar(year, month, leaves, holidays) );
+                }
+
+
+                // By default, show only current month and hide others to reduce overwhelm and draw attention to current month. 
+                // User can then choose to expand full year if desired.
+                {% comment %} const currentMonthIndex = new Date().getMonth(); {% endcomment %}
+
+                Array.from(yearContainer.children).forEach((monthDiv, index) => 
+                {
+                    if (index !== currentMonthIndex) 
+                    {
+                        monthDiv.style.display = "none";
+                    }
+                });
+
+                
+                /* ====================================== IN-MODAL OVERLAY (HIDDEN) ====================================== */
+                const detailOverlay = document.createElement("div");
+                detailOverlay.id = "calendar-detail-overlay";
+                detailOverlay.style.display = "none";
+                detailOverlay.innerHTML = `
+                    <div class="detail-box">
+                        <!-- <span class="close" onclick="closeCalendarDetail()">×</span> -->
+                        <span class="close" role="button" tabindex="0" aria-label="Close modal" onclick="closeCalendarDetail()">&times;</span>
+                        <div id="calendar-detail-content"></div>
+                    </div>
+                `;
+
+                // When overlay is clicked, if click target is the overlay itself (not the detail box inside), close the overlay. 
+                // This allows users to click outside the detail box to close it, while still allowing interaction 
+                // with the detail box content without accidentally closing it.
+                detailOverlay.addEventListener("click", (e) => 
+                {
+                    {% comment %} 
+                    // console.log("CLICK TARGET:", e.target);
+                    // console.log("OVERLAY:", detailOverlay); 
+                    {% endcomment %}
+
+                    // If click is directly on the overlay (not inside the box)
+                    if (e.target.id === "calendar-detail-overlay") 
+                    {
+                        closeCalendarDetail();
+                    }
+                });
+
+                /* =========================================== APPEND ALL ===================================== */
+                modalContent.appendChild(title);
+                modalContent.appendChild(legend);
+                modalContent.appendChild(monthSelect);
+                {% comment %} 
+                //modalContent.appendChild(toggleBtn); 
+                {% endcomment %}
+                modalContent.appendChild(yearContainer);
+                modalContent.appendChild(detailOverlay);
+                modalContent.appendChild(exportWrapper);
+                
+
+                // Make modal wider for calendar view only ( in your existing modal, just add a class to trigger wider styles)
+                const modalBox = document.querySelector(".modal-box");
+                {% comment %} 
+                // modalBox.classList.add("wide"); 
+                {% endcomment %}
+
+                {% comment %} 
+                // modalBox.classList.remove("expanded-calendar"); 
+                {% endcomment %}
+                modalBox.classList.add("compact-calendar");
+                
+
+                // ===== Inject Calendar Toggle Button (Only For Calendar) =====
+                // ===== ADD CALENDAR TOGGLE BUTTON (ONLY FOR CALENDAR) =====
+
+                // Remove existing toggle if somehow still present
+                const oldToggle = document.getElementById("calendar-toggle-icon");
+                if (oldToggle) oldToggle.remove();
+
+                const toggleIcon = document.createElement("span");
+                toggleIcon.id = "calendar-toggle-icon";
+                toggleIcon.className = "calendar-toggle-icon";
+                {% comment %} // toggleIcon.textContent = "⛶";  // Unicode character for expand icon {% endcomment %}
+                toggleIcon.innerHTML = `
+                    <span class="expand-icon">🗖</span>
+                    <span class="collapse-icon">−</span>
+                `;
+                toggleIcon.title = "Expand Full Year";
+
+                // Find the existing close button
+                const closeBtn = document.querySelector(".modal-header .close");
+
+                if (closeBtn && !document.getElementById("calendar-toggle-icon")) 
+                {
+                    closeBtn.parentNode.insertBefore(toggleIcon, closeBtn);
+                }
+
+                {% comment %} // modalBox.appendChild(toggleIcon); 
+                {% endcomment %}
+
+                {% comment %} 
+                // let expanded = false; 
+                {% endcomment %}
+
+                // When toggle button is clicked, if currently in compact mode (showing only current month), 
+                // expand to show all months and change button to "Show Only Current Month". 
+                // If currently in expanded mode (showing all months), collapse to show only current month and 
+                // change button back to "Expand Full Year".
+                toggleIcon.onclick = () => 
+                {
+                    expanded = !expanded;
+
+                    const currentMonthIndexcollapse = new Date().getMonth();
+
+                    // When expanding, we want to show all months with a smooth fade-in. When collapsing, 
+                    // we want to hide non-current months with a smooth fade-out, while keeping current month visible.
+                    Array.from(yearContainer.children).forEach((monthDiv, index) =>
+                    {
+                        if (expanded)
+                        {
+                            monthDiv.classList.add("month-hidden");  // start hidden
+                            monthDiv.style.display = "block";       // make visible in layout
+
+                            requestAnimationFrame(() => 
+                            {
+                                monthDiv.classList.remove("month-hidden");
+                            });
+
+                            // Auto select current month in export (compact default) - when we expand to show all months, 
+                            // we want to reset export month selection to "Select Month" to encourage user to choose a month if they want to export, since now they can see all months.
+                            exportMonth.disabled = false;
+                        }
+
+                        else
+                        {
+                            if (index === parseInt(monthSelect.value))
+                            {
+                                monthDiv.style.display = "block";
+                                monthDiv.classList.remove("month-hidden");
+                            }
+
+                            else
+                            {
+                                monthDiv.classList.add("month-hidden");
+
+                                setTimeout(() => 
+                                {
+                                    monthDiv.style.display = "none";
+                                }, 300);
+                            }
+                        }
+                    });
+
+                    if (expanded) 
+                    {
+                        modalBox.classList.remove("compact-calendar");
+                        modalBox.classList.add("expanded-calendar");
+
+                        toggleIcon.classList.remove("compact");
+                        toggleIcon.classList.add("expanded");
+
+                        // After expanding, auto-scroll to the month selected in the dropdown for better UX.
+                        // This is needed because when we expand, all months become visible and 
+                        // we want to scroll to the month that user is interested in (selected in dropdown), 
+                        // rather than leaving them at the top of the calendar.
+                        setTimeout(() => 
+                        {
+                            const selectedMonthIndex = parseInt(monthSelect.value);
+                            const target = document.getElementById(`month-${selectedMonthIndex}`);
+
+                            if (!target) return;
+
+                            const containerRect = yearContainer.getBoundingClientRect();
+                            const targetRect = target.getBoundingClientRect();
+                            const scrollPosition = yearContainer.scrollTop + (targetRect.top - containerRect.top);
+
+                            yearContainer.scrollTo({ top: scrollPosition, behavior: "smooth" });
+                        }, 50);
+
+                        // When switching to expanded → reset export month
+                        exportMonth.value = "All";   // shows "Select month"
+                        // OR use this if you prefer auto whole year:
+                        // exportMonth.value = "All";
+
+                        toggleExportBtn();
+                    } 
+                    
+                    else 
+                    {
+                        modalBox.classList.remove("expanded-calendar");
+                        modalBox.classList.add("compact-calendar");
+
+                        toggleIcon.classList.remove("expanded");
+                        toggleIcon.classList.add("compact");
+
+                        // 🔥 Restore export month
+                        const selectedMonthIndex = parseInt(monthSelect.value);
+                        exportMonth.value = selectedMonthIndex;
+                        exportMonth.disabled = true; // Enable export month dropdown in compact mode since month is determined by calendar view
+                        toggleExportBtn();
+                    }
+
+                    {% comment %} 
+                    // toggleIcon.textContent = expanded ? "−" : "⛶"; 
+                    {% endcomment %}
+                    toggleIcon.title = expanded ? "Collapse to Current Month" : "Expand Full Year";
+                };
+                
+                
+                // 🔥 Animate initial compact collapse
+                // When calendar is first opened, show only current month with a subtle fade-in, while other months are hidden. 
+                // This draws attention to the current month and provides a smoother visual experience.
+                // The expand/collapse toggle can then be used to view other months with a smooth transition.
+                {% comment %} 
+                
+                /* setTimeout(() => 
+                {
+                    Array.from(yearContainer.children).forEach((monthDiv, index) => 
+                    {
+                        if (index !== currentMonthIndex) 
+                        {
+                            monthDiv.style.display = "block";
+                            monthDiv.classList.add("month-hidden");
+
+                            requestAnimationFrame(() => 
+                            {
+                                monthDiv.classList.remove("month-hidden");
+
+                                setTimeout(() => 
+                                {
+                                    monthDiv.classList.add("month-hidden");
+
+                                    setTimeout(() => 
+                                    {
+                                        monthDiv.style.display = "none";
+                                    }, 300);
+                                }, 20);
+                            });
+                        }
+                    });
+                }, 50); */
+                
+                {% endcomment %}
+
+
+
+                // 🔥 Subtle fade-in for current month
+                // When the calendar modal is opened, the current month will fade in subtly to draw attention, while other months remain hidden. 
+                // This provides a smoother and more engaging visual experience right from the start.
+                // The expand/collapse toggle can then be used to view other months with smooth transitions.
+                const currentMonthDiv = yearContainer.children[currentMonthIndex];
+
+                
+                {% comment %} 
+                /* currentMonthDiv.style.opacity = "0";
+                currentMonthDiv.style.transform = "translateY(8px)";
+
+                requestAnimationFrame(() => 
+                {
+                    currentMonthDiv.style.transition = "opacity 0.35s ease, transform 0.35s ease";
+                    currentMonthDiv.style.opacity = "1";
+                    currentMonthDiv.style.transform = "translateY(0)";
+                }); */ 
+                {% endcomment %}
+
+
+
+                // 🔥 Premium fade + blur + soft scale
+                currentMonthDiv.classList.add("month-enter");
+                currentMonthDiv.classList.add("month-shadow-enter");
+
+                requestAnimationFrame(() => 
+                {
+                    currentMonthDiv.classList.add("month-enter-active");
+                    currentMonthDiv.classList.add("month-shadow-active");
+                });
+
+                openModal();
+            });
+    }
+
+    function buildMonthCalendar(year, month, leaves, holidays)
+    {
+        const monthContainer = document.createElement("div");
+        monthContainer.id = `month-${month}`;
+        monthContainer.className = "month-container";
+
+        const monthName = new Date(year, month).toLocaleString("default", { month: "long" });
+
+        const header = document.createElement("h4");
+        header.textContent = monthName + " " + year;
+        header.className = "month-title";
+
+        const grid = document.createElement("div");
+        grid.className = "calendar-grid";
+
+        const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+        days.forEach(d => 
+        {
+            const h = document.createElement("div");
+            h.className = "calendar-header";
+            h.textContent = d;
+            grid.appendChild(h);
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) 
+        {
+            grid.appendChild(document.createElement("div"));
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) 
+        {
+            const cell = document.createElement("div");
+            cell.className = "calendar-cell";
+            cell.textContent = day;
+
+            const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+            // Highlight today's date with a special class for distinct styling. 
+            // This makes it easy for users to quickly identify the current day in the calendar.
+            const today = new Date();
+            const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+
+            if (dateStr === todayStr) 
+            {
+                cell.classList.add("today-highlight");
+            }
+
+            const holiday = holidays.find(h => h.date === dateStr);
+            //const companyDay = companyClosures.find(c => c.date === dateStr);
+            const leave = leaves.find(l => dateStr >= l.from && dateStr <= l.to);
+
+            /* ===============================
+            4️⃣ TOOLTIP PREVIEW (HOVER)
+            =============================== */
+            if (leave) 
+            {
+                {% comment %} 
+                /* This will also work same as below
+                cell.title = 
+                [
+                    `Leave Type: ${leave.type}`,
+                    `Date: ${leave.from} → ${leave.to}`,
+                    `Status: ${leave.status}`
+                ].join('\n');
+                */ 
+                {% endcomment %}
+
+                cell.title = `Leave Type: ${leave.type} \nDate : ${leave.from} → ${leave.to} \nStatus: ${leave.status}`;
+            }
+
+            // 1️⃣ Company closure (highest priority)
+            {% comment %} 
+            /*if (companyDay) 
+            {
+                const companyDot = document.createElement("span");
+                companyDot.className = "holiday-dot company-dot";
+                companyDot.title = `Company Holiday: ${companyDay.name}`;
+                cell.appendChild(companyDot);
+            }*/
+            {% endcomment %}
+
+            // 2️⃣ Public holiday
+            if (holiday) 
+            {
+                const publicDot = document.createElement("span");
+                publicDot.className = "holiday-dot public-dot";
+                publicDot.title = `Public Holiday: ${holiday.name}`;
+                cell.appendChild(publicDot);
+            }
+
+            /* ===============================
+            EXISTING LEAVE MARKING
+            =============================== */
+            if (leave) 
+            {
+                const type = document.createElement("small");
+                type.textContent = leave.type;
+                cell.appendChild(type);
+
+                {% comment %} 
+                /*
+                cell.style.cursor = "pointer";
+                cell.onclick = () => openLeaveDetailModal(leave);
+                */ 
+                {% endcomment %}
+                
+                //DETECT POSITION OF DAY IN A LEAVE RANGE
+                const isStart = dateStr === leave.from;
+                const isEnd   = dateStr === leave.to;
+
+                cell.classList.add("leave", leave.status.toLowerCase());
+                cell.dataset.leaveId = leave.id;
+
+                if (isStart) cell.classList.add("leave-start");
+                else if (isEnd) cell.classList.add("leave-end");
+                else cell.classList.add("leave-middle");
+
+
+                cell.style.cursor = "pointer";
+                cell.onclick = () => openCalendarDetail(leave);
+
+
+                //SUBTLE COLOR VARIATION PER LEAVE
+                
+                {% comment %} 
+                /*const leaveColors = {};
+
+                function getLeaveColor(leaveId) 
+                {
+                    if (!leaveColors[leaveId]) 
+                    {
+                        const hue = (leaveId * 57) % 360; // deterministic
+                        leaveColors[leaveId] = `hsl(${hue}, 65%, 45%)`;
+                    }
+
+                    return leaveColors[leaveId];
+                }
+
+                cell.style.backgroundColor = getLeaveColor(leave.id); */ 
+                {% endcomment %}
+
+            }
+
+            grid.appendChild(cell);
+        }
+
+        monthContainer.appendChild(header);
+        monthContainer.appendChild(grid);
+
+        return monthContainer;
+    }
+
+
+
+    
+    /* Export Calendar Start */
+
+    function filterLeavesByMonth(leaves, month) 
+    {
+        if (month === "All") return leaves;
+
+        return leaves.filter(l => 
+        {
+            const startMonth = new Date(l.from).getMonth();
+            const endMonth   = new Date(l.to).getMonth();
+            return startMonth <= month && month <= endMonth;
+        });
+    }
+
+
+
+    function exportCalendar(leaves, format, month, info) 
+    {
+        if (!leaves.length) 
+        {
+            alert("No leaves to export");
+            return;
+        }
+
+        switch (format) 
+        {
+            case "csv":   exportCSV(leaves, info); break;
+            case "excel": exportExcel(leaves, info ); break;
+            case "pdf":   exportPDF(leaves, info); break;
+            case "word":  exportWord(leaves, info); break;
+            case "json":  exportJSON(leaves); break;
+            case "ics":   exportICS(leaves); break;
+            case "print": printCalendar(leaves, info); break;
+        }
+    }
+
+
+
+    function exportCSV(leaves, info) 
+    {
+        let csv = "Type,From,To,Status,Reason\n";
+
+        leaves.forEach(l => {
+            csv += `"${l.type}","${l.from}","${l.to}","${l.status}","${(l.reason||"").replace(/"/g,'""')}"\n`;
+        });
+
+        downloadFile(csv, "my_leave_calendar.csv", "text/csv");
+    }
+
+
+
+    function exportExcel(leaves, info) 
+    {
+        const data = leaves.map(l => (
+        {
+            Type: l.type,
+            From: l.from,
+            To: l.to,
+            Status: l.status,
+            Reason: l.reason || ""
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Leaves");
+
+        XLSX.writeFile(wb, "my_leave_calendar.xlsx");
+    }
+
+
+
+    function exportPDF(leaves, info) 
+    {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(14);
+        doc.text("Your Company Name", 14, 10);
+
+        doc.setFontSize(16);
+        doc.text("My Leave Calendar", 14, 15);
+
+        doc.setFontSize(10);
+        doc.text("User: " + info.userDisplayName, 14, 16);
+
+        doc.setTextColor(200);
+        doc.text("CONFIDENTIAL", 60, 150, { angle: 45 });
+        doc.setTextColor(0);
+
+        doc.autoTable({
+            head: [["Type","From","To","Status","Reason"]],
+            body: leaves.map(l => [
+                l.type, l.from, l.to, l.status, l.reason || ""
+            ]),
+            startY: 25
+        });
+
+        doc.save("leave_calendar.pdf");
+    }
+    
+
+
+    function exportWord(leaves, info) 
+    {
+        const 
+        {
+            Document, Packer, Paragraph, TextRun,
+            Table, TableRow, TableCell
+        } = window.docx;
+
+        const header = new Paragraph(
+        {
+            children: [
+                new TextRun({ text: "Your Company Name", bold: true, size: 28 }),
+                new TextRun({ text: "\nUser: " + info.userDisplayName, size: 20 })
+
+            ]
+        });
+
+        const rows = [
+            new TableRow({
+                children: ["Type","From","To","Status","Reason"].map(h =>
+                    new TableCell({
+                        children: [new Paragraph({ children:[new TextRun({text:h,bold:true})] })]
+                    })
+                )
+            }),
+            ...leaves.map(l =>
+                new TableRow({
+                    children: [l.type,l.from,l.to,l.status,l.reason||""].map(v =>
+                        new TableCell({ children:[new Paragraph(v)] })
+                    )
+                })
+            )
+        ];
+
+        const doc = new Document({
+            sections: [{ children: [header, new Paragraph(""), new Table({ rows })] }]
+        });
+
+        Packer.toBlob(doc).then(blob => {
+            downloadBlob(blob, "leave_calendar.docx");
+        });
+    }
+
+
+
+    function exportJSON(leaves) 
+    {
+        downloadFile(
+            JSON.stringify(leaves, null, 2),
+            "my_leave_calendar.json",
+            "application/json"
+        );
+    }
+
+
+
+    function exportICS(leaves) 
+    {
+        let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\n";
+
+        leaves.forEach(l => 
+        {
+            ics += `BEGIN:VEVENT
+            SUMMARY:${l.type} Leave (${l.status})
+            DTSTART:${l.from.replace(/-/g,"")}
+            DTEND:${l.to.replace(/-/g,"")}
+            DESCRIPTION:${l.reason || ""}
+            END:VEVENT\n`;
+        });
+
+        ics += "END:VCALENDAR";
+
+        downloadFile(ics, "my_leave_calendar.ics", "text/calendar");
+    }
+
+
+
+    function printCalendar(leaves, info) 
+    {
+        let w = window.open("", "_blank");
+
+        w.document.write(`
+            <h2>${info.companyName}</h2>
+            <p>User: ${info.userDisplayName}</p>
+            <table border="1" cellspacing="0" cellpadding="6">
+                <tr>
+                    <th>Type</th><th>From</th><th>To</th><th>Status</th><th>Reason</th>
+                </tr>
+                ${leaves.map(l=>`
+                    <tr>
+                        <td>${l.type}</td>
+                        <td>${l.from}</td>
+                        <td>${l.to}</td>
+                        <td>${l.status}</td>
+                        <td>${l.reason||""}</td>
+                    </tr>
+                `).join("")}
+            </table>
+        `);
+
+        w.print();
+    }
+
+
+
+    function downloadFile(content, filename, type) 
+    {
+        const blob = new Blob([content], { type });
+        downloadBlob(blob, filename);
+    }
+
+
+    function downloadBlob(blob, filename)
+    {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+
+    /* Export Calendar End */
+
+
+    {% comment %} 
+    
+    /*
+    function openLeaveDetailModal(leave) 
+    {
+        const modalContent = document.getElementById("modal-content");
+        modalContent.innerHTML = "";
+
+        const title = document.createElement("h3");
+        title.textContent = "Leave Details";
+        title.style.textAlign = "center";
+
+        const details = document.createElement("div");
+
+        details.innerHTML = `
+            <p><strong>Type:</strong> ${leave.type}</p>
+            <p><strong>From:</strong> ${leave.from}</p>
+            <p><strong>To:</strong> ${leave.to}</p>
+            <p><strong>Status:</strong> ${leave.status}</p>
+        `;
+
+        modalContent.appendChild(title);
+        modalContent.appendChild(details);
+
+        openModal();
+    } */ 
+     
+    {% endcomment %}
+
+    function openCalendarDetail(leave)
+    {
+        const overlay = document.getElementById("calendar-detail-overlay");
+        const content = document.getElementById("calendar-detail-content");
+
+        {% comment %} 
+        /*
+        content.innerHTML = `
+            <h4>Leave Details</h4>
+            <p><strong>Type:</strong> ${leave.type}</p>
+            <p><strong>From:</strong> ${leave.from}</p>
+            <p><strong>To:</strong> ${leave.to}</p>
+            <p><strong>Status:</strong> ${leave.status}</p>
+        `;
+        */ 
+        {% endcomment %}
+
+        content.innerHTML = `
+            <h4 style="text-align:center; margin-bottom:12px;">Leave Details</h4>
+
+            <table class="leave-table">
+                
+                {% comment %} 
+                <!-- <tr>
+                    <th>ID</th>
+                    <td>${leave.id}</td>
+                </tr> --> 
+                {% endcomment %}
+                
+                <tr>
+                    <th>Type</th>
+                    <td>${leave.type}</td>
+                </tr>
+                <tr>
+                    <th>From</th>
+                    <td>${leave.from}</td>
+                </tr>
+                <tr>
+                    <th>To</th>
+                    <td>${leave.to}</td>
+                </tr>
+                <tr>
+                    <th>Reason</th>
+                    <td><textarea readonly >${leave.reason || '-'}</textarea></td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>${leave.status}</td>
+                </tr>
+            </table>
+
+            
+            ${leave.status === "Pending" ? `
+                <div class="detail-actions">
+                    
+                    <button class="edit-btn" onclick='openInlineEdit(${JSON.stringify(leave)})'> ✏ Edit </button>
+                    
+                    {% comment %} <!-- <button class="delete-btn" onclick="deleteLeave(${leave.id})"> Delete </button> --> {% endcomment %}
+
+                    <form method="post" action="/delete-leave/${leave.id}/"
+                        onsubmit="return confirm('Delete this leave?');">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                        <button type="submit" class="delete-btn">🗑 Delete</button>
+                    </form>
+
+                </div>
+            ` : ""}
+        `;
+
+        overlay.style.display = "flex";
+        requestAnimationFrame(() => overlay.classList.add("show"));
+    }
+
+    function closeCalendarDetail()
+    {
+        {% comment %} 
+        // document.getElementById("calendar-detail-overlay").style.display = "none"; 
+        {% endcomment %}
+        
+        const overlay = document.getElementById("calendar-detail-overlay");
+        overlay.classList.remove("show");
+        setTimeout(() => overlay.style.display = "none", 300);
+    }
+
+    {% comment %} 
+    /*
+    function deleteLeave(leaveId)
+    {
+        if (!confirm("Delete this leave?")) return;
+
+        fetch(`/delete-leave/${leaveId}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken()
+            }
+        }).then(() => location.reload());
+    }
+    */ 
+    {% endcomment %}
+
+
+    function openInlineEdit(leave)
+    {
+        const content = document.getElementById("calendar-detail-content");
+
+        {% comment %} /*
+        content.innerHTML = `
+            <center> <h4>Edit Leave</h4> </center>
+
+            <form onsubmit="submitInlineEdit(event, ${leave.id})">
+
+                <!-- <label>ID</label>
+                <textarea name="id">${leave.id || ""}</textarea> -->
+
+                <label>Type</label>
+                <select name="leave_type" required>
+                    <option ${leave.type==="Sick"?"selected":""}>Sick</option>
+                    <option ${leave.type==="Earned"?"selected":""}>Earned</option>
+                    <option ${leave.type==="Casual"?"selected":""}>Casual</option>
+                </select>
+
+                <label>From</label>
+                <input type="date" name="from_date" value="${leave.from}" required>
+
+                <label>To</label>
+                <input type="date" name="to_date" value="${leave.to}" required>
+
+                <label>Reason</label>
+                <textarea name="reason" required>${leave.reason || ""}</textarea>
+
+                <center> <button class="apply-btn" type="submit">Update</button> </center>
+            </form>
+        `;*/ {% endcomment %}
+
+        content.innerHTML = `
+            <center> <h4>Edit Leave</h4> </center>
+
+            <form method="post" action="/edit-leave/${leave.id}/" class="modal-form">
+                
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+
+                <label>Type</label>
+                <select name="leave_type" required>
+                    <option value="">Select type</option>
+                    <option ${leave.type==="Short"?"selected":""}>Short</option>
+                    <option ${leave.type==="Half Day"?"selected":""}>Half Day</option>
+                    <option ${leave.type==="Sick"?"selected":""}>Sick</option>
+                    <option ${leave.type==="Earned"?"selected":""}>Earned</option>
+                    <option ${leave.type==="Casual"?"selected":""}>Casual</option>
+                </select>
+
+                <label>From</label>
+                <input type="date" name="from_date" id="from_date" value="${leave.from}" required>
+
+                <label>To</label>
+                <input type="date" name="to_date" id="to_date" value="${leave.to}" required>
+
+                <label>Reason</label>
+                <textarea name="reason" required>${leave.reason || ""}</textarea>
+
+                <div class="detail-actions">
+                    <button type="submit" class="apply-btn">✔ Update</button>
+                    <button type="button" class="cancel-btn" onclick="closeCalendarDetail()">✖ Cancel</button>
+                </div>
+            </form>
+        `;
+
+        
+        const now = new Date();
+
+        const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+
+        const fromDateInput = content.querySelector("#from_date");
+        const toDateInput = content.querySelector("#to_date");
+
+        // Set minimum selectable date
+        fromDateInput.min = today;
+        toDateInput.min = today;  
+        
+
+        {% comment %} 
+        // Ensure "To date" is never before "From date"
+        // fromDateInput.addEventListener("change", () => 
+        // {
+        //     toDateInput.min = fromDateInput.value || previous_date_block;
+        // }); 
+        {% endcomment %}
+
+
+        
+        // Ensure "To date" is never before "From date"
+
+        fromDateInput.addEventListener("change", () => 
+        {
+            if (fromDateInput.value) 
+            {
+                // Block all dates before from_date
+                toDateInput.min = fromDateInput.value;
+
+                // If already selected to_date is invalid, clear it
+                if (toDateInput.value && toDateInput.value < fromDateInput.value) 
+                {
+                    toDateInput.value = "";
+                }
+            }
+        }); 
+    }
+
+    {% comment %} 
+    /*
+    function submitInlineEdit(e, leaveId)
+    {
+        e.preventDefault();
+        const form = e.target;
+
+        fetch(`/edit-leave/${leaveId}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken(),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                leave_type: form.leave_type.value,
+                from_date: form.from_date.value,
+                to_date: form.to_date.value,
+                reason: form.reason.value
+            })
+        }).then(() => location.reload());
+    }
+    */ 
+    {% endcomment %}
+
+    function getCSRFToken() 
+    {
+        return document.getElementById("csrf-token").value;
+    }
+
+
+    /* No use of this function as of now because this was an old logic*/
+    function submitInlineEdit(e, leaveId)
+    {
+        e.preventDefault();
+        const form = e.target;
+
+        {% comment %} /*const reasonValue = form.querySelector('textarea[name="reason"]').value;*/ {% endcomment %}
+
+        const formData = new FormData();
+        formData.append("leave_type", form.leave_type.value);
+        formData.append("from_date", form.from_date.value);
+        formData.append("to_date", form.to_date.value);
+        {% comment %} /* formData.append("reason", reasonValue);     // ✅ it can be explicitly done like this*/  {% endcomment %}
+        formData.append("reason", form.reason.value);
+        formData.append("csrfmiddlewaretoken", getCSRFToken());
+
+        fetch(`/edit-leave/${leaveId}/`, 
+        {
+            method: "POST",
+            body: formData
+        }).then(res => 
+        {
+            if (!res.ok) throw new Error("Request failed");
+            return res.text();
+        }).then(() => location.reload());   // reload to refresh calendar
+    }    
+
+
+
+    const csrfToken = document.getElementById("csrf-token").value;
+
+    {% comment %} 
+    /*
+    ────────────────────────────────────────────────────────────
+    EDIT LEAVE DATE VALIDATION LOGIC (ONCLICK BASED)
+    ────────────────────────────────────────────────────────────
+
+    PURPOSE:
+    --------
+    This logic enforces valid date selection rules in the
+    "Edit Leave" form, especially when the form is opened
+    inside a modal and dates already have pre-filled values.
+
+    RULES ENFORCED:
+    ---------------
+    1) "From Date" can NEVER be before today.
+    2) "To Date" can NEVER be:
+    - before "From Date" (if From Date exists)
+    - before today (if From Date is empty)
+    3) If user changes "From Date" to a later date,
+    any already-selected invalid "To Date" is cleared.
+
+    WHY ONCLICK IS USED:
+    --------------------
+    The Edit Leave form is injected dynamically into a modal.
+    Event listeners attached at page load may not work because
+    the elements may not exist yet.
+
+    Using onclick ensures:
+    - Logic runs only when the user interacts
+    - No DOM timing issues
+    - Works reliably inside modals
+
+    IMPORTANT BROWSER BEHAVIOR:
+    ---------------------------
+    - Browsers do NOT automatically fix invalid date values
+    - Setting `.min` only prevents FUTURE selections
+    - Already-selected invalid values must be cleared manually
+
+    Hence, BOTH `.min` setting and value-clearing logic are required.
+
+    ────────────────────────────────────────────────────────────
+    */
+
+    /*
+    const today = new Date().toISOString().split("T")[0];
+
+    function handleFromDateClick() 
+    {
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+
+        // Safety guard: exit if elements are not present
+        if (!fromDate || !toDate) return;
+
+        // Rule 1: From Date must never be before today
+        fromDate.min = today;
+
+        if (fromDate.value) 
+        {
+            // Rule 2: To Date must be >= From Date
+            toDate.min = fromDate.value;
+
+            // Rule 3: Clear To Date if it is already invalid
+            // (Browser does NOT auto-correct this)
+            if (toDate.value && toDate.value < fromDate.value) 
+            {
+                toDate.value = "";
+            }
+        }
+    }
+
+    function handleToDateClick() 
+    {
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+
+        // Safety guard
+        if (!fromDate || !toDate) return;
+
+        /*
+        // If from-date already selected, enforce it
+        if (fromDate.value) 
+        {
+            toDate.min = fromDate.value;
+        } 
+        else 
+        {
+            // Fallback: at least today
+            toDate.min = today;
+        }
+        */
+        // If From Date exists, To Date must follow it
+        // Otherwise, fallback to today to block past dates
+        
+        toDate.min = fromDate.value || today;
+    }
+
+    */ 
+    
+    {% endcomment %}
+
+
+    {% comment %} 
+    // const today = new Date().toISOString().split("T")[0];
+    {% endcomment %}
+    
+    const now = new Date();
+    const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+
+    document.getElementById("edit-from").min = today;
+    document.getElementById("edit-to").min = today;
+
+    // Once from_date is selected, user must NOT be able to pick a to_date before it
+
+    document.addEventListener("DOMContentLoaded", () => 
+    {
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+
+        if (!fromDate || !toDate) return;
+
+        toDate.addEventListener("change", () => 
+        {
+            // Block all dates before from_date
+            toDate.min = fromDate.value;
+
+            // If already selected to_date is invalid, clear it
+            if (toDate.value && toDate.value < fromDate.value) 
+            {
+                toDate.value = "";
+            }
+        });
+
+        fromDate.addEventListener("change", () => 
+        {
+            // Block all dates before from_date
+            toDate.min = fromDate.value || today;
+
+            // If already selected to_date is invalid, clear it
+            if (toDate.value && toDate.value < fromDate.value) 
+            {
+                toDate.value = "";
+            }
+        });
+    });
+    
+    {% comment %} function openEditLeave(btn) 
+    {
+        // const modal = document.getElementById("modal");
+        // const modalContent = document.getElementById("modal-content");
+
+        const formTemplate = document.getElementById("edit-leave-template");
+
+        // Move form INTO modal
+        modalContent.innerHTML = "";
+        modalContent.appendChild(formTemplate);
+
+
+        //modal.style.display = "flex";
+
+        //const id = btn.dataset.id;
+
+
+        // Populate values
+
+        document.getElementById("edit-leave-form").action = `/edit-leave/${btn.dataset.id}/`;
+
+        //document.getElementById("id").value = btn.dataset.id; 
+
+        document.getElementById("edit-leave-type").value = btn.dataset.type;
+        document.getElementById("edit-from").value = btn.dataset.from;
+        document.getElementById("edit-to").value = btn.dataset.to;
+        document.getElementById("edit-reason").value = btn.dataset.reason;
+
+        openModal();
+    }  {% endcomment %}
+
+
+
+    let editStoredTime = 
+    {
+        Short: { hour: "", minute: "" },
+        Half: { hour: "", minute: "" }
+    };
+
+    // =======================================
+    // OPEN EDIT LEAVE
+    // =======================================
+
+    function openEditLeave(btn)
+    {
+        const formTemplate = document.getElementById("edit-leave-template");
+
+        modalContent.innerHTML = "";
+        modalContent.appendChild(formTemplate);
+
+        const form = document.getElementById("edit-leave-form");
+        form.reset(); // 🔥 clears previous values
+        
+        editStoredTime.Short = { hour: "", minute: "" };
+        editStoredTime.Half  = { hour: "", minute: "" };
+
+        // Also clear time-specific fields manually
+        {% comment %} 
+        // document.getElementById("edit-hour").innerHTML = '<option value="">Hour</option>';
+        // document.getElementById("edit-minute").innerHTML = '<option value="">Minute</option>';
+        // document.getElementById("edit-to-time").value = "";
+        // document.getElementById("edit_from_datetime").value = "";
+        // document.getElementById("edit_to_datetime").value = ""; 
+        {% endcomment %}
+
+        {% comment %} 
+        // document.getElementById("edit-leave-form").action = `/edit-leave/${btn.dataset.id}/`; 
+        {% endcomment %}
+        form.action = `/edit-leave/${btn.dataset.id}/`;
+
+        const leaveType = document.getElementById("edit-leave-type");
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+        const reason = document.getElementById("edit-reason");
+
+        const fromTimeField = document.getElementById("edit_from_time_field");
+        const toTimeField = document.getElementById("edit_to_time_field");
+
+        leaveType.value = btn.dataset.type;
+        leaveType.dataset.prevType = btn.dataset.type;
+        fromDate.value = btn.dataset.from;
+        toDate.value = btn.dataset.to;
+        reason.value = btn.dataset.reason;
+
+        document.getElementById("edit-existing-datetime").value = btn.dataset.fromdatetime || "";
+
+        // Show time section if Short/Half
+        if (btn.dataset.type === "Short" || btn.dataset.type === "Half")
+        {
+            fromTimeField.style.display = "block";
+            toTimeField.style.display = "block";
+            
+            toDate.readOnly = true;
+            toDate.value = fromDate.value;
+
+            generate_edit_time_fields(btn.dataset.type);
+
+            // Populate existing time
+            if (btn.dataset.fromdatetime && btn.dataset.todatetime)
+            {
+                const start = new Date(btn.dataset.fromdatetime);
+                const hourSelect = document.getElementById("edit-hour");
+                const minuteSelect = document.getElementById("edit-minute");
+                const ampm = document.getElementById("edit-ampm");
+
+                hourSelect.value = start.getHours();
+                
+                if (hourSelect.options.length > 1) 
+                {
+                    hourSelect.dispatchEvent(new Event("change"));
+                }
+
+                // wait for minute options to render
+                setTimeout(() =>
+                {
+                    if (minuteSelect.options.length > 1) 
+                    {
+                        minuteSelect.value = start.getMinutes();
+                        calculate_end_time();
+                    }
+                }, 0);
+                
+                ampm.value = start.getHours() >= 12 ? "PM" : "AM";
+
+                {% comment %} 
+                // editStoredTime.hour = hourSelect.value;
+                // editStoredTime.minute = minuteSelect.value; 
+                {% endcomment %}
+
+                // FIXED STORAGE
+                editStoredTime[btn.dataset.type] =
+                {
+                    hour: hourSelect.value,
+                    minute: minuteSelect.value
+                };
+
+                calculate_end_time();
+            }
+        }
+
+        else
+        {
+            fromTimeField.style.display = "none";
+            toTimeField.style.display = "none";
+
+            toDate.readOnly = false;
+
+             // 🔥 Clear warning
+            const warning = document.getElementById("edit-time-warning");
+            if (warning) warning.innerText = "";
+
+            const existingTimeBox = document.getElementById("edit-existing-time");
+            if (existingTimeBox) existingTimeBox.style.display = "none";
+        }
+
+
+        // Handle leave type change
+        // FIXED EVENT STACKING
+        leaveType.onchange = function ()
+        {
+            const hourSelect = document.getElementById("edit-hour");
+            const minuteSelect = document.getElementById("edit-minute");
+            const toTime = document.getElementById("edit-to-time");
+
+            const newType = this.value;
+            const previousType = leaveType.dataset.prevType || btn.dataset.type;
+            
+
+            // 🔥 If previous type was Short or Half → store its time
+            if (previousType === "Short" || previousType === "Half") 
+            {
+                editStoredTime[previousType] = 
+                {
+                    hour: hourSelect.value,
+                    minute: minuteSelect.value
+                };
+            }
+
+            // Update tracker
+            leaveType.dataset.prevType = newType;
+
+            // 🔥 If new type is Short or Half
+            if (newType === "Short" || newType === "Half")
+            {
+                fromTimeField.style.display = "block";
+                toTimeField.style.display = "block";
+
+                toDate.readOnly = true;
+                toDate.value = fromDate.value;
+
+                // Remember current selection before regenerating
+                const previousHour = hourSelect.value;
+                const previousMinute = minuteSelect.value;
+
+                // Regenerate dropdowns
+                generate_edit_time_fields(newType);
+
+                const stored = editStoredTime[newType];
+
+                // Determine which values to restore
+                {% comment %} 
+                // let restoreHour = stored.hour || previousHour;
+                // let restoreMinute = stored.minute || previousMinute; 
+                {% endcomment %}
+
+                let restoreHour = stored.hour !== "" ? stored.hour : previousHour;
+                let restoreMinute = stored.minute !== "" ? stored.minute : previousMinute;
+
+                // Check if hour exists in new dropdown
+                const hourValid = [...hourSelect.options].some(o => o.value === restoreHour);
+
+                if (hourValid)
+                {
+                    hourSelect.value = restoreHour;
+
+                    // generate minutes
+                    hourSelect.dispatchEvent(new Event("change"));
+
+                    setTimeout(() =>
+                    {
+                        const minuteValid = [...minuteSelect.options].some(o => o.value == restoreMinute);
+
+                        if (minuteValid)
+                        {
+                            minuteSelect.value = restoreMinute;
+                            calculate_end_time();
+                        }
+                    }, 0);
+                }
+                else
+                {
+                    hourSelect.value = "";
+                    minuteSelect.value = "";
+                    toTime.value = "";
+
+                    const ampm = document.getElementById("edit-ampm");
+                    ampm.value = "AM/PM";
+                }
+            }
+
+            else 
+            {
+                fromTimeField.style.display = "none";
+                toTimeField.style.display = "none";
+                toTime.value = ""; // 🔥 Also clear when hiding
+                toDate.readOnly = false;
+
+                const warning = document.getElementById("edit-time-warning");
+                if (warning) warning.innerText = "";
+
+                const existingTimeBox = document.getElementById("edit-existing-time");
+                if (existingTimeBox) existingTimeBox.style.display = "none";
+            }
+        };
+
+        fromDate.onchange = function ()
+        {
+            const type = leaveType.value;
+
+            if (type !== "Short" && type !== "Half") return;
+
+            toDate.value = this.value;
+
+            const hourSelect = document.getElementById("edit-hour");
+            const minuteSelect = document.getElementById("edit-minute");
+            const toTime = document.getElementById("edit-to-time");
+
+            // store current selection
+            if (hourSelect.value !== "" && minuteSelect.value !== "")
+            {
+                editStoredTime[type] =
+                {
+                    hour: hourSelect.value,
+                    minute: minuteSelect.value
+                };
+            }
+
+            // regenerate dropdowns with strict rules
+            generate_strict_edit_time(type);
+
+            const stored = editStoredTime[type];
+
+            if (stored.hour === "") return;
+
+            // check if stored hour exists in new dropdown
+            const hourValid = [...hourSelect.options].some(o => o.value === stored.hour);
+
+            if (!hourValid)
+            {
+                // reset if invalid
+                hourSelect.value = "";
+                minuteSelect.value = "";
+                toTime.value = "";
+
+                const ampm = document.getElementById("edit-ampm");
+                ampm.value = "AM/PM";
+
+                return;
+            }
+
+            // restore hour
+            hourSelect.value = stored.hour;
+
+            // generate minutes
+            hourSelect.dispatchEvent(new Event("change"));
+
+            setTimeout(() =>
+            {
+                const minuteValid = [...minuteSelect.options].some(o => o.value == stored.minute);
+
+                if (minuteValid)
+                {
+                    minuteSelect.value = stored.minute;
+                    calculate_end_time();
+                }
+                else
+                {
+                    minuteSelect.value = "";
+                    toTime.value = "";
+                }
+
+            }, 0);
+        };
+
+        openModal();
+    }
+
+
+
+    // =======================================
+    // GENERATE HOURS & MINUTES
+    // =======================================
+
+    function generate_edit_time_fields(type)
+    {
+        const fromDate = document.getElementById("edit-from");
+
+        // If date exists, generate strict time
+        if (fromDate.value)
+        {
+            generate_strict_edit_time(type);
+            return;
+        }
+
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+
+        hourSelect.innerHTML = '<option value="">Hour</option>';
+        minuteSelect.innerHTML = '<option value="">Minute</option>';
+
+        if (type !== "Short" && type !== "Half") return;
+
+        const startHour = 10;
+        const endHour = (type === "Short") ? 16 : 14;
+
+        // Generate Hours
+        for (let h = startHour; h <= endHour; h++) 
+        {
+            const opt = document.createElement("option");
+            opt.value = h;
+            opt.textContent = h > 12 ? h - 12 : h;
+            hourSelect.appendChild(opt);
+        }
+
+        // Generate Minutes
+        for (let m = 0; m < 60; m++) 
+        {
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = m.toString().padStart(2, "0");
+            minuteSelect.appendChild(opt);
+        }
+
+        // Remove previous listeners by resetting handlers
+        hourSelect.onchange = null;
+        minuteSelect.onchange = null;
+
+        // Reset minute when hour changes
+        const ampm = document.getElementById("edit-ampm");
+        const toTime = document.getElementById("edit-to-time");
+
+        hourSelect.addEventListener("change", function () 
+        {
+            const selectedHour = parseInt(this.value);
+
+            if (this.value === "") 
+            {
+                // 🔥 Reset to default
+                ampm.value = "AM/PM";
+                minuteSelect.value = "";
+                toTime.value = "";
+                return;
+            }
+
+            // Set AM/PM
+            ampm.value = selectedHour >= 12 ? "PM" : "AM";
+
+            // 🔥 Reset minute and end time
+            minuteSelect.value = "";
+            toTime.value = "";
+        });
+
+        minuteSelect.addEventListener("change", calculate_end_time);
+    }
+
+
+    let TEST_TIME = "14:30";  // Example: TEST_TIME = "14:30";
+
+    // =======================================
+    // STRICT HOUR + MINUTE GENERATION
+    // =======================================
+
+    function generate_strict_edit_time(type)
+    {
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+        const fromDate = document.getElementById("edit-from");
+        const warning = document.getElementById("edit-time-warning");
+
+        hourSelect.innerHTML = '<option value="">Hour</option>';
+        minuteSelect.innerHTML = '<option value="">Minute</option>';
+        warning.innerText = "";
+
+        {% comment %} 
+        /* const existingTimeBox = document.getElementById("edit-existing-time");
+        if (existingTimeBox) existingTimeBox.style.display = "none"; */ 
+        {% endcomment %}
+
+        if (!fromDate.value) return;
+        if (type !== "Short" && type !== "Half") return;
+
+        const startHour = 10;
+        const endHour = (type === "Short") ? 16 : 14;
+
+        const now = new Date();
+
+        {% comment %} 
+        /* if (TEST_TIME)
+        {
+            const [h, m] = TEST_TIME.split(":");
+            now.setHours(parseInt(h));
+            now.setMinutes(parseInt(m));
+            now.setSeconds(0);
+            now.setMilliseconds(0);
+        } */ 
+        {% endcomment %}
+
+        const selectedDate = new Date(fromDate.value);
+        selectedDate.setHours(0,0,0,0);
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let minHour = startHour;
+        let minMinute = 0;
+
+
+        // Handle Past Dates and Times
+
+        if ( selectedDate < today )
+        {
+            warning.innerText = "Cannot change time for past leave.";
+
+            const existingDatetime = document.getElementById("edit-existing-datetime").value;
+
+            if (existingDatetime)
+            {
+                const start = new Date(existingDatetime);
+
+                const hour = start.getHours();
+                const minute = start.getMinutes();
+
+                // Reset dropdowns
+                hourSelect.innerHTML = "";
+                minuteSelect.innerHTML = "";
+
+                hourSelect.onchange = null;
+                minuteSelect.onchange = null;
+
+                const hourOption = document.createElement("option");
+                hourOption.value = hour;
+                hourOption.textContent = hour > 12 ? hour - 12 : hour;
+                hourOption.selected = true;
+                hourSelect.appendChild(hourOption);
+
+                const minuteOption = document.createElement("option");
+                minuteOption.value = minute;
+                minuteOption.textContent = minute.toString().padStart(2,"0");
+                minuteOption.selected = true;
+                minuteSelect.appendChild(minuteOption);
+
+                const ampm = document.getElementById("edit-ampm");
+                ampm.value = hour >= 12 ? "PM" : "AM";
+
+                calculate_end_time();
+            }
+
+            return;
+        }
+
+
+
+        // Handle Today's Date and Time
+
+        if (selectedDate.getTime() === today.getTime())
+        {
+            const minAllowed = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+            minHour = minAllowed.getHours();
+            minMinute = minAllowed.getMinutes();
+
+            if (minHour < startHour)
+            {
+                minHour = startHour;
+                minMinute = 0;
+            }
+
+            {% comment %} 
+            /* if (minHour > endHour)
+            {
+                warning.innerText = "No valid time available for today.";
+                return;
+            } */ 
+            {% endcomment %}
+
+            // Handle Todays Date and Past Times
+            
+            if ( minHour > endHour || minAllowed.toDateString() !== today.toDateString() )
+            {
+                warning.innerText = "No valid time available for today.";
+                
+                const existingDatetime = document.getElementById("edit-existing-datetime").value;
+
+                if (existingDatetime)
+                {
+                    {% comment %} 
+                    /*const start = new Date(existingDatetime);
+                    const hour = start.getHours();
+                    const minute = start.getMinutes().toString().padStart(2,"0");
+
+                    const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                    const ampm = hour >= 12 ? "PM" : "AM";
+
+                    const existingTimeBox = document.getElementById("edit-existing-time");
+
+                    existingTimeBox.innerText = `Applied Time: ${displayHour}:${minute} ${ampm}`;
+
+                    existingTimeBox.style.display = "block"; */ 
+                    {% endcomment %}
+
+                    
+
+                    const start = new Date(existingDatetime);
+                    const hour = start.getHours();
+                    const minute = start.getMinutes();
+
+                    // Disable generation
+                    hourSelect.onchange = null;
+                    minuteSelect.onchange = null;
+
+                    // Inject hour option
+                    const hourOption = document.createElement("option");
+                    hourOption.value = hour;
+                    hourOption.textContent = hour > 12 ? hour - 12 : hour;
+                    hourOption.selected = true;
+                    hourSelect.appendChild(hourOption);
+
+                    // Inject minute option
+                    const minuteOption = document.createElement("option");
+                    minuteOption.value = minute;
+                    minuteOption.textContent = minute.toString().padStart(2, "0");
+                    minuteOption.selected = true;
+                    minuteSelect.appendChild(minuteOption);
+
+                    const ampm = document.getElementById("edit-ampm");
+                    ampm.value = hour >= 12 ? "PM" : "AM";
+
+                    calculate_end_time();
+                }
+
+                return;
+            }
+
+            // if min allowed time crosses to next day → no leave allowed today
+            {% comment %} 
+            /* if (minAllowed.toDateString() !== today.toDateString())
+            {
+                warning.innerText = "No valid time available for today.";
+                return;
+            } */ 
+            {% endcomment %}
+
+            {% comment %} 
+            /* const minAllowedDate = new Date(minAllowed);
+            minAllowedDate.setHours(0,0,0,0);
+
+            if (minAllowedDate.getTime() > today.getTime())
+            {
+                warning.innerText = "No valid time available for today.";
+                return;
+            } */
+            {% endcomment %}
+        }
+
+        // Generate hours
+        for (let h = startHour; h <= endHour; h++)
+        {
+            if (selectedDate.getTime() === today.getTime() && h < minHour)
+                continue;
+
+            const opt = document.createElement("option");
+            opt.value = h;
+            opt.textContent = h > 12 ? h - 12 : h;
+            hourSelect.appendChild(opt);
+        }
+
+        // Hour change logic
+        hourSelect.onchange = function ()
+        {
+            minuteSelect.innerHTML = '<option value="">Minute</option>';
+
+            const ampm = document.getElementById("edit-ampm");
+            const toTime = document.getElementById("edit-to-time");
+
+            if (this.value === "")
+            {
+                ampm.value = "AM/PM";
+                toTime.value = "";
+                return;
+            }
+
+            const selectedHour = parseInt(this.value);
+
+            ampm.value = selectedHour >= 12 ? "PM" : "AM";
+            toTime.value = "";
+
+            {% comment %} 
+            /* for (let m = 0; m < 60; m++)
+            {
+                if ( selectedDate.getTime() === today.getTime() && selectedHour === minHour && m < minMinute ) 
+                    continue;
+
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = m.toString().padStart(2, "0");
+                minuteSelect.appendChild(opt);
+            } */
+            {% endcomment %}
+
+
+            const existingDatetime_forminutes = document.getElementById("edit-existing-datetime").value;
+
+            let existingMinute = null;
+
+            if (existingDatetime_forminutes)
+            {
+                existingMinute = new Date(existingDatetime_forminutes).getMinutes();
+            }
+
+            for (let m = 0; m < 60; m++)
+            {
+                // ⭐ allow applied minute
+                if ( selectedDate.getTime() === today.getTime() && selectedHour === minHour && m < minMinute && m !== existingMinute )
+                    continue;
+
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = m.toString().padStart(2, "0");
+                minuteSelect.appendChild(opt);
+            }
+        };
+
+        // 🔥 If hour already selected (edit case), generate minutes immediately
+        if (hourSelect.value !== "")
+        {
+            hourSelect.onchange();
+        }
+
+        minuteSelect.onchange = calculate_end_time;
+    }
+
+
+    // =======================================
+    // END TIME CALCULATION
+    // =======================================
+
+    function calculate_end_time()
+    {
+        const leaveType = document.getElementById("edit-leave-type");
+        const fromDate = document.getElementById("edit-from");
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+        const toTime = document.getElementById("edit-to-time");
+        const fromHidden = document.getElementById("edit_from_datetime");
+        const toHidden = document.getElementById("edit_to_datetime");
+
+        if (!fromDate.value || !hourSelect.value || minuteSelect.value === "")
+            return;
+
+        const start = new Date(fromDate.value);
+        start.setHours(parseInt(hourSelect.value));
+        start.setMinutes(parseInt(minuteSelect.value));
+
+        let duration = 0;
+
+        if (leaveType.value === "Short") duration = 2;
+        if (leaveType.value === "Half") duration = 4;
+
+        if (duration === 0) return;
+
+        const end = new Date(start.getTime() + duration * 60 * 60 * 1000);
+
+        const displayHour = end.getHours() > 12 ? end.getHours() - 12 : (end.getHours() === 0 ? 12 : end.getHours());
+
+        const displayMinute = end.getMinutes().toString().padStart(2, "0");
+        const ampm = end.getHours() >= 12 ? "PM" : "AM";
+
+        toTime.value = `${displayHour}:${displayMinute} ${ampm}`;
+
+        fromHidden.value = start.toISOString();
+        toHidden.value = end.toISOString();
+    }
+
+
+
+
+
+    function openReasonModal(btn) 
+    {
+        const modalContent = document.getElementById("modal-content");
+        modalContent.innerHTML = "";
+
+        const title = document.createElement("h3");
+        title.textContent = "My Leave Reason";
+        title.style.textAlign = "center";
+
+        const textarea = document.createElement("textarea");
+        textarea.readOnly = true;
+        textarea.value = btn.dataset.reason;
+        textarea.style.width = "100%";
+        textarea.style.minHeight = "auto";
+
+        modalContent.appendChild(title);
+        modalContent.appendChild(textarea);
+
+        openModal();   // your existing modal open function
+    }
+
+    function openFilterModal(status) 
+    {
+        // SAFETY: clear previous content
+        modalContent.innerHTML = "";
+
+        const filters = JSON.parse('{{ filters_json|escapejs }}');
+        const current = filters[status] || {};
+        const hasFilters = current.leave_type || current.month || current.from_date || current.to_date;
+
+        {% comment %}
+
+        // 2️⃣ Read existing filters (optional but professional)
+        // const params = new URLSearchParams(window.location.search);
+        // const currentType = params.get("leave_type") || "";
+        // const currentMonth = params.get("month") || "";
+        // const currentFrom = params.get("from_date") || "";
+        // const currentTo = params.get("to_date") || "";
+
+        // const params = 
+        // {
+        //     type: "{{ selected_leave_type|default:'' }}",
+        //     month: "{{ selected_month|default:'' }}",
+        //     from: "{{ selected_from_date|default:'' }}",
+        //     to: "{{ selected_to_date|default:'' }}"
+        // };
+
+        {% endcomment %}
+
+        // 1️⃣ Create container
+        const content = document.createElement("div");
+        content.className = "filter-modal-content";
+
+        {% comment %}
+        // 3️⃣ Build content safely
+        // content.innerHTML = `
+        //     <h3 style="text-align:center;">
+        //         🔎 Filter Leaves
+        //     </h3>
+
+        //     <form method="post" action="{% url 'apply_leave_filters' %}" class="filter-form">
+        //         {% csrf_token %}
+
+        //         <label>📂 Leave Type</label>
+        //         <select name="leave_type">
+        //             <option value="">All</option>
+        //             <option value="Sick" ${currentType === "Sick" ? "selected" : ""}>🩺 Sick</option>
+        //             <option value="Casual" ${currentType === "Casual" ? "selected" : ""}>🌴 Casual</option>
+        //             <option value="Earned" ${currentType === "Earned" ? "selected" : ""}>💼 Earned</option>
+        //         </select>
+
+        //         <label>🗓 Month</label>
+        //         <input type="month" name="month" value="${currentMonth}">
+
+        //         <p style="text-align:center;font-size:12px;color:#666;margin:6px 0;">
+        //             — OR —
+        //         </p>
+
+        //         <label>📅 Date Range</label>
+        //         <input type="date" name="from_date" value="${currentFrom}">
+        //         <input type="date" name="to_date" value="${currentTo}">
+                
+        //         <div style="margin-top:16px; display:flex; justify-content:space-between;">
+        //             <button type="submit" class="apply-btn">✔ Apply</button>
+        //             <a href="{% url 'remove_leave_filter' %}" class="clear-btn">✖ Clear</a>
+        //         </div>
+
+        //     </form>
+        // `;
+        {% endcomment %}
+
+
+        // 3️⃣ Build content safely
+        content.innerHTML = `
+            <h3 style="text-align:center;">🔎 Filter Leaves</h3>
+
+            <form method="post" action="/apply-status-filter/${status}/" class="filter-form">
+
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+
+                <label>📂 Leave Type</label>
+                <select name="leave_type">
+                    <option value="">All</option>
+                    <option value="Short" ${current.leave_type==="Short"?"selected":""}> Short (2-Hours) </option>
+                    <option value="Half" ${current.leave_type==="Half"?"selected":""}> Half (4-Hours) </option>
+                    <option value="Sick" ${current.leave_type==="Sick"?"selected":""}> Sick </option>
+                    <option value="Casual" ${current.leave_type==="Casual"?"selected":""}> Casual </option>
+                    <option value="Earned" ${current.leave_type==="Earned"?"selected":""}> Earned </option>
+                </select>
+
+                <label>🗓 Month</label>
+                <input type="month" name="month" value="${current.month || ""}">
+                
+                <p style="text-align:center;font-size:12px;color:#666;"><br><b> — OR — </b></p>
+
+                <label>📅 Date Range</label>
+                <input type="date" name="from_date" id="from_date" value="${current.from_date || ""}">
+                <input type="date" name="to_date" id="to_date" value="${current.to_date || ""}" >
+
+                <div style="margin-top:16px; display:flex; justify-content:space-between;">
+
+                    <button type="submit" class="apply-btn">✔ Apply</button>
+                    
+                    <!-- CLEAR (IMPORTANT PART) -->
+                    <button type="submit" class="clear-btn"  
+                        formaction="/clear-status-filter/${status}/" formmethod="post"
+                        ${!hasFilters ? "disabled" : ""}
+                        ${hasFilters ? "onclick=\"return confirm('Are you sure you want to clear all filters for ${status} Leaves Section?');\"" : ""}>
+                        ✖ Reset Filters 
+                    </button>
+
+                </div>
+            </form>
+        `;
+
+        // 4️⃣ Append (NOT innerHTML replace)
+        modalContent.appendChild(content);
+
+
+        const fromDateInput = content.querySelector("#from_date");
+        const toDateInput = content.querySelector("#to_date");
+
+
+        {% comment %} 
+        // Set minimum selectable date
+        // fromDateInput.min = previous_date_block;
+        // toDateInput.min = previous_date_block;  
+        {% endcomment %}
+        
+
+        {% comment %} 
+        // Ensure "To date" is never before "From date"
+        // fromDateInput.addEventListener("change", () => 
+        // {
+        //     toDateInput.min = fromDateInput.value || previous_date_block;
+        // }); 
+        {% endcomment %}
+
+
+        
+        // Ensure "To date" is never before "From date"
+
+        fromDateInput.addEventListener("change", () => 
+        {
+            if ( fromDateInput.value ) 
+            {
+                // Block all dates before from_date
+                toDateInput.min = fromDateInput.value;
+
+                // If already selected to_date is invalid, clear it
+                if ( toDateInput.value && toDateInput.value < fromDateInput.value ) 
+                {
+                    toDateInput.value = "";
+                }
+            }
+        }); 
+        
+        // 5️⃣ Open existing modal
+        openModal();
+
+        // 6️⃣ Setup exclusivity logic
+        setupFilterExclusivity(content);
+    }
+
+    function setupFilterExclusivity(container) 
+    {
+        const monthInput = container.querySelector('input[name="month"]');
+        const fromDate = container.querySelector('input[name="from_date"]');
+        const toDate = container.querySelector('input[name="to_date"]');
+
+        if (!monthInput || !fromDate || !toDate) return;
+
+        function toggleDateRange() 
+        {
+            if (monthInput.value) 
+            {
+                fromDate.disabled = true;
+                toDate.readOnly = true;
+                fromDate.value = "";
+                toDate.value = "";
+            } 
+            
+            else 
+            {
+                fromDate.disabled = false;
+                toDate.readOnly = false;
+            }
+        }
+
+        function toggleMonth() 
+        {
+            if (fromDate.value || toDate.value) 
+            {
+                monthInput.disabled = true;
+                monthInput.value = "";
+            } 
+            
+            else 
+            {
+                monthInput.disabled = false;
+            }
+        }
+
+        monthInput.addEventListener("input", toggleDateRange);
+        fromDate.addEventListener("input", toggleMonth);
+        toDate.addEventListener("input", toggleMonth);
+
+        // Initial state (CRITICAL)
+        toggleDateRange();
+        toggleMonth();
+    }
+
+    
+    {% comment %}
+
+    // function setupFilterExclusivity(container) 
+    // {
+    //     const month = container.querySelector('input[name="month"]');
+    //     const fromDate = container.querySelector('input[name="from_date"]');
+    //     const toDate = container.querySelector('input[name="to_date"]');
+
+    //     function sync() 
+    //     {
+    //         if (month.value) 
+    //         {
+    //             fromDate.value = "";
+    //             toDate.value = "";
+    //             fromDate.disabled = true;
+    //             toDate.disabled = true;
+    //         } 
+            
+    //         else if (fromDate.value || toDate.value) 
+    //         {
+    //             month.value = "";
+    //             month.disabled = true;
+    //         } 
+            
+    //         else 
+    //         {
+    //             fromDate.disabled = false;
+    //             toDate.disabled = false;
+    //             month.disabled = false;
+    //         }
+    //     }
+
+    //     month.addEventListener("input", sync);
+    //     fromDate.addEventListener("input", sync);
+    //     toDate.addEventListener("input", sync);
+
+    //     sync();
+    // }
+
+    // function removeFilter(type) 
+    // {
+    //     fetch("{% url 'remove_leave_filter' %}", 
+    //     {
+    //         method: "POST",
+    //         headers: 
+    //         {
+    //             "X-CSRFToken": "{{ csrf_token }}",
+    //             "Content-Type": "application/json"
+    //         },
+            
+    //         body: JSON.stringify({ type })
+    //     }).then(() => location.reload());
+    // }
+
+    // function clearAllFilters() 
+    // {
+    //     fetch("{% url 'remove_leave_filter' %}", 
+    //     {
+    //         method: "POST",
+    //         headers: 
+    //         {
+    //             "X-CSRFToken": "{{ csrf_token }}",
+    //             "Content-Type": "application/json"
+    //         },
+    //         body: JSON.stringify({ type: "all" })
+    //     }).then(() => location.reload());
+    // }
+
+    {% endcomment %}
+    
+</script>
+
+{% endblock %}

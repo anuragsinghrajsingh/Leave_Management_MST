@@ -1,0 +1,4023 @@
+﻿{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Leaves{% endblock %}
+
+{% block extra_css %}
+
+    <link rel="stylesheet" href="{% static 'css/my_leave.css' %}">
+
+{% endblock %}
+
+{% block page_skeleton %}
+    <div class="page-skeleton-overlay" data-page-skeleton>
+        <div class="page-skeleton-shell">
+            <div class="page-skeleton-topbar">
+                <span class="skeleton-chip"></span>
+                <span class="skeleton-bar title"></span>
+                <span class="skeleton-bar nav"></span>
+                <span class="skeleton-icon"></span>
+                <span class="skeleton-avatar"></span>
+            </div>
+
+            <div class="page-skeleton-body">
+                <div class="page-skeleton-row equal-2">
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <div class="page-skeleton-copy">
+                                <span class="skeleton-line w-30"></span>
+                                <span class="skeleton-line w-70"></span>
+                                <span class="skeleton-line w-80"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-skeleton-stack">
+                        <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy"><span class="skeleton-line w-50"></span><span class="skeleton-line w-60"></span><span class="skeleton-line w-70"></span></div></div>
+                        <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy"><span class="skeleton-line w-50"></span><span class="skeleton-line w-60"></span><span class="skeleton-line w-70"></span></div></div>
+                    </div>
+                </div>
+
+                <div class="page-skeleton-grid cols-4">
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                    <div class="skeleton-card sm"><div class="page-skeleton-panel-inner tight page-skeleton-card-copy center"><span class="skeleton-line w-50"></span><span class="skeleton-line w-30"></span><span class="skeleton-line w-60"></span></div></div>
+                </div>
+
+                <div class="page-skeleton-row equal-2">
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <div class="page-skeleton-button-pair">
+                                <span class="skeleton-chip wide"></span>
+                                <span class="skeleton-chip wide"></span>
+                                <span class="skeleton-chip wide"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card md">
+                        <div class="page-skeleton-panel-inner">
+                            <span class="skeleton-chip wide"></span>
+                            <span class="skeleton-line w-100"></span>
+                            <span class="skeleton-line w-80"></span>
+                            <span class="skeleton-line w-60"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skeleton-card lg page-skeleton-table">
+                    <div class="page-skeleton-table-header">
+                        <span class="skeleton-line w-40"></span>
+                        <span class="skeleton-chip wide"></span>
+                    </div>
+                    <div class="page-skeleton-table-head">
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-80"></span>
+                        <span class="skeleton-line w-40"></span>
+                        <span class="skeleton-line w-50"></span>
+                        <span class="skeleton-line w-70"></span>
+                        <span class="skeleton-line w-40"></span>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell"><span class="skeleton-chip wide"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-100"></span><span class="skeleton-line w-80"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-30"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-60"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-100"></span></div>
+                        <div class="page-skeleton-button-pair"><span class="skeleton-chip wide"></span><span class="skeleton-chip wide"></span></div>
+                    </div>
+                    <div class="page-skeleton-table-row">
+                        <div class="page-skeleton-table-cell"><span class="skeleton-chip wide"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-100"></span><span class="skeleton-line w-80"></span></div>
+                        <div class="page-skeleton-table-cell center"><span class="skeleton-line w-30"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-60"></span></div>
+                        <div class="page-skeleton-table-cell"><span class="skeleton-line w-100"></span></div>
+                        <div class="page-skeleton-button-pair"><span class="skeleton-chip wide"></span><span class="skeleton-chip wide"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block header %}
+    <div class="header-title-group">
+        <span class="header-title-icon leave-title-icon" aria-hidden="true">
+            <span class="header-title-icon-shape icon-calendar"></span>
+        </span>
+        <h1>My Leaves</h1>
+    </div>
+
+    <button type="button" class="hamburger" aria-label="Open navigation menu">&#9776;</button>
+
+    
+    <nav class="nav-links">
+        <button class="calendar-btn" onclick="openLeaveCalendar()">
+            <span>Calendar</span>
+            <span class="calendar-btn-glyph" aria-hidden="true"></span>
+        </button>
+        <a href="{% url 'dashboard' %}">
+            <span class="nav-shortcut-icon dashboard-nav-icon"><span class="badge-shape badge-home"></span></span>
+            <span>Dashboard</span>
+        </a>
+        <a href="{% url 'apply_leave' %}">
+            <span class="nav-shortcut-icon apply-nav-icon"><span class="badge-shape badge-form"></span></span>
+            <span>Apply Leaves</span>
+        </a>
+    </nav>
+
+    <div class="header-actions">
+        {% include "includes/communication_dropdown.html" %}
+
+        <div class="notification-dropdown" data-notification-api="{% url 'employee_notifications' %}" data-notification-empty="No leave updates right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
+            <button type="button" class="notification-trigger" aria-label="Leave status notifications" aria-expanded="false">
+                <span class="notification-bell"></span>
+                <span class="notification-count{% if not employee_notification_count %} hidden{% endif %}" data-countup data-countup-target="{{ employee_notification_count }}">{{ employee_notification_count }}</span>
+                <span class="notification-new-badge hidden" data-notification-new-badge></span>
+            </button>
+
+            <div class="notification-panel employee-notification-panel">
+                <div class="notification-panel-header">
+                    <div>
+                        <p class="eyebrow">Alerts</p>
+                        <h3>Leave updates</h3>
+                    </div>
+                    <div class="notification-panel-meta">
+                        <span class="notification-new-pill hidden" data-notification-new-pill></span>
+                        <span class="notification-meta" data-notification-total data-countup data-countup-target="{{ employee_notification_count }}">{{ employee_notification_count }}</span>
+                    </div>
+                </div>
+
+                <div class="notification-list-actions notification-list-actions-bar">
+                    <button type="button" class="notification-mark-read-btn hidden" data-notification-mark-read>Mark all read</button>
+                </div>
+                <div class="notification-list" data-notification-list>
+                    {% for item in employee_notifications %}
+                        <a href="{{ item.target_url }}" class="notification-item notification-item-{{ item.leave_type_class }} notification-item-status-{{ item.status_class|default:'default' }}{% if item.is_new %} is-new{% elif item.is_read %} is-read{% endif %}" data-notification-item data-notification-id="{{ item.id }}" data-notification-read="{{ item.is_read|yesno:'true,false' }}" data-notification-new="{{ item.is_new|yesno:'true,false' }}" data-notification-leave-id="{{ item.id }}" data-notification-target-panel="{{ item.target_panel|default:'' }}">
+                            <div class="notification-visual">
+                                {% if item.photo_url %}
+                                    <img src="{{ item.photo_url }}" alt="{{ item.display_name }}" class="notification-avatar">
+                                {% else %}
+                                    <span class="notification-avatar notification-avatar-fallback" aria-label="{{ item.display_name }}" data-avatar-fallback data-full-name="{{ item.display_name }}" data-username="{{ item.username|default:item.display_name }}"></span>
+                                {% endif %}
+                                <span class="notification-type notification-type-compact notification-status-text notification-status-text-{{ item.status_class|default:'default' }}">{{ item.leave_type }}</span>
+                            </div>
+                            <div class="notification-copy">
+                                <span class="notification-name">{{ item.headline_text|default:item.display_name|title }}</span>
+                                <small class="notification-subtitle">{{ item.schedule_text }}</small>
+                                <small class="notification-meta-line">
+                                    <span class="notification-time">{% if item.updated_text %}Updated {{ item.updated_text }}{% else %}Applied {{ item.applied_text }}{% endif %}</span>
+                                </small>
+                            </div>
+                        </a>
+                    {% empty %}
+                        <div class="notification-empty">No leave updates right now.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-dropdown profile-header-dropdown">
+            <button type="button" class="profile-icon profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false">
+                {% if request.user.profile.profile_photo %}
+                    <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                {% else %}
+                    <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-hidden="true"></span>
+                {% endif %}
+            </button>
+
+            <div class="dropdown-content">
+                <div class="user-info">
+                {% if request.user.profile.profile_photo %}
+                    <div class="user-info-media">
+                        <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
+                    </div>
+                {% else %}
+                    <span class="profile-avatar-shell profile-avatar-initials dropdown-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-hidden="true"></span>
+                {% endif %}
+                <div>
+                    {% with full_name=request.user.get_full_name first_name=request.user.first_name last_name=request.user.last_name %}
+                        <p class="user-info-name">
+                            <a href="{% url 'profile' %}">
+                                {% if full_name and full_name|length > 14 and first_name and last_name %}
+                                    {{ first_name }} {{ last_name|slice:":1" }}.
+                                {% elif full_name %}
+                                    {{ full_name }}
+                                {% else %}
+                                    {{ request.user.username }}
+                                {% endif %}
+                            </a>
+                        </p>
+                    {% endwith %}
+                    <small>Employee workspace</small>
+                </div>
+            </div>
+
+            <a href="{% url 'logout' %}" class="logout-btn">&#9209; Logout</a>
+        </div>
+    </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+
+{% endblock %}
+
+{% block content %}
+
+<main class="my-leave-page">
+
+    <section class="page-hero compact-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Leave Overview</p>
+            <h2>Track balances, active requests, and approvals in one place.</h2>
+            <p class="page-intro">
+                Review your current leave position, manage pending applications, and revisit approved or rejected requests
+                from a cleaner, easier-to-scan workspace.
+            </p>
+        </div>
+
+        <div class="page-hero-summary" data-my-leave-summary>
+            {% include "includes/my_leave_summary_panels.html" %}
+        </div>
+    </section>
+
+    <section class="stats-container">
+        <div class="stats-grid" data-my-leave-stats>
+            {% include "includes/my_leave_stat_cards.html" %}
+        </div>
+    </section>
+
+    <div class="header-divider"></div>
+
+    <section class="leave-status-layout">
+        <div class="status-switcher" role="tablist" aria-label="Leave status sections">
+            <button type="button" class="status-tab is-active" data-target="pending-panel" role="tab" aria-selected="true">
+                <span class="status-tab-label">Pending</span>
+                <span class="status-tab-meta">
+                    <span class="status-tab-filter-indicator{% if not filters.Pending.leave_type and not filters.Pending.month and not filters.Pending.from_date and not filters.Pending.to_date %} hidden{% endif %}" data-tab-filter-indicator="Pending" aria-hidden="true"></span>
+                    <span class="status-tab-count" data-countup data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</span>
+                </span>
+            </button>
+            <button type="button" class="status-tab" data-target="approved-panel" role="tab" aria-selected="false">
+                <span class="status-tab-label">Approved</span>
+                <span class="status-tab-meta">
+                    <span class="status-tab-filter-indicator{% if not filters.Approved.leave_type and not filters.Approved.month and not filters.Approved.from_date and not filters.Approved.to_date %} hidden{% endif %}" data-tab-filter-indicator="Approved" aria-hidden="true"></span>
+                    <span class="status-tab-count" data-countup data-countup-target="{{ approved_leaves|length }}">{{ approved_leaves|length }}</span>
+                </span>
+            </button>
+            <button type="button" class="status-tab" data-target="rejected-panel" role="tab" aria-selected="false">
+                <span class="status-tab-label">Rejected</span>
+                <span class="status-tab-meta">
+                    <span class="status-tab-filter-indicator{% if not filters.Rejected.leave_type and not filters.Rejected.month and not filters.Rejected.from_date and not filters.Rejected.to_date %} hidden{% endif %}" data-tab-filter-indicator="Rejected" aria-hidden="true"></span>
+                    <span class="status-tab-count" data-countup data-countup-target="{{ rejected_leaves|length }}">{{ rejected_leaves|length }}</span>
+                </span>
+            </button>
+        </div>
+
+        <div class="container compact-container">
+
+        <div class="card card-pending leave-panel is-active" id="pending-panel" role="tabpanel">
+
+            <div class="table-header">
+                <div class="card-title-group">
+                    <h2 class="queue-title queue-title-pending">Pending Leaves</h2>
+                </div>
+
+                <div class="card-summary-badge">
+                    <strong data-countup data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</strong>
+                    <span>in review</span>
+                </div>
+
+                <button class="filter-btn" onclick="openFilterModal('Pending')">
+                    <span class="filter-btn-icon" aria-hidden="true"></span>
+                    <span>Filter</span>
+                </button>
+
+                {% with f=filters.Pending %}
+                    {% if f.leave_type or f.month or f.from_date or f.to_date %}
+                    <div class="filter-badges">
+                        {% if f.leave_type %}
+                            <span class="badge">
+                                &#127991; {{ f.leave_type }}
+                                <a href="{% url 'clear_status_filter_field' 'Pending' 'leave_type' %}">&#10006;</a>
+                            </span>
+                        {% endif %}
+
+                        {% if f.month %}
+                            <span class="badge">
+                                &#128467; {{ f.month }}
+                                <a href="{% url 'clear_status_filter_field' 'Pending' 'month' %}">&#10006;</a>
+                            </span>
+
+                        {% elif f.from_date or f.to_date %}
+                            <span class="badge">
+                                &#128197; {{ f.from_date|default:"..." }} &rarr; {{ f.to_date|default:"..." }}
+                                <a href="{% url 'clear_status_filter_field' 'Pending' 'date_range' %}">&#10006;</a>
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <div class="table-wrapper table-shell js-paginated-table" data-rows-per-page="5">
+                <table class="leave-table">
+                <colgroup>
+                    <col class="col-serial">
+                    <col class="col-type">
+                    <col class="col-schedule">
+                    <col class="col-days">
+                    <col class="col-applied">
+                    <col class="col-status-meta">
+                    <col class="col-reason">
+                    <col class="col-action">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Sn.No.</th>
+                        <th>Type</th>
+                        <th>Schedule</th>
+                        <th>Days</th>
+                        <th>Applied</th>
+                        <th>Updated</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>   
+                
+                <tbody data-my-leave-table-body="pending">
+                    {% include "includes/my_leave_pending_rows.html" %}
+                </tbody>
+                </table>
+            </div>
+            <div class="table-pagination" data-pagination-for="pending-panel" hidden>
+                <button type="button" class="pagination-btn" data-page-action="first">
+                    <span class="pagination-icon" aria-hidden="true">&laquo;</span>
+                    <span>First</span>
+                </button>
+                <button type="button" class="pagination-btn" data-page-action="prev">
+                    <span class="pagination-icon" aria-hidden="true">&lsaquo;</span>
+                    <span>Prev</span>
+                </button>
+                <span class="pagination-status">Page 1 of 1</span>
+                <button type="button" class="pagination-btn" data-page-action="next">
+                    <span>Next</span>
+                    <span class="pagination-icon" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button type="button" class="pagination-btn" data-page-action="last">
+                    <span>Last</span>
+                    <span class="pagination-icon" aria-hidden="true">&raquo;</span>
+                </button>
+            </div>
+        </div>  
+
+        <div class="card card-approved leave-panel" id="approved-panel" role="tabpanel" hidden>
+            
+            <div class="table-header">
+                <div class="card-title-group">
+                    <h2 class="queue-title queue-title-approved">Approved Leaves</h2>
+                </div>
+
+                <div class="card-summary-badge">
+                    <strong data-countup data-countup-target="{{ approved_leaves|length }}">{{ approved_leaves|length }}</strong>
+                    <span>approved entries</span>
+                </div>
+
+                <button class="filter-btn" onclick="openFilterModal('Approved')">
+                    <span class="filter-btn-icon" aria-hidden="true"></span>
+                    <span>Filter</span>
+                </button>
+
+                {% with f=filters.Approved %}
+                    {% if f.leave_type or f.month or f.from_date or f.to_date %}
+                    <div class="filter-badges">
+                        {% if f.leave_type %}
+                        <span class="badge">
+                            &#127991; {{ f.leave_type }}
+                            <a href="{% url 'clear_status_filter_field' 'Approved' 'leave_type' %}">&#10006;</a>
+                        </span>
+                        {% endif %}
+
+                        {% if f.month %}
+                        <span class="badge">
+                            &#128467; {{ f.month }}
+                            <a href="{% url 'clear_status_filter_field' 'Approved' 'month' %}">&#10006;</a>
+                        </span>
+
+                        {% elif f.from_date or f.to_date %}
+                        <span class="badge">
+                            &#128197; {{ f.from_date|default:"..." }} &rarr; {{ f.to_date|default:"..." }}
+                            <a href="{% url 'clear_status_filter_field' 'Approved' 'date_range' %}">&#10006;</a>
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+
+            <div class="table-wrapper table-shell js-paginated-table" data-rows-per-page="5">
+            <table class="leave-table">
+                <colgroup>
+                    <col class="col-serial">
+                    <col class="col-type">
+                    <col class="col-schedule">
+                    <col class="col-days">
+                    <col class="col-applied">
+                    <col class="col-status-meta">
+                    <col class="col-reason">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Sn.No.</th>
+                        <th>Type</th>
+                        <th>Schedule</th>
+                        <th>Days</th>
+                        <th>Applied</th>
+                        <th>Approved</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+
+                <tbody data-my-leave-table-body="approved">
+                    {% include "includes/my_leave_approved_rows.html" %}
+                </tbody>
+            </table>
+            </div>
+            <div class="table-pagination" data-pagination-for="approved-panel" hidden>
+                <button type="button" class="pagination-btn" data-page-action="first">
+                    <span class="pagination-icon" aria-hidden="true">&laquo;</span>
+                    <span>First</span>
+                </button>
+                <button type="button" class="pagination-btn" data-page-action="prev">
+                    <span class="pagination-icon" aria-hidden="true">&lsaquo;</span>
+                    <span>Prev</span>
+                </button>
+                <span class="pagination-status">Page 1 of 1</span>
+                <button type="button" class="pagination-btn" data-page-action="next">
+                    <span>Next</span>
+                    <span class="pagination-icon" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button type="button" class="pagination-btn" data-page-action="last">
+                    <span>Last</span>
+                    <span class="pagination-icon" aria-hidden="true">&raquo;</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card card-rejected leave-panel" id="rejected-panel" role="tabpanel" hidden>
+            
+            <div class="table-header">
+                <div class="card-title-group">
+                    <h2 class="queue-title queue-title-rejected">Rejected Leaves</h2>
+                </div>
+
+                <div class="card-summary-badge">
+                    <strong data-countup data-countup-target="{{ rejected_leaves|length }}">{{ rejected_leaves|length }}</strong>
+                    <span>declined entries</span>
+                </div>
+
+                <button class="filter-btn" onclick="openFilterModal('Rejected')">
+                    <span class="filter-btn-icon" aria-hidden="true"></span>
+                    <span>Filter</span>
+                </button>
+
+                {% with f=filters.Rejected %}
+                    {% if f.leave_type or f.month or f.from_date or f.to_date %}
+                    <div class="filter-badges">
+
+                        {% if f.leave_type %}
+                        <span class="badge">
+                            &#127991; {{ f.leave_type }}
+                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'leave_type' %}">&#10006;</a>
+                        </span>
+                        {% endif %}
+
+                        {% if f.month %}
+                        <span class="badge">
+                            &#128467; {{ f.month }}
+                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'month' %}">&#10006;</a>
+                        </span>
+
+                        {% elif f.from_date or f.to_date %}
+                        <span class="badge">
+                            &#128197; {{ f.from_date|default:"..." }} &rarr; {{ f.to_date|default:"..." }}
+                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'date_range' %}">&#10006;</a>
+                        </span>
+                        {% endif %}
+
+                    </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <div class="table-wrapper table-shell js-paginated-table" data-rows-per-page="5">
+            <table class="leave-table">
+                <colgroup>
+                    <col class="col-serial">
+                    <col class="col-type">
+                    <col class="col-schedule">
+                    <col class="col-days">
+                    <col class="col-applied">
+                    <col class="col-status-meta">
+                    <col class="col-reason">
+                    <col class="col-reason">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Sn.No.</th>
+                        <th>Type</th>
+                        <th>Schedule</th>
+                        <th>Days</th>
+                        <th>Applied</th>
+                        <th>Rejected</th>
+                        <th>My Reason</th>
+                        <th>Rejection Reason</th>
+                    </tr>
+                </thead>
+            
+                <tbody data-my-leave-table-body="rejected">
+                    {% include "includes/my_leave_rejected_rows.html" %}
+                </tbody>
+            </table>
+            </div>
+            <div class="table-pagination" data-pagination-for="rejected-panel" hidden>
+                <button type="button" class="pagination-btn" data-page-action="first">
+                    <span class="pagination-icon" aria-hidden="true">&laquo;</span>
+                    <span>First</span>
+                </button>
+                <button type="button" class="pagination-btn" data-page-action="prev">
+                    <span class="pagination-icon" aria-hidden="true">&lsaquo;</span>
+                    <span>Prev</span>
+                </button>
+                <span class="pagination-status">Page 1 of 1</span>
+                <button type="button" class="pagination-btn" data-page-action="next">
+                    <span>Next</span>
+                    <span class="pagination-icon" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button type="button" class="pagination-btn" data-page-action="last">
+                    <span>Last</span>
+                    <span class="pagination-icon" aria-hidden="true">&raquo;</span>
+                </button>
+            </div>
+        </div>
+        </div>
+    </section>
+
+    <div id="form-home" style="display:none;">
+        <div id="edit-leave-template">
+
+            <div class="edit-template-title">
+                <h3>Edit Your Leave</h3>
+                <p>Update the leave details below. Existing validation and approval rules remain unchanged.</p>
+            </div>
+
+            <form method="POST" id="edit-leave-form">
+                {% csrf_token %}
+
+                <!-- Leave Type -->
+                <label>Leave Type</label>
+                <select name="edit_leave_type" id="edit-leave-type" required>
+                    <option value="Short">Short (2 Hours)</option>
+                    <option value="Half">Half Day (4 Hours)</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Sick">Sick</option>
+                    <option value="Earned">Earned</option>
+                </select>
+
+                <!-- FROM ROW -->
+                <div class="row">
+                    <div id="edit_from_date_field" class="field">
+                        <label>From Date</label>
+                        <input type="date" name="from_date" id="edit-from" required>
+                    </div>
+
+                    <!-- TIME (only for Short/Half) -->
+                    <div id="edit_from_time_field" class="field" style="display:none;">
+                        <label>From Time</label>
+
+                        <input type="hidden" name="from_datetime" id="edit_from_datetime">
+                        
+                        <div id="edit-existing-time" style="display:none; margin-top:5px; color:#555; font-size:14px;"> </div>
+                        <input type="hidden" id="edit-existing-datetime">
+
+                        <div class="time-wrapper">
+                            <select id="edit-hour">
+                                <option value="">Hour</option>
+                            </select>
+
+                            <span><b>:</b></span>
+
+                            <select id="edit-minute">
+                                <option value="">Minute</option>
+                            </select>
+
+                            <input type="text" id="edit-ampm" value="AM/PM" readonly style="width:65px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TO ROW -->
+                <div class="row">
+                    <div id="edit_to_date_field" class="field">
+                        <label>To Date</label>
+                        <input type="date" name="to_date" id="edit-to" required>
+                    </div>
+
+                    <div class="field" id="edit_to_time_field" style="display:none;">
+                        <label>To Time</label>
+                        <input type="text" id="edit-to-time" value="Auto Calculated" readonly>
+                    </div>
+                </div>
+
+                <input type="hidden" name="to_datetime" id="edit_to_datetime">
+
+                <div id="edit-time-warning-container">
+                    <small id="edit-time-warning"></small>
+                </div>
+
+                <!-- Reason -->
+                <label>Reason</label>
+                <textarea name="reason" id="edit-reason" required></textarea>
+
+                <center>
+                    <button type="submit" class="apply-btn">Update</button>
+                </center>
+
+            </form>
+        </div>
+    </div>
+
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}" >
+    <input type="hidden" id="my-leave-filters-json" value="{{ filters_json|escapejs }}">
+</main>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const tabs = Array.from(document.querySelectorAll(".status-tab"));
+        const panels = Array.from(document.querySelectorAll(".leave-panel"));
+
+        function formatRelativeLeaveAge(isoValue) {
+            if (!isoValue) {
+                return "-";
+            }
+
+            const target = new Date(isoValue);
+            if (Number.isNaN(target.getTime())) {
+                return "-";
+            }
+
+            const now = new Date();
+            const diffMs = Math.max(0, now.getTime() - target.getTime());
+            const diffMinutes = Math.floor(diffMs / (60 * 1000));
+            const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+            const minuteRemainder = String(diffMinutes % 60).padStart(2, "0");
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const diffDays = Math.max(0, Math.floor((startOfToday - startOfTarget) / msPerDay));
+
+            if (diffMinutes <= 0) {
+                return "just now";
+            }
+
+            if (diffMinutes === 1) {
+                return "1 min ago";
+            }
+
+            if (diffMinutes <= 59) {
+                return `${diffMinutes} min ago`;
+            }
+
+            if (diffHours === 1) {
+                return `1 hour, ${minuteRemainder} min ago`;
+            }
+
+            if (diffHours <= 23) {
+                return `${diffHours} hour, ${minuteRemainder} min ago`;
+            }
+
+            if (diffDays <= 6) {
+                const dayUnit = diffDays === 1 ? "day" : "days";
+                return `${diffDays} ${dayUnit} ago`;
+            }
+
+            return target.toLocaleDateString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric"
+            });
+        }
+
+        function hydrateRelativeDates() {
+            document.querySelectorAll("[data-relative-datetime]").forEach((node) => {
+                const formatted = formatRelativeLeaveAge(node.dataset.relativeDatetime);
+                const count = Number.parseInt(node.dataset.relativeCount || "0", 10);
+
+                if (formatted === "-") {
+                    node.textContent = "-";
+                    return;
+                }
+
+                node.textContent = count > 0 ? `${formatted} (${count})` : formatted;
+            });
+        }
+
+        function animateDayValue(valueNode, labelNode, targetValue, suffixText = "", labelText = "") {
+            const finalValue = Math.max(1, Number(targetValue) || 1);
+            const duration = 480;
+            const startTime = performance.now();
+
+            valueNode.textContent = `0${suffixText}`;
+            labelNode.textContent = labelText;
+
+            function step(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const currentValue = Math.max(0, Math.round(finalValue * eased));
+
+                valueNode.textContent = `${Math.min(currentValue, finalValue)}${suffixText}`;
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                    return;
+                }
+
+                valueNode.textContent = `${finalValue}${suffixText}`;
+            }
+
+            window.requestAnimationFrame(step);
+        }
+
+        function hydrateDayBlocks() {
+            document.querySelectorAll(".js-days-block").forEach((block) => {
+                const fromDate = block.dataset.fromDate;
+                const toDate = block.dataset.toDate;
+                const leaveType = block.dataset.leaveType;
+                const valueNode = block.querySelector(".js-days-value");
+                const labelNode = block.querySelector(".js-days-label");
+
+                if (!fromDate || !toDate || !valueNode || !labelNode) {
+                    return;
+                }
+
+                const start = new Date(`${fromDate}T00:00:00`);
+                const end = new Date(`${toDate}T00:00:00`);
+
+                if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                    return;
+                }
+
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const diffDays = Math.max(1, Math.round((end - start) / msPerDay) + 1);
+
+                if (leaveType === "Short" || leaveType === "Half") {
+                    const hourValue = leaveType === "Short" ? 2 : 4;
+                    block.dataset.daysTarget = String(hourValue);
+                    block.dataset.daysSuffix = " hour";
+                    block.dataset.daysLabel = "of the day";
+                    valueNode.textContent = `${hourValue} hour`;
+                    labelNode.textContent = "of the day";
+                    return;
+                }
+
+                block.dataset.daysTarget = String(diffDays);
+                block.dataset.daysSuffix = "";
+                block.dataset.daysLabel = diffDays === 1 ? "day" : "days";
+                valueNode.textContent = String(diffDays);
+                labelNode.textContent = diffDays === 1 ? "day" : "days";
+            });
+        }
+
+        function animateDayBlocksForPanel(targetId) {
+            const panel = document.getElementById(targetId);
+
+            if (!panel) {
+                return;
+            }
+
+            panel.querySelectorAll(".js-days-block").forEach((block) => {
+                if (block.closest("tr")?.hidden) {
+                    return;
+                }
+
+                const valueNode = block.querySelector(".js-days-value");
+                const labelNode = block.querySelector(".js-days-label");
+                const targetValue = Number(block.dataset.daysTarget || valueNode?.textContent || "1");
+                const suffixText = block.dataset.daysSuffix || "";
+                const labelText = block.dataset.daysLabel || "";
+
+                if (!valueNode || !labelNode) {
+                    return;
+                }
+
+                animateDayValue(valueNode, labelNode, targetValue, suffixText, labelText);
+            });
+        }
+
+        hydrateRelativeDates();
+
+        function hydrateInlineReasons() {
+            document.querySelectorAll(".js-inline-reason").forEach((node) => {
+                const fullText = (node.dataset.full || node.textContent || "").trim();
+
+                if (!fullText) {
+                    node.textContent = "-";
+                    return;
+                }
+
+                const limit = 48;
+
+                if (fullText.length <= limit) {
+                    node.textContent = fullText;
+                    return;
+                }
+
+                const preview = `${fullText.slice(0, limit).trimEnd()}... `;
+                node.textContent = preview;
+
+                const moreBtn = document.createElement("button");
+                moreBtn.type = "button";
+                moreBtn.className = "reason-inline-more";
+                moreBtn.textContent = "more";
+                moreBtn.dataset.reason = fullText;
+                moreBtn.dataset.title = node.dataset.title || "Reason";
+                moreBtn.addEventListener("click", function () {
+                    openReasonTextModal(moreBtn.dataset.title, moreBtn.dataset.reason);
+                });
+
+                node.appendChild(moreBtn);
+            });
+        }
+
+        function setupTablePagination() {
+            document.querySelectorAll(".js-paginated-table").forEach((wrapper) => {
+                const panel = wrapper.closest(".leave-panel");
+                const tbody = wrapper.querySelector("tbody");
+
+                if (!panel || !tbody) {
+                    return;
+                }
+
+                const pagination = panel.querySelector(`[data-pagination-for="${panel.id}"]`);
+                const rows = Array.from(tbody.querySelectorAll("tr:not(.table-empty-row)"));
+                const emptyRow = tbody.querySelector(".table-empty-row");
+
+                if (!pagination || rows.length === 0) {
+                    if (pagination) {
+                        pagination.hidden = true;
+                        pagination.classList.add("is-hidden");
+                    }
+                    if (emptyRow) {
+                        emptyRow.hidden = false;
+                    }
+                    return;
+                }
+
+                const firstBtn = pagination.querySelector('[data-page-action="first"]');
+                const prevBtn = pagination.querySelector('[data-page-action="prev"]');
+                const nextBtn = pagination.querySelector('[data-page-action="next"]');
+                const lastBtn = pagination.querySelector('[data-page-action="last"]');
+                const status = pagination.querySelector(".pagination-status");
+                const rowsPerPage = parseInt(wrapper.dataset.rowsPerPage || "5", 10);
+                const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+                let currentPage = 1;
+
+                const renderPage = () => {
+                    rows.forEach((row, index) => {
+                        const start = (currentPage - 1) * rowsPerPage;
+                        const end = start + rowsPerPage;
+                        row.hidden = !(index >= start && index < end);
+                    });
+
+                    status.textContent = `Page ${currentPage} of ${totalPages}`;
+                    if (firstBtn) {
+                        firstBtn.disabled = currentPage === 1;
+                    }
+                    if (prevBtn) {
+                        prevBtn.disabled = currentPage === 1;
+                    }
+                    if (nextBtn) {
+                        nextBtn.disabled = currentPage === totalPages;
+                    }
+                    if (lastBtn) {
+                        lastBtn.disabled = currentPage === totalPages;
+                    }
+                    const hidePagination = totalPages <= 1;
+                    pagination.hidden = hidePagination;
+                    pagination.classList.toggle("is-hidden", hidePagination);
+                    animateDayBlocksForPanel(panel.id);
+                };
+
+                panel._paginationController = {
+                    showRow(row) {
+                        const rowIndex = rows.indexOf(row);
+
+                        if (rowIndex === -1) {
+                            return;
+                        }
+
+                        currentPage = Math.floor(rowIndex / rowsPerPage) + 1;
+                        renderPage();
+                    }
+                };
+
+                if (firstBtn) {
+                    firstBtn.onclick = () => {
+                        if (currentPage !== 1) {
+                            currentPage = 1;
+                            renderPage();
+                        }
+                    };
+                }
+
+                if (prevBtn) {
+                    prevBtn.onclick = () => {
+                        if (currentPage > 1) {
+                            currentPage -= 1;
+                            renderPage();
+                        }
+                    };
+                }
+
+                if (nextBtn) {
+                    nextBtn.onclick = () => {
+                        if (currentPage < totalPages) {
+                            currentPage += 1;
+                            renderPage();
+                        }
+                    };
+                }
+
+                if (lastBtn) {
+                    lastBtn.onclick = () => {
+                        if (currentPage !== totalPages) {
+                            currentPage = totalPages;
+                            renderPage();
+                        }
+                    };
+                }
+
+                renderPage();
+            });
+        }
+
+        function highlightLeaveRow(targetPanel, targetLeaveId, options = {}) {
+            if (!targetPanel || !targetLeaveId) {
+                return;
+            }
+
+            activatePanel(targetPanel);
+
+            const row = document.querySelector(`.leave-row[data-leave-id="${targetLeaveId}"]`);
+            if (!row) {
+                return;
+            }
+
+            const panel = row.closest(".leave-panel");
+            if (panel && panel._paginationController) {
+                panel._paginationController.showRow(row);
+            }
+
+            row.classList.add("notification-highlight");
+            row.scrollIntoView({ behavior: "smooth", block: "center" });
+
+            if (options.cleanQueryParams) {
+                const params = new URLSearchParams(window.location.search);
+                params.delete("panel");
+                params.delete("highlight_leave");
+                const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}${window.location.hash || ""}`;
+                window.history.replaceState({}, "", cleanUrl);
+            }
+
+            window.setTimeout(() => {
+                row.classList.remove("notification-highlight");
+            }, 4200);
+        }
+
+        function highlightLeaveFromNotification() {
+            let targetPanel = "";
+            let targetLeaveId = "";
+
+            try {
+                const stored = window.sessionStorage.getItem("employeeNotificationHighlight");
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    targetPanel = parsed.panel || "";
+                    targetLeaveId = String(parsed.leaveId || "");
+                    window.sessionStorage.removeItem("employeeNotificationHighlight");
+                }
+            } catch (error) {
+                // Ignore storage failures silently.
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            targetPanel = targetPanel || params.get("panel") || "";
+            targetLeaveId = targetLeaveId || String(params.get("highlight_leave") || "");
+
+            highlightLeaveRow(targetPanel, targetLeaveId, {
+                cleanQueryParams: params.has("panel") || params.has("highlight_leave")
+            });
+        }
+
+        function activatePanel(targetId) {
+            tabs.forEach((tab) => {
+                const active = tab.dataset.target === targetId;
+                tab.classList.toggle("is-active", active);
+                tab.setAttribute("aria-selected", active ? "true" : "false");
+            });
+
+            panels.forEach((panel) => {
+                const active = panel.id === targetId;
+                panel.classList.toggle("is-active", active);
+                panel.hidden = !active;
+            });
+
+            animateDayBlocksForPanel(targetId);
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener("click", function () {
+                activatePanel(tab.dataset.target);
+            });
+        });
+
+        window.myLeaveActivatePanel = activatePanel;
+        window.highlightMyLeaveRow = highlightLeaveRow;
+
+        activatePanel("pending-panel");
+        hydrateDayBlocks();
+        hydrateInlineReasons();
+        setupTablePagination();
+        animateDayBlocksForPanel("pending-panel");
+        highlightLeaveFromNotification();
+    });
+
+    function closeCalendarSelectMenus() {
+        document.querySelectorAll(".calendar-custom-select.open").forEach((dropdown) => {
+            dropdown.classList.remove("open");
+            dropdown.classList.remove("open-up");
+            const trigger = dropdown.querySelector(".calendar-select-trigger");
+            if (trigger) {
+                trigger.setAttribute("aria-expanded", "false");
+            }
+        });
+    }
+
+    function syncCalendarSelect(dropdown) {
+        const nativeSelect = dropdown.querySelector("select");
+        const valueElement = dropdown.querySelector(".calendar-select-value");
+        const options = dropdown.querySelectorAll(".calendar-select-option");
+        const selectedOption = nativeSelect?.options[nativeSelect.selectedIndex];
+
+        if (!nativeSelect || !valueElement) {
+            return;
+        }
+
+        const selectKind = dropdown.dataset.selectKind || "";
+        const selectedMeta = getCalendarSelectMeta(selectKind, nativeSelect.value, selectedOption ? selectedOption.textContent.trim() : "");
+        valueElement.dataset.symbol = selectedMeta.symbol || "";
+        valueElement.textContent = selectedMeta.label || "";
+
+        options.forEach((option) => {
+            option.classList.toggle("selected", option.dataset.value === nativeSelect.value);
+        });
+    }
+
+    function getCalendarSelectMeta(selectKind, value, text) {
+        const cleanText = (text || "").trim();
+
+        if (selectKind === "month") {
+            const monthText = cleanText || "Select Month";
+            return {
+                label: monthText,
+                symbol: monthText ? monthText.slice(0, 3).toUpperCase() : "MON",
+            };
+        }
+
+        if (selectKind === "format") {
+            const label = cleanText || "Select format";
+            const formatMap = {
+                csv: "CSV",
+                excel: "XLS",
+                pdf: "PDF",
+                word: "DOC",
+                json: "JSN",
+                ics: "CAL",
+                print: "PRT",
+                "": "FMT",
+            };
+
+            return {
+                label,
+                symbol: formatMap[String(value || "").toLowerCase()] || label.slice(0, 3).toUpperCase(),
+            };
+        }
+
+        return {
+            label: cleanText,
+            symbol: cleanText ? cleanText.slice(0, 3).toUpperCase() : "",
+        };
+    }
+
+    function renderCalendarSelectMenu(dropdown) {
+        const nativeSelect = dropdown.querySelector("select");
+        const menu = dropdown.querySelector(".calendar-select-menu");
+
+        if (!nativeSelect || !menu) {
+            return;
+        }
+
+        menu.innerHTML = "";
+        const selectKind = dropdown.dataset.selectKind || "";
+
+        Array.from(nativeSelect.options).forEach((option) => {
+            const optionButton = document.createElement("button");
+            optionButton.type = "button";
+            optionButton.className = "calendar-select-option";
+            optionButton.dataset.value = option.value;
+
+            const meta = getCalendarSelectMeta(selectKind, option.value, option.textContent);
+
+            const symbol = document.createElement("span");
+            symbol.className = "calendar-select-option-symbol";
+            symbol.textContent = meta.symbol;
+            optionButton.appendChild(symbol);
+
+            const title = document.createElement("span");
+            title.className = "calendar-select-option-title";
+            title.textContent = meta.label;
+            optionButton.appendChild(title);
+
+            optionButton.addEventListener("click", () => {
+                nativeSelect.value = option.value;
+                syncCalendarSelect(dropdown);
+                closeCalendarSelectMenus();
+                nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+
+            menu.appendChild(optionButton);
+        });
+    }
+
+    function setCalendarSelectDisabled(nativeSelect, disabled) {
+        if (!nativeSelect) {
+            return;
+        }
+
+        nativeSelect.disabled = disabled;
+        const dropdown = nativeSelect.closest(".calendar-custom-select");
+        if (!dropdown) {
+            return;
+        }
+
+        const trigger = dropdown.querySelector(".calendar-select-trigger");
+        dropdown.classList.toggle("is-disabled", disabled);
+
+        if (trigger) {
+            trigger.tabIndex = disabled ? -1 : 0;
+            trigger.setAttribute("aria-disabled", disabled ? "true" : "false");
+        }
+
+        if (disabled) {
+            dropdown.classList.remove("open");
+            trigger?.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    function buildCalendarSelect(nativeSelect) {
+        const shell = document.createElement("div");
+        shell.className = "calendar-custom-select calendar-select-shell";
+        shell.dataset.selectKind = nativeSelect.id === "export-format"
+            ? "format"
+            : "month";
+
+        nativeSelect.classList.add("calendar-native-select");
+
+        const trigger = document.createElement("div");
+        trigger.className = "calendar-select-trigger";
+        trigger.setAttribute("role", "button");
+        trigger.setAttribute("tabindex", nativeSelect.disabled ? "-1" : "0");
+        trigger.setAttribute("aria-haspopup", "listbox");
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.setAttribute("aria-disabled", nativeSelect.disabled ? "true" : "false");
+
+        const display = document.createElement("div");
+        display.className = "calendar-select-display";
+
+        const value = document.createElement("span");
+        value.className = "calendar-select-value";
+
+        const icon = document.createElement("span");
+        icon.className = "calendar-select-icon";
+        icon.setAttribute("aria-hidden", "true");
+
+        trigger.appendChild(value);
+        trigger.appendChild(icon);
+        display.appendChild(trigger);
+
+        const menu = document.createElement("div");
+        menu.className = "calendar-select-menu";
+        menu.setAttribute("role", "listbox");
+
+        shell.appendChild(nativeSelect);
+        shell.appendChild(display);
+        shell.appendChild(menu);
+
+        renderCalendarSelectMenu(shell);
+        syncCalendarSelect(shell);
+        shell.classList.toggle("is-disabled", nativeSelect.disabled);
+
+        const openMenu = () => {
+            if (nativeSelect.disabled) {
+                return;
+            }
+            const isOpen = shell.classList.contains("open");
+            closeCalendarSelectMenus();
+            if (!isOpen) {
+                const triggerRect = trigger.getBoundingClientRect();
+                const estimatedMenuHeight = 196;
+                const spaceBelow = window.innerHeight - triggerRect.bottom;
+                const spaceAbove = triggerRect.top;
+                const forceUp = shell.dataset.selectKind === "format";
+                const forceDown = shell.dataset.selectKind === "month";
+
+                shell.classList.toggle("open-up", !forceDown && (forceUp || (spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow)));
+                shell.classList.add("open");
+                trigger.setAttribute("aria-expanded", "true");
+            }
+        };
+
+        trigger.addEventListener("click", openMenu);
+        trigger.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openMenu();
+            }
+            if (event.key === "Escape") {
+                closeCalendarSelectMenus();
+            }
+        });
+
+        return shell;
+    }
+
+    document.addEventListener("click", (event) => {
+        if (!event.target.closest(".calendar-custom-select")) {
+            closeCalendarSelectMenus();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            closeCalendarSelectMenus();
+        }
+    });
+
+    function openLeaveCalendar() 
+    {
+        fetch("{% url 'leave_calendar_data' %}")
+            .then(res => res.json())
+            .then(data => 
+            {
+                // Load all data (leaves, holidays, company closures) from response
+                const leaves = data.leaves;
+                const holidays = data.holidays;
+                {% comment %} 
+                // const companyClosures = data.company_closures; 
+                {% endcomment %}
+
+                /* ========================================= CLEAR PREVIOUS CONTENT ========================================= */
+                const modalContent = document.getElementById("modal-content");
+                modalContent.innerHTML = "";
+
+                /* ========================================= TITLE ================================================= */
+                const title = document.createElement("h3");
+                title.textContent = "My Leave Calendar";
+                title.classList.add("calendar-title");
+
+                /* ========================================= LEGEND ================================================= */
+                const legend = document.createElement("div");
+                legend.className = "calendar-legend";
+                legend.innerHTML = `
+                    <span class="legend-item pending">Pending</span>
+                    <span class="legend-item approved">Approved</span>
+                    <span class="legend-item rejected">Rejected</span>
+                    <span class="legend-item public">National Holiday</span>
+                    <span class="legend-item company">Company Closed</span>
+                `;
+
+                /* ====================================== Export Calendar ======================================== */
+
+                const info = {
+                    companyName: "MS Technology",
+                    watermark: "CONFIDENTIAL",
+                    logoBase64: null,
+                    userDisplayName: document.getElementById("export-user").dataset.username
+                };
+
+                {% comment %} 
+                // console.log("EXPORT USER:", info.userDisplayName); 
+                {% endcomment %}
+
+                const exportWrapper = document.createElement("div");
+                exportWrapper.className = "export-wrapper";
+
+                exportWrapper.innerHTML = `
+                    <select id="export-format">
+                        <option value="">Select format</option>
+                        <option value="csv">CSV</option>
+                        <option value="excel">Excel (.xlsx)</option>
+                        <option value="pdf">PDF</option>
+                        <option value="word">Word (.docx)</option>
+                        <option value="json">JSON</option>
+                        <option value="ics">iCal (.ics)</option>
+                        <option value="print">Print</option>
+                    </select>
+
+                    <select id="export-month">
+                        <option value="">Select Month</option>
+                        <option value="All">Whole Year</option>
+                        ${Array.from({length:12}).map((_,i)=>`
+                            <option value="${i}"> ${new Date(0,i).toLocaleString("default",{month:"long"})} </option>
+                        `).join("")}
+                    </select>
+
+                    <button id="export-btn" class="export-btn" disabled>&#11015; Export</button>
+                    <span id="export-spinner" class="spinner hidden"></span>
+                `;
+
+                const exportFormat = exportWrapper.querySelector("#export-format");
+                const exportMonth  = exportWrapper.querySelector("#export-month");
+                const exportBtn    = exportWrapper.querySelector("#export-btn");
+                const spinner      = exportWrapper.querySelector("#export-spinner");
+
+                const exportFormatShell = buildCalendarSelect(exportFormat);
+                const exportMonthShell = buildCalendarSelect(exportMonth);
+                exportWrapper.insertBefore(exportFormatShell, exportBtn);
+                exportWrapper.insertBefore(exportMonthShell, exportBtn);
+
+                function toggleExportBtn() 
+                {
+                    exportBtn.disabled = !(exportFormat.value && exportMonth.value);
+                }
+
+                exportFormat.onchange = toggleExportBtn;
+                exportMonth.onchange  = toggleExportBtn;
+
+                // When export button is clicked, show spinner, filter leaves based on selected month, and 
+                // call export function with filtered data and selected format. Hide spinner after export is done.
+                exportBtn.onclick = () => 
+                {
+                    spinner.classList.remove("hidden");
+
+                    const selectedFormat = exportFormat.value;
+                    const selectedMonth  = exportMonth.value;
+
+                    const filteredLeaves = filterLeavesByMonth(leaves, selectedMonth);
+
+                    setTimeout(() => 
+                    {
+                        exportCalendar(filteredLeaves, selectedFormat, selectedMonth, info);
+                        spinner.classList.add("hidden");
+                    }, 300);
+                };
+
+                /* ========================================= MONTH JUMP ======================================== */
+                // This dropdown is for quick navigation within the calendar modal. 
+                // It does not affect export month selection, which is separate and allows "Whole Year" option.
+                const monthSelect = document.createElement("select");
+                monthSelect.className = "month-jump";
+
+                const year = new Date().getFullYear();
+                
+                for (let m = 0; m < 12; m++) 
+                {
+                    const option = document.createElement("option");
+                    option.value = m;
+                    option.textContent = new Date(year, m).toLocaleString("default", { month: "long" });
+                    monthSelect.appendChild(option);
+                }
+
+                // Declare expanded variable to track whether we are in compact mode (showing only selected month) or expanded mode (showing all months).
+                let expanded = false;
+                const currentMonthIndex = new Date().getMonth();
+                monthSelect.value = currentMonthIndex;
+                const monthSelectShell = buildCalendarSelect(monthSelect);
+
+                // Auto select current month in export (compact default)
+                // This is a bit tricky because monthSelect and exportMonth are different dropdowns, but we want them to be in sync for better UX.
+                exportMonth.value = currentMonthIndex;
+                // Compact mode default behaviour is to auto-select current month in export dropdown, because it makes sense that 
+                //if user is looking at current month in calendar, they are likely interested in exporting that month.
+                setCalendarSelectDisabled(exportMonth, true);  // disable export month dropdown when month is selected in compact calendar view as first time calendar will open in compact view
+                syncCalendarSelect(exportMonthShell);
+                toggleExportBtn();
+
+                // When month is selected from dropdown, if in compact mode, show that month and hide others. 
+                // If in expanded mode, scroll to that month.
+                monthSelect.onchange = () => 
+                {
+                    const selectedMonth = parseInt(monthSelect.value);
+
+                    if (!expanded) 
+                    {
+                        // ðŸ”¥ Compact mode â†’ switch visible month
+                        Array.from(yearContainer.children).forEach((monthDiv, index) => 
+                        {
+                            if (index === selectedMonth) 
+                            {
+                                monthDiv.style.display = "block";
+
+                                // smooth fade switch
+                                monthDiv.style.opacity = "0";
+                                monthDiv.style.transform = "translateY(8px)";
+
+                                requestAnimationFrame(() => 
+                                {
+                                    monthDiv.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+                                    monthDiv.style.opacity = "1";
+                                    monthDiv.style.transform = "translateY(0)";
+                                });
+                            } 
+                            else 
+                            {
+                                monthDiv.style.display = "none";
+                            }
+                        });
+                        
+                        // Auto select current month in export (compact default)
+                        exportMonth.value = selectedMonth;
+                        setCalendarSelectDisabled(exportMonth, true);  // disable export month dropdown when month is selected in calendar view
+                        syncCalendarSelect(exportMonthShell);
+                        toggleExportBtn();
+                    } 
+                    else 
+                    {
+                        // ðŸ”¥ Expanded mode â†’ scroll to month
+                        const target = document.getElementById(`month-${selectedMonth}`);
+                        
+                        if (target) 
+                        {
+                            const containerRect = yearContainer.getBoundingClientRect();
+                            const targetRect = target.getBoundingClientRect();
+                            const scrollPosition = yearContainer.scrollTop + (targetRect.top - containerRect.top);
+
+                            yearContainer.scrollTo({ top: scrollPosition, behavior: "smooth" });
+                        }
+                    }
+                };
+                
+
+                /* ====================================== YEAR CONTAINER ====================================== */
+                const yearContainer = document.createElement("div");
+                yearContainer.className = "year-calendar";
+
+                for (let month = 0; month < 12; month++) 
+                {
+                    yearContainer.appendChild( buildMonthCalendar(year, month, leaves, holidays) );
+                }
+
+                // By default, show only current month and hide others to reduce overwhelm and draw attention to current month. 
+                // User can then choose to expand full year if desired.
+                Array.from(yearContainer.children).forEach((monthDiv, index) => 
+                {
+                    if (index !== currentMonthIndex) 
+                    {
+                        monthDiv.style.display = "none";
+                    }
+                });
+
+                /* ====================================== IN-MODAL OVERLAY (HIDDEN) ====================================== */
+                const detailOverlay = document.createElement("div");
+                detailOverlay.id = "calendar-detail-overlay";
+                detailOverlay.style.display = "none";
+                detailOverlay.innerHTML = `
+                    <div class="detail-box">
+                        <!-- <span class="close" onclick="closeCalendarDetail()">Ã—</span> -->
+                        <span class="close" role="button" tabindex="0" aria-label="Close modal" onclick="closeCalendarDetail()">&times;</span>
+                        <div id="calendar-detail-content"></div>
+                    </div>
+                `;
+
+                // When overlay is clicked, if click target is the overlay itself (not the detail box inside), close the overlay. 
+                // This allows users to click outside the detail box to close it, while still allowing interaction 
+                // with the detail box content without accidentally closing it.
+                detailOverlay.addEventListener("click", (e) => 
+                {
+                    // If click is directly on the overlay (not inside the box)
+                    if (e.target.id === "calendar-detail-overlay") 
+                    {
+                        closeCalendarDetail();
+                    }
+                });
+
+                /* =========================================== APPEND ALL ===================================== */
+                modalContent.appendChild(title);
+                modalContent.appendChild(legend);
+                modalContent.appendChild(monthSelectShell);
+                modalContent.appendChild(yearContainer);
+                modalContent.appendChild(detailOverlay);
+                modalContent.appendChild(exportWrapper);
+                
+
+                // Make modal wider for calendar view only ( in your existing modal, just add a class to trigger wider styles)
+                const modalBox = document.querySelector(".modal-box");
+                modalBox.classList.add("compact-calendar");
+
+                // ===== Inject Calendar Toggle Button (Only For Calendar) =====
+                // ===== ADD CALENDAR TOGGLE BUTTON (ONLY FOR CALENDAR) =====
+
+                // Remove existing toggle if somehow still present
+                const oldToggle = document.getElementById("calendar-toggle-icon");
+                if (oldToggle) oldToggle.remove();
+
+                const toggleIcon = document.createElement("button");
+                toggleIcon.id = "calendar-toggle-icon";
+                toggleIcon.className = "calendar-toggle-icon";
+                toggleIcon.type = "button";
+                toggleIcon.innerHTML = `
+                    <span class="expand-icon">&#9638;</span>
+                    <span class="collapse-icon">&minus;</span>
+                `;
+                toggleIcon.title = "Expand Full Year";
+
+                // Find the existing close button
+                const closeBtn = document.querySelector(".modal-header .close");
+
+                if (closeBtn && !document.getElementById("calendar-toggle-icon")) 
+                {
+                    closeBtn.parentNode.insertBefore(toggleIcon, closeBtn);
+                }
+
+                // When toggle button is clicked, if currently in compact mode (showing only current month), 
+                // expand to show all months and change button to "Show Only Current Month". 
+                // If currently in expanded mode (showing all months), collapse to show only current month and 
+                // change button back to "Expand Full Year".
+                toggleIcon.onclick = () => 
+                {
+                    closeCalendarSelectMenus();
+                    expanded = !expanded;
+
+                    const currentMonthIndexcollapse = new Date().getMonth();
+
+                    // When expanding, we want to show all months with a smooth fade-in. When collapsing, 
+                    // we want to hide non-current months with a smooth fade-out, while keeping current month visible.
+                    Array.from(yearContainer.children).forEach((monthDiv, index) =>
+                    {
+                        if (expanded)
+                        {
+                            monthDiv.classList.add("month-hidden");  // start hidden
+                            monthDiv.style.display = "block";       // make visible in layout
+
+                            requestAnimationFrame(() => 
+                            {
+                                monthDiv.classList.remove("month-hidden");
+                            });
+
+                            // Auto select current month in export (compact default) - when we expand to show all months, 
+                            // we want to reset export month selection to "Select Month" to encourage user to choose a month if they want to export, since now they can see all months.
+                            setCalendarSelectDisabled(exportMonth, false);
+                            syncCalendarSelect(exportMonthShell);
+                        }
+
+                        else
+                        {
+                            if (index === parseInt(monthSelect.value))
+                            {
+                                monthDiv.style.display = "block";
+                                monthDiv.classList.remove("month-hidden");
+                            }
+                            else
+                            {
+                                monthDiv.classList.add("month-hidden");
+
+                                setTimeout(() => 
+                                {
+                                    monthDiv.style.display = "none";
+                                }, 300);
+                            }
+                        }
+                    });
+
+                    if (expanded) 
+                    {
+                        modalBox.classList.remove("compact-calendar", "expanded-calendar");
+                        modalBox.classList.add("expanded-calendar");
+
+                        toggleIcon.classList.remove("compact");
+                        toggleIcon.classList.add("expanded");
+
+                        // After expanding, auto-scroll to the month selected in the dropdown for better UX.
+                        // This is needed because when we expand, all months become visible and 
+                        // we want to scroll to the month that user is interested in (selected in dropdown), 
+                        // rather than leaving them at the top of the calendar.
+                        setTimeout(() => 
+                        {
+                            const selectedMonthIndex = parseInt(monthSelect.value);
+                            const target = document.getElementById(`month-${selectedMonthIndex}`);
+
+                            if (!target) return;
+
+                            const containerRect = yearContainer.getBoundingClientRect();
+                            const targetRect = target.getBoundingClientRect();
+                            const scrollPosition = yearContainer.scrollTop + (targetRect.top - containerRect.top);
+
+                            yearContainer.scrollTo({ top: scrollPosition, behavior: "smooth" });
+                        }, 50);
+
+                        // When switching to expanded â†’ reset export month
+                        exportMonth.value = "All";   // shows "Select month"
+                        // OR use this if you prefer auto whole year:
+                        // exportMonth.value = "All";
+
+                        toggleExportBtn();
+                    } 
+                    
+                    else 
+                    {
+                        modalBox.classList.remove("expanded-calendar", "compact-calendar");
+                        modalBox.classList.add("compact-calendar");
+
+                        toggleIcon.classList.remove("expanded");
+                        toggleIcon.classList.add("compact");
+
+                        // ðŸ”¥ Restore export month
+                        const selectedMonthIndex = parseInt(monthSelect.value);
+                        exportMonth.value = selectedMonthIndex;
+                        setCalendarSelectDisabled(exportMonth, true); // Enable export month dropdown in compact mode since month is determined by calendar view
+                        syncCalendarSelect(exportMonthShell);
+                        toggleExportBtn();
+                    }
+
+                    toggleIcon.title = expanded ? "Collapse to Current Month" : "Expand Full Year";
+                };
+                
+
+                // ðŸ”¥ Subtle fade-in for current month
+                // When the calendar modal is opened, the current month will fade in subtly to draw attention, while other months remain hidden. 
+                // This provides a smoother and more engaging visual experience right from the start.
+                // The expand/collapse toggle can then be used to view other months with smooth transitions.
+                const currentMonthDiv = yearContainer.children[currentMonthIndex];
+
+                // ðŸ”¥ Premium fade + blur + soft scale
+                currentMonthDiv.classList.add("month-enter");
+                currentMonthDiv.classList.add("month-shadow-enter");
+
+                requestAnimationFrame(() => 
+                {
+                    currentMonthDiv.classList.add("month-enter-active");
+                    currentMonthDiv.classList.add("month-shadow-active");
+                });
+
+                openModal();
+            });
+    }
+
+    function buildMonthCalendar(year, month, leaves, holidays)
+    {
+        const monthContainer = document.createElement("div");
+        monthContainer.id = `month-${month}`;
+        monthContainer.className = "month-container";
+
+        const monthName = new Date(year, month).toLocaleString("default", { month: "long" });
+
+        const header = document.createElement("h4");
+        header.textContent = monthName + " " + year;
+        header.className = "month-title";
+
+        const grid = document.createElement("div");
+        grid.className = "calendar-grid";
+
+        const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+        days.forEach(d => 
+        {
+            const h = document.createElement("div");
+            h.className = "calendar-header";
+            if (d === "Sat" || d === "Sun") {
+                h.classList.add("weekend-header");
+            }
+            h.textContent = d;
+            grid.appendChild(h);
+        });
+
+        const divider = document.createElement("div");
+        divider.className = "calendar-row-divider";
+        grid.appendChild(divider);
+
+        const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) 
+        {
+            grid.appendChild(document.createElement("div"));
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) 
+        {
+            const cell = document.createElement("div");
+            cell.className = "calendar-cell";
+            cell.textContent = day;
+            const dayOfWeek = new Date(year, month, day).getDay();
+
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                cell.classList.add("weekend-cell");
+            }
+
+            const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+            // Highlight today's date with a special class for distinct styling. 
+            // This makes it easy for users to quickly identify the current day in the calendar.
+            const today = new Date();
+            const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+
+            if (dateStr === todayStr) 
+            {
+                cell.classList.add("today-highlight");
+            }
+
+            const holiday = holidays.find(h => h.date === dateStr);
+            const leave = leaves.find(l => dateStr >= l.from && dateStr <= l.to);
+
+            /* ===============================
+            4ï¸âƒ£ TOOLTIP PREVIEW (HOVER)
+            =============================== */
+            if (leave) 
+            {
+                cell.title = `Leave Type: ${leave.type} \nDate : ${leave.from} &rarr; ${leave.to} \nStatus: ${leave.status}`;
+            }
+
+            // 1ï¸âƒ£ Company closure (highest priority)
+            {% comment %} 
+            /*if (companyDay) 
+            {
+                const companyDot = document.createElement("span");
+                companyDot.className = "holiday-dot company-dot";
+                companyDot.title = `Company Holiday: ${companyDay.name}`;
+                cell.appendChild(companyDot);
+            }*/
+            {% endcomment %}
+
+            // 2ï¸âƒ£ Public holiday
+            if (holiday) 
+            {
+                const publicDot = document.createElement("span");
+                publicDot.className = "holiday-dot public-dot";
+                publicDot.title = `Public Holiday: ${holiday.name}`;
+                cell.appendChild(publicDot);
+            }
+
+            /* ===============================
+            EXISTING LEAVE MARKING
+            =============================== */
+            if (leave) 
+            {
+                const type = document.createElement("small");
+                type.textContent = leave.type;
+                type.title = leave.type;
+                cell.appendChild(type);
+                
+                //DETECT POSITION OF DAY IN A LEAVE RANGE
+                const isStart = dateStr === leave.from;
+                const isEnd   = dateStr === leave.to;
+
+                cell.classList.add("leave", leave.status.toLowerCase());
+                cell.dataset.leaveId = leave.id;
+
+                if (isStart) cell.classList.add("leave-start");
+                else if (isEnd) cell.classList.add("leave-end");
+                else cell.classList.add("leave-middle");
+
+
+                cell.style.cursor = "pointer";
+                cell.onclick = () => openCalendarDetail(leave);
+            }
+
+            grid.appendChild(cell);
+        }
+
+        monthContainer.appendChild(header);
+        monthContainer.appendChild(grid);
+
+        return monthContainer;
+    }
+
+    /* Export Calendar Start */
+    function filterLeavesByMonth(leaves, month) 
+    {
+        if (month === "All") return leaves;
+
+        return leaves.filter(l => 
+        {
+            const startMonth = new Date(l.from).getMonth();
+            const endMonth   = new Date(l.to).getMonth();
+            return startMonth <= month && month <= endMonth;
+        });
+    }
+
+    function exportCalendar(leaves, format, month, info) 
+    {
+        if (!leaves.length) 
+        {
+            alert("No leaves to export");
+            return;
+        }
+
+        switch (format) 
+        {
+            case "csv":   exportCSV(leaves, info); break;
+            case "excel": exportExcel(leaves, info ); break;
+            case "pdf":   exportPDF(leaves, info); break;
+            case "word":  exportWord(leaves, info); break;
+            case "json":  exportJSON(leaves); break;
+            case "ics":   exportICS(leaves); break;
+            case "print": printCalendar(leaves, info); break;
+        }
+    }
+
+    function exportCSV(leaves, info) 
+    {
+        let csv = "Type,From,To,Status,Reason\n";
+
+        leaves.forEach(l => 
+        {
+            csv += `"${l.type}","${l.from}","${l.to}","${l.status}","${(l.reason||"").replace(/"/g,'""')}"\n`;
+        });
+
+        downloadFile(csv, "my_leave_calendar.csv", "text/csv");
+    }
+
+    function exportExcel(leaves, info) 
+    {
+        const data = leaves.map(l => (
+        {
+            Type: l.type,
+            From: l.from, To: l.to,
+            Status: l.status,
+            Reason: l.reason || ""
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Leaves");
+
+        XLSX.writeFile(wb, "my_leave_calendar.xlsx");
+    }
+
+    function exportPDF(leaves, info) 
+    {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(14);
+        doc.text("Your Company Name", 14, 10);
+
+        doc.setFontSize(16);
+        doc.text("My Leave Calendar", 14, 15);
+
+        doc.setFontSize(10);
+        doc.text("User: " + info.userDisplayName, 14, 16);
+
+        doc.setTextColor(200);
+        doc.text("CONFIDENTIAL", 60, 150, { angle: 45 });
+        doc.setTextColor(0);
+
+        doc.autoTable({
+            head: [["Type","From","To","Status","Reason"]],
+            body: leaves.map(l => [ l.type, l.from, l.to, l.status, l.reason || "" ]),
+            startY: 25
+        });
+
+        doc.save("leave_calendar.pdf");
+    }
+    
+    function exportWord(leaves, info) 
+    {
+        const 
+        {
+            Document, Packer, Paragraph, TextRun,
+            Table, TableRow, TableCell
+        } = window.docx;
+
+        const header = new Paragraph(
+        {
+            children: [
+                new TextRun({ text: "Your Company Name", bold: true, size: 28 }),
+                new TextRun({ text: "\nUser: " + info.userDisplayName, size: 20 })
+            ]
+        });
+
+        const rows = [
+            new TableRow(
+            {
+                children: ["Type","From","To","Status","Reason"].map(h =>
+                    new TableCell(
+                    {
+                        children: [new Paragraph({ children:[new TextRun({text:h,bold:true})] })]
+                    })
+                )
+            }),
+            ...leaves.map(l =>
+                new TableRow(
+                {
+                    children: [l.type,l.from,l.to,l.status,l.reason||""].map(v => new TableCell({ children:[new Paragraph(v)] }))
+                })
+            )
+        ];
+
+        const doc = new Document(
+        {
+            sections: [{ children: [header, new Paragraph(""), new Table({ rows })] }]
+        });
+
+        Packer.toBlob(doc).then(blob => 
+        {
+            downloadBlob(blob, "leave_calendar.docx");
+        });
+    }
+
+    function exportJSON(leaves) 
+    {
+        downloadFile(
+            JSON.stringify(leaves, null, 2),
+            "my_leave_calendar.json",
+            "application/json"
+        );
+    }
+
+    function exportICS(leaves) 
+    {
+        let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\n";
+
+        leaves.forEach(l => 
+        {
+            ics += `BEGIN:VEVENT
+            SUMMARY:${l.type} Leave (${l.status})
+            DTSTART:${l.from.replace(/-/g,"")}
+            DTEND:${l.to.replace(/-/g,"")}
+            DESCRIPTION:${l.reason || ""}
+            END:VEVENT\n`;
+        });
+
+        ics += "END:VCALENDAR";
+
+        downloadFile(ics, "my_leave_calendar.ics", "text/calendar");
+    }
+
+    function printCalendar(leaves, info) 
+    {
+        let w = window.open("", "_blank");
+
+        w.document.write(`
+            <h2>${info.companyName}</h2>
+            <p>User: ${info.userDisplayName}</p>
+            <table border="1" cellspacing="0" cellpadding="6">
+                <tr>
+                    <th>Type</th><th>From</th><th>To</th><th>Status</th><th>Reason</th>
+                </tr>
+                ${leaves.map(l=>`
+                    <tr>
+                        <td>${l.type}</td>
+                        <td>${l.from}</td>
+                        <td>${l.to}</td>
+                        <td>${l.status}</td>
+                        <td>${l.reason||""}</td>
+                    </tr>
+                `).join("")}
+            </table>
+        `);
+
+        w.print();
+    }
+
+    function downloadFile(content, filename, type) 
+    {
+        const blob = new Blob([content], { type });
+        downloadBlob(blob, filename);
+    }
+
+
+    function downloadBlob(blob, filename)
+    {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    function openCalendarDetail(leave)
+    {
+        const overlay = document.getElementById("calendar-detail-overlay");
+        const content = document.getElementById("calendar-detail-content");
+
+        content.innerHTML = `
+            <h4 style="text-align:center; margin-bottom:12px;">Leave Details</h4>
+
+            <table class="leave-table">
+                
+                {% comment %} 
+                <!-- <tr>
+                    <th>ID</th>
+                    <td>${leave.id}</td>
+                </tr> --> 
+                {% endcomment %}
+                
+                <tr>
+                    <th>Type</th>
+                    <td>${leave.type}</td>
+                </tr>
+                <tr>
+                    <th>From</th>
+                    <td>${leave.from}</td>
+                </tr>
+                <tr>
+                    <th>To</th>
+                    <td>${leave.to}</td>
+                </tr>
+                <tr>
+                    <th>Reason</th>
+                    <td><textarea readonly >${leave.reason || '-'}</textarea></td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>${leave.status}</td>
+                </tr>
+            </table>
+
+            
+            ${leave.status === "Pending" ? `
+                <div class="detail-actions">
+                    
+                    <button class="edit-btn" onclick='openInlineEdit(${JSON.stringify(leave)})'> &#9998; Edit </button>
+                    
+                    <form method="post" action="/delete-leave/${leave.id}/"
+                        onsubmit="return confirm('Delete this leave?');">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                        <button type="submit" class="delete-btn">&#128465; Delete</button>
+                    </form>
+
+                </div>
+            ` : ""}
+        `;
+
+        overlay.style.display = "flex";
+        requestAnimationFrame(() => overlay.classList.add("show"));
+    }
+
+    function closeCalendarDetail()
+    {
+        const overlay = document.getElementById("calendar-detail-overlay");
+        overlay.classList.remove("show");
+        setTimeout(() => overlay.style.display = "none", 300);
+    }
+    
+    function openInlineEdit(leave)
+    {
+        const content = document.getElementById("calendar-detail-content");
+
+        content.innerHTML = `
+            <center> <h4>Edit Leave</h4> </center>
+
+            <form method="post" action="/edit-leave/${leave.id}/" class="modal-form">
+                
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+
+                <label>Type</label>
+                <select name="leave_type" required>
+                    <option value="">Select type</option>
+                    <option ${leave.type==="Short"?"selected":""}>Short</option>
+                    <option ${leave.type==="Half Day"?"selected":""}>Half Day</option>
+                    <option ${leave.type==="Sick"?"selected":""}>Sick</option>
+                    <option ${leave.type==="Earned"?"selected":""}>Earned</option>
+                    <option ${leave.type==="Casual"?"selected":""}>Casual</option>
+                </select>
+
+                <label>From</label>
+                <input type="date" name="from_date" id="from_date" value="${leave.from}" required>
+
+                <label>To</label>
+                <input type="date" name="to_date" id="to_date" value="${leave.to}" required>
+
+                <label>Reason</label>
+                <textarea name="reason" required>${leave.reason || ""}</textarea>
+
+                <div class="detail-actions">
+                    <button type="submit" class="apply-btn">&#10004; Update</button>
+                    <button type="button" class="cancel-btn" onclick="closeCalendarDetail()">&#10006; Cancel</button>
+                </div>
+            </form>
+        `;
+        
+        const now = new Date();
+        const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+
+        const fromDateInput = content.querySelector("#from_date");
+        const toDateInput = content.querySelector("#to_date");
+
+        // Set minimum selectable date
+        fromDateInput.min = today;
+        toDateInput.min = today;  
+        
+        // Ensure "To date" is never before "From date"
+        fromDateInput.addEventListener("change", () => 
+        {
+            if (fromDateInput.value) 
+            {
+                // Block all dates before from_date
+                toDateInput.min = fromDateInput.value;
+
+                // If already selected to_date is invalid, clear it
+                if (toDateInput.value && toDateInput.value < fromDateInput.value) 
+                {
+                    toDateInput.value = "";
+                }
+            }
+        }); 
+    }
+
+
+    function getCSRFToken() 
+    {
+        return document.getElementById("csrf-token").value;
+    }
+
+    const csrfToken = document.getElementById("csrf-token").value;
+    let currentFilterState = {};
+
+    function loadCurrentFilterState()
+    {
+        const node = document.getElementById("my-leave-filters-json");
+
+        if (!node) return {};
+
+        try
+        {
+            return JSON.parse(node.value || "{}");
+        }
+        catch (error)
+        {
+            return {};
+        }
+    }
+
+    currentFilterState = loadCurrentFilterState();
+
+    function escapeHtml(value)
+    {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function formatAjaxRelativeLeaveAge(isoValue)
+    {
+        if (!isoValue)
+        {
+            return "-";
+        }
+
+        const target = new Date(isoValue);
+
+        if (Number.isNaN(target.getTime()))
+        {
+            return "-";
+        }
+
+        const now = new Date();
+        const diffMs = Math.max(0, now.getTime() - target.getTime());
+        const diffMinutes = Math.floor(diffMs / (60 * 1000));
+        const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+        const minuteRemainder = String(diffMinutes % 60).padStart(2, "0");
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const diffDays = Math.max(0, Math.floor((startOfToday - startOfTarget) / msPerDay));
+
+        if (diffMinutes <= 0) return "just now";
+        if (diffMinutes === 1) return "1 min ago";
+        if (diffMinutes <= 59) return `${diffMinutes} min ago`;
+        if (diffHours === 1) return `1 hour, ${minuteRemainder} min ago`;
+        if (diffHours <= 23) return `${diffHours} hour, ${minuteRemainder} min ago`;
+        if (diffDays <= 6) return `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
+
+        return target.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+    }
+
+    function getLeaveTypeSymbol(leaveType)
+    {
+        const symbolMap = {
+            Sick: "+",
+            Casual: "\u263C",
+            Earned: "\u2605",
+            Short: "\u25D4",
+            Half: "\u25D0",
+        };
+
+        return symbolMap[leaveType] || "\u2726";
+    }
+
+    function getLeaveCode(leaveType)
+    {
+        if (leaveType === "Short") return "S";
+        if (leaveType === "Half") return "H";
+        return (leaveType || "").slice(0, 1).toUpperCase();
+    }
+
+    function buildPendingLeavePillHtml(leave)
+    {
+        return `
+            <span class="leave-pill leave-pill-${escapeHtml(leave.leave_type_class)}">
+                <span class="leave-pill-symbol">${escapeHtml(leave.leave_symbol || getLeaveTypeSymbol(leave.leave_type))}</span>
+                <span class="leave-pill-code">${escapeHtml(leave.leave_code || getLeaveCode(leave.leave_type))}</span>
+                <span class="leave-pill-name">${escapeHtml(leave.leave_type)}</span>
+            </span>
+        `;
+    }
+
+    function buildPendingScheduleHtml(leave)
+    {
+        const scheduleTimeClass = leave.leave_type === "Short"
+            ? " schedule-time-short"
+            : leave.leave_type === "Half"
+                ? " schedule-time-half"
+                : "";
+
+        const timeHtml = leave.from_time_display && leave.to_time_display
+            ? `
+                <span>${escapeHtml(leave.from_time_display)}</span>
+                <span class="range-arrow">&rarr;</span>
+                <span>${escapeHtml(leave.to_time_display)}</span>
+            `
+            : `<span>Full day</span>`;
+
+        return `
+            <div class="schedule-block">
+                <div class="schedule-line">
+                    <span class="meta-icon" data-meta-icon="calendar" aria-hidden="true"></span>
+                    <strong>${escapeHtml(leave.from_date_display)}</strong>
+                    <span class="range-arrow">&rarr;</span>
+                    <strong>${escapeHtml(leave.to_date_display)}</strong>
+                </div>
+                <div class="schedule-line schedule-time${scheduleTimeClass}">
+                    <span class="meta-icon" data-meta-icon="clock" aria-hidden="true"></span>
+                    ${timeHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function buildPendingUpdatedHtml(leave)
+    {
+        const relativeText = formatAjaxRelativeLeaveAge(leave.updated_iso);
+        const count = Number(leave.updated_count || 0);
+        const dateText = relativeText === "-" ? "-" : (count > 0 ? `${relativeText} (${count})` : relativeText);
+
+        if (!leave.updated_iso)
+        {
+            return `
+                <div class="applied-block">
+                    <div class="applied-line">
+                        <span class="meta-icon meta-icon-updated" data-meta-icon="updated" aria-hidden="true"></span>
+                        <strong>-</strong>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="applied-block">
+                <div class="applied-line">
+                    <span class="meta-icon meta-icon-updated" data-meta-icon="updated" aria-hidden="true"></span>
+                    <strong data-relative-datetime="${escapeHtml(leave.updated_iso)}" data-relative-count="${count}">${escapeHtml(dateText)}</strong>
+                </div>
+                <div class="applied-line">
+                    <span class="meta-icon meta-icon-updated-time" data-meta-icon="clock" aria-hidden="true"></span>
+                    <span>${escapeHtml(leave.updated_time_display || "")}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function updatePendingDaysBlock(block, leave)
+    {
+        if (!block) return;
+
+        const valueNode = block.querySelector(".js-days-value");
+        const labelNode = block.querySelector(".js-days-label");
+
+        block.dataset.leaveType = leave.leave_type;
+        block.dataset.fromDate = leave.from_date;
+        block.dataset.toDate = leave.to_date;
+
+        if (!valueNode || !labelNode) return;
+
+        if (leave.leave_type === "Short" || leave.leave_type === "Half")
+        {
+            const hourValue = leave.leave_type === "Short" ? 2 : 4;
+            block.dataset.daysTarget = String(hourValue);
+            block.dataset.daysSuffix = " hour";
+            block.dataset.daysLabel = "of the day";
+            valueNode.textContent = `${hourValue} hour`;
+            labelNode.textContent = "of the day";
+            return;
+        }
+
+        const start = new Date(`${leave.from_date}T00:00:00`);
+        const end = new Date(`${leave.to_date}T00:00:00`);
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const diffDays = Math.max(1, Math.round((end - start) / msPerDay) + 1);
+
+        block.dataset.daysTarget = String(diffDays);
+        block.dataset.daysSuffix = "";
+        block.dataset.daysLabel = diffDays === 1 ? "day" : "days";
+        valueNode.textContent = String(diffDays);
+        labelNode.textContent = diffDays === 1 ? "day" : "days";
+    }
+
+    function applyPendingInlineReason(node, fullText)
+    {
+        if (!node) return;
+
+        const safeText = String(fullText || "").trim();
+        node.innerHTML = "";
+        node.dataset.full = safeText;
+        node.dataset.title = node.dataset.title || "Leave Reason";
+
+        if (!safeText)
+        {
+            node.textContent = "-";
+            return;
+        }
+
+        const limit = 48;
+
+        if (safeText.length <= limit)
+        {
+            node.textContent = safeText;
+            return;
+        }
+
+        node.append(document.createTextNode(`${safeText.slice(0, limit).trimEnd()}... `));
+
+        const moreBtn = document.createElement("button");
+        moreBtn.type = "button";
+        moreBtn.className = "reason-inline-more";
+        moreBtn.textContent = "more";
+        moreBtn.dataset.reason = safeText;
+        moreBtn.dataset.title = node.dataset.title;
+        moreBtn.addEventListener("click", function ()
+        {
+            openReasonTextModal(moreBtn.dataset.title, moreBtn.dataset.reason);
+        });
+
+        node.appendChild(moreBtn);
+    }
+
+    function updatePendingCounts(count)
+    {
+        [
+            document.querySelector('.status-tab[data-target="pending-panel"] .status-tab-count'),
+            document.querySelector('#pending-panel .card-summary-badge strong'),
+            document.querySelector('.summary-panel-accent strong')
+        ].forEach((node) =>
+        {
+            if (!node) return;
+            node.textContent = String(count);
+            node.dataset.countupTarget = String(count);
+        });
+    }
+
+    function setCurrentFilterState(nextState)
+    {
+        currentFilterState = nextState;
+        const node = document.getElementById("my-leave-filters-json");
+        if (node)
+        {
+            node.value = JSON.stringify(currentFilterState);
+        }
+    }
+
+    function normalizeFilterState(filterState)
+    {
+        const normalized = {
+            leave_type: filterState.leave_type || null,
+            month: filterState.month || null,
+            from_date: filterState.from_date || null,
+            to_date: filterState.to_date || null,
+        };
+
+        if (normalized.month)
+        {
+            normalized.from_date = null;
+            normalized.to_date = null;
+        }
+        else if (normalized.from_date || normalized.to_date)
+        {
+            normalized.month = null;
+        }
+
+        return normalized;
+    }
+
+    function hasActiveFilter(filterState)
+    {
+        return Boolean(filterState.leave_type || filterState.month || filterState.from_date || filterState.to_date);
+    }
+
+    function getPanelStatusLabel(panelId)
+    {
+        const status = panelId.replace("-panel", "");
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    function updateStatusPanelCount(status, count)
+    {
+        const panelId = getPanelIdFromStatus(status);
+        const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
+        const summaryCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
+
+        [tabCount, summaryCount].forEach((node) =>
+        {
+            if (!node) return;
+            node.textContent = String(count);
+            node.dataset.countupTarget = String(count);
+        });
+
+        if (status === "Pending")
+        {
+            updatePendingCounts(count);
+        }
+    }
+
+    function renderFilterBadges(status)
+    {
+        const panelId = getPanelIdFromStatus(status);
+        const panel = document.getElementById(panelId);
+        const header = panel?.querySelector(".table-header");
+        const filterButton = header?.querySelector(".filter-btn");
+        const filterState = normalizeFilterState(currentFilterState[status] || {});
+        const indicator = document.querySelector(`[data-tab-filter-indicator="${status}"]`);
+
+        if (!header || !filterButton) return;
+
+        if (indicator)
+        {
+            indicator.classList.toggle("hidden", !hasActiveFilter(filterState));
+        }
+
+        let badges = header.querySelector(".filter-badges");
+
+        if (!hasActiveFilter(filterState))
+        {
+            if (badges) badges.remove();
+            return;
+        }
+
+        if (!badges)
+        {
+            badges = document.createElement("div");
+            badges.className = "filter-badges";
+            filterButton.insertAdjacentElement("afterend", badges);
+        }
+
+        const badgeParts = [];
+
+        if (filterState.leave_type)
+        {
+            badgeParts.push(`<span class="badge">&#127991; ${escapeHtml(filterState.leave_type)} <a href="#" data-filter-status="${escapeHtml(status)}" data-filter-field="leave_type">&#10006;</a></span>`);
+        }
+
+        if (filterState.month)
+        {
+            badgeParts.push(`<span class="badge">&#128467; ${escapeHtml(filterState.month)} <a href="#" data-filter-status="${escapeHtml(status)}" data-filter-field="month">&#10006;</a></span>`);
+        }
+        else if (filterState.from_date || filterState.to_date)
+        {
+            badgeParts.push(`<span class="badge">&#128197; ${escapeHtml(filterState.from_date || "...")} &rarr; ${escapeHtml(filterState.to_date || "...")} <a href="#" data-filter-status="${escapeHtml(status)}" data-filter-field="date_range">&#10006;</a></span>`);
+        }
+
+        badges.innerHTML = badgeParts.join("");
+    }
+
+    function rowMatchesFilter(row, filterState)
+    {
+        const leaveType = row.dataset.leaveType || "";
+        const fromDate = row.dataset.fromDate || "";
+        const toDate = row.dataset.toDate || "";
+
+        if (filterState.leave_type && leaveType !== filterState.leave_type)
+        {
+            return false;
+        }
+
+        if (filterState.month && fromDate.slice(0, 7) !== filterState.month)
+        {
+            return false;
+        }
+
+        if (!filterState.month)
+        {
+            if (filterState.from_date && fromDate < filterState.from_date)
+            {
+                return false;
+            }
+
+            if (filterState.to_date && toDate > filterState.to_date)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function applyFilterStateToPanel(status)
+    {
+        const panelId = getPanelIdFromStatus(status);
+        const panel = document.getElementById(panelId);
+
+        if (!panel) return;
+
+        const filterState = normalizeFilterState(currentFilterState[status] || {});
+        const rows = Array.from(panel.querySelectorAll("tbody tr.leave-row"));
+
+        rows.forEach((row) =>
+        {
+            const matches = rowMatchesFilter(row, filterState);
+            row.classList.toggle("filter-hidden", !matches);
+            if (!matches)
+            {
+                row.hidden = true;
+            }
+        });
+
+        renderFilterBadges(status);
+
+        const visibleCount = rows.filter((row) => !row.classList.contains("filter-hidden")).length;
+        updateStatusPanelCount(status, visibleCount);
+        refreshPanelPagination(panelId);
+    }
+
+    function renumberPendingRows()
+    {
+        document.querySelectorAll('#pending-panel tbody tr.leave-row:not(.filter-hidden)').forEach((row, index) =>
+        {
+            const serialCell = row.querySelector(".sn-cell");
+            if (serialCell)
+            {
+                serialCell.textContent = String(index + 1);
+            }
+        });
+    }
+
+    function refreshPanelPagination(panelId)
+    {
+        const panel = document.getElementById(panelId);
+        const wrapper = panel?.querySelector(".js-paginated-table");
+        const tbody = panel?.querySelector("tbody");
+        const pagination = panel?.querySelector(`[data-pagination-for="${panelId}"]`);
+
+        if (!panel || !wrapper || !tbody || !pagination) return;
+
+        const rows = Array.from(tbody.querySelectorAll("tr.leave-row:not(.filter-hidden)"));
+        let emptyRow = tbody.querySelector(".table-empty-row");
+        const rowsPerPage = parseInt(wrapper.dataset.rowsPerPage || "5", 10);
+        const firstBtn = pagination.querySelector('[data-page-action="first"]');
+        const prevBtn = pagination.querySelector('[data-page-action="prev"]');
+        const nextBtn = pagination.querySelector('[data-page-action="next"]');
+        const lastBtn = pagination.querySelector('[data-page-action="last"]');
+        const status = pagination.querySelector(".pagination-status");
+
+        if (rows.length === 0)
+        {
+            if (!emptyRow)
+            {
+                emptyRow = document.createElement("tr");
+                emptyRow.className = "table-empty-row";
+                const colCount = panelId === "pending-panel" || panelId === "rejected-panel" ? 8 : 7;
+                const emptyText = panelId === "approved-panel"
+                    ? "No approved leaves"
+                    : panelId === "rejected-panel"
+                        ? "No rejected leaves"
+                        : "No pending leaves";
+                emptyRow.innerHTML = `<td colspan="${colCount}">${emptyText}</td>`;
+                tbody.appendChild(emptyRow);
+            }
+            if (emptyRow) emptyRow.hidden = false;
+            pagination.hidden = true;
+            pagination.classList.add("is-hidden");
+            return;
+        }
+
+        if (emptyRow) emptyRow.hidden = true;
+
+        const existingVisibleIndex = rows.findIndex((row) => !row.hidden);
+        const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+        let currentPage = existingVisibleIndex >= 0 ? Math.floor(existingVisibleIndex / rowsPerPage) + 1 : 1;
+        currentPage = Math.min(currentPage, totalPages);
+
+        const renderPage = () =>
+        {
+            rows.forEach((row, index) =>
+            {
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                row.hidden = !(index >= start && index < end);
+            });
+
+            if (status) status.textContent = `Page ${currentPage} of ${totalPages}`;
+            if (firstBtn) firstBtn.disabled = currentPage === 1;
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+            if (lastBtn) lastBtn.disabled = currentPage === totalPages;
+
+            const hidePagination = totalPages <= 1;
+            pagination.hidden = hidePagination;
+            pagination.classList.toggle("is-hidden", hidePagination);
+        };
+
+        panel._paginationController = {
+            showRow(row)
+            {
+                const rowIndex = rows.indexOf(row);
+                if (rowIndex === -1) return;
+                currentPage = Math.floor(rowIndex / rowsPerPage) + 1;
+                renderPage();
+            }
+        };
+
+        if (firstBtn) firstBtn.onclick = () => { if (currentPage !== 1) { currentPage = 1; renderPage(); } };
+        if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage -= 1; renderPage(); } };
+        if (nextBtn) nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage += 1; renderPage(); } };
+        if (lastBtn) lastBtn.onclick = () => { if (currentPage !== totalPages) { currentPage = totalPages; renderPage(); } };
+
+        renderPage();
+    }
+
+    function refreshPendingPagination()
+    {
+        refreshPanelPagination("pending-panel");
+    }
+
+    function updatePendingRowFromPayload(leave)
+    {
+        const row = document.querySelector(`#pending-panel .leave-row[data-leave-id="${leave.id}"]`);
+        if (!row) return;
+
+        row.className = `leave-row leave-row-${leave.leave_type_class}`;
+        row.children[1].innerHTML = buildPendingLeavePillHtml(leave);
+        row.children[2].innerHTML = buildPendingScheduleHtml(leave);
+        row.children[5].innerHTML = buildPendingUpdatedHtml(leave);
+
+        updatePendingDaysBlock(row.querySelector(".js-days-block"), leave);
+        applyPendingInlineReason(row.querySelector(".js-inline-reason"), leave.reason);
+
+        const editBtn = row.querySelector(".edit-btn");
+        if (editBtn)
+        {
+            editBtn.dataset.type = leave.leave_type;
+            editBtn.dataset.from = leave.from_date;
+            editBtn.dataset.to = leave.to_date;
+            editBtn.dataset.reason = leave.reason || "";
+            editBtn.dataset.fromdatetime = leave.from_datetime_iso || "";
+            editBtn.dataset.todatetime = leave.to_datetime_iso || "";
+        }
+
+        row.dataset.leaveType = leave.leave_type;
+        row.dataset.fromDate = leave.from_date;
+        row.dataset.toDate = leave.to_date;
+    }
+
+    let myLeaveLiveNotificationSignature = "";
+    let myLeaveLiveNotificationInitialized = false;
+    let myLeaveRefreshInFlight = false;
+    let myLeaveRefreshQueued = null;
+
+    function getMyLeaveDecisionNotifications(notifications)
+    {
+        if (!Array.isArray(notifications))
+        {
+            return [];
+        }
+
+        return notifications.filter((item) => item && item.target_panel);
+    }
+
+    function buildMyLeaveNotificationSignature(notifications)
+    {
+        return getMyLeaveDecisionNotifications(notifications)
+            .map((item) => [
+                item.id || "",
+                item.target_panel || "",
+                item.status || "",
+                item.status_class || "",
+                item.updated_text || "",
+                item.applied_text || ""
+            ].join(":"))
+            .join("|");
+    }
+
+    function getActiveMyLeavePanelId()
+    {
+        return document.querySelector(".leave-panel.is-active")?.id || "pending-panel";
+    }
+
+    function applyAllMyLeaveFilters()
+    {
+        ["Pending", "Approved", "Rejected"].forEach((status) =>
+        {
+            applyFilterStateToPanel(status);
+        });
+    }
+
+    async function refreshMyLeaveLiveData(options = {})
+    {
+        if (myLeaveRefreshInFlight)
+        {
+            myLeaveRefreshQueued = options;
+            return;
+        }
+
+        myLeaveRefreshInFlight = true;
+
+        try
+        {
+            const response = await fetch(`{% url 'my_leave' %}?section=live_data`, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Cache-Control": "no-cache"
+                },
+                credentials: "same-origin",
+                cache: "no-store"
+            });
+
+            if (!response.ok)
+            {
+                throw new Error("Unable to refresh my leave data.");
+            }
+
+            const payload = await response.json();
+            const activePanelId = options.activePanel || getActiveMyLeavePanelId();
+
+            const summaryHost = document.querySelector("[data-my-leave-summary]");
+            const statsHost = document.querySelector("[data-my-leave-stats]");
+            const pendingBody = document.querySelector('[data-my-leave-table-body="pending"]');
+            const approvedBody = document.querySelector('[data-my-leave-table-body="approved"]');
+            const rejectedBody = document.querySelector('[data-my-leave-table-body="rejected"]');
+
+            if (summaryHost && typeof payload.summary_html === "string")
+            {
+                summaryHost.innerHTML = payload.summary_html;
+            }
+
+            if (statsHost && typeof payload.stats_html === "string")
+            {
+                statsHost.innerHTML = payload.stats_html;
+            }
+
+            if (pendingBody && typeof payload.pending_rows_html === "string")
+            {
+                pendingBody.innerHTML = payload.pending_rows_html;
+            }
+
+            if (approvedBody && typeof payload.approved_rows_html === "string")
+            {
+                approvedBody.innerHTML = payload.approved_rows_html;
+            }
+
+            if (rejectedBody && typeof payload.rejected_rows_html === "string")
+            {
+                rejectedBody.innerHTML = payload.rejected_rows_html;
+            }
+
+            hydrateRelativeDates();
+            hydrateDayBlocks();
+            hydrateInlineReasons();
+            setupTablePagination();
+            renumberPendingRows();
+            applyAllMyLeaveFilters();
+
+            if (typeof window.myLeaveActivatePanel === "function")
+            {
+                window.myLeaveActivatePanel(activePanelId);
+            }
+
+            if (options.targetPanel && options.highlightLeaveId && typeof window.highlightMyLeaveRow === "function")
+            {
+                window.highlightMyLeaveRow(options.targetPanel, String(options.highlightLeaveId));
+            }
+        }
+        catch (error)
+        {
+            console.error("My leave live refresh error:", error);
+        }
+        finally
+        {
+            myLeaveRefreshInFlight = false;
+
+            if (myLeaveRefreshQueued)
+            {
+                const nextOptions = myLeaveRefreshQueued;
+                myLeaveRefreshQueued = null;
+                refreshMyLeaveLiveData(nextOptions);
+            }
+        }
+    }
+
+    function ensureAjaxMessageHost()
+    {
+        let host = document.getElementById("ajax-message-stack");
+
+        if (host) return host;
+
+        host = document.createElement("div");
+        host.id = "ajax-message-stack";
+        host.style.position = "fixed";
+        host.style.top = "18px";
+        host.style.right = "18px";
+        host.style.zIndex = "9999";
+        host.style.display = "grid";
+        host.style.gap = "10px";
+        host.style.maxWidth = "360px";
+        document.body.appendChild(host);
+        return host;
+    }
+
+    function showAjaxMessages(messages)
+    {
+        if (!Array.isArray(messages) || messages.length === 0) return;
+
+        const host = ensureAjaxMessageHost();
+
+        messages.forEach((message) =>
+        {
+            const item = document.createElement("div");
+            const isError = String(message.tags || "").includes("error");
+            const isWarning = String(message.tags || "").includes("warning");
+
+            item.style.background = isError ? "#fff1f2" : isWarning ? "#fff7ed" : "#effaf5";
+            item.style.border = `1px solid ${isError ? "#fda4af" : isWarning ? "#fdba74" : "#86efac"}`;
+            item.style.borderRadius = "14px";
+            item.style.boxShadow = "0 14px 30px rgba(15, 23, 42, 0.14)";
+            item.style.padding = "12px 14px";
+            item.style.color = "#16324f";
+            item.style.fontSize = "0.92rem";
+            item.style.lineHeight = "1.35";
+
+            const title = document.createElement("strong");
+            title.textContent = message.title || "Update";
+            title.style.display = "block";
+            title.style.marginBottom = "4px";
+
+            const text = document.createElement("div");
+            text.textContent = message.text || "";
+
+            item.appendChild(title);
+            item.appendChild(text);
+            host.appendChild(item);
+
+            window.setTimeout(() =>
+            {
+                item.remove();
+                if (!host.childElementCount)
+                {
+                    host.remove();
+                }
+            }, isError ? 6500 : 4200);
+        });
+    }
+
+    async function parseAjaxResponse(response)
+    {
+        try
+        {
+            return await response.json();
+        }
+        catch (error)
+        {
+            return {
+                success: false,
+                messages: [{ title: "Action needed", text: "Could not read the server response.", tags: "error" }]
+            };
+        }
+    }
+
+    async function parseAjaxResponseLenient(response, fallbackMessage)
+    {
+        const contentType = response.headers.get("content-type") || "";
+
+        if (contentType.includes("application/json"))
+        {
+            return parseAjaxResponse(response);
+        }
+
+        return {
+            success: response.ok,
+            messages: fallbackMessage
+                ? [{ title: "Success", text: fallbackMessage, tags: "success" }]
+                : []
+        };
+    }
+
+    async function submitPendingLeaveAjax(url, formData)
+    {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": getCSRFToken()
+            },
+            body: formData,
+            credentials: "same-origin"
+        });
+
+        const payload = await parseAjaxResponse(response);
+
+        if (!response.ok || payload.success === false)
+        {
+            showAjaxMessages(payload.messages);
+            return payload;
+        }
+
+        showAjaxMessages(payload.messages);
+        return payload;
+    }
+
+    function getPanelIdFromStatus(status)
+    {
+        return `${String(status || "").toLowerCase()}-panel`;
+    }
+
+    window.bindPendingLeaveEditAjax = function (form)
+    {
+        if (!form) return;
+
+        form.onsubmit = async function (event)
+        {
+            event.preventDefault();
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            if (submitBtn) submitBtn.disabled = true;
+
+            const payload = await submitPendingLeaveAjax(form.action, new FormData(form));
+
+            if (submitBtn) submitBtn.disabled = false;
+
+            if (!payload.success || !payload.leave)
+            {
+                return false;
+            }
+
+            updatePendingRowFromPayload(payload.leave);
+            renumberPendingRows();
+            applyFilterStateToPanel("Pending");
+
+            if (typeof closeModal === "function")
+            {
+                closeModal();
+            }
+
+            return false;
+        };
+    };
+
+    document.addEventListener("DOMContentLoaded", () =>
+    {
+        document.addEventListener("submit", async (event) =>
+        {
+            const form = event.target.closest(".js-pending-delete-form");
+
+            if (!form) return;
+
+            event.preventDefault();
+
+            if (!window.confirm("Delete this leave?"))
+            {
+                return;
+            }
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const payload = await submitPendingLeaveAjax(form.action, new FormData(form));
+
+            if (submitBtn) submitBtn.disabled = false;
+
+            if (!payload.success)
+            {
+                return;
+            }
+
+            const row = form.closest("tr.leave-row");
+            if (row) row.remove();
+
+            renumberPendingRows();
+            applyFilterStateToPanel("Pending");
+        });
+
+        document.addEventListener("click", async (event) =>
+        {
+            const clearLink = event.target.closest('.filter-badges a[data-filter-field], .filter-badges a[href*="clear-status-filter-field"]');
+
+            if (!clearLink) return;
+
+            event.preventDefault();
+
+            const panel = clearLink.closest(".leave-panel");
+            const normalizedStatus = clearLink.dataset.filterStatus || (panel ? getPanelStatusLabel(panel.id) : "");
+            const filterField = clearLink.dataset.filterField || "";
+
+            if (!normalizedStatus) return;
+
+            const nextState = { ...currentFilterState };
+            const current = normalizeFilterState(nextState[normalizedStatus] || {});
+
+            if (filterField === "date_range")
+            {
+                current.from_date = null;
+                current.to_date = null;
+            }
+            else if (filterField)
+            {
+                current[filterField] = null;
+            }
+
+            if (hasActiveFilter(current))
+            {
+                nextState[normalizedStatus] = current;
+            }
+            else
+            {
+                delete nextState[normalizedStatus];
+            }
+
+            setCurrentFilterState(nextState);
+            applyFilterStateToPanel(normalizedStatus);
+
+            const requestUrl = clearLink.dataset.filterField
+                ? `/clear-status-filter-field/${normalizedStatus}/${filterField}/`
+                : clearLink.href;
+
+            const response = await fetch(requestUrl, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Cache-Control": "no-cache"
+                },
+                credentials: "same-origin",
+                cache: "no-store"
+            });
+
+            const payload = await parseAjaxResponseLenient(response, "Filter updated.");
+
+            if (!response.ok || payload.success === false)
+            {
+                showAjaxMessages(payload.messages);
+                return;
+            }
+
+            showAjaxMessages(payload.messages);
+        });
+
+        ["Pending", "Approved", "Rejected"].forEach((status) =>
+        {
+            applyFilterStateToPanel(status);
+        });
+    });
+
+    window.addEventListener("hr-notification-state-sync", function (event)
+    {
+        const detail = event.detail || {};
+        const notificationDropdown = document.querySelector(".notification-dropdown[data-notification-api]");
+
+        if (
+            !notificationDropdown ||
+            detail.apiUrl !== notificationDropdown.dataset.notificationApi ||
+            !Array.isArray(detail.notifications)
+        )
+        {
+            return;
+        }
+
+        const signature = buildMyLeaveNotificationSignature(detail.notifications);
+
+        if (!myLeaveLiveNotificationInitialized)
+        {
+            myLeaveLiveNotificationInitialized = true;
+            myLeaveLiveNotificationSignature = signature;
+            return;
+        }
+
+        if (!signature || signature === myLeaveLiveNotificationSignature)
+        {
+            return;
+        }
+
+        myLeaveLiveNotificationSignature = signature;
+
+        const latestDecision = getMyLeaveDecisionNotifications(detail.notifications)[0] || {};
+
+        refreshMyLeaveLiveData({
+            activePanel: getActiveMyLeavePanelId(),
+            targetPanel: latestDecision.target_panel || "",
+            highlightLeaveId: latestDecision.id || ""
+        });
+    });
+
+    const now = new Date();
+    const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+
+    document.getElementById("edit-from").min = today;
+    document.getElementById("edit-to").min = today;
+
+    // Once from_date is selected, user must NOT be able to pick a to_date before it
+    document.addEventListener("DOMContentLoaded", () => 
+    {
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+
+        if (!fromDate || !toDate) return;
+
+        toDate.addEventListener("change", () => 
+        {
+            // Block all dates before from_date
+            toDate.min = fromDate.value;
+
+            // If already selected to_date is invalid, clear it
+            if (toDate.value && toDate.value < fromDate.value) 
+            {
+                toDate.value = "";
+            }
+        });
+
+        fromDate.addEventListener("change", () => 
+        {
+            // Block all dates before from_date
+            toDate.min = fromDate.value || today;
+
+            // If already selected to_date is invalid, clear it
+            if (toDate.value && toDate.value < fromDate.value) 
+            {
+                toDate.value = "";
+            }
+        });
+    });
+    
+    let editStoredTime = 
+    {
+        Short: { hour: "", minute: "" },
+        Half: { hour: "", minute: "" }
+    };
+
+    // =======================================
+    // OPEN EDIT LEAVE
+    // =======================================
+
+    function openEditLeave(btn)
+    {
+        const formTemplate = document.getElementById("edit-leave-template");
+        const modalBox = document.querySelector(".modal-box");
+
+        if (modalBox) {
+            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-filter-modal-box");
+        }
+
+        modalContent.innerHTML = "";
+        modalContent.appendChild(formTemplate);
+
+        const form = document.getElementById("edit-leave-form");
+        form.reset(); // ðŸ”¥ clears previous values
+        
+        editStoredTime.Short = { hour: "", minute: "" };
+        editStoredTime.Half  = { hour: "", minute: "" };
+
+        form.action = `/edit-leave/${btn.dataset.id}/`;
+
+        if (window.bindPendingLeaveEditAjax)
+        {
+            window.bindPendingLeaveEditAjax(form);
+        }
+
+        const leaveType = document.getElementById("edit-leave-type");
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+        const reason = document.getElementById("edit-reason");
+
+        const fromTimeField = document.getElementById("edit_from_time_field");
+        const toTimeField = document.getElementById("edit_to_time_field");
+
+        leaveType.value = btn.dataset.type;
+        leaveType.dataset.prevType = btn.dataset.type;
+        fromDate.value = btn.dataset.from;
+        toDate.value = btn.dataset.to;
+        reason.value = btn.dataset.reason;
+
+        document.getElementById("edit-existing-datetime").value = btn.dataset.fromdatetime || "";
+
+        // Show time section if Short/Half
+        if (btn.dataset.type === "Short" || btn.dataset.type === "Half")
+        {
+            fromTimeField.style.display = "block";
+            toTimeField.style.display = "block";
+            
+            toDate.readOnly = true;
+            toDate.value = fromDate.value;
+
+            generate_edit_time_fields(btn.dataset.type);
+
+            // Populate existing time
+            if (btn.dataset.fromdatetime && btn.dataset.todatetime)
+            {
+                const start = new Date(btn.dataset.fromdatetime);
+                const hourSelect = document.getElementById("edit-hour");
+                const minuteSelect = document.getElementById("edit-minute");
+                const ampm = document.getElementById("edit-ampm");
+
+                hourSelect.value = start.getHours();
+                
+                if (hourSelect.options.length > 1) 
+                {
+                    hourSelect.dispatchEvent(new Event("change"));
+                }
+
+                // wait for minute options to render
+                setTimeout(() =>
+                {
+                    if (minuteSelect.options.length > 1) 
+                    {
+                        minuteSelect.value = start.getMinutes();
+                        calculate_end_time();
+                    }
+                }, 0);
+                
+                ampm.value = start.getHours() >= 12 ? "PM" : "AM";
+
+                // FIXED STORAGE
+                editStoredTime[btn.dataset.type] =
+                {
+                    hour: hourSelect.value,
+                    minute: minuteSelect.value
+                };
+
+                calculate_end_time();
+            }
+        }
+
+        else
+        {
+            fromTimeField.style.display = "none";
+            toTimeField.style.display = "none";
+
+            toDate.readOnly = false;
+
+             // ðŸ”¥ Clear warning
+            const warning = document.getElementById("edit-time-warning");
+            if (warning) warning.innerText = "";
+
+            const existingTimeBox = document.getElementById("edit-existing-time");
+            if (existingTimeBox) existingTimeBox.style.display = "none";
+        }
+
+
+        // Handle leave type change
+        // FIXED EVENT STACKING
+        leaveType.onchange = function ()
+        {
+            const hourSelect = document.getElementById("edit-hour");
+            const minuteSelect = document.getElementById("edit-minute");
+            const toTime = document.getElementById("edit-to-time");
+
+            const newType = this.value;
+            const previousType = leaveType.dataset.prevType || btn.dataset.type;
+
+            // ðŸ”¥ If previous type was Short or Half â†’ store its time
+            if (previousType === "Short" || previousType === "Half") 
+            {
+                editStoredTime[previousType] = 
+                {
+                    hour: hourSelect.value,
+                    minute: minuteSelect.value
+                };
+            }
+
+            // Update tracker
+            leaveType.dataset.prevType = newType;
+
+            // ðŸ”¥ If new type is Short or Half
+            if (newType === "Short" || newType === "Half")
+            {
+                fromTimeField.style.display = "block";
+                toTimeField.style.display = "block";
+
+                toDate.readOnly = true;
+                toDate.value = fromDate.value;
+
+                // Remember current selection before regenerating
+                const previousHour = hourSelect.value;
+                const previousMinute = minuteSelect.value;
+
+                // Regenerate dropdowns
+                generate_edit_time_fields(newType);
+
+                const stored = editStoredTime[newType];
+                let restoreHour = stored.hour !== "" ? stored.hour : previousHour;
+                let restoreMinute = stored.minute !== "" ? stored.minute : previousMinute;
+
+                // Check if hour exists in new dropdown
+                const hourValid = [...hourSelect.options].some(o => o.value === restoreHour);
+
+                if (hourValid)
+                {
+                    hourSelect.value = restoreHour;
+
+                    // generate minutes
+                    hourSelect.dispatchEvent(new Event("change"));
+
+                    setTimeout(() =>
+                    {
+                        const minuteValid = [...minuteSelect.options].some(o => o.value == restoreMinute);
+
+                        if (minuteValid)
+                        {
+                            minuteSelect.value = restoreMinute;
+                            calculate_end_time();
+                        }
+                    }, 0);
+                }
+                else
+                {
+                    hourSelect.value = "";
+                    minuteSelect.value = "";
+                    toTime.value = "";
+
+                    const ampm = document.getElementById("edit-ampm");
+                    ampm.value = "AM/PM";
+                }
+            }
+
+            else 
+            {
+                fromTimeField.style.display = "none";
+                toTimeField.style.display = "none";
+                toTime.value = ""; // ðŸ”¥ Also clear when hiding
+                toDate.readOnly = false;
+
+                const warning = document.getElementById("edit-time-warning");
+                if (warning) warning.innerText = "";
+
+                const existingTimeBox = document.getElementById("edit-existing-time");
+                if (existingTimeBox) existingTimeBox.style.display = "none";
+            }
+        };
+
+        fromDate.onchange = function ()
+        {
+            const type = leaveType.value;
+
+            if (type !== "Short" && type !== "Half") return;
+
+            toDate.value = this.value;
+
+            const hourSelect = document.getElementById("edit-hour");
+            const minuteSelect = document.getElementById("edit-minute");
+            const toTime = document.getElementById("edit-to-time");
+
+            // store current selection
+            if (hourSelect.value !== "" && minuteSelect.value !== "")
+            {
+                editStoredTime[type] =
+                {
+                    hour: hourSelect.value,
+                    minute: minuteSelect.value
+                };
+            }
+
+            // regenerate dropdowns with strict rules
+            generate_strict_edit_time(type);
+
+            const stored = editStoredTime[type];
+
+            if (stored.hour === "") return;
+
+            // check if stored hour exists in new dropdown
+            const hourValid = [...hourSelect.options].some(o => o.value === stored.hour);
+
+            if (!hourValid)
+            {
+                // reset if invalid
+                hourSelect.value = "";
+                minuteSelect.value = "";
+                toTime.value = "";
+
+                const ampm = document.getElementById("edit-ampm");
+                ampm.value = "AM/PM";
+
+                return;
+            }
+
+            // restore hour
+            hourSelect.value = stored.hour;
+
+            // generate minutes
+            hourSelect.dispatchEvent(new Event("change"));
+
+            setTimeout(() =>
+            {
+                const minuteValid = [...minuteSelect.options].some(o => o.value == stored.minute);
+
+                if (minuteValid)
+                {
+                    minuteSelect.value = stored.minute;
+                    calculate_end_time();
+                }
+                else
+                {
+                    minuteSelect.value = "";
+                    toTime.value = "";
+                }
+
+            }, 0);
+        };
+
+        openModal();
+    }
+
+    // =======================================
+    // GENERATE HOURS & MINUTES
+    // =======================================
+
+    function generate_edit_time_fields(type)
+    {
+        const fromDate = document.getElementById("edit-from");
+
+        // If date exists, generate strict time
+        if (fromDate.value)
+        {
+            generate_strict_edit_time(type);
+            return;
+        }
+
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+
+        hourSelect.innerHTML = '<option value="">Hour</option>';
+        minuteSelect.innerHTML = '<option value="">Minute</option>';
+
+        if (type !== "Short" && type !== "Half") return;
+
+        const startHour = 10;
+        const endHour = (type === "Short") ? 16 : 14;
+
+        // Generate Hours
+        for (let h = startHour; h <= endHour; h++) 
+        {
+            const opt = document.createElement("option");
+            opt.value = h;
+            opt.textContent = h > 12 ? h - 12 : h;
+            hourSelect.appendChild(opt);
+        }
+
+        // Generate Minutes
+        for (let m = 0; m < 60; m++) 
+        {
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = m.toString().padStart(2, "0");
+            minuteSelect.appendChild(opt);
+        }
+
+        // Remove previous listeners by resetting handlers
+        hourSelect.onchange = null;
+        minuteSelect.onchange = null;
+
+        // Reset minute when hour changes
+        const ampm = document.getElementById("edit-ampm");
+        const toTime = document.getElementById("edit-to-time");
+
+        hourSelect.addEventListener("change", function () 
+        {
+            const selectedHour = parseInt(this.value);
+
+            if (this.value === "") 
+            {
+                // ðŸ”¥ Reset to default
+                ampm.value = "AM/PM";
+                minuteSelect.value = "";
+                toTime.value = "";
+                return;
+            }
+
+            // Set AM/PM
+            ampm.value = selectedHour >= 12 ? "PM" : "AM";
+
+            // ðŸ”¥ Reset minute and end time
+            minuteSelect.value = "";
+            toTime.value = "";
+        });
+
+        minuteSelect.addEventListener("change", calculate_end_time);
+    }
+
+
+    let TEST_TIME = "14:30";  // Example: TEST_TIME = "14:30";
+
+    // =======================================
+    // STRICT HOUR + MINUTE GENERATION
+    // =======================================
+
+    function generate_strict_edit_time(type)
+    {
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+        const fromDate = document.getElementById("edit-from");
+        const warning = document.getElementById("edit-time-warning");
+
+        hourSelect.innerHTML = '<option value="">Hour</option>';
+        minuteSelect.innerHTML = '<option value="">Minute</option>';
+        warning.innerText = "";
+
+        if (!fromDate.value) return;
+        if (type !== "Short" && type !== "Half") return;
+
+        const startHour = 10;
+        const endHour = (type === "Short") ? 16 : 14;
+
+        const now = new Date();
+        const selectedDate = new Date(fromDate.value);
+        selectedDate.setHours(0,0,0,0);
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let minHour = startHour;
+        let minMinute = 0;
+
+        // Handle Past Dates and Times
+
+        if ( selectedDate < today )
+        {
+            warning.innerText = "Cannot change time for past leave.";
+
+            const existingDatetime = document.getElementById("edit-existing-datetime").value;
+
+            if (existingDatetime)
+            {
+                const start = new Date(existingDatetime);
+
+                const hour = start.getHours();
+                const minute = start.getMinutes();
+
+                // Reset dropdowns
+                hourSelect.innerHTML = "";
+                minuteSelect.innerHTML = "";
+
+                hourSelect.onchange = null;
+                minuteSelect.onchange = null;
+
+                const hourOption = document.createElement("option");
+                hourOption.value = hour;
+                hourOption.textContent = hour > 12 ? hour - 12 : hour;
+                hourOption.selected = true;
+                hourSelect.appendChild(hourOption);
+
+                const minuteOption = document.createElement("option");
+                minuteOption.value = minute;
+                minuteOption.textContent = minute.toString().padStart(2,"0");
+                minuteOption.selected = true;
+                minuteSelect.appendChild(minuteOption);
+
+                const ampm = document.getElementById("edit-ampm");
+                ampm.value = hour >= 12 ? "PM" : "AM";
+
+                calculate_end_time();
+            }
+
+            return;
+        }
+
+        // Handle Today's Date and Time
+
+        if (selectedDate.getTime() === today.getTime())
+        {
+            const minAllowed = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+            minHour = minAllowed.getHours();
+            minMinute = minAllowed.getMinutes();
+
+            if (minHour < startHour)
+            {
+                minHour = startHour;
+                minMinute = 0;
+            }
+
+            // Handle Todays Date and Past Times
+            
+            if ( minHour > endHour || minAllowed.toDateString() !== today.toDateString() )
+            {
+                warning.innerText = "No valid time available for today.";
+                
+                const existingDatetime = document.getElementById("edit-existing-datetime").value;
+
+                if (existingDatetime)
+                {
+                    const start = new Date(existingDatetime);
+                    const hour = start.getHours();
+                    const minute = start.getMinutes();
+
+                    // Disable generation
+                    hourSelect.onchange = null;
+                    minuteSelect.onchange = null;
+
+                    // Inject hour option
+                    const hourOption = document.createElement("option");
+                    hourOption.value = hour;
+                    hourOption.textContent = hour > 12 ? hour - 12 : hour;
+                    hourOption.selected = true;
+                    hourSelect.appendChild(hourOption);
+
+                    // Inject minute option
+                    const minuteOption = document.createElement("option");
+                    minuteOption.value = minute;
+                    minuteOption.textContent = minute.toString().padStart(2, "0");
+                    minuteOption.selected = true;
+                    minuteSelect.appendChild(minuteOption);
+
+                    const ampm = document.getElementById("edit-ampm");
+                    ampm.value = hour >= 12 ? "PM" : "AM";
+
+                    calculate_end_time();
+                }
+
+                return;
+            }
+        }
+
+        // Generate hours
+        for (let h = startHour; h <= endHour; h++)
+        {
+            if (selectedDate.getTime() === today.getTime() && h < minHour)
+                continue;
+
+            const opt = document.createElement("option");
+            opt.value = h;
+            opt.textContent = h > 12 ? h - 12 : h;
+            hourSelect.appendChild(opt);
+        }
+
+        // Hour change logic
+        hourSelect.onchange = function ()
+        {
+            minuteSelect.innerHTML = '<option value="">Minute</option>';
+
+            const ampm = document.getElementById("edit-ampm");
+            const toTime = document.getElementById("edit-to-time");
+
+            if (this.value === "")
+            {
+                ampm.value = "AM/PM";
+                toTime.value = "";
+                return;
+            }
+
+            const selectedHour = parseInt(this.value);
+
+            ampm.value = selectedHour >= 12 ? "PM" : "AM";
+            toTime.value = "";
+
+            const existingDatetime_forminutes = document.getElementById("edit-existing-datetime").value;
+
+            let existingMinute = null;
+
+            if (existingDatetime_forminutes)
+            {
+                existingMinute = new Date(existingDatetime_forminutes).getMinutes();
+            }
+
+            for (let m = 0; m < 60; m++)
+            {
+                // â­ allow applied minute
+                if ( selectedDate.getTime() === today.getTime() && selectedHour === minHour && m < minMinute && m !== existingMinute )
+                    continue;
+
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = m.toString().padStart(2, "0");
+                minuteSelect.appendChild(opt);
+            }
+        };
+
+        // ðŸ”¥ If hour already selected (edit case), generate minutes immediately
+        if (hourSelect.value !== "")
+        {
+            hourSelect.onchange();
+        }
+
+        minuteSelect.onchange = calculate_end_time;
+    }
+
+    // =======================================
+    // END TIME CALCULATION
+    // =======================================
+
+    function calculate_end_time()
+    {
+        const leaveType = document.getElementById("edit-leave-type");
+        const fromDate = document.getElementById("edit-from");
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+        const toTime = document.getElementById("edit-to-time");
+        const fromHidden = document.getElementById("edit_from_datetime");
+        const toHidden = document.getElementById("edit_to_datetime");
+
+        if (!fromDate.value || !hourSelect.value || minuteSelect.value === "")
+            return;
+
+        const start = new Date(fromDate.value);
+        start.setHours(parseInt(hourSelect.value));
+        start.setMinutes(parseInt(minuteSelect.value));
+
+        let duration = 0;
+
+        if (leaveType.value === "Short") duration = 2;
+        if (leaveType.value === "Half") duration = 4;
+
+        if (duration === 0) return;
+
+        const end = new Date(start.getTime() + duration * 60 * 60 * 1000);
+
+        const displayHour = end.getHours() > 12 ? end.getHours() - 12 : (end.getHours() === 0 ? 12 : end.getHours());
+
+        const displayMinute = end.getMinutes().toString().padStart(2, "0");
+        const ampm = end.getHours() >= 12 ? "PM" : "AM";
+
+        toTime.value = `${displayHour}:${displayMinute} ${ampm}`;
+
+        fromHidden.value = start.toISOString();
+        toHidden.value = end.toISOString();
+    }
+
+    function openReasonTextModal(titleText, reasonText)
+    {
+        const modalContent = document.getElementById("modal-content");
+        const modalBox = document.querySelector(".modal-box");
+        modalContent.innerHTML = "";
+
+        if (modalBox) {
+            modalBox.classList.remove("compact-calendar", "expanded-calendar", "popup-filter-modal-box");
+            modalBox.classList.add("reason-modal");
+        }
+
+        const title = document.createElement("h3");
+        title.textContent = titleText || "My Leave Reason";
+        title.style.textAlign = "center";
+
+        const textarea = document.createElement("textarea");
+        textarea.readOnly = true;
+        textarea.value = reasonText || "";
+        textarea.style.width = "100%";
+        textarea.style.minHeight = "220px";
+
+        modalContent.appendChild(title);
+        modalContent.appendChild(textarea);
+
+        openModal();
+    }
+
+    function openReasonModal(btn) 
+    {
+        openReasonTextModal(btn.dataset.title || "My Leave Reason", btn.dataset.reason);
+    }
+
+    function openFilterModal(status) 
+    {
+        const modalBox = document.querySelector(".modal-box");
+        if (modalBox) {
+            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar");
+        }
+
+        // SAFETY: clear previous content
+        modalContent.innerHTML = "";
+
+        const current = currentFilterState[status] || {};
+        const hasFilters = current.leave_type || current.month || current.from_date || current.to_date;
+
+        // 1ï¸âƒ£ Create container
+        const content = document.createElement("div");
+        content.className = "filter-modal-content";
+
+        // 3ï¸âƒ£ Build content safely
+        content.innerHTML = `
+            <h3 style="text-align:center;">&#128269; Filter Leaves</h3>
+
+            <form method="post" action="/apply-status-filter/${status}/" class="filter-form">
+
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+
+                <label>&#128450; Leave Type</label>
+                <select name="leave_type">
+                    <option value="">All</option>
+                    <option value="Short" ${current.leave_type==="Short"?"selected":""}> Short (2-Hours) </option>
+                    <option value="Half" ${current.leave_type==="Half"?"selected":""}> Half (4-Hours) </option>
+                    <option value="Sick" ${current.leave_type==="Sick"?"selected":""}> Sick </option>
+                    <option value="Casual" ${current.leave_type==="Casual"?"selected":""}> Casual </option>
+                    <option value="Earned" ${current.leave_type==="Earned"?"selected":""}> Earned </option>
+                </select>
+
+                <label>&#128467; Month</label>
+                <input type="month" name="month" value="${current.month || ""}">
+                
+                <p style="text-align:center;font-size:12px;color:#666;"><br><b> &mdash; OR &mdash; </b></p>
+
+                <label>&#128197; Date Range</label>
+                <input type="date" name="from_date" id="from_date" value="${current.from_date || ""}">
+                <input type="date" name="to_date" id="to_date" value="${current.to_date || ""}" >
+
+                <div style="margin-top:16px; display:flex; justify-content:space-between;">
+
+                    <button type="submit" class="apply-btn">&#10004; Apply</button>
+                    
+                    <!-- CLEAR (IMPORTANT PART) -->
+                    <button type="submit" class="clear-btn"  
+                        formaction="/clear-status-filter/${status}/" formmethod="post"
+                        ${!hasFilters ? "disabled" : ""}
+                        >
+                        &#10006; Reset Filters 
+                    </button>
+
+                </div>
+            </form>
+        `;
+
+        // 4ï¸âƒ£ Append (NOT innerHTML replace)
+        modalContent.appendChild(content);
+
+        const filterForm = content.querySelector(".filter-form");
+
+        if (filterForm)
+        {
+            filterForm.onsubmit = async function (event)
+            {
+                event.preventDefault();
+
+                const submitter = event.submitter;
+                const actionUrl = submitter?.formAction || filterForm.action;
+                const submitMethod = (submitter?.formMethod || filterForm.method || "post").toUpperCase();
+                const isResetAction = submitter?.classList.contains("clear-btn");
+
+                if (isResetAction)
+                {
+                    const confirmed = window.confirm(`Are you sure you want to clear all filters for ${status} Leaves Section?`);
+                    if (!confirmed)
+                    {
+                        return false;
+                    }
+                }
+
+                const submitBtn = submitter instanceof HTMLButtonElement ? submitter : null;
+                if (submitBtn) submitBtn.disabled = true;
+
+                const response = await fetch(actionUrl, {
+                    method: submitMethod,
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": getCSRFToken()
+                    },
+                    body: new FormData(filterForm),
+                    credentials: "same-origin",
+                    cache: "no-store"
+                });
+
+                const payload = await parseAjaxResponseLenient(
+                    response,
+                    isResetAction ? "Filters cleared." : "Filter applied."
+                );
+
+                if (submitBtn) submitBtn.disabled = false;
+
+                const formData = new FormData(filterForm);
+                const nextState = { ...currentFilterState };
+                const normalized = normalizeFilterState({
+                    leave_type: formData.get("leave_type"),
+                    month: formData.get("month"),
+                    from_date: formData.get("from_date"),
+                    to_date: formData.get("to_date"),
+                });
+
+                if (isResetAction || !hasActiveFilter(normalized))
+                {
+                    delete nextState[status];
+                }
+                else
+                {
+                    nextState[status] = normalized;
+                }
+
+                setCurrentFilterState(nextState);
+                applyFilterStateToPanel(status);
+
+                if (!response.ok || payload.success === false)
+                {
+                    showAjaxMessages(payload.messages);
+                    return false;
+                }
+
+                showAjaxMessages(payload.messages);
+
+                if (typeof closeModal === "function")
+                {
+                    closeModal();
+                }
+
+                return false;
+            };
+        }
+
+        const fromDateInput = content.querySelector("#from_date");
+        const toDateInput = content.querySelector("#to_date");
+        
+        // Ensure "To date" is never before "From date"
+
+        fromDateInput.addEventListener("change", () => 
+        {
+            if ( fromDateInput.value ) 
+            {
+                // Block all dates before from_date
+                toDateInput.min = fromDateInput.value;
+
+                // If already selected to_date is invalid, clear it
+                if ( toDateInput.value && toDateInput.value < fromDateInput.value ) 
+                {
+                    toDateInput.value = "";
+                }
+            }
+        }); 
+        
+        // 5ï¸âƒ£ Open existing modal
+        openModal();
+
+        // 6ï¸âƒ£ Setup exclusivity logic
+        setupFilterExclusivity(content);
+    }
+
+    function setupFilterExclusivity(container) 
+    {
+        const monthInput = container.querySelector('input[name="month"]');
+        const fromDate = container.querySelector('input[name="from_date"]');
+        const toDate = container.querySelector('input[name="to_date"]');
+
+        if (!monthInput || !fromDate || !toDate) return;
+
+        function toggleDateRange() 
+        {
+            if (monthInput.value) 
+            {
+                fromDate.disabled = true;
+                toDate.readOnly = true;
+                fromDate.value = "";
+                toDate.value = "";
+            } 
+            else 
+            {
+                fromDate.disabled = false;
+                toDate.readOnly = false;
+            }
+        }
+
+        function toggleMonth() 
+        {
+            if (fromDate.value || toDate.value) 
+            {
+                monthInput.disabled = true;
+                monthInput.value = "";
+            } 
+            else 
+            {
+                monthInput.disabled = false;
+            }
+        }
+
+        monthInput.addEventListener("input", toggleDateRange);
+        fromDate.addEventListener("input", toggleMonth);
+        toDate.addEventListener("input", toggleMonth);
+
+        // Initial state (CRITICAL)
+        toggleDateRange();
+        toggleMonth();
+    }
+
+</script>
+
+{% endblock %}
+
+
+

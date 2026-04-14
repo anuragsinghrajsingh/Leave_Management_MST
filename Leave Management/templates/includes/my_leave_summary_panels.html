@@ -1,0 +1,18 @@
+<div class="summary-panel summary-panel-balance">
+    <span class="summary-label">Available Balance</span>
+    <strong data-countup data-countup-target="{{ balance.total_leaves }}" data-countup-decimals="2">{{ balance.total_leaves }}</strong>
+    <span class="summary-meta">
+        Total remaining leave days
+    </span>
+    <span class="summary-meta">
+        <span data-countup data-countup-target="{{ balance.sick_used|add:balance.earned_used }}" data-countup-decimals="2">{{ balance.sick_used|add:balance.earned_used }}</span>
+        used of
+        <span data-countup data-countup-target="27" data-countup-decimals="2">27</span>
+    </span>
+</div>
+
+<div class="summary-panel summary-panel-accent">
+    <span class="summary-label">Open Requests</span>
+    <strong data-countup data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</strong>
+    <span class="summary-meta">Pending review right now</span>
+</div>

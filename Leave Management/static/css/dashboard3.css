@@ -1,0 +1,154 @@
+/* Dashboard Layout */
+.container 
+{
+    padding: 7px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 13px;
+}
+
+/* Cards */
+.card 
+{
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    padding: 5px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    justify-content : center;
+    align-items: center;
+}
+
+.card h2,.card h3 
+{
+    /* text-align: center; */
+    margin-bottom: 5px;
+}
+
+.card p 
+{
+    /* text-align: center; */
+    font-weight: bold;
+    color: #555;
+}
+
+/* Welcome card */
+.welcome 
+{
+    grid-column: span 2;
+}
+
+/* Stats */
+.count 
+{
+    /* text-align: center; */
+    font-size: 32px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Full width table */
+.full-width 
+{
+    grid-column: span 3;
+}
+
+/* Table */
+table 
+{
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+table th, table td 
+{
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+.pending 
+{
+    color: orange !important;;
+    font-weight: bold !important;;
+}
+
+.approved 
+{
+    color: green !important;;
+    font-weight: bold !important;;
+}
+
+.rejected 
+{
+    color: red !important;
+    font-weight: bold !important;;
+}
+
+.badge 
+{
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 32px;
+    /* text-align: center; */
+    margin-bottom: 5px;
+    margin-left: 6px;
+    color: white;
+}
+
+.badge.warning 
+{
+    font-size: 32px;
+    font-weight: bold;
+    color: #e67e22;
+    /* background-color: #e67e22; */
+}
+
+.badge.success 
+{
+    font-size: 38px;
+    font-weight: bold;
+    color: #e67e22;
+    /* background-color: #27ae60; */
+}
+
+.low-balance 
+{
+    border: 2px solid #ee1e07;
+}
+
+.pending-count
+{
+    border: 2px solid #f1220b;
+}
+
+.warning-text 
+{
+    /* text-align: center; */
+    color: #ee1e07;
+    font-weight: bold;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+
+/* Footer */
+footer 
+{
+    margin-top: auto;
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) 
+{
+    .welcome,
+    .full-width {
+        grid-column: span 1;
+    }
+}

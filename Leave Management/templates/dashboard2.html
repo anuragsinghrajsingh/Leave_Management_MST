@@ -1,0 +1,1484 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block header %}
+    <h1>Dashboard</h1>
+
+    <input type="checkbox" id="menu-toggle">
+    <label for="menu-toggle" class="hamburger">&#9776;</label>
+
+    <nav class="nav-links">
+        <a href="{% url 'apply_leave' %}">Apply Leave</a>
+        <a href="{% url 'my_leave' %}">My Leaves</a>
+    </nav>
+
+    <div class="profile-dropdown">
+        <input type="checkbox" id="profile-toggle">
+        <label for="profile-toggle" class="profile-icon">
+            {% if request.user.profile.profile_photo %}
+                <img src="{{ request.user.profile.profile_photo.url }}">
+            {% else %}
+                <img src="{% static 'images/user.jpg' %}">
+            {% endif %}
+        </label>
+
+        <div class="dropdown-content">
+            <div class="user-info">
+                <center>
+                    {% if request.user.profile.profile_photo %}
+                        <img src="{{ request.user.profile.profile_photo.url }}">
+                    {% else %}
+                        <img src="{% static 'images\user.jpg' %}">
+                    {% endif %}
+                </center>
+
+                <center><p><a href="{% url 'profile' %}"> {{ request.user.get_full_name }} </a></p><center>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">⏻ Logout</a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+    <div class="dashboard-layout">
+
+        <!-- ================= LEFT SIDE ================= -->
+        <div class="left-panel">
+
+            <!-- ===== WELCOME + QUOTE ===== -->
+            <div class="card welcome-card">
+                <h2 class="welcome-title">Welcome 👋</h2>
+                <p class="welcome-name">{{ request.user.get_full_name }}</p>
+
+                <!-- Animated Quote -->
+                <div class="quote-box">
+                    <span id="quoteText">Stay consistent, success follows.</span>
+                </div>
+            </div>
+
+            <!-- ===== QUICK ACTION + SUMMARY ===== -->
+            <div style="display:flex; gap:15px;">
+
+                <!-- QUICK ACTION -->
+                <div class="card quick-card">
+
+                    <div class="quick-header">
+                        <h3>⚡ Quick Actions</h3>
+                        <div class="quick-divider"></div>
+                    </div>
+
+                    <div class="quick-actions">
+
+                        <a href="{% url 'apply_leave' %}" class="quick-btn apply">
+                            <span>➕</span>
+                            <p>Apply Leave</p>
+                        </a>
+
+                        <a href="{% url 'my_leave' %}" class="quick-btn my">
+                            <span>📄</span>
+                            <p>My Leaves</p>
+                        </a>
+
+                        <a href="{% url 'profile' %}" class="quick-btn profile">
+                            <span>👤</span>
+                            <p>Profile</p>
+                        </a>
+
+                    </div>
+
+                </div>
+
+                <!-- LEAVE SUMMARY -->
+                <div class="card summary-card">
+                    <div class="summary-header">
+                        <center><h3>📊 Leave Summary</h3></center><br>
+                        <div class="summary-divider"></div>
+                    </div>
+
+                    <div class="summary-grid">
+
+                        <!-- TOTAL -->
+                        <div class="summary-tile total">
+                            <p class="tile-label">Total</p>
+                            <p class="tile-value">27</p>
+                        </div>
+
+                        <!-- USED -->
+                        <div class="summary-tile used">
+                            <p class="tile-label">Used</p>
+                            <p class="tile-value">{{ leaves_used }}</p>
+                        </div>
+
+                        <!-- REMAINING -->
+                        <div class="summary-tile remaining">
+                            <p class="tile-label">Remaining</p>
+                            <p class="tile-value">{{ leaves_remaining }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STATUS CARDS ===== -->
+            <div style="display:flex; gap:15px;">
+
+                <div class="card" style="flex:1; text-align:center;">
+                    <p>✅</p>
+                    <h3>Approved</h3>
+                    <p class="count">{{ approved_count }}</p>
+                </div>
+
+                <div class="card" style="flex:1; text-align:center;">
+                    <p>⏳</p>
+                    <h3>Pending</h3>
+                    <p class="count">{{ pending_count }}</p>
+
+                    {% if pending_count > 2 %}
+                        <div class="warning-text" style="margin-top:5px;">Alert</div>
+                    {% endif %}
+                </div>
+
+                <div class="card" style="flex:1; text-align:center;">
+                    <p>❌</p>
+                    <h3>Rejected</h3>
+                    <p class="count">{{ rejected_count }}</p>
+                </div>
+
+            </div>
+
+            <!-- ===== PROGRESS ===== -->
+            <div class="card">
+                <h3 style="text-align:center;">📈 Progress</h3>
+
+                <div style="margin-top:10px;">
+                    <div class="progress">
+                        <div class="progress-fill 
+                            {% if leave_percent > 80 %}danger
+                            {% elif leave_percent > 50 %}warning
+                            {% else %}good
+                            {% endif %}"
+                            style="width: {{ leave_percent }}%">
+                        </div>
+                    </div>
+                </div>
+
+                <p style="text-align:center; margin-top:8px;">
+                    {{ leaves_used }} / {{ total_leaves }}
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- ================= RIGHT SIDE ================= -->
+        <div class="right-panel">
+
+            <div class="global-line">
+                <div class="line-dot" id="activeDot"></div>
+            </div>
+
+            <!-- ===== RIGHT PANEL LEAVE SECTION ===== -->
+            <div class="leave-wrapper">
+
+                <!-- ===== UPCOMING ===== -->
+                <div class="main-leave-card upcoming">
+
+                    <h2 class="main-heading">Upcoming Leave</h2>
+                    <div class="main-divider"></div>
+
+                    <div class="inner-leave-container">
+
+                        <!-- SHORT / HALF -->
+                        <div class="inner-leave-card short" onmouseenter="activateLine(this)">
+
+                            <div class="card-top">
+                                <div class="icon-badge">⚡</div>
+                                <span class="type-tag">Short / Half</span>
+                            </div>
+
+                            <div class="card-body">
+
+                                {% if next_short_leave %}
+                                    
+                                    <p class="leave-type">{{ next_short_leave.leave_type }}</p>
+
+                                    <div class="time-block">
+                                        <span>{{ next_short_leave.from_datetime|time:"h:i A" }}</span>
+                                        <span class="arrow">→</span>
+                                        <span>{{ next_short_leave.to_datetime|time:"h:i A" }}</span>
+                                    </div>
+
+                                    <p class="leave-date">{{ next_short_leave.from_date }}</p>
+
+
+                                    <div class="leave-progress">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" data-from="{{ next_short_leave.from_datetime|date:'Y-m-d H:i:s' }}">
+                                            </div>
+                                        </div>
+
+                                       <div class="progress-text">
+                                            {% if context_next_short_today %}
+                                                <span class="live-countdown" data-time="{{ next_short_leave.from_datetime|date:'c' }}"> </span>
+                                            {% else %}
+                                                {{ next_short_days }} days left
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                {% else %}
+                                    <p class="empty">No short leave planned</p>
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        <!-- FULL -->
+                        <div class="inner-leave-card full" onmouseenter="activateLine(this)">
+
+                            <div class="card-top">
+                                <div class="icon-badge">🌿</div>
+                                <span class="type-tag">Full Leave</span>
+                            </div>
+
+                            <div class="card-body">
+
+                                {% if next_full_leave %}
+                                    
+                                    <p class="leave-type" >{{ next_full_leave.leave_type }}</p>
+
+                                    <div class="date-range" style="margin-top : 15px;">
+                                        <span>{{ next_full_leave.from_date }}</span>
+                                        <span class="arrow">→</span>
+                                        <span>{{ next_full_leave.to_date }}</span>
+                                    </div>
+
+                                    
+                                    <div class="leave-progress" style="margin-top : 20px;">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" 
+                                                data-from="{{ next_full_leave.from_date|date:'Y-m-d' }}">
+                                            </div>
+                                        </div>
+
+                                        <div class="progress-text" style="margin-top : 10px;">
+                                            {{ next_full_days  }} days left
+                                        </div>
+                                    </div>
+
+                                {% else %}
+                                    <p class="empty">No full leave planned</p>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                
+                <!-- ===== LAST ===== -->
+                <div class="main-leave-card last">
+
+                    <h2 class="main-heading">Last Leave</h2>
+                    <div class="main-divider"></div>
+
+                    <div class="inner-leave-container">
+
+                        <!-- SHORT -->
+                        <div class="inner-leave-card short" onmouseenter="activateLine(this)">
+
+                            <div class="card-top">
+                                <div class="icon-badge">⚡</div>
+                                <span class="type-tag">Short / Half</span>
+                            </div>
+
+                            <div class="card-body">
+
+                                {% if last_short_leave %}
+                                    
+                                    <p class="leave-type">{{ last_short_leave.leave_type }}</p>
+
+                                    <div class="time-block">
+                                        <span>{{ last_short_leave.from_datetime|time:"h:i A" }}</span>
+                                        <span class="arrow">→</span>
+                                        <span>{{ last_short_leave.to_datetime|time:"h:i A" }}</span>
+                                    </div>
+
+                                    <p class="leave-date">{{ last_short_leave.from_date }}</p>
+
+                                {% else %}
+                                    <p class="empty">No short leave planned</p>
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        <!-- FULL -->
+                        <div class="inner-leave-card full" onmouseenter="activateLine(this)">
+
+                            <div class="card-top">
+                                <div class="icon-badge">🌿</div>
+                                <span class="type-tag">Full Leave</span>
+                            </div>
+
+                            <div class="card-body">
+
+                                {% if last_full_leave %}
+                                    
+                                    <p class="leave-type">{{ last_full_leave.leave_type }}</p>
+
+                                    <div class="date-range">
+                                        <span>{{ last_full_leave.from_date }}</span>
+                                        <span class="arrow">→</span>
+                                        <span>{{ last_full_leave.to_date }}</span>
+                                    </div>
+
+                                {% else %}
+                                    <p class="empty">No full leave planned</p>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+
+
+
+            <!-- Recent Activity -->
+            <div class="main-leave-card recent">
+
+                {% comment %} <div class="activity-header-bar">
+                    <h2>Recent Activity</h2>
+                </div> {% endcomment %}
+
+                <h2 class="main-heading">Recent Activity</h2>
+                <div class="main-divider"></div>
+
+                <!-- ✅ FIXED: ID HERE -->
+                <div id="activityContainer" onmouseenter="activateLine(this)" class="activity-grid">
+
+                    {% for leave in recent_leaves|slice:":3" %}
+
+                    <!-- No longer required -->
+                    <div class="activity-card {{ leave.status|lower }}"
+                        {% comment %} 
+                        onclick="openLeaveModal({
+                            type: '{{ leave.leave_type }}',
+                            from_date: '{{ leave.from_date }}',
+                            to_date: '{{ leave.to_date }}',
+                            from_datetime: '{{ leave.from_datetime|date:"Y-m-d H:i" }}',
+                            to_datetime: '{{ leave.to_datetime|date:"Y-m-d H:i" }}',
+                            status: '{{ leave.status }}',
+                            created: '{{ leave.created_at|date:"M d, Y" }}',
+                            reason: `{{ leave.reason|escapejs }}`,
+                            rejection_reason: `{{ leave.rejection_reason|default:''|escapejs }}`
+                        })"> 
+                        {% endcomment %}
+
+                        <!-- HEADER -->
+                        <div class="activity-header">
+                            <span class="leave-type"> {{ leave.leave_type }} </span>
+                            <span class="status {{ leave.status|lower }}"> {{ leave.status }} </span>
+                        </div>
+
+                        <!-- DATES -->
+                        <div class="activity-body">
+
+                            {% if leave.leave_type == "Short" or leave.leave_type == "Half" %}
+
+                                <!-- DATE -->
+                                <p class="date-line">
+                                    <strong>{{ leave.from_date }}</strong>
+                                </p>
+
+                                <!-- TIME -->
+                                <p class="date-line time-line">
+                                    <strong>{{ leave.from_datetime|time:"h:i A" }}</strong>
+                                    <span class="arrow">→</span>
+                                    <strong>{{ leave.to_datetime|time:"h:i A" }}</strong>
+                                </p>
+
+                            {% else %}
+
+                                <!-- NORMAL -->
+                                <p class="date-line">
+                                    <strong>{{ leave.from_date }}</strong>
+                                    <span class="arrow">→</span>
+                                    <strong>{{ leave.to_date }}</strong>
+                                </p>
+
+                            {% endif %}
+
+                        </div>
+
+                        <!-- EXTRA INFO -->
+                        <div class="activity-extra">
+                            {% comment %} <p>📅 Applied: {{ leave.created_at|date:"M d, Y"}}, {{ leave.created_at|date:"H:i A"}}</p> {% endcomment %}
+                            <p class="applied-time" data-time="{{ leave.created_at|date:'c' }}"></p>
+
+                            <p>
+                                ⏱ 
+                                {% if leave.leave_type == "Short" %}
+                                    Short Leave - <span class="duration-number" data-unit="hour">2</span> Hour Leave
+                                {% elif leave.leave_type == "Half" %}
+                                    Half Day - <span class="duration-number" data-unit="hour">4</span> Hours Leave
+                                {% else %}
+                                    <span class="duration-number" data-unit="day">{{ leave.duration }}</span> day{% if leave.duration > 1 %}s{% endif %}
+                                {% endif %}
+                            </p>
+
+                            <div class="reason-box">
+                                <div class="reason-label">📝 Reason</div>
+                                <div class="reason-divider"></div>
+                                <div class="reason-content" data-full="{{ leave.reason|escapejs }}">
+                                    {{ leave.reason|truncatechars:60 }}
+
+                                    {% if leave.reason|length > 60 %}
+                                        <span class="more-btn" onclick="event.stopPropagation(); openReasonModal(`{{ leave.reason|escapejs }}`)"> ... more </span>
+                                    {% endif %}
+                                </div>
+
+                                {% comment %} 
+                                {% if leave.reason|length > 100 %}
+                                    <div class="read-more-text">Click to view more</div>
+                                {% endif %} 
+                                {% endcomment %}
+
+                            </div>
+                        </div>
+
+                        <!-- MINI PROGRESS -->
+                        {% comment %} 
+                        <div class="mini-progress">
+                            <div class="mini-fill {{ leave.status|lower }}"></div>
+                        </div> 
+                        {% endcomment %}
+
+                    </div>
+
+                    {% empty %}
+                        <p>No recent activity</p>
+                    {% endfor %}
+
+                </div>
+
+                <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
+                    <button class="prev-btn" {% if not has_prev %}disabled{% endif %} onclick="prevPage()">⬅</button>
+                    <span id="pageNumber"> Page {{ context_current_page }} of {{ context_total_pages }} </span>
+                    <button class="next-btn" {% if not has_next %}disabled{% endif %} onclick="nextPage()">➡</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+        <!-- ================= MODAL ================= -->
+        {% comment %} 
+        <div id="leaveModal" class="modal">
+
+            <!-- Overlay -->
+            <div class="modal-overlay" onclick="closeModal()"></div>
+
+            <!-- Modal Box -->
+            <div class="modal-box">
+
+                <!-- Header -->
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+
+                <!-- Content -->
+                <div id="leave-modal-content">
+
+                    <h2 id="modalType"></h2>
+
+                    <label>Created On</label>
+                    <p id="modalCreated"></p>
+
+                    <label>Status</label>
+                    <p id="modalStatus"></p>
+
+                    <label>Leave Duration</label>
+                    <p id="modalDurationDisplay" class="highlight-text"></p>
+
+                    <label>Reason</label>
+                    <textarea id="modalReason" readonly></textarea>
+
+                    <div id="rejectionBlock" style="display:none;">
+                        <label style="color:#e74c3c;">Rejection Reason</label>
+                        <textarea id="modalRejection" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div> 
+        {% endcomment %}
+
+
+
+        <!-- ===== REASON MODAL ===== -->
+        <div id="reasonModal" class="modal">
+            <div class="modal-overlay" onclick="closeReasonModal()"></div>
+
+            <div class="modal-box">
+                <div class="modal-header"> <span class="close" onclick="closeReasonModal()">&times;</span></div>
+                <h3 class="reason-modal-title">📝 Reason</h3>
+                <div class="reason-modal-content" id="reasonModalContent"></div>
+            </div>
+        </div>
+
+
+
+        <script>
+
+
+
+
+            const quotes = [
+                "Stay consistent, success follows.",
+                "Small steps every day.",
+                "Discipline beats motivation.",
+                "Your future self will thank you.",
+                "Keep pushing forward 🚀"
+            ];
+
+            let qIndex = 0;
+
+            function rotateQuotes() {
+                const el = document.getElementById("quoteText");
+
+                el.style.opacity = 0;
+                el.style.transform = "translateY(10px)";
+
+                setTimeout(() => {
+                    qIndex = (qIndex + 1) % quotes.length;
+                    el.innerText = quotes[qIndex];
+
+                    el.style.opacity = 1;
+                    el.style.transform = "translateY(0)";
+                }, 400);
+            }
+
+            setInterval(rotateQuotes, 10000);
+
+
+
+
+
+            document.querySelectorAll(".inner-leave-card").forEach(card => 
+            {
+                card.addEventListener("mouseenter", () => 
+                {
+                    card.style.zIndex = "2";
+                });
+
+                card.addEventListener("mouseleave", () => 
+                {
+                    card.style.zIndex = "1";
+                });
+            });
+
+            function activateLine(card) 
+            {
+                const dot = document.getElementById("activeDot");
+
+                const wrapper = document.querySelector(".leave-wrapper");
+
+                const cardRect = card.getBoundingClientRect();
+                const wrapperRect = wrapper.getBoundingClientRect();
+
+                const offset = cardRect.top - wrapperRect.top + (cardRect.height / 2);
+
+                dot.style.top = offset + "px";
+
+                dot.classList.add("active");
+            }
+
+
+            {% comment %} 
+            const modal = document.getElementById("leaveModal");
+
+            function openLeaveModal(leave) 
+            {
+                document.getElementById("modalType").innerText = leave.type;
+                document.getElementById("modalCreated").innerText = leave.created;
+                document.getElementById("modalStatus").innerText = leave.status;
+                document.getElementById("modalReason").value = leave.reason || "No reason provided";
+
+                let displayText = "";
+
+                // SHORT / HALF
+            if (leave.type === "Short" || leave.type === "Half") 
+            {
+                    const parts = leave.from_datetime.split(" ");
+
+                    // May 3, 2026
+                    const date = parts[0] + " " + parts[1] + " " + parts[2];
+
+                    // 10:00 AM
+                    const fromTime = parts.slice(3).join(" ");
+
+                    displayFrom = `${date} | ${fromTime}`;
+                    displayTo = leave.to_datetime;
+                }
+                else 
+                {
+                    displayText = `${leave.from_date} → ${leave.to_date}`;
+                }
+
+                document.getElementById("modalDurationDisplay").innerText = displayText;
+
+                // REJECTION
+                const rejectionBlock = document.getElementById("rejectionBlock");
+
+                if (leave.status === "Rejected" && leave.rejection_reason) 
+                {
+                    rejectionBlock.style.display = "block";
+                    document.getElementById("modalRejection").value = leave.rejection_reason;
+                } 
+                else 
+                {
+                    rejectionBlock.style.display = "none";
+                }
+
+                modal.style.display = "flex";
+            }
+
+            function closeModal() 
+            {
+                modal.style.display = "none";
+            }
+
+            // ESC
+            document.addEventListener("keydown", function(e) 
+            {
+                if (e.key === "Escape") closeModal();
+            }); 
+            {% endcomment %}
+
+
+
+
+            {% comment %} 
+            let currentPage = 1;
+
+            function loadLeaves(page) 
+            {
+                fetch(`/dashboard?page=${page}`, 
+                {
+                    headers: 
+                    {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then(res => res.json())
+                .then(data => 
+                {
+                    const container = document.getElementById("activityContainer");
+                    container.innerHTML = "";
+
+                    data.leaves.forEach(leave => 
+                    {
+                        let bodyHTML = "";
+
+                        let durationText = "";
+
+                        // SHORT
+                        if (leave.type === "Short") 
+                        {
+                            function parseTime(timeStr) 
+                            {
+                                const [time, modifier] = timeStr.split(" ");
+                                let [hours, minutes] = time.split(":").map(Number);
+
+                                if (modifier === "PM" && hours !== 12) hours += 12;
+                                if (modifier === "AM" && hours === 12) hours = 0;
+
+                                return hours * 60 + minutes;
+                            }
+
+                            const fromTimeStr = leave.from_datetime.split(" ").slice(3).join(" ");
+                            const toTimeStr = leave.to_datetime;
+
+                            const fromMinutes = parseTime(fromTimeStr);
+                            const toMinutes = parseTime(toTimeStr);
+
+                            const hours = Math.round((toMinutes - fromMinutes) / 60);
+
+                            durationText = `Short Day - ${hours} Hour${hours > 1 ? "s" : ""}`;
+                        }
+
+                        // HALF
+                        else if (leave.type === "Half") 
+                        {
+                            durationText = "Half Day - 4 Hours";
+                        }
+
+                        // NORMAL
+                        else 
+                        {
+                            durationText = `${leave.duration} day${leave.duration > 1 ? "s" : ""}`;
+                        }
+
+
+                        // SHORT / HALF
+                        if (leave.type === "Short" || leave.type === "Half") 
+                        {
+                            const parts = leave.from_datetime.split(" ");
+
+                            const date = parts[0] + " " + parts[1] + " " + parts[2];
+                            const fromTime = parts.slice(3).join(" ");
+
+                            bodyHTML = `
+                                <div class="date-wrapper">
+
+                                    <p class="date-line">
+                                        <strong>${date}</strong>
+                                    </p>
+
+                                    <p class="time-line">
+                                        <strong>${fromTime}</strong>
+                                        <span class="arrow">→</span>
+                                        <strong>${leave.to_datetime}</strong>
+                                    </p>
+
+                                </div>
+                            `;
+                        }
+                        else 
+                        {
+                            bodyHTML = `
+                                <p class="date-line">
+                                    <strong>${leave.from_date}</strong>
+                                    <span class="arrow">→</span>
+                                    <strong>${leave.to_date}</strong>
+                                </p>
+                            `;
+                        }
+
+                        const safeReason = JSON.stringify(leave.reason || "");
+                        const shortReason = leave.reason ? leave.reason.substring(0, 60).replace(/</g, "&lt;").replace(/>/g, "&gt;") : "No reason provided";
+                        const showMore = leave.reason && leave.reason.length > 60;
+
+                        container.insertAdjacentHTML("beforeend", `
+                            <div class="activity-card ${leave.status.toLowerCase()}">
+
+                                <div class="activity-header">
+                                    <span class="leave-type">${leave.type}</span>
+                                    <span class="status ${leave.status.toLowerCase()}">${leave.status}</span>
+                                </div>
+
+                                <div class="activity-body">${bodyHTML}</div>
+
+                                <div class="activity-extra">
+                                    <p>📅 Applied: ${leave.created}</p>
+                                    <p>⏱ ${durationText}</p>
+                                    
+                                    <div class="reason-box">
+                                        <div class="reason-label">📝 Reason</div>
+                                        <div class="reason-divider"></div>
+                                        <div class="reason-content">
+                                            ${shortReason}
+                                            ${showMore ? `<span class="more-btn" onclick='event.stopPropagation(); openReasonModal(${safeReason})'>... more</span>` : ""}
+                                        </div>
+                                    </div>  
+                                </div>
+                            </div>
+                        `);
+                    });
+
+                    // disable buttons if needed
+                    document.getElementById("pageNumber").innerText = page;
+                    currentPage = page;
+
+                    document.querySelector(".prev-btn").disabled = !data.has_prev;
+                    document.querySelector(".next-btn").disabled = !data.has_next;
+                });
+            } 
+            {% endcomment %}
+
+
+
+            function animateLeaveProgress() 
+            {
+                document.querySelectorAll(".progress-fill").forEach(bar => 
+                {
+                    const fromDate = new Date(bar.dataset.from);
+                    const today = new Date();
+
+                    const totalDays = 30; // fallback (you can adjust)
+
+                    const diff = (fromDate - today) / (1000 * 60 * 60 * 24);
+                    const percent = Math.max(0, Math.min(100, 100 - (diff * 100 / totalDays)));
+
+                    setTimeout(() => {
+                        bar.style.width = percent + "%";
+                    }, 200);
+                });
+            }
+
+
+            function startCountdown() 
+            {
+                document.querySelectorAll(".live-countdown").forEach(el => 
+                {
+                    const target = new Date(el.dataset.time);
+
+                    if (isNaN(target)) 
+                    {
+                        el.innerText = "Invalid time";
+                        return;
+                    }
+
+                    function update() 
+                    {
+                        const now = new Date();
+                        let diff = target - now;
+
+                        if (diff <= 0) 
+                        {
+                            el.innerText = "Starting now";
+                            el.classList.remove("urgent");
+                            return;
+                        }
+
+                        const hrs = Math.floor(diff / (1000 * 60 * 60));
+                        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+                        const totalMinutes = diff / (1000 * 60);
+
+                        // ✅ ALWAYS update text
+                        el.innerText = `⏳ ${hrs.toString().padStart(2, '0')}:` +
+                                    `${mins.toString().padStart(2, '0')}:` +
+                                    `${secs.toString().padStart(2, '0')}`;
+
+                        // 🔥 SAFE urgent toggle
+                        if (totalMinutes <= 15) 
+                        {
+                            el.classList.add("urgent");
+                        } 
+                        else 
+                        {
+                            el.classList.remove("urgent");
+                        }
+                    }
+
+                    update();
+                    setInterval(update, 1000);
+                });
+            }
+
+
+            {% comment %} 
+            function animateContainer(container) 
+            {
+                // remove both classes
+                container.classList.remove("fade-in", "fade-out");
+
+                // 🔥 FORCE REFLOW (important)
+                void container.offsetWidth;
+
+                // start animation
+                container.classList.add("fade-out");
+
+                setTimeout(() => 
+                {
+                    container.classList.remove("fade-out");
+
+                    // 🔥 FORCE AGAIN
+                    void container.offsetWidth;
+
+                    container.classList.add("fade-in");
+
+                    setTimeout(() => 
+                    {
+                        container.classList.remove("fade-in");
+                    }, 300);
+
+                }, 150);
+            } 
+            {% endcomment %}
+
+
+            function animateNumber(el, start, end, duration = 1200) 
+            {
+                let startTime = null;
+
+                // 🔥 highlight ON
+                el.classList.add("animating");
+
+                function easeOutBack(t) 
+                {
+                    const c1 = 1.70158;
+                    const c3 = c1 + 1;
+
+                    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+                }
+
+                function update(currentTime) 
+                {
+                    if (!startTime) startTime = currentTime;
+
+                    let progress = (currentTime - startTime) / duration;
+                    progress = Math.min(progress, 1);
+
+                    // 🔥 bounce easing
+                    const eased = easeOutBack(progress);
+
+                    const value = Math.floor(eased * (end - start) + start);
+                    el.innerText = value;
+
+                    if (progress < 1) 
+                    {
+                        requestAnimationFrame(update);
+                    } 
+                    else 
+                    {
+                        el.innerText = end;
+
+                        // 🔥 highlight OFF after finish
+                        setTimeout(() => 
+                        {
+                            el.classList.remove("animating");
+                        }, 300);
+                    }
+                }
+
+                requestAnimationFrame(update);
+            }
+
+
+
+            function isNewEntry(dateStr) 
+            {
+                const now = new Date();
+                const target = new Date(dateStr);
+
+                const diffMin = (now - target) / (1000 * 60);
+
+                return diffMin < 60; // 🔥 change to 60 if needed
+            }
+
+
+
+
+            function updateNewBadges() 
+            {
+                document.querySelectorAll(".activity-card").forEach(card => 
+                {
+                    const timeEl = card.querySelector(".applied-time");
+                    if (!timeEl) return;
+
+                    const isNew = isNewEntry(timeEl.dataset.time);
+                    const header = card.querySelector(".activity-header");
+
+                    if (!header) return;
+
+                    let badge = header.querySelector(".new-badge");
+
+                    // ✅ ADD badge
+                    if (isNew && !badge) 
+                    {
+                        badge = document.createElement("span");
+                        badge.className = "new-badge";
+                        badge.innerText = "New";
+
+                        header.insertBefore(badge, header.children[1]);
+                    }
+
+                    // ❌ REMOVE badge
+                    if (!isNew && badge) 
+                    {
+                        badge.remove();
+                    }
+                });
+            }
+
+
+
+
+
+            function animateSlide(container, direction, callback) 
+            {
+                // reset everything
+                container.classList.remove( "slide-in-left", "slide-in-right", "slide-out-left", "slide-out-right" );
+
+                // 🔥 force reflow (IMPORTANT)
+                void container.offsetWidth;
+
+                // exit animation
+                container.classList.add(direction === "next" ? "slide-out-left" : "slide-out-right" );
+
+                setTimeout(() => 
+                {
+                    // run your render logic
+                    callback();
+
+                    // reset again
+                    container.classList.remove( "slide-out-left", "slide-out-right" );
+
+                    void container.offsetWidth;
+
+                    // enter animation
+                    container.classList.add(direction === "next" ? "slide-in-right" : "slide-in-left");
+
+                    setTimeout(() => 
+                    {
+                        container.classList.remove( "slide-in-left", "slide-in-right" );
+                    }, 250);
+
+                }, 200);
+            }
+
+
+
+            let currentPage = 1;
+            let direction = "next";
+
+            function loadLeaves(page) 
+            {
+                fetch(`/dashboard?page=${page}`, 
+                {
+                    headers: 
+                    {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then(res => res.json())
+                .then(data => 
+                {
+                    const container = document.getElementById("activityContainer");
+
+                    {% comment %} animateContainer(container); {% endcomment %}
+
+                    animateSlide(container, direction, () => 
+                    {
+                        container.innerHTML = "";
+
+                        // ✅ FIX 1: HANDLE EMPTY PAGE
+                        if (!data.leaves || data.leaves.length === 0) 
+                        {
+                            container.innerHTML = "<p style='text-align:center;'>No recent activity</p>";
+                            return;
+                        }
+
+                        data.leaves.forEach(leave => 
+                        {
+                            let bodyHTML = "";
+                            let durationText = "";
+                            const isNew = isNewEntry(leave.created);
+
+                            const newBadge = isNew ? `<span class="new-badge">New</span>` : "";
+
+                            // ===== DURATION =====
+                            if (leave.type === "Short") 
+                            {
+                                function parseTime(timeStr) 
+                                {
+                                    const [time, modifier] = timeStr.split(" ");
+                                    let [hours, minutes] = time.split(":").map(Number);
+
+                                    if (modifier === "PM" && hours !== 12) hours += 12;
+                                    if (modifier === "AM" && hours === 12) hours = 0;
+
+                                    return hours * 60 + minutes;
+                                }
+
+                                const fromTimeStr = leave.from_datetime.split(" ").slice(3).join(" ");
+                                const toTimeStr = leave.to_datetime;
+
+                                const fromMinutes = parseTime(fromTimeStr);
+                                const toMinutes = parseTime(toTimeStr);
+
+                                const hours = Math.max(0, Math.round((toMinutes - fromMinutes) / 60));
+
+                                durationText = `Short Leave - ${hours} Hour${hours > 1 ? "s" : ""}`;
+                            }
+                            else if (leave.type === "Half") 
+                            {
+                                durationText = "Half Day - 4 Hours";
+                            }
+                            else 
+                            {
+                                durationText = `${leave.duration} day${leave.duration > 1 ? "s" : ""}`;
+                            }
+
+                            // ===== DATE / TIME UI =====
+                            if (leave.type === "Short" || leave.type === "Half") 
+                            {
+                                const parts = leave.from_datetime.split(" ");
+                                const date = parts[0] + " " + parts[1] + " " + parts[2];
+                                const fromTime = parts.slice(3).join(" ");
+
+                                bodyHTML = `
+                                    <div class="date-wrapper">
+                                        <p class="date-line">
+                                            <strong>${date}</strong>
+                                        </p>
+                                        <p class="time-line">
+                                            <strong>${fromTime}</strong>
+                                            <span class="arrow">→</span>
+                                            <strong>${leave.to_datetime}</strong>
+                                        </p>
+                                    </div>
+                                `;
+                            }
+                            else 
+                            {
+                                bodyHTML = `
+                                    <p class="date-line">
+                                        <strong>${leave.from_date}</strong>
+                                        <span class="arrow">→</span>
+                                        <strong>${leave.to_date}</strong>
+                                    </p>
+                                `;
+                            }
+
+                            // ===== REASON =====
+                            const safeReason = JSON.stringify(leave.reason || "");
+                            const shortReason = leave.reason ? leave.reason.substring(0, 60).replace(/</g, "&lt;").replace(/>/g, "&gt;") : "No reason provided";
+                            const showMore = leave.reason && leave.reason.length > 60;
+
+                            // ===== CARD =====
+                            container.insertAdjacentHTML("beforeend", `
+                                <div class="activity-card ${leave.status.toLowerCase()}">
+
+                                    <div class="activity-header">
+                                        <span class="leave-type">${leave.type}</span>
+                                        ${newBadge}
+                                        <span class="status ${leave.status.toLowerCase()}">${leave.status}</span>
+                                    </div>
+
+                                    <div class="activity-body">${bodyHTML}</div>
+
+                                    <div class="activity-extra">
+                                        <p class="applied-time" data-time="${leave.created}"></p>
+                                        <p>
+                                            ⏱ 
+                                            ${
+                                                leave.type === "Short"
+                                                    ? `Short Leave - <span class="duration-number" data-unit="hour">${durationText.match(/\d+/)[0]}</span> Hour`
+                                                    : leave.type === "Half"
+                                                    ? `Half Day - <span class="duration-number" data-unit="hour">4</span> Hours`
+                                                    : `<span class="duration-number" data-unit="day">${leave.duration}</span> day${leave.duration > 1 ? "s" : ""}`
+                                            }
+                                        </p>
+                                        
+                                        <div class="reason-box">
+                                            <div class="reason-label">📝 Reason</div>
+                                            <div class="reason-divider"></div>
+                                            <div class="reason-content">
+                                                ${shortReason}
+                                                ${showMore ? `<span class="more-btn" onclick='event.stopPropagation(); openReasonModal(${safeReason})'>... more</span>` : ""}
+                                            </div>
+                                        </div>  
+                                    </div>
+                                </div>
+                            `);
+
+                            const card = container.lastElementChild;
+                            const durationEl = card.querySelector(".duration-number");
+
+                            if (durationEl) 
+                            {
+                                const value = parseInt(durationEl.innerText);
+                                const unit = durationEl.dataset.unit;
+
+                                if (!isNaN(value)) 
+                                {
+                                    animateNumber(durationEl, 0, value, unit === "hour" ? 2000 : 1500);
+                                }
+                            }
+                        });
+
+                        document.querySelectorAll(".applied-time").forEach(el => 
+                        {
+                            el.innerText = "📅 Applied: " + formatAppliedDateTime(el.dataset.time);
+                        });
+
+                        updateNewBadges();
+                    });
+
+                    // ✅ FIX 2: CORRECT PAGE SYNC (IMPORTANT)
+                    currentPage = data.current_page;
+                    document.getElementById("pageNumber").innerText = `Page ${data.current_page} of ${data.total_pages}`;
+
+                    // ✅ FIX 3: BUTTON CONTROL
+                    document.querySelector(".prev-btn").disabled = !data.has_prev;
+                    document.querySelector(".next-btn").disabled = !data.has_next;
+
+                    const nav = document.querySelector(".pagination");
+
+                    if (!data.has_next && !data.has_prev) 
+                    {
+                        nav.classList.add("hidden");
+                    } 
+                    else 
+                    {
+                        nav.classList.remove("hidden");
+                    }
+                })
+                .catch(err => 
+                {
+                    console.error("Pagination Error:", err);
+                });
+            }
+
+
+
+
+            function formatAppliedDateTime(dateStr) 
+            {
+                if (!dateStr) return "--";
+
+                let target = new Date(dateStr);
+
+                // 🔥 FIX: fallback parser
+                if (isNaN(target)) 
+                {
+                    try 
+                    {
+                        // remove comma after day
+                        const clean = dateStr.replace(",", "");
+                        const parts = clean.split(" ");
+
+                        const monthMap = 
+                        {
+                            January:0, February:1, March:2, April:3, May:4, June:5,
+                            July:6, August:7, September:8, October:9, November:10, December:11
+                        };
+
+                        const month = monthMap[parts[0]];
+                        const day = parseInt(parts[1]);
+                        const year = parseInt(parts[2]);
+
+                        let hours = 0;
+                        let minutes = 0;
+
+                        // ✅ HANDLE TIME IF EXISTS
+                        if (parts.length >= 5) 
+                        {
+                            let [h, m] = parts[3].split(":").map(Number);
+                            const modifier = parts[4];
+
+                            if (modifier === "PM" && h !== 12) h += 12;
+                            if (modifier === "AM" && h === 12) h = 0;
+
+                            hours = h;
+                            minutes = m;
+                        }
+
+                        target = new Date(year, month, day, hours, minutes);
+                    } 
+                    catch 
+                    {
+                        return "--";
+                    }
+                }
+
+                if (isNaN(target)) return "--";
+
+                const now = new Date();
+
+                const diffMs  = now - target;
+                const diffSec = Math.floor(diffMs / 1000);
+                const diffMin = Math.floor(diffSec / 60);
+                const diffHr  = Math.floor(diffMin / 60);
+
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                const targetDay = new Date(target);
+                targetDay.setHours(0,0,0,0);
+
+                const diffDays = Math.round((targetDay - today) / (1000 * 60 * 60 * 24));
+
+                const time = target.toLocaleTimeString([], 
+                {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                if (diffSec < 60) return "Just now";
+                if (diffMin < 60) return `${diffMin} min ago`;
+                if (diffHr < 24 && diffDays === 0) return `${diffHr} hr ago`;
+
+                if (diffDays === 0) return `Today, ${time}`;
+                if (diffDays === -1) return `Yesterday, ${time}`;
+                if (diffDays > -7) return `${Math.abs(diffDays)} days ago, ${time}`;
+
+                return `${dateStr}`;
+            }
+
+            
+
+            document.addEventListener("DOMContentLoaded", function() 
+            {
+                // ✅ Applied time
+                document.querySelectorAll(".applied-time").forEach(el => 
+                {
+                    el.innerText = "📅 Applied: " + formatAppliedDateTime(el.dataset.time);
+                });
+
+                // 🔥 Animate numbers on initial load
+                document.querySelectorAll(".duration-number").forEach(el => 
+                {
+                    const value = parseInt(el.innerText);
+                    const unit = el.dataset.unit;
+
+                    if (!isNaN(value)) 
+                    {
+                        animateNumber(el, 0, value, unit === "hour" ? 2000 : 1500);
+                    }
+                });
+
+
+
+                /* This below function is updated to advance auto refresh version  */
+                {% comment %} 
+                document.querySelectorAll(".activity-card").forEach(card => 
+                {
+                    const timeEl = card.querySelector(".applied-time");
+
+                    if (!timeEl) return;
+
+                    const isNew = isNewEntry(timeEl.dataset.time);
+
+                    if (isNew) 
+                    {
+                        const header = card.querySelector(".activity-header");
+
+                        if (header && !header.querySelector(".new-badge")) 
+                        {
+                            const badge = document.createElement("span");
+                            badge.className = "new-badge";
+                            badge.innerText = "New";
+
+                            header.insertBefore(badge, header.children[1]);
+                        }
+                    }
+                }); 
+                {% endcomment %}
+
+
+                updateNewBadges();
+                animateLeaveProgress();
+                startCountdown();
+
+
+
+                // 🔥 FIX 4: SHOW / HIDE PAGINATION
+                const nav = document.querySelector(".pagination");
+                const hasNext = nav.dataset.hasNext === "true";
+                const hasPrev = nav.dataset.hasPrev === "true";
+                
+                if (!hasNext && !hasPrev) 
+                {
+                    nav.classList.add("hidden");
+                } 
+                else 
+                {
+                    nav.classList.remove("hidden");
+                }
+
+                setTimeout(() => 
+                {
+                    isPageLoaded = true;
+                }, 300);
+            });
+
+
+            let isPageLoaded = false;
+            let lastScrollY = window.scrollY;
+
+            window.addEventListener("scroll", () => 
+            {
+                if (!isPageLoaded) return; // 🔥 BLOCK EARLY EXECUTION
+
+                const nav = document.querySelector(".pagination");
+                if (!nav) return;
+
+                if (Math.abs(window.scrollY - lastScrollY) < 10) return;
+
+                if (window.scrollY > lastScrollY) 
+                {
+                    nav.classList.add("hidden"); // scroll down
+                } 
+                else 
+                {
+                    nav.classList.remove("hidden"); // scroll up
+                }
+
+                lastScrollY = window.scrollY;
+            });
+
+            setInterval(() => 
+            {
+                document.querySelectorAll(".applied-time").forEach(el => 
+                {
+                    el.innerText = "📅 Applied: " + formatAppliedDateTime(el.dataset.time);
+                });
+
+                // 🔥 update NEW badges
+                updateNewBadges();
+
+            }, 60000);
+
+
+
+            function nextPage() 
+            {
+                direction = "next";
+                loadLeaves(currentPage + 1);
+            }
+
+            function prevPage() 
+            {
+                if (currentPage > 1) 
+                {
+                    direction = "prev";
+                    loadLeaves(currentPage - 1);
+                }
+            }
+
+        
+
+            function openReasonModal(reason) 
+            {
+                const modalreason = document.getElementById("reasonModal");
+                const content = document.getElementById("reasonModalContent");
+
+                content.innerText = reason || "No reason provided";
+                modalreason.classList.add("show");
+            }
+
+            function closeReasonModal() 
+            {
+                document.getElementById("reasonModal").classList.remove("show");
+            }
+
+            // ESC key close
+            document.addEventListener("keydown", function(e) 
+            {
+                if (e.key === "Escape") 
+                {
+                    closeReasonModal();
+                }
+            });
+
+
+        </script>
+
+{% endblock %}

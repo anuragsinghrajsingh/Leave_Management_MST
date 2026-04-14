@@ -1,0 +1,49 @@
+{% load static %}
+<div class="notification-dropdown" data-notification-api="{% url 'hr_notifications' %}" data-notification-empty="No pending requests right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
+    <button type="button" class="notification-trigger" aria-label="Pending leave notifications" aria-expanded="false">
+        <span class="notification-bell"></span>
+        <span class="notification-count{% if not pending_notification_count %} hidden{% endif %}" data-countup data-countup-target="{{ pending_notification_count }}">{{ pending_notification_count }}</span>
+        <span class="notification-new-badge hidden" data-notification-new-badge></span>
+    </button>
+
+    <div class="notification-panel">
+        <div class="notification-panel-header">
+            <div>
+                <p class="eyebrow">Alerts</p>
+                <h3>Pending requests</h3>
+            </div>
+            <div class="notification-panel-meta">
+                <span class="notification-new-pill hidden" data-notification-new-pill></span>
+                <span class="notification-meta" data-notification-total data-countup data-countup-target="{{ pending_notification_count }}">{{ pending_notification_count }}</span>
+            </div>
+        </div>
+
+        <div class="notification-list-actions notification-list-actions-bar">
+            <button type="button" class="notification-mark-read-btn hidden" data-notification-mark-read>Mark all read</button>
+        </div>
+
+        <div class="notification-list" data-notification-list>
+            {% for item in pending_notifications %}
+                <a href="{{ item.target_url }}" class="notification-item notification-item-{{ item.leave_type_class }}{% if item.is_new %} is-new{% elif item.is_read %} is-read{% endif %}" data-notification-item data-notification-id="{{ item.id }}" data-notification-read="{{ item.is_read|yesno:'true,false' }}" data-notification-new="{{ item.is_new|yesno:'true,false' }}" data-notification-leave-id="{{ item.id }}">
+                    <div class="notification-visual">
+                        {% if item.photo_url %}
+                            <img src="{{ item.photo_url }}" alt="{{ item.display_name }}" class="notification-avatar">
+                        {% else %}
+                            <span class="notification-avatar notification-avatar-fallback" aria-label="{{ item.display_name }}" data-avatar-fallback data-full-name="{{ item.display_name }}" data-username="{{ item.username|default:item.display_name }}"></span>
+                        {% endif %}
+                        <span class="notification-type notification-type-compact">{{ item.leave_type }}</span>
+                    </div>
+                    <div class="notification-copy">
+                        <span class="notification-name">{{ item.display_name }}</span>
+                        <small class="notification-subtitle">{{ item.schedule_text }}</small>
+                        <small class="notification-meta-line">
+                            <span class="notification-time">{{ item.activity_label }} {{ item.activity_text }}</span>
+                        </small>
+                    </div>
+                </a>
+            {% empty %}
+                <div class="notification-empty">No pending requests right now.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

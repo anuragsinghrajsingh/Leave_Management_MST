@@ -1,0 +1,6348 @@
+from datetime import date, datetime, time, timedelta
+from django.utils.timezone import localtime, localdate, now
+from django.utils import timezone
+from calendar import monthrange
+import os,json, requests
+from ics import Calendar
+from django.contrib import messages
+from django.contrib.messages import get_messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden, JsonResponse
+# import requests
+from .models import Communication, CommunicationRead, CommunicationSeen, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile # , CompanyClosure, 
+from django.views.decorators.cache import never_cache
+from django.core.cache import cache
+from django.views.decorators.http import require_http_methods, require_POST
+from django.db import transaction, OperationalError, ProgrammingError
+from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from django.utils.html import escape
+import base64
+
+
+
+
+def _get_flash_title(message_tags):
+    tags = message_tags or ""
+
+    if "success" in tags:
+        return "Success"
+    if "error" in tags:
+        return "Action needed"
+    if "warning" in tags:
+        return "Please note"
+    return "Update"
+
+
+def _serialize_flash_messages(request):
+    serialized_messages = []
+
+    for message in get_messages(request):
+        serialized_messages.append({
+            "tags": message.tags,
+            "text": str(message),
+            "title": _get_flash_title(message.tags),
+        })
+
+    return serialized_messages
+
+
+def _is_ajax_request(request):
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
+def _my_leave_response(request, status=200, **extra):
+    if _is_ajax_request(request):
+        payload = {
+            "success": status < 400,
+            "messages": _serialize_flash_messages(request),
+        }
+        payload.update(extra)
+        return JsonResponse(payload, status=status)
+
+    return redirect("my_leave")
+
+
+def _serialize_leave_for_my_leave(leave):
+    leave_type_class = (leave.leave_type or "").lower()
+
+    if leave.leave_type == "Short":
+        leave_code = "S"
+    elif leave.leave_type == "Half":
+        leave_code = "H"
+    else:
+        leave_code = (leave.leave_type or "")[:1].upper()
+
+    leave_symbol = {
+        "Sick": "✚",
+        "Casual": "☕",
+        "Earned": "★",
+        "Short": "◷",
+        "Half": "◐",
+    }.get(leave.leave_type, "✦")
+
+    updated_count = leave.no_of_times_updated or 0
+
+    return {
+        "id": leave.id,
+        "leave_type": leave.leave_type,
+        "leave_type_class": leave_type_class,
+        "leave_code": leave_code,
+        "leave_symbol": leave_symbol,
+        "from_date": leave.from_date.strftime("%Y-%m-%d"),
+        "to_date": leave.to_date.strftime("%Y-%m-%d"),
+        "from_date_display": leave.from_date.strftime("%b %d, %Y"),
+        "to_date_display": leave.to_date.strftime("%b %d, %Y"),
+        "from_datetime_iso": localtime(leave.from_datetime).isoformat() if leave.from_datetime else "",
+        "to_datetime_iso": localtime(leave.to_datetime).isoformat() if leave.to_datetime else "",
+        "from_time_display": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
+        "to_time_display": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
+        "is_time_based": leave.leave_type in ["Short", "Half"],
+        "reason": leave.reason or "",
+        "updated_iso": localtime(leave.updated_at).isoformat() if leave.updated_at else "",
+        "updated_date_display": localtime(leave.updated_at).strftime("%b %d, %Y") if leave.updated_at else "-",
+        "updated_time_display": localtime(leave.updated_at).strftime("%I:%M %p") if leave.updated_at else "",
+        "updated_count": updated_count,
+        "pending_count": Leave.objects.filter(user=leave.user, status="Pending").count(),
+    }
+
+
+
+# def login_view(request):
+#     if request.method == "POST":
+#         user = authenticate(
+#             request,
+#             username=request.POST['username'],
+#             password=request.POST['password']
+#         )
+
+#         if user:
+#             login(request, user)
+#             print("LOGIN SUCCESS")
+#             return redirect('dashboard')
+#         else:
+#             print("LOGIN FAILED")
+        
+#     return render(request, 'login.html')
+
+
+
+
+# @never_cache
+# def role_select(request):
+#     return render(request, "role_select.html")
+
+@never_cache
+def role_select(request):
+
+    if request.user.is_authenticated:
+
+        if request.user.role == "EMPLOYEE":
+            return redirect("dashboard")
+
+        elif request.user.role == "HR":
+            return redirect("hr_dashboard")
+        
+        elif request.user.role == "Admin":
+            return redirect("admin:index")
+
+        elif request.user.is_superuser:
+            return redirect("admin:index")
+
+    return render(request, "role_select.html")
+
+
+@never_cache
+def hr_login(request):
+    # 🔥 If already logged in, don't allow login page
+
+    if request.user.is_authenticated and request.user.role == "HR":
+        return redirect("hr_dashboard")
+
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None and user.role == "HR":
+            login(request, user)
+            return redirect("hr_dashboard")
+        else:
+            messages.error(request, "Invalid HR Credentials")
+
+    return render(request, "hr_login.html")
+
+
+
+# @login_required
+# @never_cache
+# def hr_dashboard(request):
+#     if request.user.role != "HR":
+#         return redirect("role_selection")
+#     return render(request, "hr_dashboard.html")
+
+
+
+
+
+
+@login_required
+@never_cache
+def hr_notifications(request):
+    if request.user.role != "HR":
+        return JsonResponse({"detail": "HR access required."}, status=403)
+
+    leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
+    payload = build_hr_pending_notifications(leaves, request.user)
+    limit = request.GET.get("limit")
+
+    notifications = payload["notifications"]
+    if limit and str(limit).isdigit():
+        notifications = notifications[:int(limit)]
+
+    return JsonResponse({
+        "count": payload["count"],
+        "recent_type_class": payload["recent_type_class"],
+        "notifications": notifications,
+    })
+    
+    
+def get_leave_type_class(leave_type):
+    return {
+        "Sick": "sick",
+        "Casual": "casual",
+        "Earned": "earned",
+        "Short": "short",
+        "Half": "half",
+    }.get(leave_type, "default")
+
+
+def parse_json_request_body(request):
+    try:
+        return json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return {}
+
+
+def get_notification_read_ids_for_user(user, leaves):
+    leave_ids = [leave.id for leave in leaves]
+
+    if not leave_ids:
+        return set()
+
+    try:
+        return set(
+            LeaveNotificationRead.objects.filter(user=user, leave_id__in=leave_ids)
+            .values_list("leave_id", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        return set()
+
+
+def get_notification_seen_ids_for_user(user, leaves):
+    leave_ids = [leave.id for leave in leaves]
+
+    if not leave_ids:
+        return set()
+
+    try:
+        return set(
+            LeaveNotificationSeen.objects.filter(user=user, leave_id__in=leave_ids)
+            .values_list("leave_id", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        return set()
+
+
+def reset_hr_notification_state_for_leave(leave):
+    hr_user_ids = list(
+        get_user_model().objects.filter(role="HR").values_list("id", flat=True)
+    )
+
+    if hr_user_ids:
+        LeaveNotificationRead.objects.filter(leave=leave, user_id__in=hr_user_ids).delete()
+        LeaveNotificationSeen.objects.filter(leave=leave, user_id__in=hr_user_ids).delete()
+
+
+def refresh_pending_leave_notification(leave):
+    if leave.status != "Pending":
+        return
+
+    reset_hr_notification_state_for_leave(leave)
+
+
+def get_leave_activity_datetime(leave):
+    if leave.status == "Pending":
+        return leave.updated_at or leave.created_at
+
+    if leave.status == "Approved":
+        return leave.approved_at or leave.created_at
+
+    if leave.status == "Rejected":
+        return leave.rejected_at or leave.created_at
+
+    return leave.created_at
+
+
+def build_hr_pending_notifications(leaves, viewer=None):
+    leaves = sorted(
+        [leave for leave in leaves if leave.status == "Pending"],
+        key=get_leave_activity_datetime,
+        reverse=True,
+    )
+    pending_notifications = []
+    read_ids = get_notification_read_ids_for_user(viewer, leaves) if viewer else set()
+    seen_ids = get_notification_seen_ids_for_user(viewer, leaves) if viewer else set()
+    unread_count = 0
+
+    for leave in leaves:
+        try:
+            leave_profile = leave.user.profile
+        except Profile.DoesNotExist:
+            leave_profile = None
+
+        is_read = leave.id in read_ids
+        is_new = leave.id not in seen_ids
+        activity_at = get_leave_activity_datetime(leave)
+        schedule_text = (
+            f"{leave.from_date.strftime('%b %d')}, "
+            f"{localtime(leave.from_datetime).strftime('%I:%M %p')} → "
+            f"{localtime(leave.to_datetime).strftime('%I:%M %p')}"
+            if leave.leave_type in ["Short", "Half"]
+            else f"{leave.from_date.strftime('%b %d')} → {leave.to_date.strftime('%b %d')}"
+        )
+        activity_label = "Updated" if leave.updated_at else "Applied"
+        if not is_read:
+            unread_count += 1
+
+        pending_notifications.append({
+            "id": leave.id,
+            "employee_id": leave.user_id,
+            "username": leave.user.username,
+            "display_name": leave.user.get_full_name().strip() or leave.user.username,
+            "leave_type": leave.leave_type,
+            "leave_type_class": get_leave_type_class(leave.leave_type),
+            "from_date": leave.from_date.strftime("%b %d"),
+            "to_date": leave.to_date.strftime("%b %d"),
+            "from_time": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
+            "to_time": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
+            "is_time_based": leave.leave_type in ["Short", "Half"],
+            "created_at": localtime(activity_at).strftime("%b %d, %Y %I:%M %p"),
+            "schedule_text": schedule_text,
+            "activity_label": activity_label,
+            "activity_text": localtime(activity_at).strftime("%b %d, %Y %I:%M %p"),
+            "photo_url": leave_profile.profile_photo.url if leave_profile and leave_profile.profile_photo else None,
+            "target_url": f"{reverse('manage_all')}?employee={leave.user_id}&highlight_leave={leave.id}",
+            "is_read": is_read,
+            "is_new": is_new,
+        })
+
+    recent_notification_type_class = pending_notifications[0]["leave_type_class"] if pending_notifications else ""
+
+    return {
+        "notifications": pending_notifications,
+        "count": unread_count if viewer else len(pending_notifications),
+        "recent_type_class": recent_notification_type_class,
+    }
+
+
+def get_hr_notification_context(user, limit=None):
+    leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
+    notification_payload = build_hr_pending_notifications(leaves, user)
+    notifications = notification_payload["notifications"]
+
+    if limit is not None:
+        notifications = notifications[:limit]
+
+    return {
+        "pending_notifications": notifications,
+        "pending_notification_count": notification_payload["count"],
+        "recent_notification_type_class": notification_payload["recent_type_class"],
+    }
+
+
+def build_employee_notifications(leaves, viewer=None):
+    leaves = sorted(
+        [leave for leave in leaves if leave.status in ["Approved", "Rejected"]],
+        key=get_leave_activity_datetime,
+        reverse=True,
+    )
+    employee_notifications = []
+    read_ids = get_notification_read_ids_for_user(viewer, leaves) if viewer else set()
+    seen_ids = get_notification_seen_ids_for_user(viewer, leaves) if viewer else set()
+    unread_count = 0
+
+    for leave in leaves:
+        try:
+            leave_profile = leave.user.profile
+        except Profile.DoesNotExist:
+            leave_profile = None
+
+        date_range = leave.from_date.strftime("%b %d")
+        if leave.to_date and leave.to_date != leave.from_date:
+            date_range += f" - {leave.to_date.strftime('%b %d')}"
+
+        panel_target = "rejected-panel" if leave.status == "Rejected" else "approved-panel"
+        is_read = leave.id in read_ids
+        is_new = leave.id not in seen_ids
+        activity_at = get_leave_activity_datetime(leave)
+        schedule_text = (
+            f"{leave.from_date.strftime('%b %d')}, "
+            f"{localtime(leave.from_datetime).strftime('%I:%M %p')} → "
+            f"{localtime(leave.to_datetime).strftime('%I:%M %p')}"
+            if leave.leave_type in ["Short", "Half"]
+            else f"{leave.from_date.strftime('%b %d')} → {leave.to_date.strftime('%b %d')}"
+        )
+        headline_text = f"{leave.leave_type} Leave {leave.status}!"
+        applied_text = localtime(leave.created_at).strftime("%b %d, %Y %I:%M %p")
+        updated_text = localtime(leave.updated_at).strftime("%b %d, %Y %I:%M %p") if leave.updated_at else ""
+        if not is_read:
+            unread_count += 1
+
+        employee_notifications.append({
+            "id": leave.id,
+            "employee_id": leave.user_id,
+            "username": leave.user.username,
+            "display_name": headline_text,
+            "headline_text": headline_text,
+            "leave_type": leave.leave_type,
+            "leave_type_class": get_leave_type_class(leave.leave_type),
+            "from_date": leave.from_date.strftime("%b %d"),
+            "to_date": leave.to_date.strftime("%b %d"),
+            "from_time": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
+            "to_time": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
+            "is_time_based": leave.leave_type in ["Short", "Half"],
+            "created_at": localtime(activity_at).strftime("%b %d, %Y %I:%M %p"),
+            "schedule_text": schedule_text,
+            "applied_text": applied_text,
+            "updated_text": updated_text,
+            "status": leave.status,
+            "status_class": leave.status.lower(),
+            "photo_url": leave_profile.profile_photo.url if leave_profile and leave_profile.profile_photo else None,
+            "target_panel": panel_target,
+            "target_url": f"{reverse('my_leave')}?panel={panel_target}&highlight_leave={leave.id}",
+            "is_read": is_read,
+            "is_new": is_new,
+        })
+
+    recent_notification_type_class = employee_notifications[0]["leave_type_class"] if employee_notifications else ""
+
+    return {
+        "notifications": employee_notifications,
+        "count": unread_count if viewer else len(employee_notifications),
+        "recent_type_class": recent_notification_type_class,
+    }
+
+
+def get_employee_notification_context(user, limit=None):
+    leaves = (
+        Leave.objects
+        .filter(user=user, status__in=["Approved", "Rejected"])
+        .select_related("user", "user__profile")
+        .order_by("-created_at")
+    )
+    notification_payload = build_employee_notifications(leaves, user)
+    notifications = notification_payload["notifications"]
+
+    if limit is not None:
+        notifications = notifications[:limit]
+
+    return {
+        "employee_notifications": notifications,
+        "employee_notification_count": notification_payload["count"],
+        "employee_recent_notification_type_class": notification_payload["recent_type_class"],
+    }
+
+
+def truncate_communication_body(value, limit=120):
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def get_communication_queryset(user):
+    queryset = Communication.objects.select_related(
+        "sender",
+        "sender__profile",
+        "recipient",
+        "recipient__profile",
+    )
+
+    if user.role == "HR":
+        return queryset.filter(
+            Q(sender=user) |
+            Q(recipient=user) |
+            Q(audience_role="HR")
+        ).order_by("-created_at")
+
+    return queryset.filter(
+        Q(sender=user) |
+        Q(recipient=user) |
+        Q(message_type="ANNOUNCEMENT", audience_role="EMPLOYEE")
+    ).order_by("-created_at")
+
+
+def get_communication_read_ids_for_user(user, communications):
+    communication_ids = [communication.id for communication in communications]
+
+    if not communication_ids:
+        return set()
+
+    try:
+        return set(
+            CommunicationRead.objects.filter(user=user, communication_id__in=communication_ids)
+            .values_list("communication_id", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        return set()
+
+
+def get_communication_seen_ids_for_user(user, communications):
+    communication_ids = [communication.id for communication in communications]
+
+    if not communication_ids:
+        return set()
+
+    try:
+        return set(
+            CommunicationSeen.objects.filter(user=user, communication_id__in=communication_ids)
+            .values_list("communication_id", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        return set()
+
+
+def build_communication_items(communications, viewer, read_ids=None, seen_ids=None):
+    items = []
+    read_ids = read_ids or set()
+    seen_ids = seen_ids or set()
+
+    for communication in communications:
+        try:
+            sender_profile = communication.sender.profile
+        except Profile.DoesNotExist:
+            sender_profile = None
+
+        sender_name = communication.sender.get_full_name().strip() or communication.sender.username
+        recipient_name = ""
+
+        if communication.recipient_id:
+            recipient_name = communication.recipient.get_full_name().strip() or communication.recipient.username
+
+        if communication.message_type == "ANNOUNCEMENT":
+            audience_label = "All employees"
+            direction_class = "announcement"
+            item_title = communication.title.strip() or "Announcement"
+            type_label = "Announcement"
+        elif communication.sender_id == viewer.id:
+            audience_label = "To HR" if communication.audience_role == "HR" else (recipient_name or "Direct message")
+            direction_class = "outgoing"
+            item_title = communication.title.strip() or "Message sent"
+            type_label = "Sent"
+        else:
+            audience_label = "From " + sender_name
+            direction_class = "incoming"
+            item_title = communication.title.strip() or "New message"
+            type_label = "Inbox"
+
+        is_outgoing = communication.sender_id == viewer.id
+        is_read = is_outgoing or communication.id in read_ids
+        is_new = (not is_outgoing) and communication.id not in seen_ids
+
+        items.append({
+            "id": communication.id,
+            "title": item_title,
+            "body_preview": truncate_communication_body(communication.body),
+            "body_full": communication.body,
+            "created_at": localtime(communication.created_at).strftime("%b %d, %Y %I:%M %p"),
+            "sender_name": sender_name,
+            "recipient_name": recipient_name,
+            "audience_label": audience_label,
+            "direction_class": direction_class,
+            "type_label": type_label,
+            "type_class": "announcement" if communication.message_type == "ANNOUNCEMENT" else "direct",
+            "is_outgoing": is_outgoing,
+            "is_read": is_read,
+            "is_new": is_new,
+            "photo_url": sender_profile.profile_photo.url if sender_profile and sender_profile.profile_photo else None,
+            "username": communication.sender.username,
+        })
+
+    return items
+
+
+def get_communication_badge_count(queryset, user):
+    incoming_ids = list(queryset.exclude(sender=user).values_list("id", flat=True))
+
+    if not incoming_ids:
+        return 0
+
+    try:
+        read_ids = set(
+            CommunicationRead.objects.filter(user=user, communication_id__in=incoming_ids)
+            .values_list("communication_id", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        read_ids = set()
+
+    return sum(1 for communication_id in incoming_ids if communication_id not in read_ids)
+
+
+def get_communication_recipients_for_user(user):
+    if user.role != "HR":
+        return []
+
+    employees = get_user_model().objects.filter(role="EMPLOYEE").select_related("profile").order_by("first_name", "username")
+    recipients = []
+
+    for employee in employees:
+        recipients.append({
+            "id": employee.id,
+            "label": employee.get_full_name().strip() or employee.username,
+        })
+
+    return recipients
+
+
+def get_communication_context(user, limit=8):
+    queryset = get_communication_queryset(user)
+    communications = list(queryset[:limit])
+    read_ids = get_communication_read_ids_for_user(user, communications)
+    seen_ids = get_communication_seen_ids_for_user(user, communications)
+    items = build_communication_items(communications, user, read_ids, seen_ids)
+
+    return {
+        "communication_items": items,
+        "communication_count": get_communication_badge_count(queryset, user),
+        "communication_recipients": get_communication_recipients_for_user(user),
+        "communication_empty_text": "No announcements or messages yet.",
+    }
+
+
+@login_required
+@never_cache
+def communications_feed(request):
+    queryset = get_communication_queryset(request.user)
+    communications = list(queryset[:8])
+    read_ids = get_communication_read_ids_for_user(request.user, communications)
+    seen_ids = get_communication_seen_ids_for_user(request.user, communications)
+    items = build_communication_items(communications, request.user, read_ids, seen_ids)
+    return JsonResponse({
+        "count": get_communication_badge_count(queryset, request.user),
+        "items": items,
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def communications_mark_read(request):
+    payload = parse_json_request_body(request)
+    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    target_type = str(payload.get("target_type") or "").strip().upper()
+
+    queryset = get_communication_queryset(request.user).exclude(sender=request.user)
+
+    if target_type == "ANNOUNCEMENT":
+        queryset = queryset.filter(message_type="ANNOUNCEMENT")
+    elif target_type == "DIRECT":
+        queryset = queryset.filter(message_type="DIRECT")
+
+    if ids:
+        queryset = queryset.filter(id__in=ids)
+
+    communication_ids = list(queryset.values_list("id", flat=True))
+
+    if communication_ids:
+        try:
+            CommunicationRead.objects.bulk_create(
+                [
+                    CommunicationRead(user=request.user, communication_id=communication_id)
+                    for communication_id in communication_ids
+                ],
+                ignore_conflicts=True,
+            )
+            CommunicationSeen.objects.bulk_create(
+                [
+                    CommunicationSeen(user=request.user, communication_id=communication_id)
+                    for communication_id in communication_ids
+                ],
+                ignore_conflicts=True,
+            )
+        except (OperationalError, ProgrammingError):
+            pass
+
+    full_queryset = get_communication_queryset(request.user)
+    communications = list(full_queryset[:8])
+    read_ids = get_communication_read_ids_for_user(request.user, communications)
+    seen_ids = get_communication_seen_ids_for_user(request.user, communications)
+    items = build_communication_items(communications, request.user, read_ids, seen_ids)
+
+    return JsonResponse({
+        "count": get_communication_badge_count(full_queryset, request.user),
+        "items": items,
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def communications_send(request):
+    user = request.user
+    message_type = (request.POST.get("message_type") or "DIRECT").strip().upper()
+    title = (request.POST.get("title") or "").strip()
+    body = (request.POST.get("body") or "").strip()
+
+    if not body:
+        return JsonResponse({"error": "Message body is required."}, status=400)
+
+    if len(body) > 1500:
+        return JsonResponse({"error": "Message is too long."}, status=400)
+
+    if len(title) > 140:
+        return JsonResponse({"error": "Title is too long."}, status=400)
+
+    if user.role == "HR":
+        if message_type == "ANNOUNCEMENT":
+            Communication.objects.create(
+                sender=user,
+                message_type="ANNOUNCEMENT",
+                audience_role="EMPLOYEE",
+                title=title,
+                body=body,
+            )
+        elif message_type == "DIRECT":
+            recipient_id = request.POST.get("recipient_id")
+            recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE")
+            Communication.objects.create(
+                sender=user,
+                recipient=recipient,
+                message_type="DIRECT",
+                title=title,
+                body=body,
+            )
+        else:
+            return JsonResponse({"error": "Invalid communication type."}, status=400)
+
+    elif user.role == "EMPLOYEE":
+        if message_type != "DIRECT":
+            return JsonResponse({"error": "Employees can only send direct messages."}, status=403)
+
+        Communication.objects.create(
+            sender=user,
+            message_type="DIRECT",
+            audience_role="HR",
+            title=title,
+            body=body,
+        )
+    else:
+        return JsonResponse({"error": "Unsupported role."}, status=403)
+
+    queryset = get_communication_queryset(user)
+    communications = list(queryset[:8])
+    read_ids = get_communication_read_ids_for_user(user, communications)
+    seen_ids = get_communication_seen_ids_for_user(user, communications)
+    items = build_communication_items(communications, user, read_ids, seen_ids)
+    return JsonResponse({
+        "success": True,
+        "count": get_communication_badge_count(queryset, user),
+        "items": items,
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def communications_mark_seen(request):
+    payload = parse_json_request_body(request)
+    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    queryset = get_communication_queryset(request.user).exclude(sender=request.user)
+
+    if ids:
+        queryset = queryset.filter(id__in=ids)
+
+    communication_ids = list(queryset.values_list("id", flat=True))
+
+    if communication_ids:
+        try:
+            CommunicationSeen.objects.bulk_create(
+                [
+                    CommunicationSeen(user=request.user, communication_id=communication_id)
+                    for communication_id in communication_ids
+                ],
+                ignore_conflicts=True,
+            )
+        except (OperationalError, ProgrammingError):
+            pass
+
+    full_queryset = get_communication_queryset(request.user)
+    communications = list(full_queryset[:8])
+    read_ids = get_communication_read_ids_for_user(request.user, communications)
+    seen_ids = get_communication_seen_ids_for_user(request.user, communications)
+    items = build_communication_items(communications, request.user, read_ids, seen_ids)
+    return JsonResponse({
+        "count": get_communication_badge_count(full_queryset, request.user),
+        "items": items,
+    })
+
+
+@login_required
+@never_cache
+def employee_notifications(request):
+    if request.user.role != "EMPLOYEE":
+        return JsonResponse({"detail": "Employee access required."}, status=403)
+
+    leaves = (
+        Leave.objects
+        .filter(user=request.user, status__in=["Approved", "Rejected"])
+        .select_related("user", "user__profile")
+        .order_by("-created_at")
+    )
+    payload = build_employee_notifications(leaves, request.user)
+    limit = request.GET.get("limit")
+
+    notifications = payload["notifications"]
+    if limit and str(limit).isdigit():
+        notifications = notifications[:int(limit)]
+
+    return JsonResponse({
+        "count": payload["count"],
+        "recent_type_class": payload["recent_type_class"],
+        "notifications": notifications,
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def notifications_mark_read(request):
+    payload = parse_json_request_body(request)
+    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    mark_all = bool(payload.get("all"))
+
+    if request.user.role == "HR":
+        allowed_leaves = list(Leave.objects.filter(status="Pending").values_list("id", flat=True))
+    else:
+        allowed_leaves = list(
+            Leave.objects.filter(user=request.user, status__in=["Approved", "Rejected"]).values_list("id", flat=True)
+        )
+
+    allowed_ids = {str(leave_id) for leave_id in allowed_leaves}
+    target_ids = allowed_ids if mark_all else {value for value in ids if value in allowed_ids}
+
+    if target_ids:
+        try:
+            LeaveNotificationRead.objects.bulk_create(
+                [
+                    LeaveNotificationRead(user=request.user, leave_id=int(notification_id))
+                    for notification_id in target_ids
+                ],
+                ignore_conflicts=True,
+            )
+            LeaveNotificationSeen.objects.bulk_create(
+                [
+                    LeaveNotificationSeen(user=request.user, leave_id=int(notification_id))
+                    for notification_id in target_ids
+                ],
+                ignore_conflicts=True,
+            )
+        except (OperationalError, ProgrammingError):
+            pass
+
+    try:
+        read_ids = set(
+            LeaveNotificationRead.objects.filter(user=request.user, leave_id__in=allowed_leaves)
+            .values_list("leave_id", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        read_ids = set()
+
+    return JsonResponse({
+        "count": sum(1 for leave_id in allowed_leaves if leave_id not in read_ids),
+        "read_ids": sorted(read_ids),
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def notifications_mark_seen(request):
+    payload = parse_json_request_body(request)
+    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+
+    if request.user.role == "HR":
+        allowed_leaves = list(Leave.objects.filter(status="Pending").values_list("id", flat=True))
+    else:
+        allowed_leaves = list(
+            Leave.objects.filter(user=request.user, status__in=["Approved", "Rejected"]).values_list("id", flat=True)
+        )
+
+    allowed_ids = {str(leave_id) for leave_id in allowed_leaves}
+    target_ids = {value for value in ids if value in allowed_ids}
+
+    if target_ids:
+        try:
+            LeaveNotificationSeen.objects.bulk_create(
+                [
+                    LeaveNotificationSeen(user=request.user, leave_id=int(notification_id))
+                    for notification_id in target_ids
+                ],
+                ignore_conflicts=True,
+            )
+        except (OperationalError, ProgrammingError):
+            pass
+
+    return JsonResponse({
+        "seen_ids": sorted(int(value) for value in target_ids),
+    })
+
+
+
+
+
+
+from django.db.models import Count
+
+@login_required
+@never_cache
+def hr_dashboard(request):
+
+    if request.user.role != "HR":
+        return redirect("role_select")
+
+    total = Leave.objects.count()
+    pending = Leave.objects.filter(status="Pending").count()
+    approved = Leave.objects.filter(status="Approved").count()
+    rejected = Leave.objects.filter(status="Rejected").count()
+
+    pending_leaves_qs = Leave.objects.filter(status="Pending").order_by("-created_at")
+    pending_page_number = request.GET.get("queue_page", 1)
+    pending_paginator = Paginator(pending_leaves_qs, 7)
+    pending_leaves = pending_paginator.get_page(pending_page_number)
+
+    context = {
+        "total": total,
+        "pending": pending,
+        "approved": approved,
+        "rejected": rejected,
+        "pending_leaves": pending_leaves,
+        "pending_leaves_paginator": pending_paginator,
+    }
+    context.update(get_hr_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    return render(request, "hr_dashboard.html", context)
+
+
+def build_manage_employee_card(employee, employee_leaves, today=None):
+    employee_leaves = sorted(employee_leaves, key=get_leave_activity_datetime, reverse=True)
+
+    display_name = employee.get_full_name().strip() or employee.username
+
+    try:
+        profile = employee.profile
+    except Profile.DoesNotExist:
+        profile = None
+
+    try:
+        balance = employee.leavebalance
+    except LeaveBalance.DoesNotExist:
+        balance = None
+
+    today = today or localdate()
+    pending_count = sum(1 for leave in employee_leaves if leave.status == "Pending")
+    approved_count = sum(1 for leave in employee_leaves if leave.status == "Approved")
+    rejected_count = sum(1 for leave in employee_leaves if leave.status == "Rejected")
+    latest_leave = employee_leaves[0] if employee_leaves else None
+    latest_pending_leave = next((leave for leave in employee_leaves if leave.status == "Pending"), None)
+    latest_decision_leave = next(
+        (leave for leave in employee_leaves if leave.status in ["Approved", "Rejected"]),
+        None
+    )
+    latest_status = latest_leave.status if latest_leave else "No requests"
+    latest_status_class = latest_status.lower().replace(" ", "-")
+    month_short_used = sum(
+        1 for leave in employee_leaves
+        if leave.leave_type == "Short"
+        and leave.from_date.month == today.month
+        and leave.from_date.year == today.year
+        and leave.status in ["Pending", "Approved"]
+    )
+    month_half_used = sum(
+        1 for leave in employee_leaves
+        if leave.leave_type == "Half"
+        and leave.from_date.month == today.month
+        and leave.from_date.year == today.year
+        and leave.status in ["Pending", "Approved"]
+    )
+
+    return {
+        "id": employee.id,
+        "username": employee.username,
+        "display_name": display_name,
+        "email": employee.email or "No email added",
+        "employee_id": getattr(profile, "employee_id", "Not assigned"),
+        "department": getattr(profile, "department", "Not assigned"),
+        "role": getattr(profile, "role", employee.role),
+        "date_of_joining": profile.date_of_joining.strftime("%b %d, %Y") if profile and profile.date_of_joining else "Not added",
+        "phone": getattr(profile, "phone", "Not added"),
+        "address": getattr(profile, "address", "") or "Address not added yet.",
+        "bio": getattr(profile, "bio", "") or "No employee bio available yet.",
+        "photo_url": profile.profile_photo.url if profile and profile.profile_photo else None,
+        "total_requests": len(employee_leaves),
+        "pending_count": pending_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
+        "latest_status": latest_status,
+        "latest_status_class": latest_status_class,
+        "latest_leave_type": latest_leave.leave_type if latest_leave else "No leave history",
+        "latest_decision_status": latest_decision_leave.status if latest_decision_leave else ("Pending review" if pending_count else "No decision yet"),
+        "latest_decision_status_class": latest_decision_leave.status.lower() if latest_decision_leave else ("pending" if pending_count else "no-requests"),
+        "latest_decision_type": latest_decision_leave.leave_type if latest_decision_leave else (latest_pending_leave.leave_type if latest_pending_leave else "No leave history"),
+        "latest_applied_at": localtime(latest_leave.created_at).strftime("%b %d, %Y %I:%M %p") if latest_leave else "No applications yet",
+        "recent_pending_type": latest_pending_leave.leave_type if latest_pending_leave else "",
+        "recent_pending_type_class": get_leave_type_class(latest_pending_leave.leave_type) if latest_pending_leave else "",
+        "earned_used": balance.earned_used if balance else 0,
+        "earned_total": balance.earned_total if balance else 0,
+        "earned_remaining": (balance.earned_total - balance.earned_used) if balance else 0,
+        "sick_used": balance.sick_used if balance else 0,
+        "sick_total": balance.sick_total if balance else 0,
+        "sick_remaining": (balance.sick_total - balance.sick_used) if balance else 0,
+        "casual_taken": balance.unpaid if balance else 0,
+        "short_used_month": month_short_used,
+        "short_total_month": 2,
+        "half_used_month": month_half_used,
+        "half_total_month": 1,
+        "leaves": [
+            {
+                "id": leave.id,
+                "type": leave.leave_type,
+                "type_class": get_leave_type_class(leave.leave_type),
+                "status": leave.status,
+                "from_date": leave.from_date.strftime("%b %d, %Y"),
+                "to_date": leave.to_date.strftime("%b %d, %Y"),
+                "reason": leave.reason,
+                "rejection_reason": leave.rejection_reason or "-",
+                "applied_at": localtime(leave.created_at).strftime("%b %d, %Y %I:%M %p"),
+                "applied_at_iso": localtime(leave.created_at).isoformat(),
+                "updated_at": localtime(leave.updated_at).strftime("%b %d, %Y %I:%M %p") if getattr(leave, "updated_at", None) else "",
+                "updated_at_iso": localtime(leave.updated_at).isoformat() if getattr(leave, "updated_at", None) else "",
+                "no_of_times_updated": leave.no_of_times_updated or 0,
+                "approved_at": localtime(leave.approved_at).strftime("%b %d, %Y %I:%M %p") if getattr(leave, "approved_at", None) else "",
+                "approved_at_iso": localtime(leave.approved_at).isoformat() if getattr(leave, "approved_at", None) else "",
+                "rejected_at": localtime(leave.rejected_at).strftime("%b %d, %Y %I:%M %p") if getattr(leave, "rejected_at", None) else "",
+                "rejected_at_iso": localtime(leave.rejected_at).isoformat() if getattr(leave, "rejected_at", None) else "",
+                "from_time": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
+                "to_time": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
+                "deducted_from": leave.deducted_from,
+            }
+            for leave in employee_leaves
+        ],
+    }
+
+
+@login_required
+@never_cache
+def manage_all(request):
+
+    # 🔐 Strict HR-only access
+    if request.user.role != "HR":
+        return redirect("role_select")
+
+    leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
+    employees = User.objects.filter(role="EMPLOYEE").select_related("profile").order_by("username")
+
+    employee_cards = []
+    today = localdate()
+
+    for employee in employees:
+        employee_leaves = [leave for leave in leaves if leave.user_id == employee.id]
+        employee_cards.append(build_manage_employee_card(employee, employee_leaves, today=today))
+
+    employee_cards.sort(key=lambda employee: (employee["display_name"] or "").strip().lower())
+
+    notification_payload = build_hr_pending_notifications(leaves, request.user)
+    pending_notification_total = notification_payload["count"]
+    recent_notification_type_class = notification_payload["recent_type_class"]
+    pending_notifications = notification_payload["notifications"]
+
+    context = {
+        "leaves": leaves,
+        "employee_cards": employee_cards,
+        "selected_employee": employee_cards[0] if employee_cards else None,
+        "pending_notifications": pending_notifications,
+        "pending_notification_count": pending_notification_total,
+        "pending_leave_total": sum(1 for leave in leaves if leave.status == "Pending"),
+        "approved_leave_total": sum(1 for leave in leaves if leave.status == "Approved"),
+        "rejected_leave_total": sum(1 for leave in leaves if leave.status == "Rejected"),
+        "recent_notification_type_class": recent_notification_type_class,
+    }
+    context.update(get_communication_context(request.user))
+
+    return render(request, "manage_all.html", context)
+
+
+@login_required
+@never_cache
+def manage_all_employee_detail(request, user_id):
+
+    if request.user.role != "HR":
+        return JsonResponse({"detail": "HR access required."}, status=403)
+
+    employee = get_object_or_404(
+        User.objects.filter(role="EMPLOYEE").select_related("profile"),
+        id=user_id,
+    )
+    employee_leaves = list(
+        Leave.objects
+        .filter(user_id=employee.id)
+        .select_related("user", "user__profile")
+        .order_by("-created_at")
+    )
+
+    return JsonResponse(build_manage_employee_card(employee, employee_leaves))
+
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+
+def _pdf_escape(value):
+    return str(value).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def build_simple_employee_pdf(lines):
+    content_lines = ["BT", "/F1 12 Tf", "50 790 Td", "16 TL"]
+
+    for index, line in enumerate(lines):
+        prefix = "" if index == 0 else "T* "
+        content_lines.append(f"{prefix}({_pdf_escape(line)}) Tj")
+
+    content_lines.append("ET")
+    content = "\n".join(content_lines).encode("latin-1", "replace")
+
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        f"<< /Length {len(content)} >>\nstream\n".encode("latin-1") + content + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = []
+
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{index} 0 obj\n".encode("latin-1"))
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+
+    xref_offset = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("latin-1"))
+    pdf.extend(b"0000000000 65535 f \n")
+
+    for offset in offsets:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("latin-1"))
+
+    pdf.extend(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF".encode("latin-1")
+    )
+    return bytes(pdf)
+
+
+def build_employee_pdf_payload(employee, profile, balance):
+    lines = [
+        "Employee Archive",
+        "",
+        f"Name: {employee.get_full_name().strip() or employee.username}",
+        f"Username: {employee.username}",
+        f"Email: {employee.email or '-'}",
+        f"Role: {getattr(profile, 'role', employee.role)}",
+        f"Employee ID: {getattr(profile, 'employee_id', '-')}",
+        f"Department: {getattr(profile, 'department', '-')}",
+        f"Date of Joining: {profile.date_of_joining.strftime('%d %b %Y') if profile and profile.date_of_joining else '-'}",
+        f"Phone: {getattr(profile, 'phone', '-')}",
+        "",
+        f"Total Leave: {balance.total_leaves if balance else 0}",
+        f"Sick Balance: {balance.sick_used if balance else 0}/{balance.sick_total if balance else 0}",
+        f"Earned Balance: {balance.earned_used if balance else 0}/{balance.earned_total if balance else 0}",
+        f"Casual/Unpaid: {balance.unpaid if balance else 0}",
+        "",
+        f"Exported On: {localtime(now()).strftime('%d %b %Y %I:%M %p')}",
+    ]
+    return build_simple_employee_pdf(lines)
+
+@login_required
+@never_cache
+def employee_details(request):
+
+    if request.user.role != "HR":
+        return redirect("role_select")
+
+    latest_user = User.objects.order_by("-id").first()
+    next_employee_id_preview = f"EMP{((latest_user.id if latest_user else 0) + 1):04d}"
+
+    form_values = {
+        "username": "",
+        "first_name": "",
+        "last_name": "",
+        "email": "",
+        "department": "",
+        "date_of_joining": "",
+        "phone": "",
+        "address": "",
+        "sick_total": "12",
+        "earned_total": "15",
+        "total_leaves": "27",
+    }
+    field_errors = {}
+
+    def add_field_error(field_name, message_text):
+        field_errors.setdefault(field_name, []).append(message_text)
+
+    if request.method == "POST":
+        form_values.update({
+            "username": request.POST.get("username", "").strip(),
+            "first_name": request.POST.get("first_name", "").strip(),
+            "last_name": request.POST.get("last_name", "").strip(),
+            "email": request.POST.get("email", "").strip(),
+            "department": request.POST.get("department", "").strip(),
+            "date_of_joining": request.POST.get("date_of_joining", "").strip(),
+            "phone": request.POST.get("phone", "").strip(),
+            "address": request.POST.get("address", "").strip(),
+            "sick_total": request.POST.get("sick_total", "12").strip() or "12",
+            "earned_total": request.POST.get("earned_total", "15").strip() or "15",
+        })
+
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+        if not form_values["username"]:
+            add_field_error("username", "Username is required.")
+        if not form_values["first_name"]:
+            add_field_error("first_name", "First name is required.")
+        if not form_values["last_name"]:
+            add_field_error("last_name", "Last name is required.")
+        if not form_values["email"]:
+            add_field_error("email", "Work email is required.")
+        if not password:
+            add_field_error("password", "Temporary password is required.")
+        if not confirm_password:
+            add_field_error("confirm_password", "Please confirm the password.")
+        if not form_values["department"]:
+            add_field_error("department", "Department is required.")
+        if not form_values["date_of_joining"]:
+            add_field_error("date_of_joining", "Joining date is required.")
+        if not form_values["phone"]:
+            add_field_error("phone", "Phone number is required.")
+
+        if form_values["username"] and User.objects.filter(username__iexact=form_values["username"]).exists():
+            add_field_error("username", "This username is already in use.")
+
+        if form_values["email"] and User.objects.filter(email__iexact=form_values["email"]).exists():
+            add_field_error("email", "This email is already linked to another user.")
+
+        if form_values["phone"] and Profile.objects.filter(phone=form_values["phone"]).exists():
+            add_field_error("phone", "This phone number is already linked to another employee.")
+
+        if password and confirm_password and password != confirm_password:
+            add_field_error("confirm_password", "Password confirmation does not match.")
+
+        joining_date = None
+        try:
+            if form_values["date_of_joining"]:
+                joining_date = date.fromisoformat(form_values["date_of_joining"])
+        except ValueError:
+            add_field_error("date_of_joining", "Please enter a valid joining date.")
+
+        sick_total = None
+        earned_total = None
+        try:
+            sick_total = float(form_values["sick_total"])
+        except ValueError:
+            add_field_error("sick_total", "Sick total must be a valid number.")
+
+        try:
+            earned_total = float(form_values["earned_total"])
+        except ValueError:
+            add_field_error("earned_total", "Earned total must be a valid number.")
+
+        if sick_total is not None and sick_total < 0:
+            add_field_error("sick_total", "Sick total cannot be negative.")
+
+        if earned_total is not None and earned_total < 0:
+            add_field_error("earned_total", "Earned total cannot be negative.")
+
+        if sick_total is not None and earned_total is not None:
+            form_values["total_leaves"] = f"{(sick_total + earned_total):g}"
+
+        if not field_errors:
+            with transaction.atomic():
+                new_user = User.objects.create_user(
+                    username=form_values["username"],
+                    email=form_values["email"],
+                    password=password,
+                    first_name=form_values["first_name"],
+                    last_name=form_values["last_name"],
+                )
+
+                new_user.role = "EMPLOYEE"
+                new_user.save()
+
+                profile = new_user.profile
+                profile.department = form_values["department"]
+                profile.date_of_joining = joining_date
+                profile.phone = form_values["phone"]
+                profile.address = form_values["address"]
+                profile.role = "EMPLOYEE"
+                profile.save()
+
+                balance = new_user.leavebalance
+                balance.sick_total = sick_total
+                balance.sick_used = 0
+                balance.earned_total = earned_total
+                balance.earned_used = 0
+                balance.unpaid = 0
+                balance.total_leaves = sick_total + earned_total
+                balance.save()
+
+            messages.success(request, f"Employee '{new_user.get_full_name() or new_user.username}' created successfully.")
+            return redirect("employee_details")
+
+    employees = User.objects.filter(role="EMPLOYEE").select_related("profile", "leavebalance").order_by("-date_joined", "-id")
+
+    employee_cards = []
+
+    # def build_initials(name, username):
+    #     source = (name or "").strip()
+    #     if source:
+    #         parts = [part for part in source.split() if part]
+    #         if len(parts) >= 2:
+    #             return (parts[0][0] + parts[1][0]).upper()
+    #         return source[:2].upper()
+    #     return (username or "EM")[:2].upper()
+
+    # def shorten_display_name(name):
+    #     source = (name or "").strip()
+    #     if len(source) <= 12:
+    #         return source
+    #     return source[:10].rstrip() + ".."
+
+    for employee in employees:
+        try:
+            profile = employee.profile
+        except Profile.DoesNotExist:
+            profile = None
+
+        try:
+            balance = employee.leavebalance
+        except LeaveBalance.DoesNotExist:
+            balance = None
+
+        full_name = employee.get_full_name().strip()
+        display_name = full_name or employee.username
+
+        employee_cards.append({
+            "id": employee.id,
+            "display_name": display_name,
+            # "display_name_short": shorten_display_name(display_name),
+            # "avatar_initials": build_initials(full_name, employee.username),
+            "username": employee.username,
+            "first_name": employee.first_name or "-",
+            "last_name": employee.last_name or "-",
+            "email": employee.email or "Not added",
+            "role": getattr(profile, "role", employee.role),
+            "employee_id": getattr(profile, "employee_id", "Not assigned"),
+            "department": getattr(profile, "department", "Not assigned"),
+            "date_of_joining": profile.date_of_joining.strftime("%b %d, %Y") if profile and profile.date_of_joining else "Not added",
+            "phone": getattr(profile, "phone", "Not added"),
+            "address": getattr(profile, "address", "") or "Address not added yet.",
+            "photo_url": profile.profile_photo.url if profile and profile.profile_photo else None,
+            "total_leaves": balance.total_leaves if balance else 0,
+            "sick_total": balance.sick_total if balance else 0,
+            "sick_used": balance.sick_used if balance else 0,
+            "earned_total": balance.earned_total if balance else 0,
+            "earned_used": balance.earned_used if balance else 0,
+            "unpaid": balance.unpaid if balance else 0,
+        })
+
+    context = {
+        "employee_cards": employee_cards,
+        "employee_total": len(employee_cards),
+        "joined_this_month_total": sum(
+            1 for employee in employees
+            if employee.date_joined.month == now().month and employee.date_joined.year == now().year
+        ),
+        "joined_this_year_total": sum(1 for employee in employees if employee.date_joined.year == now().year),
+        "form_values": form_values,
+        "field_errors": field_errors,
+        "employee_id_preview": next_employee_id_preview,
+    }
+    context.update(get_hr_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    return render(request, "employee_details.html", context)
+
+
+@login_required
+@never_cache
+@require_POST
+def delete_employee(request, user_id):
+
+    if request.user.role != "HR":
+        return JsonResponse({"detail": "HR access required."}, status=403)
+
+    employee = get_object_or_404(User, id=user_id, role="EMPLOYEE")
+
+    try:
+        profile = employee.profile
+    except Profile.DoesNotExist:
+        profile = None
+
+    try:
+        balance = employee.leavebalance
+    except LeaveBalance.DoesNotExist:
+        balance = None
+
+    pdf_bytes = build_employee_pdf_payload(employee, profile, balance)
+    filename = f"employee-archive-{employee.username}.pdf"
+
+    employee.delete()
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"Employee '{employee.username}' deleted successfully.",
+        "employee_id": user_id,
+        "filename": filename,
+        "pdf_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def update_employee_contact_field(request, user_id):
+
+    if request.user.role != "HR":
+        return JsonResponse({"detail": "HR access required."}, status=403)
+
+    employee = get_object_or_404(User, id=user_id, role="EMPLOYEE")
+
+    try:
+        profile = employee.profile
+    except Profile.DoesNotExist:
+        return JsonResponse({"detail": "Employee profile not found."}, status=404)
+
+    field_name = (request.POST.get("field") or "").strip().lower()
+    field_value = (request.POST.get("value") or "").strip()
+
+    if field_name not in {"phone", "address"}:
+        return JsonResponse({"detail": "Unsupported field."}, status=400)
+
+    if field_name == "phone":
+        if not field_value:
+            return JsonResponse({"detail": "Phone number is required."}, status=400)
+
+        if Profile.objects.filter(phone=field_value).exclude(user=employee).exists():
+            return JsonResponse({"detail": "This phone number is already linked to another employee."}, status=400)
+
+        profile.phone = field_value
+        profile.save(update_fields=["phone"])
+        return JsonResponse({
+            "status": "success",
+            "field": "phone",
+            "value": profile.phone,
+        })
+
+    profile.address = field_value
+    profile.save(update_fields=["address"])
+    return JsonResponse({
+        "status": "success",
+        "field": "address",
+        "value": profile.address or "Address not added yet.",
+    })
+
+
+
+
+from django.db.models import Count, Q
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+
+@login_required
+@never_cache
+def reports(request):
+
+    if request.user.role != "HR":
+        return redirect("role_select")
+
+    employee_id = request.GET.get("employee")
+
+    employees = User.objects.filter(role="EMPLOYEE")
+
+    leave_queryset = Leave.objects.all()
+
+    if employee_id:
+        leave_queryset = leave_queryset.filter(user_id=employee_id)
+
+    report_data = leave_queryset.values("user__username", "user").annotate(
+        total=Count("id"),
+        approved=Count("id", filter=Q(status="Approved")),
+        pending=Count("id", filter=Q(status="Pending")),
+        rejected=Count("id", filter=Q(status="Rejected")),
+    )
+
+    selected_employee_name = ""
+
+    if employee_id:
+        selected_employee_name = employees.filter(id=employee_id).values_list("username", flat=True).first() or ""
+
+    # Convert to usable format
+    reports = []
+    for item in report_data:
+        report_user = User.objects.get(id=item["user"])
+        report_profile = getattr(report_user, "profile", None)
+        reports.append({
+            "user": report_user,
+            "employee_id": getattr(report_profile, "employee_id", "Not assigned"),
+            "department": getattr(report_profile, "department", "Not assigned"),
+            "photo_url": report_profile.profile_photo.url if report_profile and report_profile.profile_photo else None,
+            "total": item["total"],
+            "approved": item["approved"],
+            "pending": item["pending"],
+            "rejected": item["rejected"],
+            "approval_rate": round((item["approved"] / item["total"]) * 100) if item["total"] else 0,
+            "pending_rate": round((item["pending"] / item["total"]) * 100) if item["total"] else 0,
+            "rejected_rate": round((item["rejected"] / item["total"]) * 100) if item["total"] else 0,
+        })
+
+    total_requests = sum(item["total"] for item in reports)
+    approved_total = sum(item["approved"] for item in reports)
+    pending_total = sum(item["pending"] for item in reports)
+    rejected_total = sum(item["rejected"] for item in reports)
+    approval_rate_overall = round((approved_total / total_requests) * 100) if total_requests else 0
+    top_employee = max(reports, key=lambda item: item["total"], default=None)
+
+    context = {
+        "employees": employees,
+        "reports": reports,
+        "selected_employee": employee_id,
+        "selected_employee_name": selected_employee_name,
+        "report_employee_count": len(reports),
+        "total_requests": total_requests,
+        "approved_total": approved_total,
+        "pending_total": pending_total,
+        "rejected_total": rejected_total,
+        "approval_rate_overall": approval_rate_overall,
+        "top_employee": top_employee,
+    }
+    context.update(get_hr_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    return render(request, "reports.html", context)
+
+
+# This view is for admin to approve leaves
+
+# @login_required
+# @never_cache
+# def approve_leave(request, leave_id):
+#     leave = get_object_or_404(Leave, id=leave_id)
+#     balance = get_object_or_404(LeaveBalance, user=leave.user)
+
+#     if leave.status != "Approved":
+#         leave.status = "Approved"
+
+#         days = (leave.to_date - leave.from_date).days + 1
+
+#         if leave.leave_type == "Sick":
+#             balance.sick_used += days
+
+#         elif leave.leave_type == "Earned":
+#             balance.earned_used += days
+
+#         elif leave.leave_type == "Casual":
+#             balance.unpaid += days
+#         balance.total_leaves -= days
+
+#         balance.save()
+#         leave.save()
+#         messages.success(request, "You approved :- 'Anurag Singh' 'leave_type' Leave")
+
+#     return redirect("admin_dashboard")
+
+
+# @login_required
+# @never_cache
+# @require_POST
+# def approve_leave(request, leave_id):
+
+#     if request.user.role != "HR":
+#         return redirect("role_selection")
+
+#     leave = get_object_or_404(Leave, id=leave_id)
+
+#     if leave.status == "Pending":
+#         leave.status = "Approved"
+#         leave.save()
+
+#         # Deduct Leave Balance
+#         # balance = LeaveBalance.objects.get(user=leave.user)
+        
+#         days = (leave.to_date - leave.from_date).days + 1
+
+#         # if leave.leave_type == "Sick":
+#         #     balance.sick_used += days
+#         # elif leave.leave_type == "Earned":
+#         #     balance.earned_used += days
+        
+
+#         # balance.total_leaves -= 1
+#         # balance.save()
+        
+#         # messages.success(request, "You approved :- 'Anurag Singh' 'leave_type' Leave")
+#         messages.success(
+#             request,
+#             f"ℹ Employee '{leave.user.username}' applied '{leave.leave_type}' leave "
+#             f"for {days} days from {leave.from_date} to {leave.to_date}"
+#             f"has been Approved."
+#         )
+
+#     return redirect("hr_dashboard")
+
+
+@login_required
+@never_cache
+@require_POST
+def approve_leave(request, leave_id):
+    is_ajax_request = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    if request.user.role != "HR":
+        if is_ajax_request:
+            return JsonResponse({"detail": "HR access required."}, status=403)
+        return redirect("role_selection")
+
+    leave = get_object_or_404(Leave, id=leave_id)
+
+    # Only pending can be approved
+    if leave.status != "Pending":
+        if is_ajax_request:
+            return JsonResponse({"detail": "Leave is not pending anymore."}, status=409)
+        messages.warning(request, "Leave is not pending anymore.")
+        return redirect("hr_dashboard")
+
+    # Just change status (balance already deducted at apply time)
+    leave.status = "Approved"
+    leave.approved_at = timezone.now()
+    leave.rejected_at = None
+    leave.save()
+
+    # =====================================
+    # MESSAGE LOGIC
+    # =====================================
+
+    if leave.leave_type in ["Short", "Half"]:
+        leave_value = 0.25 if leave.leave_type == "Short" else 0.5
+
+        messages.success( request, f"✔ Approved {leave.leave_type} Leave " f"({leave_value} day equivalent)")
+        messages.info( request, f"Employee: {leave.user.username}")
+        messages.info( request, f"Date: {leave.from_date.strftime('%d %b %Y')}")
+        messages.info( request, f"Deducted From: {leave.deducted_from}")
+
+    else:
+        days = (leave.to_date - leave.from_date).days + 1
+
+        messages.success( request, f"✔ Approved '{leave.leave_type}' Leave " f"for {days} day(s)")
+        messages.info( request, f"Employee: {leave.user.username}")
+        messages.info( request, f"From {leave.from_date.strftime('%d %b %Y')} " f"→ To {leave.to_date.strftime('%d %b %Y')}")
+        messages.info( request, f"Deducted From: {leave.deducted_from}")
+
+    if is_ajax_request:
+        employee_leaves = list(
+            Leave.objects
+            .filter(user_id=leave.user_id)
+            .select_related("user", "user__profile")
+            .order_by("-created_at")
+        )
+        return JsonResponse({
+            "success": True,
+            "status": leave.status,
+            "leave_id": leave.id,
+            "employee_detail": build_manage_employee_card(leave.user, employee_leaves),
+            "messages": _serialize_flash_messages(request),
+        })
+
+    return redirect("hr_dashboard")
+
+
+# Here is the end of approve leave view
+
+# This view is for admin to reject leaves
+
+# @login_required
+# @never_cache
+# def reject_leave(request, leave_id):
+#     leave = get_object_or_404(Leave, id=leave_id)
+#     # balance = LeaveBalance.objects.get(user=leave.user)
+#     balance = get_object_or_404(LeaveBalance, user=leave.user)
+
+
+#     if leave.status == "Pending":
+#         days = (leave.to_date - leave.from_date).days + 1
+
+#         if leave.leave_type == "Sick":
+#             balance.sick_used -= days
+#             balance.total_leaves += days
+
+#         elif leave.leave_type == "Earned":
+#             balance.earned_used -= days
+#             balance.total_leaves += days
+
+
+
+#         balance.save()
+#         leave.status = "Rejected"
+#         leave.save()
+
+#         messages.success(request, "You rejected :- 'User_Name' 'leave_type' Leave")
+
+#     return redirect("admin_dashboard")
+
+
+# @login_required
+# @never_cache
+# @require_POST
+# def reject_leave(request, leave_id):
+
+#     if request.user.role != "HR":
+#         return redirect("role_selection")
+
+#     leave = get_object_or_404(Leave, id=leave_id)
+
+#     if leave.status == "Pending":
+#         leave.status = "Rejected"
+#         leave.rejection_reason = request.POST.get("rejection_reason")
+#         leave.save()
+        
+#         # Deduct Leave Balance
+#         balance = LeaveBalance.objects.get(user=leave.user)
+        
+#         days = (leave.to_date - leave.from_date).days + 1
+
+#         if leave.leave_type == "Sick":
+#             balance.sick_used -= days
+#             balance.total_leaves += days
+            
+#         elif leave.leave_type == "Earned":
+#             balance.earned_used -= days
+#             balance.total_leaves += days
+            
+
+
+#         # balance.total_leaves -= days
+#         balance.save()
+        
+#         # messages.success(request, "You rejected ")  
+#         messages.warning(
+#             request,
+#             f"ℹ Employee '{leave.user.username}' applied '{leave.leave_type}' leave "
+#             f"for {days} days from {leave.from_date} to {leave.to_date}"
+#             f"has been Rejected."
+#         )
+
+#     return redirect("hr_dashboard")
+
+
+
+
+@login_required
+@never_cache
+@require_POST
+def reject_leave(request, leave_id):
+    is_ajax_request = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    if request.user.role != "HR" or request.method != "POST":
+        if is_ajax_request:
+            return JsonResponse({"detail": "HR access required."}, status=403)
+        return redirect("role_selection")
+        
+    leave = get_object_or_404(Leave, id=leave_id)
+
+    # Only pending leaves can be rejected
+    if leave.status != "Pending":
+        if is_ajax_request:
+            return JsonResponse({"detail": "Only pending leave can be rejected."}, status=409)
+        messages.warning(request, "Leave is not pending anymore.")
+        messages.warning(request, "Only pending leave can be rejected.")
+        return redirect("hr_dashboard")
+
+    balance = LeaveBalance.objects.select_for_update().get(user=leave.user)
+
+    with transaction.atomic():
+
+        # =====================================
+        # DETERMINE LEAVE VALUE
+        # =====================================
+
+        if leave.leave_type in ["Short", "Half"]:
+            leave_value = 0.25 if leave.leave_type == "Short" else 0.5
+
+        elif leave.leave_type in ["Sick", "Earned", "Casual"]:
+            leave_value = (leave.to_date - leave.from_date).days + 1
+
+        else:
+            if is_ajax_request:
+                return JsonResponse({"detail": "Invalid leave type."}, status=400)
+            messages.error(request, "Invalid leave type.")
+            return redirect("hr_dashboard")
+
+        # =====================================
+        # RESTORE BALANCE BASED ON deducted_from
+        # =====================================
+
+        if leave.leave_type in ["Short", "Half"]:
+
+            if leave.deducted_from == "Earned":
+                balance.earned_used = max(balance.earned_used - leave_value, 0)
+                balance.total_leaves += leave_value
+
+            elif leave.deducted_from == "Sick":
+                balance.sick_used = max(balance.sick_used - leave_value, 0)
+                balance.total_leaves += leave_value
+
+        elif leave.leave_type == "Sick":
+            balance.sick_used = max(balance.sick_used - leave_value, 0)
+            balance.total_leaves += leave_value
+
+        elif leave.leave_type == "Earned":
+            balance.earned_used = max(balance.earned_used - leave_value, 0)
+            balance.total_leaves += leave_value
+
+        elif leave.leave_type == "Casual":
+            balance.unpaid = max(balance.unpaid - leave_value, 0)
+
+        balance.save()
+
+        # =====================================
+        # MARK AS REJECTED
+        # =====================================
+
+        leave.status = "Rejected"
+        leave.rejection_reason = request.POST.get("rejection_reason", "").strip()
+        leave.rejected_at = timezone.now()
+        leave.approved_at = None
+        leave.save()
+
+    # =====================================
+    # SUCCESS MESSAGE
+    # =====================================
+
+    if leave.leave_type in ["Short", "Half"]:
+        messages.warning( request, f"✖ Rejected {leave.leave_type} Leave " f"({leave_value} day equivalent)")
+    else:
+        messages.warning( request, f"✖ Rejected '{leave.leave_type}' Leave " f"for {leave_value} day(s)")
+
+    messages.info(request, f"Employee: {leave.user.username}")
+    messages.info(request, f"Deducted From: {leave.deducted_from}")
+
+    if is_ajax_request:
+        employee_leaves = list(
+            Leave.objects
+            .filter(user_id=leave.user_id)
+            .select_related("user", "user__profile")
+            .order_by("-created_at")
+        )
+        return JsonResponse({
+            "success": True,
+            "status": leave.status,
+            "leave_id": leave.id,
+            "employee_detail": build_manage_employee_card(leave.user, employee_leaves),
+            "messages": _serialize_flash_messages(request),
+        })
+
+    return redirect("hr_dashboard")
+
+# Here is the end of reject leave view
+
+
+
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def edit_employee_profile(request, user_id):
+
+    profile = Profile.objects.get(user__id=user_id)
+
+    if request.method == "POST":
+
+        profile.employee_id = request.POST.get("employee_id")
+        profile.department = request.POST.get("department")
+        profile.role = request.POST.get("role")
+        profile.date_of_joining = request.POST.get("date_of_joining")
+
+        profile.save()
+        messages.success(request, "Employee profile updated.")
+        return redirect("manage_employees")
+
+    return render(request, "edit_employee_profile.html", {
+        "profile": profile
+    })
+
+
+
+
+# Admin Panel start from here
+
+# @never_cache
+# def admin_login(request):
+#     # 🔥 If already logged in, don't allow login page
+#     if request.user.is_authenticated and request.user.is_superuser:
+#         return redirect("admin-dashboard")
+    
+    
+#     if request.method == "POST":
+#         username = request.POST.get("username")
+#         password = request.POST.get("password")
+
+#         user = authenticate(request, username=username, password=password)
+
+#         if user is not None and user.is_superuser:
+#             login(request, user)
+#             return redirect("admin-dashboard")
+#         else:
+#             messages.error(request, "Invalid Admin Credentials")
+
+#     return render(request, "admin_login.html")
+
+
+
+
+
+@never_cache
+def admin_login(request):
+
+    # 🔥 If already logged in → go to Django Admin
+    if request.user.is_authenticated and request.user.is_superuser:
+        return redirect("admin:index")
+
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user and user.is_superuser:
+            login(request, user)
+
+            # 🔥 Redirect to Django Admin Panel
+            return redirect("admin:index")
+
+        else:
+            messages.error(request, "Invalid Admin Credentials")
+
+    response = render(request, "admin_login.html")
+
+    # 🔥 Prevent caching login page
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+
+    return response
+
+
+
+
+def admin_required(view_func):
+    def wrapper(request, *args, **kwargs):
+
+        if not request.user.is_authenticated:
+            return redirect("admin_login")
+
+        if not request.user.is_superuser:
+            return redirect("role_select")
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+
+
+
+
+# @login_required
+# @never_cache
+# def admin_dashboard(request):
+#     # if request.user.role != "admin":
+#     if not request.user.is_superuser:
+#         return redirect("role_selection")
+    
+#     # return render(request, "admin_dashboard.html")
+
+
+
+# No Need for admin_dashboard View 
+@login_required
+@admin_required
+@never_cache
+def admin_dashboard(request):
+
+    response = render(request, "admin_dashboard.html")
+
+    # 🔥 Prevent caching dashboard
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+
+    return response
+
+
+# Admin Panel End from here
+
+
+
+# from .forms import UserProfileForm
+
+# @login_required
+# @never_cache
+# def profile_view(request):
+
+#     profile = Profile.objects.get(user=request.user)
+
+#     if request.method == "POST":
+
+#         form = UserProfileForm(
+#             request.POST,
+#             request.FILES,
+#             instance=profile
+#         )
+
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, "Profile updated successfully.")
+#             return redirect("profile")
+
+#     else:
+#         form = UserProfileForm(instance=profile)
+
+#     return render(request, "profile.html", {
+#         "form": form,
+#         "profile": profile
+#     })
+
+
+
+
+
+# from django.contrib.auth.forms import PasswordChangeForm
+# from django.contrib.auth import update_session_auth_hash
+# from .forms import CustomPasswordChangeForm, UserProfileForm
+
+# @login_required
+# @never_cache
+# def profile_view(request):
+
+#     profile = request.user.profile
+#     balance = LeaveBalance.objects.get(user=request.user)
+
+#     profile_form = UserProfileForm(instance=profile)
+#     # password_form = PasswordChangeForm(request.user)
+#     password_form = CustomPasswordChangeForm(request.user)
+
+#     # -------- PROFILE COMPLETION --------
+#     # total_fields = 3
+#     # filled = 0
+
+#     # if profile.phone:
+#     #     filled += 1
+#     # if profile.address:
+#     #     filled += 1
+#     # if profile.profile_photo:
+#     #     filled += 1
+
+#     # completion_percentage = int((filled / total_fields) * 100)
+    
+#     sick_remaining = balance.sick_total - balance.sick_used
+#     earned_remaining = balance.earned_total - balance.earned_used
+#     total_remaining = sick_remaining + earned_remaining
+#     total_used = balance.sick_used + balance.earned_used
+    
+        
+#     current_month = now().month
+
+#     short_taken = Leave.objects.filter( user=request.user, leave_type="Short", from_date__month=current_month ).count()
+#     half_taken = Leave.objects.filter( user=request.user, leave_type="Half", from_date__month=current_month ).count()
+
+#     short_remaining = max(0, 2 - short_taken)
+#     half_remaining = max(0, 1 - half_taken)
+
+#     short_hours_used = short_taken * 2
+#     half_hours_used = half_taken * 4
+    
+    
+#     fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio ]
+
+#     filled = sum(bool(field) for field in fields)
+#     completion_percentage = int((filled / len(fields)) * 100)
+
+#     if request.method == "POST":
+        
+#         if request.content_type == "application/json":
+
+#             data = json.loads(request.body)
+
+#             if data.get("update_inline"):
+
+#                 field = data.get("field")
+#                 value = data.get("value")
+
+#                 if field == "address":
+
+#                     if len(value) < 5:
+#                         return JsonResponse({"error":"Address too short"})
+
+#                     profile.address = value
+#                     profile.save(update_fields=["address"])
+
+#                 elif field == "bio":
+
+#                     if len(value.split()) > 50:
+#                         return JsonResponse({"error":"Max 50 words allowed"})
+
+#                     profile.bio = value
+#                     profile.save(update_fields=["bio"])
+
+#                 return JsonResponse({"success":True})
+
+#         # -------- PROFILE UPDATE --------
+#         # if "update_profile" in request.POST:
+            
+#         #     profile_form = UserProfileForm(
+#         #         request.POST,
+#         #         request.FILES,
+#         #         instance=profile
+#         #     )
+
+#         #     if profile_form.is_valid():
+                
+#         #         profile_form.save()
+#         #         messages.success(request, "Profile updated successfully.")
+#         #         return redirect("profile")
+
+
+        
+#         # -------- PROFILE PHOTO UPDATE (AJAX) --------
+#         # elif "update_photo" in request.POST:
+
+#         #     form = UserProfileForm( request.POST, request.FILES, instance=profile )
+
+#         #     if form.is_valid():
+#         #         form.save()
+#         #         return JsonResponse({ "success": True, "photo_url": profile.profile_photo.url })
+
+#         #     else:
+#         #         return JsonResponse({ "error": form.errors["profile_photo"][0] }, status=400)
+        
+        
+
+#         elif "update_photo" in request.POST:
+
+#             photo = request.FILES.get("profile_photo")
+
+#             if not photo:
+#                 return JsonResponse({"error": "No photo uploaded"}, status=400)
+
+#             # 🔥 SIZE VALIDATION (3MB)
+#             if photo.size > 3 * 1024 * 1024:
+#                 return JsonResponse({"error": "Image must be under 3MB."}, status=400)
+
+#             # 🔥 EXTENSION VALIDATION
+#             ext = os.path.splitext(photo.name)[1].lower()
+#             allowed = [".jpg", ".jpeg", ".png", ".webp"]
+
+#             if ext not in allowed:
+#                 return JsonResponse({"error": "Only JPG, PNG or WEBP images allowed."}, status=400)
+
+#             # ✅ SAVE ONLY PHOTO (NO OTHER FIELD AFFECTED)
+#             profile.profile_photo = photo
+#             profile.save(update_fields=["profile_photo"])
+
+#             return JsonResponse({ "success": True, "photo_url": profile.profile_photo.url })
+        
+
+
+
+#         # -------- PASSWORD CHANGE --------
+#         elif "change_password" in request.POST:
+
+#             password_form = CustomPasswordChangeForm(request.user, request.POST)
+
+#             if password_form.is_valid():
+
+#                 user = password_form.save()
+#                 update_session_auth_hash(request, user)
+                
+#                 messages.success(request, "Password changed successfully.")
+#                 return redirect("profile")
+            
+#             else:
+#                 # store errors in session
+#                 request.session["password_errors"] = password_form.errors
+#                 messages.warning(request, "Please! enter the correct info.")
+#                 return redirect("profile")
+
+#     # restore password errors
+#     if "password_errors" in request.session:
+#         password_form = CustomPasswordChangeForm(request.user)
+#         password_form._errors = request.session.pop("password_errors")
+    
+#     return render(request, "profile.html",
+#     {
+#         "profile": profile,
+#         "balance": balance,
+#         "profile_form": profile_form,
+#         "password_form": password_form,
+#         "completion_percentage": completion_percentage,
+        
+#         "short_taken": short_taken,
+#         "short_remaining": short_remaining,
+#         "short_hours_used": short_hours_used,
+        
+#         "earned_remaining" : earned_remaining,
+#         "sick_remaining" : sick_remaining,
+#         "total_leave" : balance.total_leaves,
+#         "total_used" : total_used,
+        
+
+#         "half_taken": half_taken,
+#         "half_remaining": half_remaining,
+#         "half_hours_used": half_hours_used,
+        
+#         "total_remaining" : total_remaining
+#     })
+
+
+
+from django.contrib.auth import update_session_auth_hash
+from .forms import CustomPasswordChangeForm, UserProfileForm
+
+@login_required
+@never_cache
+def profile_view(request):
+
+    profile = request.user.profile
+    balance = LeaveBalance.objects.get(user=request.user)
+
+    profile_form = UserProfileForm(instance=profile)
+    password_form = CustomPasswordChangeForm(request.user)
+    
+    sick_remaining = balance.sick_total - balance.sick_used
+    earned_remaining = balance.earned_total - balance.earned_used
+    total_remaining = sick_remaining + earned_remaining
+    total_used = balance.sick_used + balance.earned_used
+    
+        
+    current_month = now().month
+
+    short_taken = Leave.objects.filter( user=request.user, leave_type="Short", from_date__month=current_month ).count()
+    half_taken = Leave.objects.filter( user=request.user, leave_type="Half", from_date__month=current_month ).count()
+
+    short_remaining = max(0, 2 - short_taken)
+    half_remaining = max(0, 1 - half_taken)
+
+    short_hours_used = short_taken * 2
+    half_hours_used = half_taken * 4
+    
+    
+    fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio ]
+
+    filled = sum(bool(field) for field in fields)
+    completion_percentage = int((filled / len(fields)) * 100)
+
+    if request.method == "POST":
+        
+        if request.content_type == "application/json":
+
+            data = json.loads(request.body)
+
+            if data.get("update_inline"):
+
+                field = data.get("field")
+                value = data.get("value")
+
+                if field == "address":
+
+                    if len(value) < 5:
+                        return JsonResponse({"error":"Address too short"})
+
+                    profile.address = value
+                    profile.save(update_fields=["address"])
+
+                elif field == "bio":
+
+                    if len(value.split()) > 50:
+                        return JsonResponse({"error":"Max 50 words allowed"})
+
+                    profile.bio = value
+                    profile.save(update_fields=["bio"])
+
+                fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]
+
+                filled = sum(bool(f) for f in fields)
+                completion_percentage = int((filled / len(fields)) * 100)
+
+                return JsonResponse({ "success": True, "completion": completion_percentage})
+
+
+        elif "update_photo" in request.POST:
+
+            photo = request.FILES.get("profile_photo")
+
+            if not photo:
+                return JsonResponse({"error": "No photo uploaded"}, status=400)
+
+            # ✅ SIZE VALIDATION
+            if photo.size > 3 * 1024 * 1024:
+                return JsonResponse({"error": "Image must be under 3MB."}, status=400)
+
+            from PIL import Image
+
+            try:
+                img = Image.open(photo)
+
+                # ✅ FORMAT CHECK (DO THIS BEFORE VERIFY)
+                if img.format not in ["JPEG", "PNG", "WEBP"]:
+                    return JsonResponse({"error": "Only JPG, PNG or WEBP images allowed."}, status=400)
+
+                # ✅ VERIFY IMAGE
+                img.verify()
+
+            except Exception:
+                return JsonResponse({"error": "Invalid image file."}, status=400)
+
+            # 🔥 RESET POINTER (VERY IMPORTANT)
+            photo.seek(0)
+
+            # ✅ SAVE
+            profile.profile_photo = photo
+            profile.save(update_fields=["profile_photo"])
+            
+            fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]
+
+            filled = sum(bool(f) for f in fields)
+            completion_percentage = int((filled / len(fields)) * 100)
+
+            return JsonResponse({ "success": True, "photo_url": profile.profile_photo.url, "completion": completion_percentage})
+        
+
+        # -------- PASSWORD CHANGE --------
+        elif "change_password" in request.POST:
+
+            password_form = CustomPasswordChangeForm(request.user, request.POST)
+
+            if password_form.is_valid():
+
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                
+                messages.success(request, "Password changed successfully.")
+                return redirect("profile")
+            
+            else:
+                # store errors in session
+                request.session["password_errors"] = password_form.errors
+                messages.warning(request, "Please! enter the correct info.")
+                return redirect("profile")
+
+    # restore password errors
+    if "password_errors" in request.session:
+        password_form = CustomPasswordChangeForm(request.user)
+        password_form._errors = request.session.pop("password_errors")
+    
+    context = {
+        "profile": profile,
+        "balance": balance,
+        "profile_form": profile_form,
+        "password_form": password_form,
+        "completion_percentage": completion_percentage,
+        
+        "short_taken": short_taken,
+        "short_remaining": short_remaining,
+        "short_hours_used": short_hours_used,
+        
+        "earned_remaining" : earned_remaining,
+        "sick_remaining" : sick_remaining,
+        "total_leave" : balance.total_leaves,
+        "total_used" : total_used,
+        
+
+        "half_taken": half_taken,
+        "half_remaining": half_remaining,
+        "half_hours_used": half_hours_used,
+        
+        "total_remaining" : total_remaining
+    }
+    context.update(get_employee_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    return render(request, "profile.html", context)
+
+
+
+
+
+
+
+@never_cache
+def employee_login(request):
+    # 🔥 If already logged in, don't allow login page
+    if request.user.is_authenticated and request.user.role == "EMPLOYEE":
+        return redirect("dashboard")
+
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None and user.role == "EMPLOYEE":
+            login(request, user)
+            return redirect("dashboard")
+        
+        else:
+            messages.error(request, "Invalid Employee Credentials")
+
+    return render(request, "employee_login.html")
+
+
+
+
+# @login_required
+# @never_cache
+# def dashboard(request):
+#     leaves = Leave.objects.filter(user=request.user)
+#     return render(request, 'dashboard.html', {'leaves': leaves})
+
+
+
+
+# @login_required
+# @never_cache
+# def dashboard(request):
+#     if request.user.role != "EMPLOYEE":
+#         return redirect("role_selection")
+    
+#     balance = LeaveBalance.objects.get(user=request.user)
+
+#     recent_leaves = Leave.objects.filter(user=request.user).order_by("-created_at")[:6]
+
+#     pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
+    
+#     low_balance = balance.total_leaves <= 32
+    
+#     next_leave = Leave.objects.filter( user=request.user, from_date__gte=date.today(),).order_by("from_date").first()
+
+#     context = {
+#         "balance": balance,                     # 🔑 REQUIRED
+#         "low_balance": low_balance,
+#         "total_leaves": balance.total_leaves,
+#         "leaves_used": balance.sick_used + balance.earned_used,
+#         "leaves_remaining": balance.total_leaves,
+#         "pending_count": pending_count,         # 🔑 REQUIRED
+#         "recent_leaves": recent_leaves,
+#         "next_leave": next_leave,
+#     }
+
+#     return render(request, "dashboard.html", context)
+
+
+
+
+
+# from django.http import JsonResponse
+# from django.core.paginator import Paginator
+# from datetime import date
+
+# @login_required
+# @never_cache
+# def dashboard(request):
+    
+#     if request.user.role != "EMPLOYEE":
+#         return redirect("role_selection")
+
+#     # 🔥 AJAX REQUEST (pagination)
+#     if request.headers.get("x-requested-with") == "XMLHttpRequest":
+#         page = int(request.GET.get("page", 1))
+
+#         leaves = Leave.objects.filter(user=request.user).order_by("-created_at")
+
+#         paginator = Paginator(leaves, 3)
+#         page_obj = paginator.get_page(page)
+
+#         data = []
+
+#         for leave in page_obj:
+
+#             duration = (leave.to_date - leave.from_date).days + 1
+
+#             data.append({
+#                 "type": leave.leave_type,
+
+#                 # ✅ WITH YEAR
+#                 "from_date": leave.from_date.strftime("%b %d, %Y"),
+#                 "to_date": leave.to_date.strftime("%b %d, %Y"),
+
+#                 # ✅ SHORT LEAVE WITH YEAR + TIME
+#                 "from_datetime": leave.from_datetime.strftime("%b %d, %Y %I:%M %p"),
+#                 "to_datetime": leave.to_datetime.strftime("%I:%M %p"),
+
+#                 "status": leave.status,
+#                 "created": leave.created_at.strftime("%b %d, %Y"),
+
+#                 # "duration": (leave.to_date - leave.from_date).days + 1,
+#                 "duration": duration,
+
+#                 "reason": leave.reason or "",
+#                 "rejection_reason": leave.rejection_reason or "",
+#             })
+
+#         return JsonResponse({ "leaves": data, "has_next": page_obj.has_next(), "has_prev": page_obj.has_previous(), })
+
+#     # 🔥 NORMAL PAGE LOAD
+#     balance = LeaveBalance.objects.get(user=request.user)
+
+#     recent_leaves = Leave.objects.filter(user=request.user).order_by("-created_at")[:3]
+    
+#     for leave in recent_leaves:
+#         leave.duration = (leave.to_date - leave.from_date).days + 1
+
+#     pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
+
+#     low_balance = balance.total_leaves <= 32
+
+#     next_leave = Leave.objects.filter( user=request.user, from_date__gte=date.today(), ).order_by("from_date").first()
+
+#     context = {
+#         "balance": balance,
+#         "low_balance": low_balance,
+#         "total_leaves": balance.total_leaves,
+#         "leaves_used": balance.sick_used + balance.earned_used,
+#         "leaves_remaining": balance.total_leaves,
+#         "pending_count": pending_count,
+#         "recent_leaves": recent_leaves,  # first page
+#         "next_leave": next_leave,
+#     }
+
+#     return render(request, "dashboard.html", context)
+
+
+
+
+
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from datetime import date
+from django.utils.formats import date_format
+
+@login_required
+@never_cache
+def dashboard(request):
+
+    if request.user.role != "EMPLOYEE":
+        return redirect("role_selection")
+
+    def get_days_left(leave, today_value):
+        if not leave:
+            return None
+        return max(0, (leave.from_date - today_value).days)
+
+    def is_today_leave(leave, today_value):
+        if not leave:
+            return False
+        return leave.from_date == today_value
+
+    def serialize_dashboard_leave_card(leave, today_value, card_kind):
+        if not leave:
+            return None
+
+        is_time_based = leave.leave_type in ["Short", "Half"]
+        duration = (leave.to_date - leave.from_date).days + 1
+
+        return {
+            "id": leave.id,
+            "leave_type": leave.leave_type,
+            "card_kind": card_kind,
+            "is_time_based": is_time_based,
+            "is_half": leave.leave_type == "Half",
+            "from_date": date_format(leave.from_date, format="DATE_FORMAT"),
+            "to_date": date_format(leave.to_date, format="DATE_FORMAT"),
+            "from_time": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
+            "to_time": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
+            "created_at": localtime(leave.created_at).isoformat(),
+            "progress_from": localtime(leave.from_datetime).strftime("%Y-%m-%d %H:%M:%S") if is_time_based and leave.from_datetime else leave.from_date.strftime("%Y-%m-%d"),
+            "countdown_start": localtime(leave.from_datetime).isoformat() if leave.from_datetime else "",
+            "countdown_end": localtime(leave.to_datetime).isoformat() if leave.to_datetime else "",
+            "days_left": get_days_left(leave, today_value),
+            "is_today": is_today_leave(leave, today_value),
+            "duration": duration,
+        }
+
+    # 🔥 BASE QUERY
+    leaves_qs = Leave.objects.filter(user=request.user).order_by("-created_at")
+
+    # 🔥 PAGINATION
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(leaves_qs, 3)
+    page_obj = paginator.get_page(page_number)
+
+    today = date.today()
+
+    upcoming_leaves = Leave.objects.filter(
+        user=request.user,
+        from_date__gte=today,
+        status="Approved",
+    ).order_by("from_date")
+
+    next_short_leave = upcoming_leaves.filter(leave_type__in=["Short", "Half"]).first()
+    next_full_leave = upcoming_leaves.exclude(leave_type__in=["Short", "Half"]).first()
+
+    past_leaves = Leave.objects.filter(
+        user=request.user,
+        to_date__lt=today,
+        status="Approved",
+    ).order_by("-to_date")
+
+    last_short_leave = past_leaves.filter(leave_type__in=["Short", "Half"]).first()
+    last_full_leave = past_leaves.exclude(leave_type__in=["Short", "Half"]).first()
+
+    balance = LeaveBalance.objects.get(user=request.user)
+    pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
+    approved_count = Leave.objects.filter(user=request.user, status="Approved").count()
+    rejected_count = Leave.objects.filter(user=request.user, status="Rejected").count()
+
+    # ================= AJAX =================
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        if request.GET.get("section") == "cards":
+            return JsonResponse({
+                "summary": {
+                    "leaves_remaining": float(balance.total_leaves),
+                    "leave_total_value": float(balance.sick_total + balance.earned_total),
+                    "earned_total": float(balance.earned_total),
+                    "earned_used": float(balance.earned_used),
+                    "earned_remaining": float(max(balance.earned_total - balance.earned_used, 0)),
+                    "sick_total": float(balance.sick_total),
+                    "sick_used": float(balance.sick_used),
+                    "sick_remaining": float(max(balance.sick_total - balance.sick_used, 0)),
+                    "casual_used": float(balance.unpaid),
+                    "approved_count": approved_count,
+                    "pending_count": pending_count,
+                    "rejected_count": rejected_count,
+                },
+                "upcoming": {
+                    "short": serialize_dashboard_leave_card(next_short_leave, today, "upcoming"),
+                    "full": serialize_dashboard_leave_card(next_full_leave, today, "upcoming"),
+                },
+                "last": {
+                    "short": serialize_dashboard_leave_card(last_short_leave, today, "last"),
+                    "full": serialize_dashboard_leave_card(last_full_leave, today, "last"),
+                },
+            })
+
+        data = []
+
+        for leave in page_obj:
+            duration = (leave.to_date - leave.from_date).days + 1
+
+            data.append({
+                "type": leave.leave_type,
+                
+                # ✅ FULL MONTH
+                "from_date": date_format(leave.from_date, format="DATE_FORMAT"),
+                "to_date": date_format(leave.to_date, format="DATE_FORMAT"),
+
+                # ✅ LOCAL TIME + FULL MONTH
+                "from_datetime": localtime(leave.from_datetime).strftime("%B %d, %Y %I:%M %p"),
+                "to_datetime": localtime(leave.to_datetime).strftime("%I:%M %p"),
+
+                "status": leave.status,
+
+                # ✅ FULL MONTH
+                "created": localtime(leave.created_at).isoformat(),
+
+                "duration": duration,
+                "reason": leave.reason or "",
+                "rejection_reason": leave.rejection_reason or "",
+            })
+
+        return JsonResponse({
+            "leaves": data,
+            "has_next": page_obj.has_next(),
+            "has_prev": page_obj.has_previous(),
+            "current_page": page_obj.number,
+            "total_pages": paginator.num_pages,
+        })
+
+    # ================= NORMAL LOAD =================
+
+    for leave in page_obj:
+        leave.duration = (leave.to_date - leave.from_date).days + 1
+
+    low_balance = balance.total_leaves <= 32
+    
+    context = {
+        "recent_leaves": page_obj,
+        "has_next": page_obj.has_next(),
+        "has_prev": page_obj.has_previous(),
+        "context_total_pages": paginator.num_pages,
+        "context_current_page": 1,
+
+        "balance": balance,
+        "total_leaves": balance.total_leaves,
+        "leaves_used": balance.sick_used + balance.earned_used,
+        "leaves_remaining": balance.total_leaves,
+        "earned_total": balance.earned_total,
+        "earned_used": balance.earned_used,
+        "earned_remaining": max(balance.earned_total - balance.earned_used, 0),
+        "sick_total": balance.sick_total,
+        "sick_used": balance.sick_used,
+        "sick_remaining": max(balance.sick_total - balance.sick_used, 0),
+        "casual_used": balance.unpaid,
+        "pending_count": pending_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
+
+        "upcoming_leaves": upcoming_leaves,
+        "next_short_leave": next_short_leave,
+        "next_full_leave": next_full_leave,
+        "next_short_days": get_days_left(next_short_leave, today),
+        "next_full_days": get_days_left(next_full_leave, today),
+        "context_next_short_today": is_today_leave(next_short_leave, today),
+
+        "past_leaves": past_leaves,
+        "last_short_leave": last_short_leave,
+        "last_full_leave": last_full_leave,
+        
+        "low_balance": low_balance,
+    }
+    context.update(get_employee_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    return render(request, "dashboard.html", context)
+
+
+
+
+
+
+# @login_required
+# @never_cache
+# def get_leave_days(leave):
+#     return (leave.to_date - leave.from_date).days + 1
+
+
+# @login_required
+# @never_cache
+# def apply_leave(request):
+
+#     if request.method == 'POST':
+#         leave_type = request.POST.get('leave_type')
+#         from_date = request.POST.get('from_date')
+#         to_date = request.POST.get('to_date')
+#         reason = request.POST.get('reason')
+
+#         Leave.objects.create(
+#             user=request.user,   # 🔥 THIS IS THE KEY LINE
+#             leave_type=leave_type,
+#             from_date=from_date,
+#             to_date=to_date,
+#             reason=reason
+#         )
+
+#         return redirect('my_leave')
+
+#     return render(request, 'apply_leave.html')
+
+# @login_required
+# @never_cache
+# def apply_leave(request):
+#     if request.method == "POST":
+#         leave_type = request.POST["leave_type"]
+#         from_date = date.fromisoformat(request.POST["from_date"])
+#         to_date = date.fromisoformat(request.POST["to_date"])
+#         reason = request.POST["reason"]
+
+#         days = (to_date - from_date).days + 1
+#         balance = LeaveBalance.objects.get(user=request.user)
+
+#         # 🔒 BALANCE CHECK (ONLY FOR SICK & EARNED)
+#         if leave_type == "Sick":
+#             remaining = balance.sick_total - balance.sick_used
+#             if days > remaining:
+#                 messages.error(request, "Insufficient sick leave balance")
+#                 # return redirect("apply_leave")
+#                 return render(request, "apply_leave.html", {"form_data": request.POST})
+
+#             balance.sick_used += days
+#             balance.total_leaves -= days
+
+#         elif leave_type == "Earned":
+#             remaining = balance.earned_total - balance.earned_used
+#             if days > remaining:
+#                 messages.error(request, "Insufficient earned leave balance")
+#                 # return redirect("apply_leave")
+#                 return render(request, "apply_leave.html", {"form_data": request.POST})
+
+#             balance.earned_used += days
+#             balance.total_leaves -= days
+
+#         elif leave_type == "Casual":
+#             # 🚫 NO LIMIT, NO DEDUCTION
+#             balance.unpaid += days
+
+#         Leave.objects.create(
+#             user=request.user,
+#             leave_type=leave_type,
+#             from_date=from_date,
+#             to_date=to_date,
+#             reason=reason,
+#             status="Pending"
+#         )
+
+#         balance.save()
+                
+#         messages.success(request, "Leave applied successfully")
+#         messages.success(
+#             request,
+#             f"Applied {leave_type} leave for {days} day(s) "
+#             f"({from_date.strftime('%d %b')} → {to_date.strftime('%d %b')})"
+#         )
+
+#         return redirect("my_leave")
+
+#     # return render(request, "apply_leave.html")                        # Render the template with No context variables means:- Your template does not reference: balance, form_data or any custom variables.
+#     return render(request, "apply_leave.html", {"form_data": {}})       # This is only used when Your template does reference: balance, form_data or any custom variables.
+
+
+# @login_required
+# @never_cache
+# def apply_leave(request):
+    
+#     if request.method == "POST":
+#         leave_type = request.POST.get("leave_type")
+#         from_date_raw = request.POST.get("from_date")
+#         to_date_raw = request.POST.get("to_date")
+#         reason = request.POST.get("reason")
+
+#         from_date = date.fromisoformat(from_date_raw)
+#         to_date = date.fromisoformat(to_date_raw)
+
+#         today = localdate()   # ✅ Indian timezone safe
+        
+#         if from_date < today or to_date < today:
+#             messages.error(request, "Leave dates cannot be in the past")
+
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")
+
+#         days = (to_date - from_date).days + 1
+#         balance = LeaveBalance.objects.get(user=request.user)
+#         days_before = (from_date - today).days
+
+
+#         # Short Leave Logic
+#         if leave_type == "Short":
+
+#             # 🔒 BALANCE CHECK
+#             remaining = balance.short_total - balance.short_used
+            
+#             # ❌ Backward date range check
+#             if to_date < from_date:
+#                 messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                 # return render(request, "apply_leave.html", {"form_data": request.POST})
+                
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+            
+#             if days > remaining:
+#                 messages.error(request, "Insufficient Short leave balance")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             balance.short_used += days
+#             balance.total_leaves -= days
+            
+
+#         # Sick Leave Logic
+#         if leave_type == "Sick":
+
+#             # 🔒 BALANCE CHECK
+#             remaining = balance.sick_total - balance.sick_used
+            
+#             # ❌ Backward date range check
+#             if to_date < from_date:
+#                 messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                 # return render(request, "apply_leave.html", {"form_data": request.POST})
+                
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+            
+#             if days > remaining:
+#                 messages.error(request, "Insufficient sick leave balance")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             balance.sick_used += days
+#             balance.total_leaves -= days
+
+
+#         # Earned Leave Logic
+#         elif leave_type == "Earned":
+            
+#             remaining = balance.earned_total - balance.earned_used
+#             # days_before = (from_date - today).days
+
+#             if days_before < 15:
+                
+#                 messages.error(request, f"The '{leave_type} Leave' must be applied in advance.")
+#                 messages.error(request, "Minimum advance period is 15 days.")
+#                 messages.error(request, "Admissible advance period is 21 days.")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             elif days_before >= 15 and days_before < 21:
+                
+#                 # ❌ Backward date range check
+#                 if to_date < from_date:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     # return render(request, "apply_leave.html", {"form_data": request.POST})
+                    
+#                     # ✅ STORE FORM DATA TEMPORARILY
+#                     request.session["apply_leave_form"] = request.POST.dict()
+#                     return redirect("apply_leave")
+                
+#                 # 🔒 BALANCE CHECK
+#                 if days > remaining:
+#                     messages.error(request, "Insufficient earned leave balance")
+                    
+#                     # ✅ STORE FORM DATA TEMPORARILY
+#                     request.session["apply_leave_form"] = request.POST.dict()
+#                     return redirect("apply_leave")
+                
+#                 messages.warning( request, "⚠ Early application")
+#                 messages.warning( request, f"You are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
+#                 messages.warning( request, "Admissible advance period is 21 days.")
+
+#             elif days_before >= 21:
+                
+#                 # ❌ Backward date range check
+#                 if to_date < from_date:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     # return render(request, "apply_leave.html", {"form_data": request.POST})
+                    
+#                     # ✅ STORE FORM DATA TEMPORARILY
+#                     request.session["apply_leave_form"] = request.POST.dict()
+#                     return redirect("apply_leave")
+
+#                 # 🔒 BALANCE CHECK
+#                 if days > remaining:
+#                     messages.error(request, "Insufficient earned leave balance")
+                    
+#                     # ✅ STORE FORM DATA TEMPORARILY
+#                     request.session["apply_leave_form"] = request.POST.dict()
+#                     return redirect("apply_leave")
+                
+#                 messages.info(request, f"ℹ You are applying {days_before} days in advance." )
+
+#             balance.earned_used += days
+#             balance.total_leaves -= days
+
+
+#         # Casual Leave Logic
+#         elif leave_type == "Casual":
+            
+#             # days_before = (from_date - today).days
+
+#             if days_before < 15:
+                
+#                 messages.error(request, f"The '{leave_type} Leave' must be applied in advance.")
+#                 messages.error(request, "Minimum advance period is 15 days.")
+#                 messages.error(request, "Admissible advance period is 21 days.")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             if days_before >= 15 and days_before < 21:
+                
+#                 # ❌ Backward date range check
+#                 if to_date < from_date:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     # return render(request, "apply_leave.html", {"form_data": request.POST})
+                    
+#                     # ✅ STORE FORM DATA TEMPORARILY
+#                     request.session["apply_leave_form"] = request.POST.dict()
+#                     return redirect("apply_leave")
+                
+#                 messages.warning( request, f"⚠ Early application: ")
+#                 messages.warning( request, f"You are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
+#                 messages.warning( request, "Admissible advance period is 21 days.")
+
+#             elif days_before >= 21:
+                
+#                 # ❌ Backward date range check
+#                 if to_date < from_date:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     # return render(request, "apply_leave.html", {"form_data": request.POST})
+                    
+#                     # ✅ STORE FORM DATA TEMPORARILY
+#                     request.session["apply_leave_form"] = request.POST.dict()
+#                     return redirect("apply_leave")
+                
+#                 messages.info(request, f"ℹ You are applying {days_before} days in advance." )
+
+#             # 🚫 NO LIMIT, NO DEDUCTION
+#             balance.unpaid += days
+
+#         Leave.objects.create( user=request.user, leave_type=leave_type, from_date=from_date, to_date=to_date, reason=reason, status="Pending")
+
+#         balance.save()
+
+#         messages.success(
+#             request,
+#             f"Applied {leave_type} leave for {days} day(s) "
+#             f"({from_date.strftime('%d %b')} → {to_date.strftime('%d %b')})"
+#         )
+
+#         # ✅ CLEAR STORED FORM DATA
+#         request.session.pop("apply_leave_form", None)
+
+#         return redirect("my_leave")
+
+#     # 🔹 GET REQUEST (SAFE)
+#     form_data = request.session.pop("apply_leave_form", {})
+
+#     return render(request, "apply_leave.html", {"form_data": form_data})
+
+
+
+# @login_required
+# @never_cache
+# @require_http_methods(["GET", "POST"])
+# def apply_leave(request):
+
+#     if request.method == "POST":
+        
+#         leave_type = request.POST.get("leave_type")
+
+#         if leave_type in ["Short", "Half"]:
+
+#             user = request.user
+
+#             # from_raw = request.POST.get("from_date")
+#             # to_raw = request.POST.get("to_date")
+#             # reason = request.POST.get("reason", "").strip()
+
+#             # try:
+#             #     from_date = date.fromisoformat(from_raw)
+#             #     to_date = date.fromisoformat(to_raw)
+#             # except (TypeError, ValueError):
+#             #     messages.error(request, "Invalid date format.")
+                
+#             #     # ✅ STORE FORM DATA TEMPORARILY
+#             #     request.session["apply_leave_form"] = request.POST.dict()
+#             #     return redirect("apply_leave")
+
+#             # today = localdate()
+
+#             # if from_date < today or to_date < today:
+#             #     messages.error(request, "Leave date cannot be in the past.")
+                
+#             #      # ✅ STORE FORM DATA TEMPORARILY
+#             #     request.session["apply_leave_form"] = request.POST.dict()
+#             #     return redirect("apply_leave")
+            
+#             # if to_date < from_date:
+#             #     messages.error(request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+                
+#             #     # ✅ STORE FORM DATA TEMPORARILY
+#             #     request.session["apply_leave_form"] = request.POST.dict()
+#             #     return redirect("apply_leave")
+
+#             # Short & Half must be single-day only
+#             # to_date = from_date
+            
+            
+            
+#             from_datetime = request.POST.get("from_datetime")
+#             to_datetime = request.POST.get("to_datetime")
+#             reason = request.POST.get("reason", "").strip()
+            
+#             if not from_datetime or not to_datetime:
+#                 messages.error(request, "Invalid time selection.")
+                
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             try:
+#                 start = datetime.fromisoformat(from_datetime)
+#                 end = datetime.fromisoformat(to_datetime)
+#             except ValueError:
+#                 messages.error(request, "Invalid datetime format.")
+                
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             if end <= start:
+#                 messages.error(request, "Invalid time range.")
+                
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+
+#             leave_value = 0.25 if leave_type == "Short" else 0.5
+#             from_date = start.date()
+
+#             # ===== MONTH LIMIT =====
+#             month_leaves = Leave.objects.filter(
+#                 user=user,
+#                 leave_type__in=["Short", "Half"],
+#                 from_date__month=from_date.month,
+#                 from_date__year=from_date.year
+#             )
+
+#             short_count = month_leaves.filter(leave_type="Short").count()
+#             half_count = month_leaves.filter(leave_type="Half").count()
+
+#             if leave_type == "Short" and short_count >= 2:
+#                 messages.error(request, "Maximum 2 short leaves allowed per month.")
+#                 return redirect("apply_leave")
+
+#             if leave_type == "Half" and half_count >= 1:
+#                 messages.error(request, "Only 1 half-day allowed per month.")
+#                 return redirect("apply_leave")
+
+#             # ===== DATE OVERLAP CHECK =====
+#             overlap = Leave.objects.filter(
+#                 user=user,
+#                 from_date=from_date,
+#                 status__in=["Pending", "Approved"]
+#             ).exists()
+
+#             if overlap:
+#                 messages.error(request, "Leave already exists on this date.")
+#                 return redirect("apply_leave")
+
+#             # ===== BALANCE DEDUCTION =====
+#             balance = LeaveBalance.objects.select_for_update().get(user=user)
+
+#             earned_remaining = balance.earned_total - balance.earned_used
+#             sick_remaining = balance.sick_total - balance.sick_used
+
+#             deducted_from = None
+
+#             if earned_remaining >= leave_value:
+#                 balance.earned_used += leave_value
+#                 deducted_from = "Earned Leave"
+
+#             elif sick_remaining >= leave_value:
+#                 balance.sick_used += leave_value
+#                 deducted_from = "Sick Leave"
+
+#             else:
+#                 messages.error(request, "Not enough leave balance.")
+#                 return redirect("apply_leave")
+
+#             balance.total_leaves -= leave_value
+
+#             with transaction.atomic():
+#                 balance.save()
+
+#                 Leave.objects.create(
+#                     user=user,
+#                     leave_type=leave_type,
+#                     from_date=from_date,
+#                     to_date=from_date,
+#                     reason=reason,
+#                     status="Pending"
+#                 )
+
+#             messages.success(request, f"{leave_type} leave applied successfully.")
+#             messages.info(request, f"Applied for {from_date.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
+#             messages.info(request, f"Deducted from: {deducted_from}")
+#             messages.info(request, f"Leave value: {leave_value} day(s)")
+
+#             request.session.pop("apply_leave_form", None)
+
+#             return redirect("my_leave")
+
+
+#         # -------- STEP 1: READ & VALIDATE INPUT SAFELY --------
+#         leave_type = request.POST.get("leave_type")
+#         from_raw = request.POST.get("from_date")
+#         to_raw = request.POST.get("to_date")
+#         reason = request.POST.get("reason", "").strip()
+
+#         try:
+#             from_date = date.fromisoformat(from_raw)
+#             to_date = date.fromisoformat(to_raw)
+#         except (TypeError, ValueError):
+#             messages.error(request, "ℹ Invalid date format.")
+            
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")
+
+#         today = localdate()         # ✅ Indian timezone safe
+
+#         # -------- STEP 2: BASIC DATE VALIDATION --------
+        
+#         # ❌ Reverse Date Range check
+#         if from_date > to_date:
+#             messages.error(request, "ℹ From date cannot be after To date.")
+            
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")
+
+#         # ❌ Backward date range check
+#         if from_date < today or to_date < today:
+#             messages.error(request, "ℹ Leave dates cannot be in the past.")
+            
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")
+
+#         # days = (to_date - from_date).days + 1
+        
+#         # from App.services.working_days import calculate_working_days
+        
+#         # days = calculate_working_days(from_date, to_date)
+        
+#         # if days == 0:
+#         #     messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+            
+#         #     request.session["apply_leave_form"] = request.POST.dict()
+#         #     return redirect("apply_leave")          
+        
+#         from App.services.leave_breakdown import calculate_leave_breakdown
+        
+#         breakdown = calculate_leave_breakdown(from_date, to_date)
+#         days = breakdown["working_days"]
+
+#         if days == 0:
+#             messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+            
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")            
+
+
+#         if days < 0:
+#             messages.error(request, " ℹInvalid leave duration.")
+            
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")
+
+#         # -------- STEP 3: CHECK OVERLAPPING LEAVES --------
+#         # overlap = Leave.objects.filter(user=request.user, from_date__lte=to_date,to_date__gte=from_date)
+
+#         # if overlap.exists():
+#         #     messages.error(request, "Leave dates overlap with an existing leave.")
+#         #     request.session["apply_leave_form"] = request.POST.dict()
+#         #     return redirect("apply_leave")
+
+
+#         # Robust overlapping check with detailed feedback
+#         # overlapping_leaves = Leave.objects.filter(user=request.user, from_date__lte=to_date, to_date__gte=from_date).order_by("from_date")
+
+#         # if overlapping_leaves.exists():
+
+#         #     detailed_messages = []
+
+#         #     for existing in overlapping_leaves:
+
+#         #         # Calculate exact overlapping range
+#         #         overlap_start = max(existing.from_date, from_date)
+#         #         overlap_end = min(existing.to_date, to_date)
+#         #         overlap_days = (overlap_end - overlap_start).days + 1
+
+#         #         detailed_messages.append(
+#         #             f"{existing.leave_type} Leave "
+#         #             f"({existing.from_date.strftime('%d %b')} → {existing.to_date.strftime('%d %b')}) | "
+#         #             f"Overlaps: {overlap_start.strftime('%d %b')} → {overlap_end.strftime('%d %b')} "
+#         #             f"({overlap_days} day(s))"
+#         #         )
+
+#         #     messages.error(request, "Leave overlaps with existing leave(s):")
+
+#         #     for msg in detailed_messages:
+#         #         messages.error(request, msg)
+
+#         #     request.session["apply_leave_form"] = request.POST.dict()
+#         #     return redirect("apply_leave")
+        
+        
+
+#         # ------------------------------------------------------------
+#         # OVERLAP VALIDATION (Business Rule)
+#         #
+#         # Before creating a new leave, we check whether the requested
+#         # date range conflicts with any existing leaves of the user.
+#         #
+#         # This uses a centralized helper (get_overlap_details) to:
+#         #   • Detect overlapping leave records
+#         #   • Calculate the exact overlapping date range
+#         #   • Calculate number of overlapping days
+#         #   • Return detailed information for user-friendly messages
+#         #
+#         # NOTE:
+#         # We do NOT allow overlapping leaves under any condition.
+#         # If overlaps exist, the request is rejected with full details.
+#         # ------------------------------------------------------------
+
+#         from App.services.overlap_service import get_overlap_details
+        
+#         overlaps = get_overlap_details(user=request.user, start_date=from_date, end_date=to_date)
+
+#         if overlaps:
+#             messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+#             for o in overlaps:
+#                 messages.error(
+#                     request,
+#                     f"{o['leave_type']} Leave ({o['status']}) | "
+#                     f"{o['existing_from'].strftime('%d %b')} → "
+#                     f"{o['existing_to'].strftime('%d %b')} | "
+#                     f"Overlapping: {o['overlap_from'].strftime('%d %b')} → "
+#                     f"{o['overlap_to'].strftime('%d %b')} "
+#                     f"({o['overlap_days']} day(s))"
+#                 )
+
+#             # ✅ STORE FORM DATA TEMPORARILY
+#             request.session["apply_leave_form"] = request.POST.dict()
+#             return redirect("apply_leave")
+
+
+#         # -------- STEP 4: LOAD BALANCE --------
+#         balance = LeaveBalance.objects.select_for_update().get(user=request.user)
+
+#         # -------- STEP 5: VALIDATE & SIMULATE BALANCE --------
+#         sick_used = balance.sick_used
+#         earned_used = balance.earned_used
+#         unpaid = balance.unpaid
+#         total_leaves = balance.total_leaves
+        
+#         days_before = (from_date - today).days
+
+
+#         if leave_type == "Sick":
+
+#             remaining = balance.sick_total - sick_used
+
+#             # 🔒 BALANCE CHECK
+#             if days > remaining:
+#                 messages.error(request, "ℹ Insufficient 'Sick' Leave balance.")
+                
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             sick_used += days
+#             total_leaves -= days
+
+
+#         elif leave_type == "Earned":
+
+#             remaining = balance.earned_total - earned_used
+
+#             # 🔒 BALANCE CHECK
+#             if days > remaining:
+#                 messages.error(request, "ℹ Insufficient earned leave balance.")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+            
+#             elif days_before < 15:
+#                 messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
+#                 messages.error(request, "ℹ Minimum advance period is 15 days.")
+#                 messages.error(request, "ℹ Admissible advance period is 21 days.")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+
+#             elif days_before >= 15 and days_before < 21:
+#                 messages.warning( request, f"ℹ ⚠ Early application: ")
+#                 messages.warning( request, f"ℹ You are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
+#                 messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#             elif days_before >= 21:
+#                 messages.warning( request, f"ℹ You are applying '{leave_type} Leave' {days_before} day(s) in advance." )
+
+#             earned_used += days
+#             total_leaves -= days
+
+
+#         elif leave_type == "Casual":
+
+#             if days_before < 15:
+#                 messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
+#                 messages.error(request, "ℹ Minimum advance period is 15 days.")
+#                 messages.error(request, "ℹ Admissible advance period is 21 days.")
+
+#                 # ✅ STORE FORM DATA TEMPORARILY
+#                 request.session["apply_leave_form"] = request.POST.dict()
+#                 return redirect("apply_leave")
+            
+#             elif days_before >= 15 and days_before < 21:
+#                 messages.warning( request, f"ℹ⚠ Early application: ")
+#                 messages.warning( request, f"ℹYou are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
+#                 messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#             elif days_before >= 21:
+#                 messages.warning( request, f"ℹ You are applying '{leave_type} Leave' {days_before} day(s) in advance." )
+
+
+#             # 🚫 NO LIMIT, NO DEDUCTION
+#             unpaid += days  # No limit
+
+#         else:
+#             messages.error(request, "ℹ Invalid leave type.")
+#             return redirect("apply_leave")
+
+#         # -------- STEP 6: ATOMIC SAVE --------
+#         with transaction.atomic():
+
+#             balance.sick_used = max(0, sick_used)
+#             balance.earned_used = max(0, earned_used)
+#             balance.unpaid = max(0, unpaid)
+#             balance.total_leaves = max(0, total_leaves)
+#             balance.save()
+
+#             Leave.objects.create( user=request.user, leave_type=leave_type, from_date=from_date, to_date=to_date, reason=reason, status="Pending")
+
+#         # -------- SUCCESS --------
+#         messages.success(request, f"'{leave_type}' Leave applied Successfully.")
+        
+#         messages.info(request, f"Total days: {breakdown['total_days']}")
+        
+#         messages.success(request, f"Applied range: {from_date.strftime('%d %b')} → {to_date.strftime('%d %b')}")
+
+#         if breakdown["weekend_days"] > 0:
+#             messages.info(request, f"Excluded weekend days: {breakdown['weekend_days']}")
+
+#         if breakdown["holiday_days"] > 0:
+#             messages.info(request, f"Excluded holidays: {breakdown['holiday_days']}")
+
+#         messages.success(request, f"Working leave days : {breakdown['working_days']}")
+
+
+#         # ✅ DELETE THE TEMPORARILY STORED FORM DATA FROM SESSION
+#         request.session.pop("apply_leave_form", None)
+#         return redirect("my_leave")
+
+#     # -------- SAFE GET THE FORM DATA --------
+#     form_data = request.session.pop("apply_leave_form", {})
+#     return render(request, "apply_leave.html", {"form_data": form_data})
+
+
+
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+def apply_leave(request):
+
+    if request.method == "POST":
+
+        print(request.POST)
+        leave_type = request.POST.get("leave_type")
+        reason = request.POST.get("reason", "").strip()
+        user = request.user
+
+        # =====================================================
+        # 🔵 SHORT / HALF LEAVE BLOCK (Standalone)
+        # =====================================================
+        if leave_type in ["Short", "Half"]:
+            
+            # ===== DAILY SHORT LIMIT =====
+            if leave_type == "Short":
+                
+                startdate = request.POST.get("from_date")
+
+                existing_same_day = Leave.objects.filter( user=user, leave_type="Short", from_date=startdate, status__in=["Pending", "Approved"]).exists()
+                short_half_same_day_check = Leave.objects.filter( user=user, leave_type="Half", from_date=startdate, status__in=["Pending", "Approved"]).exists()
+
+                if existing_same_day:
+                    messages.error(request, "Only one Short leave allowed per day.")
+                    
+                    # ✅ STORE FORM DATA TEMPORARILY
+                    request.session["apply_leave_form"] = request.POST.dict()
+                    return redirect("apply_leave")
+                
+                if short_half_same_day_check:
+                    messages.error(request, "Only one either Short or Half leave allowed per day.")
+                    
+                    # ✅ STORE FORM DATA TEMPORARILY
+                    request.session["apply_leave_form"] = request.POST.dict()
+                    return redirect("apply_leave")
+
+            if leave_type == "Half":            
+                
+                startdate = request.POST.get("from_date")
+                
+                existing_same_day = Leave.objects.filter( user=user, leave_type="Half", from_date=startdate, status__in=["Pending", "Approved"]).exists()
+                short_half_same_day_check = Leave.objects.filter( user=user, leave_type="Short", from_date=startdate, status__in=["Pending", "Approved"]).exists()
+
+                if existing_same_day:
+                    messages.error(request, "Only one Half leave allowed per day.")
+                    
+                    # ✅ STORE FORM DATA TEMPORARILY
+                    request.session["apply_leave_form"] = request.POST.dict()
+                    return redirect("apply_leave")
+                
+                if short_half_same_day_check:
+                    messages.error(request, "Only one either Short or Half leave allowed per day.")
+                    
+                    # ✅ STORE FORM DATA TEMPORARILY
+                    request.session["apply_leave_form"] = request.POST.dict()
+                    return redirect("apply_leave")  
+                
+            
+            from_raw = request.POST.get("from_date")
+            to_raw = request.POST.get("to_date_hidden")  # Hidden field to store the same date for validation
+            reason = request.POST.get("reason", "").strip()
+
+            try:
+                from_date = date.fromisoformat(from_raw)
+                to_date = date.fromisoformat(to_raw)
+            except (TypeError, ValueError):
+                messages.error(request, "Invalid date format.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            today = localdate()
+            
+            if to_date < from_date:
+                messages.error(request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+            
+            if from_date < today or to_date < today:
+                messages.error(request, "Leave date cannot be in the past.")
+                
+                 # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            if to_date != from_date:
+                messages.error(request, "Invalid date range: Short/Half Day Leave should be on same date.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+
+            from_datetime_raw = request.POST.get("from_datetime")
+            to_datetime_raw = request.POST.get("to_datetime")
+
+            if not from_datetime_raw or not to_datetime_raw:
+                messages.error(request, "Invalid time selection.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            try:
+                start = datetime.fromisoformat(from_datetime_raw)
+                end = datetime.fromisoformat(to_datetime_raw)
+            except ValueError:
+                messages.error(request, "Invalid datetime format.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            # STRICT BUSINESS HOURS
+            start_hour = 10
+            end_hour = 17 if leave_type == "Short" else 14
+
+            # print(start)
+
+            # Convert UTC to Django project timezone (IST)
+            startt = timezone.localtime(start)
+            endd = timezone.localtime(end)
+            
+            # print(start)
+            
+            if startt.hour < start_hour or startt.hour > end_hour:
+                messages.error(request, "Invalid start time.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+            
+            
+            # 2 HOURS + 1 MIN RULE
+            now = localtime()
+            min_allowed = now + timedelta(hours=2, minutes=1)
+            relaxed_min = min_allowed - timedelta(minutes=7)  # 7 minute grace period
+
+            if start.date() == today:
+                if start < relaxed_min:
+                    messages.error(request, "Must apply at least 2 hours before.")
+                    messages.error(request, "7 minutes of grace period is also passed.")
+                    
+                    # ✅ STORE FORM DATA TEMPORARILY
+                    request.session["apply_leave_form"] = request.POST.dict()
+                    return redirect("apply_leave")
+                
+            
+            # DURATION CHECK
+            duration = 2 if leave_type == "Short" else 4
+            expected_end = start + timedelta(hours=duration)
+
+            if end != expected_end:
+                messages.error(request, "Invalid leave duration.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+            
+            if end <= start:
+                messages.error(request, "Invalid time range.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+            
+            
+            from_date = start.date()
+
+            # ===== Monthly Limit =====
+            # month_leaves = Leave.objects.filter(
+            #     user=user,
+            #     leave_type__in=["Short", "Half"],
+            #     from_date__month=from_date.month,
+            #     from_date__year=from_date.year
+            # )
+            
+            month_leaves = Leave.objects.filter(
+                user=user,
+                leave_type__in=["Short", "Half"],
+                from_date__month=start.month,
+                from_date__year=start.year,
+                status__in=["Pending", "Approved"]   # 🔥 Check for Only in Pending and Approved Leaves.
+            )
+
+
+            # if leave_type == "Short" and month_leaves.filter(leave_type="Short").count() >= 2:
+            #     messages.error(request, "Maximum 2 short leaves allowed per month.")
+                
+            #     # ✅ STORE FORM DATA TEMPORARILY
+            #     request.session["apply_leave_form"] = request.POST.dict()
+            #     return redirect("apply_leave")
+
+            # if leave_type == "Half" and month_leaves.filter(leave_type="Half").count() >= 1:
+            #     messages.error(request, "Only 1 half-day allowed per month.")
+                
+            #     # ✅ STORE FORM DATA TEMPORARILY
+            #     request.session["apply_leave_form"] = request.POST.dict()
+            #     return redirect("apply_leave")
+            
+            
+            short_count = month_leaves.filter(leave_type="Short").count()
+            half_count = month_leaves.filter(leave_type="Half").count()
+
+            if leave_type == "Short" and short_count >= 2:
+                messages.error(request, "Maximum 2 short leaves allowed per month.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            if leave_type == "Half" and half_count >= 1:
+                messages.error(request, "Only 1 half-day allowed per month.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")        
+            
+            
+            
+            # Checking working days in the selected range
+            from App.services.leave_breakdown import calculate_leave_breakdown
+        
+            breakdown = calculate_leave_breakdown(from_date, from_date)
+            days = breakdown["working_days"]
+
+            if days == 0:
+                messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")            
+
+            if days < 0:
+                messages.error(request, " ℹInvalid leave duration.")
+            
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")        
+
+
+
+            # ===== Overlap Check (Datetime) =====
+            overlapping = Leave.objects.filter(
+                user=user,
+                leave_type__in = ["Short", "Half"],
+                from_datetime__lt=end,
+                to_datetime__gt=start,
+                status__in=["Pending", "Approved"]
+            )
+
+            if overlapping.exists():
+                messages.error(request, "Overlaps with existing leave.")
+                
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+
+
+            leave_value = 0.25 if leave_type == "Short" else 0.5
+
+            balance = LeaveBalance.objects.select_for_update().get(user=user)
+
+            earned_remaining = balance.earned_total - balance.earned_used
+            sick_remaining = balance.sick_total - balance.sick_used
+
+            deducted_from = None
+
+            if earned_remaining >= leave_value:
+                balance.earned_used += leave_value
+                deducted_from = "Earned"
+
+            elif sick_remaining >= leave_value:
+                balance.sick_used += leave_value
+                deducted_from = "Sick"
+
+            else:
+                messages.error(request, "Not enough leave balance.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            balance.total_leaves -= leave_value
+
+            with transaction.atomic():
+                balance.save()
+
+                Leave.objects.create(
+                    user=user,
+                    leave_type=leave_type,
+                    from_date=from_date,
+                    to_date=from_date,
+                    from_datetime=start,
+                    to_datetime=end,
+                    reason=reason,
+                    status="Pending",
+                    deducted_from=deducted_from
+                )
+
+            messages.success(request, f"{leave_type} Leave applied successfully.")
+            messages.info(request, f"Applied for {from_date.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
+            messages.info(request, f"Deducted from: {deducted_from}")
+            messages.info(request, f"Leave value: {leave_value} day(s)")
+
+            request.session.pop("apply_leave_form", None)
+
+            return _my_leave_response(request, status=400)
+
+        # =====================================================
+        # 🔵 FULL DAY LEAVE BLOCK
+        # =====================================================
+
+        # -------- STEP 1: READ & VALIDATE INPUT SAFELY --------
+        from_raw = request.POST.get("from_date")
+        to_raw = request.POST.get("to_date")
+
+        try:
+            from_date = date.fromisoformat(from_raw)
+            to_date = date.fromisoformat(to_raw)
+        except (TypeError, ValueError):
+            messages.error(request, "Invalid date format.")
+            
+            # ✅ STORE FORM DATA TEMPORARILY
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+
+        today = localdate()
+
+        # -------- STEP 2: BASIC DATE VALIDATION --------
+        
+        # ❌ Reverse Date Range check
+        if from_date > to_date:
+            messages.error(request, "From date cannot be after To date.")
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+
+        # ❌ Backward date range check
+        if from_date < today or to_date < today:
+            messages.error(request, "Leave date cannot be in the past.")
+            
+            # ✅ STORE FORM DATA TEMPORARILY
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+
+        # Default time for full day
+        start_datetime = datetime.combine(from_date, time(10, 0))
+        end_datetime = datetime.combine(to_date, time(19, 0))
+
+
+        # Checking working days in the selected range
+        from App.services.leave_breakdown import calculate_leave_breakdown
+        
+        breakdown = calculate_leave_breakdown(from_date, to_date)
+        days = breakdown["working_days"]
+
+        if days == 0:
+            messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+            
+            # ✅ STORE FORM DATA TEMPORARILY
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")            
+
+        if days < 0:
+            messages.error(request, " ℹInvalid leave duration.")
+            
+            # ✅ STORE FORM DATA TEMPORARILY
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+        
+        
+        # Overlap check
+        from App.services.overlap_service import get_overlap_details
+        
+        overlaps = get_overlap_details(user=request.user, start_date=from_date, end_date=to_date)
+
+        if overlaps:
+            messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+            for o in overlaps:
+                messages.error(
+                    request,
+                    f"{o['leave_type']} Leave ({o['status']}) | "
+                    f"{o['existing_from'].strftime('%d %b')} → "
+                    f"{o['existing_to'].strftime('%d %b')} | "
+                    f"Overlapping: {o['overlap_from'].strftime('%d %b')} → "
+                    f"{o['overlap_to'].strftime('%d %b')} "
+                    f"({o['overlap_days']} day(s))"
+                )
+
+            # ✅ STORE FORM DATA TEMPORARILY
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+
+
+        # -------- STEP 4: LOAD BALANCE --------
+
+        balance = LeaveBalance.objects.select_for_update().get(user=user)
+        
+        deducted_from = None
+
+        # -------- STEP 5: VALIDATE & SIMULATE BALANCE --------
+        sick_used = balance.sick_used
+        earned_used = balance.earned_used
+        unpaid = balance.unpaid
+        total_leaves = balance.total_leaves
+        
+        days_before = (from_date - today).days
+        
+        if leave_type == "Sick":
+
+            remaining = balance.sick_total - sick_used
+            
+            current_time = localtime().time()
+
+            # If applying sick leave for today
+            if from_date == today:
+                if current_time >= time(8, 0):
+                    messages.error( request, "Sick leave cannot be applied after 8:00 AM for the same day.")
+                    
+                    request.session["apply_leave_form"] = request.POST.dict()
+                    return redirect("apply_leave")
+
+            # 🔒 BALANCE CHECK
+            if days > remaining:
+                messages.error(request, "ℹ Insufficient 'Sick' Leave balance.")
+                
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            sick_used += days
+            total_leaves -= days
+            deducted_from = "Sick"
+
+        elif leave_type == "Earned":
+
+            remaining = balance.earned_total - earned_used
+
+            # 🔒 BALANCE CHECK
+            if days > remaining:
+                messages.error(request, "ℹ Insufficient earned leave balance.")
+
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+            
+            elif days_before < 15:
+                messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
+                messages.error(request, "ℹ Minimum advance period is 15 days.")
+                messages.error(request, "ℹ Admissible advance period is 21 days.")
+
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+
+            elif days_before >= 15 and days_before < 21:
+                messages.warning( request, f"ℹ ⚠ Early application: ")
+                messages.warning( request, f"ℹ You are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
+                messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+            elif days_before >= 21:
+                messages.warning( request, f"ℹ You are applying '{leave_type} Leave' {days_before} day(s) in advance." )
+
+            earned_used += days
+            total_leaves -= days
+            deducted_from = "Earned"
+
+        elif leave_type == "Casual":
+
+            if days_before < 15:
+                messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
+                messages.error(request, "ℹ Minimum advance period is 15 days.")
+                messages.error(request, "ℹ Admissible advance period is 21 days.")
+
+                # ✅ STORE FORM DATA TEMPORARILY
+                request.session["apply_leave_form"] = request.POST.dict()
+                return redirect("apply_leave")
+            
+            elif days_before >= 15 and days_before < 21:
+                messages.warning( request, f"ℹ⚠ Early application: ")
+                messages.warning( request, f"ℹYou are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
+                messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+            elif days_before >= 21:
+                messages.warning( request, f"ℹ You are applying '{leave_type} Leave' {days_before} day(s) in advance." )
+
+
+            # 🚫 NO LIMIT, NO DEDUCTION
+            unpaid += days  # No limit
+            deducted_from = "Unpaid"
+
+        else:
+            messages.error(request, "Invalid leave type.")
+            
+            # ✅ STORE FORM DATA TEMPORARILY
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+
+        # -------- STEP 6: ATOMIC SAVE --------
+        with transaction.atomic():
+            
+            balance.sick_used = max(0, sick_used)
+            balance.earned_used = max(0, earned_used)
+            balance.unpaid = max(0, unpaid)
+            balance.total_leaves = max(0, total_leaves)
+            balance.save()
+            
+            Leave.objects.create(
+                user=user,
+                leave_type=leave_type,
+                from_date=from_date,
+                to_date=to_date,
+                from_datetime=start_datetime,
+                to_datetime=end_datetime,
+                reason=reason,
+                status="Pending",
+                deducted_from=deducted_from
+            )
+            
+
+        # -------- SUCCESS --------
+        messages.success(request, f"'{leave_type}' Leave applied Successfully.")
+        
+        messages.info(request, f"Total days: {breakdown['total_days']}")
+        
+        messages.success(request, f"Applied range: {from_date.strftime('%d %b')} → {to_date.strftime('%d %b')}")
+
+        if breakdown["weekend_days"] > 0:
+            messages.info(request, f"Excluded weekend days: {breakdown['weekend_days']}")
+
+        if breakdown["holiday_days"] > 0:
+            messages.info(request, f"Excluded holidays: {breakdown['holiday_days']}")
+
+        messages.success(request, f"Working leave days : {breakdown['working_days']}")
+
+
+        # ✅ DELETE THE TEMPORARILY STORED FORM DATA FROM SESSION
+        request.session.pop("apply_leave_form", None)
+        return redirect("my_leave")
+
+    # =====================================================
+    # 🔵 GET REQUEST
+    # =====================================================
+
+    form_data = request.session.pop("apply_leave_form", {})
+
+    balance = LeaveBalance.objects.get(user=request.user)
+    today = date.today()
+    
+    upcoming_leaves = Leave.objects.filter(
+        user=request.user,
+        from_date__gte=today,
+        status="Approved",
+    ).order_by("from_date")
+
+    next_short_leave = upcoming_leaves.filter(leave_type__in=["Short", "Half"]).first()
+    next_full_leave = upcoming_leaves.exclude(leave_type__in=["Short", "Half"]).first()
+
+    def get_days_left(leave):
+        if not leave:
+            return None
+        return max(0, (leave.from_date - today).days)
+
+    def is_today_leave(leave):
+        if not leave:
+            return False
+        return leave.from_date == today
+
+    context = {
+        "form_data": form_data,
+        "balance": balance,
+        "total_leaves": balance.total_leaves,
+        "leaves_used": balance.sick_used + balance.earned_used,
+        "leaves_remaining": balance.total_leaves,
+        "next_short_leave": next_short_leave,
+        "next_full_leave": next_full_leave,
+        "next_short_days": get_days_left(next_short_leave),
+        "next_full_days": get_days_left(next_full_leave),
+        "context_next_short_today": is_today_leave(next_short_leave),
+    }
+    context.update(get_employee_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    return render(request, "apply_leave.html", context)
+
+
+
+
+
+# @login_required
+# @never_cache
+# def leave_calendar(request):
+#     today = date.today()
+
+#     year = int(request.GET.get("year", today.year))
+#     month = int(request.GET.get("month", today.month))
+
+#     first_day = date(year, month, 1)
+#     days_in_month = monthrange(year, month)[1]
+
+#     calendar_days = []
+
+#     for day in range(1, days_in_month + 1):
+#         current_date = date(year, month, day)
+
+#         leaves = Leave.objects.filter(
+#             user=request.user,
+#             from_date__lte=current_date,
+#             to_date__gte=current_date
+#         )
+
+#         calendar_days.append({
+#             "date": current_date,
+#             "day": day,
+#             "leaves": leaves,
+#         })
+
+#     return render(request, "leave_calendar.html", {
+#         "calendar_days": calendar_days,
+#         "month": month,
+#         "year": year,
+#         "month_name": first_day.strftime("%B"),
+#     })
+
+
+# Minimal Calendar
+# @login_required
+# @never_cache
+# def leave_calendar_data(request):
+    
+#     leaves = Leave.objects.filter(user=request.user)
+
+#     data = []
+    
+#     for leave in leaves:
+#         data.append({
+#             "id" : leave.id,
+#             "from": leave.from_date.strftime("%Y-%m-%d"),
+#             "to": leave.to_date.strftime("%Y-%m-%d"),
+#             "type": leave.leave_type,
+#             "reason": leave.reason,
+#             "status": leave.status,
+#         })
+
+#     return JsonResponse(data, safe=False)
+
+@login_required
+@never_cache
+def leave_calendar_data(request):
+    
+    HOLIDAY_CACHE_KEY = "public_holidays_india"
+    HOLIDAY_CACHE_TIMEOUT = 60 * 60 * 24 * 30  # 30 days
+    
+    holidays = cache.get(HOLIDAY_CACHE_KEY)
+
+    # 1️⃣ USER LEAVES
+    leaves = Leave.objects.filter(user=request.user)
+    leave_data = [
+        {
+            "id": l.id,
+            "from": l.from_date.strftime("%Y-%m-%d"),
+            "to": l.to_date.strftime("%Y-%m-%d"),
+            "type": l.leave_type,
+            "status": l.status,
+            "reason": l.reason,
+        }
+        for l in leaves
+    ]
+
+    # 2️⃣ COMPANY CLOSURES (MANUAL)
+    # company_closures = CompanyClosure.objects.all()
+    # closure_data = [
+    #     {
+    #         "date": c.date.strftime("%Y-%m-%d"),
+    #         "name": c.name,
+    #     }
+    #     for c in company_closures
+    # ]
+
+    # 3️⃣ AUTO HOLIDAYS (INDIA + INTERNATIONAL)
+    # holidays = []
+    # year = date.today().year
+    # try:
+    #     res = requests.get(
+    #         f"https://date.nager.at/api/v3/PublicHolidays/{year}/IN",
+    #         timeout=5
+    #     )
+    #     if res.status_code == 200:
+    #         for h in res.json():
+    #             holidays.append({
+    #                 "date": h["date"],
+    #                 "name": h["localName"],
+    #                 "type": "National" if h["global"] else "Festival"
+    #             })
+    # except Exception:
+    #     pass  # fail silently (calendar still works)
+    
+    # ===== GOOGLE PUBLIC HOLIDAYS (INDIA) =====
+    # holidays = []
+    # try:
+    #     res = requests.get(
+    #         "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics", 
+    #          timeout=10)
+
+    #     calendar = Calendar(res.text)
+    #     current_year = date.today().year
+
+    #     for event in calendar.events:
+    #         if event.begin.year == current_year:
+    #             holidays.append({
+    #                 "date": event.begin.format("YYYY-MM-DD"),
+    #                 "name": event.name,
+    #                 "type": "Public"
+    #             })
+
+    # except Exception as e:
+    #     print("Holiday fetch failed:", e)
+        
+        
+    if not holidays:
+        holidays = []
+        try:
+            res = requests.get(
+                "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics",
+                timeout=10
+            )
+            calendar = Calendar(res.text)
+            current_year = date.today().year
+
+            for event in calendar.events:
+                if event.begin.year == current_year:
+                    holidays.append({
+                        "date": event.begin.format("YYYY-MM-DD"),
+                        "name": event.name,
+                        "type": "Public"
+                    })
+
+            cache.set(HOLIDAY_CACHE_KEY, holidays, HOLIDAY_CACHE_TIMEOUT)
+
+        except Exception as e:
+            print("Holiday fetch failed:", e)
+
+    return JsonResponse({
+        "leaves": leave_data,
+        # "company_closures": closure_data,
+        "holidays": holidays
+    })
+
+
+
+@login_required
+@never_cache
+def my_leave(request):
+    
+    # pending_leaves = Leave.objects.filter(user=request.user, status='Pending').order_by('-created_at')
+    # approved_leaves = Leave.objects.filter(user=request.user, status='Approved').order_by('-created_at')
+    # rejected_leaves = Leave.objects.filter(user=request.user, status='Rejected').order_by('-created_at')
+
+    # context = {
+    #     'pending_leaves': pending_leaves,
+    #     'approved_leaves': approved_leaves,
+    #     'rejected_leaves': rejected_leaves,
+    # }
+
+    # return render(request, 'my_leave.html', context)
+
+
+    # Short version Start here
+
+    # balance = get_object_or_404(LeaveBalance, user=request.user)
+
+    # return render(request, "my_leave.html", {
+    #     "balance": balance,
+    #     "pending_leaves": Leave.objects.filter(user=request.user, status="Pending"),
+    #     "approved_leaves": Leave.objects.filter(user=request.user, status="Approved"),
+    #     "rejected_leaves": Leave.objects.filter(user=request.user, status="Rejected"),
+
+    # Short version End here
+
+    # 🔹 Read filters (optional)
+    # leave_type = request.GET.get("leave_type")  # Sick / Casual / Earned
+    # month = request.GET.get("month")            # YYYY-MM
+    # from_date = request.GET.get("from_date")
+    # to_date = request.GET.get("to_date")
+
+    # 🔹 Read filters ONLY from session
+    # leave_type = request.session.get("leave_type")
+    # month = request.session.get("month")
+    # from_date = request.session.get("from_date")
+    # to_date = request.session.get("to_date")
+
+    # # 🔹 Restore from session if GET empty
+    # if not request.GET:
+    #     leave_type = request.session.get("leave_type")
+    #     month = request.session.get("month")
+    #     from_date = request.session.get("from_date")
+    #     to_date = request.session.get("to_date")
+
+    # # 🔹 Save filters to session
+    # request.session["leave_type"] = leave_type
+    # request.session["month"] = month
+    # request.session["from_date"] = from_date
+    # request.session["to_date"] = to_date
+
+    # # 🔹 Base queryset (single source of truth)
+    # base_qs = Leave.objects.filter(user=request.user)
+
+    # # 🔹 Apply leave type filter (if selected)
+    # if leave_type:
+    #     base_qs = base_qs.filter(leave_type=leave_type)
+
+    # # 🔹 Apply Month OR Date Range (mutually exclusive)
+    # if month:
+    #     try:
+    #         year, month_num = map(int, month.split("-"))
+    #         base_qs = base_qs.filter(
+    #             from_date__year=year,
+    #             from_date__month=month_num
+    #         )
+    #     except ValueError:
+    #         # Safety: invalid month format → ignore
+    #         pass
+    # else:
+    #     if from_date:
+    #         base_qs = base_qs.filter(from_date__gte=from_date)
+    #     if to_date:
+    #         base_qs = base_qs.filter(to_date__lte=to_date)
+
+
+    filters = request.session.get("filters", {})
+
+    def apply_filters(qs, status):
+        
+        f = filters.get(status, {})
+
+        leave_type = f.get("leave_type")
+        month = f.get("month")
+        from_date = f.get("from_date")
+        to_date = f.get("to_date")
+
+        if leave_type:
+            qs = qs.filter(leave_type=leave_type)
+
+        if month:
+            year, m = map(int, month.split("-"))
+            qs = qs.filter(from_date__year=year, from_date__month=m)
+            
+        else:
+            if from_date:
+                qs = qs.filter(from_date__gte=from_date)
+            if to_date:
+                qs = qs.filter(to_date__lte=to_date)
+
+        return qs
+
+    
+    balance = get_object_or_404(LeaveBalance, user=request.user)
+    # pending_leaves = Leave.objects.filter(user=request.user, status='Pending').order_by('-created_at')
+    # approved_leaves = Leave.objects.filter(user=request.user, status='Approved').order_by('-created_at')
+    # rejected_leaves = Leave.objects.filter(user=request.user, status='Rejected').order_by('-created_at')
+    # pending_leaves = base_qs.filter(status="Pending").order_by("-created_at")
+    # approved_leaves = base_qs.filter(status="Approved").order_by("-created_at")
+    # rejected_leaves = base_qs.filter(status="Rejected").order_by("-created_at")
+
+    pending_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Pending"),"Pending").order_by("-created_at")
+
+    approved_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Approved"),"Approved").order_by("-created_at")
+
+    rejected_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Rejected"), "Rejected").order_by("-created_at")
+
+    current_date = now()
+    short_taken = Leave.objects.filter(
+        user=request.user,
+        leave_type="Short",
+        from_date__month=current_date.month,
+        from_date__year=current_date.year,
+    ).count()
+    half_taken = Leave.objects.filter(
+        user=request.user,
+        leave_type="Half",
+        from_date__month=current_date.month,
+        from_date__year=current_date.year,
+    ).count()
+
+    sick_remaining = balance.sick_total - balance.sick_used
+    earned_remaining = balance.earned_total - balance.earned_used
+    
+    context = {
+        'balance': balance,
+
+        "sick_remaining": sick_remaining,
+        "earned_remaining": earned_remaining,
+        "short_taken_month": short_taken,
+        "half_taken_month": half_taken,
+        
+        'pending_leaves': pending_leaves,
+        'approved_leaves': approved_leaves,
+        'rejected_leaves': rejected_leaves,
+
+        # 🔹 Send back selected filters (for UI state)
+        # "selected_leave_type": leave_type,
+        # "selected_month": month,
+        # "selected_from_date": from_date,
+        # "selected_to_date": to_date,
+
+        # ✅ For Django template (badges)
+        "filters": filters,
+
+        # ✅ For JavaScript (modal)
+        "filters_json": json.dumps(filters),
+    }
+    context.update(get_employee_notification_context(request.user))
+    context.update(get_communication_context(request.user))
+
+    messages.success(request, "Updated latest leave information.")
+
+    return render(request, 'my_leave.html', context)
+
+
+@login_required
+@never_cache
+def apply_status_filter(request, status):
+    if request.method == "POST":
+        filters = request.session.get("filters", {})
+
+        leave_type = request.POST.get("leave_type") or None
+        month = request.POST.get("month") or None
+        from_date = request.POST.get("from_date") or None
+        to_date = request.POST.get("to_date") or None
+
+        # mutual exclusivity
+        if month:
+            from_date = None
+            to_date = None
+        elif from_date or to_date:
+            month = None
+
+        filters[status] = {
+            "leave_type": leave_type,
+            "month": month,
+            "from_date": from_date,
+            "to_date": to_date,
+        }
+
+        request.session["filters"] = filters
+        
+        messages.success(request, "Filter has been applied !")   
+
+    return _my_leave_response(request, filter_status=status)
+
+@login_required
+@never_cache
+def clear_status_filter(request, status):
+    filters = request.session.get("filters", {})
+    filters.pop(status, None)
+    request.session["filters"] = filters
+    
+    messages.success(request, "All Filter has been cleared !")
+    return _my_leave_response(request, filter_status=status)
+
+
+@login_required
+@never_cache
+def clear_status_filter_field(request, status, field):
+    filters = request.session.get("filters", {})
+
+    if status in filters:
+        if field == "date_range":
+            filters[status].pop("from_date", None)
+            filters[status].pop("to_date", None)
+        else:
+            filters[status].pop(field, None)
+
+        # Clean empty filter block
+        if not any(filters[status].values()):
+            filters.pop(status)
+            
+    messages.success(request, "Particular Filter has been clear !") 
+    request.session["filters"] = filters
+    return _my_leave_response(request, filter_status=status)
+
+
+# @login_required
+# @never_cache
+# def clear_leave_filters(request):
+#     request.session.pop("leave_type", None)
+#     request.session.pop("month", None)
+#     request.session.pop("from_date", None)
+#     request.session.pop("to_date", None)
+#     return redirect("my_leave")
+
+# @login_required
+# @never_cache
+# def remove_leave_filter(request):
+#     try:
+#         data = json.loads(request.body.decode("utf-8"))
+#     except (json.JSONDecodeError, UnicodeDecodeError):
+#         return JsonResponse({"success": False}, status=400)
+
+#     ftype = data.get("type")
+
+#     if ftype == "leave_type":
+#         request.session.pop("leave_type", None)
+
+#     elif ftype == "month":
+#         request.session.pop("month", None)
+
+#     elif ftype == "date_range":
+#         request.session.pop("from_date", None)
+#         request.session.pop("to_date", None)
+
+#     elif ftype == "all":
+#         for key in ("leave_type", "month", "from_date", "to_date"):
+#             request.session.pop(key, None)
+
+#     else:
+#         return JsonResponse({"success": False}, status=400)
+
+#     return JsonResponse({"success": True})
+
+# @login_required
+# @never_cache
+# def apply_leave_filters(request):
+#     if request.method == "POST":
+
+#         # 🔹 Save clean values to session
+#         session = request.session
+
+#         leave_type = request.POST.get("leave_type") or None
+#         month = request.POST.get("month") or None
+#         from_date = request.POST.get("from_date") or None
+#         to_date = request.POST.get("to_date") or None
+
+#         def set_or_clear(key, value):
+#             if value:
+#                 request.session[key] = value
+#             else:
+#                 request.session.pop(key, None)
+
+#         # 🔒 Month vs Date range exclusivity (backend safety)
+#         if month:
+#             from_date = None
+#             to_date = None
+
+#         elif from_date or to_date:
+#             month = None
+
+#         for key, value in {
+#             "leave_type": leave_type,
+#             "month": month,
+#             "from_date": from_date,
+#             "to_date": to_date,
+#         }.items():
+#             if value:
+#                 session[key] = value
+#             else:
+#                 session.pop(key, None)
+
+#         set_or_clear("leave_type", leave_type)
+#         set_or_clear("month", month)
+#         set_or_clear("from_date", from_date)
+#         set_or_clear("to_date", to_date)
+
+#     return redirect("my_leave")
+
+
+# @login_required
+# @never_cache
+# def apply_leave_filters(request):
+#     if request.method == "POST":
+#         session = request.session
+
+#         leave_type = request.POST.get("leave_type") or None
+#         month = request.POST.get("month") or None
+#         from_date = request.POST.get("from_date") or None
+#         to_date = request.POST.get("to_date") or None
+
+#         # 🔒 TRUE MUTUAL EXCLUSIVITY
+#         if month:
+#             # Month selected → date range must be cleared
+#             from_date = None
+#             to_date = None
+
+#         elif from_date or to_date:
+#             # Date range selected → month must be cleared
+#             month = None
+
+#         # 🔹 Save clean state to session
+#         filters = {
+#             "leave_type": leave_type,
+#             "month": month,
+#             "from_date": from_date,
+#             "to_date": to_date,
+#         }
+
+#         for key, value in filters.items():
+#             if value:
+#                 session[key] = value
+#             else:
+#                 session.pop(key, None)
+
+#     return redirect("my_leave")
+
+
+
+
+
+
+
+# @login_required
+# @never_cache
+# def delete_leave(request, leave_id):
+#
+#     leave = get_object_or_404(Leave, id=leave_id)
+#
+#     # Security checks
+#     if leave.user != request.user:
+#         return HttpResponseForbidden("You are not allowed to delete this leave")
+#
+#     if leave.status != 'Pending':
+#         return HttpResponseForbidden("Only pending leaves can be deleted")
+#
+#     if request.method == 'POST':
+#         leave.delete()
+#
+#     return redirect('my_leave')
+
+
+
+
+
+# @login_required
+# @never_cache
+# def delete_leave(request, leave_id):
+#
+#     if request.method != "POST":
+#         return redirect("my_leave")
+#
+#     leave = get_object_or_404(Leave, id=leave_id, user=request.user)
+#     # balance = LeaveBalance.objects.get(user=request.user)
+#     balance = get_object_or_404(LeaveBalance, user=leave.user)
+#
+#     if leave.status == "Pending":
+#         days = (leave.to_date - leave.from_date).days + 1
+#
+#         if leave.leave_type == "Sick":
+#             balance.sick_used -= days
+#             balance.total_leaves += days
+#
+#         elif leave.leave_type == "Earned":
+#             balance.earned_used -= days
+#             balance.total_leaves += days
+#
+#         elif leave.leave_type == "Casual":
+#             balance.unpaid -= days
+#
+#         balance.save()
+#
+#     messages.success(request, "Leave Deleted successfully")
+#     messages.success(
+#         request,
+#         f"Deleted {leave.leave_type} leave "
+#         f"({days} day(s): {leave.from_date.strftime('%d %b')} â†’ {leave.to_date.strftime('%d %b')})"
+#     )
+#
+#     leave.delete()
+#
+#     return redirect("my_leave")
+
+
+
+@login_required
+@never_cache
+@require_POST
+def delete_leave(request, leave_id):
+
+    leave = get_object_or_404(Leave, id=leave_id, user=request.user)
+    balance = get_object_or_404(LeaveBalance, user=leave.user)
+
+    if leave.status == "Pending" and request.method == "POST":
+
+        from App.services.leave_breakdown import calculate_leave_breakdown
+
+        # =====================================================
+        # 🔵 SHORT / HALF LOGIC
+        # =====================================================
+        if leave.leave_type in ["Short", "Half"]:
+
+            leave_value = 0.25 if leave.leave_type == "Short" else 0.5
+
+            # Restore EXACT bucket
+            if leave.deducted_from == "Earned":
+                balance.earned_used = max(balance.earned_used - leave_value, 0)
+
+            elif leave.deducted_from == "Sick":
+                balance.sick_used = max(balance.sick_used - leave_value, 0)
+
+            balance.total_leaves += leave_value
+
+            balance.save()
+
+            messages.success( request, f"Deleted {leave.leave_type} Leave Successfully" )
+            messages.info( request, f"Restored {leave_value} day(s) to {leave.deducted_from} balance." )
+            messages.info( request, f"Date: {leave.from_date.strftime('%d %b')} ({leave.from_datetime.strftime('%H:%M')} → {leave.to_datetime.strftime('%H:%M')})" )         
+
+            deleted_leave_id = leave.id
+            leave.delete()
+            pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
+            return _my_leave_response(request, deleted_id=deleted_leave_id, pending_count=pending_count)
+
+        # =====================================================
+        # 🔵 FULL DAY LEAVE LOGIC
+        # =====================================================
+
+        breakdown = calculate_leave_breakdown( leave.from_date, leave.to_date)
+
+        days = breakdown["working_days"]
+        weekend_days = breakdown["weekend_days"]
+        holiday_days = breakdown["holiday_days"]
+
+        # 🔄 Restore using deducted_from (more accurate)
+        if leave.deducted_from == "Sick":
+            balance.sick_used = max(balance.sick_used - days, 0)
+            balance.total_leaves += days
+
+        elif leave.deducted_from == "Earned":
+            balance.earned_used = max(balance.earned_used - days, 0)
+            balance.total_leaves += days
+
+        elif leave.deducted_from == "Unpaid":
+            balance.unpaid = max(balance.unpaid - days, 0)
+
+        balance.save()
+
+        # 🧾 Proper messages
+        messages.success( request, f"Deleted {leave.leave_type} Leave Successfully")
+        messages.success( request, f"({days} working day(s))")
+        messages.success( request, f"From {leave.from_date.strftime('%d %b')} → " f"To {leave.to_date.strftime('%d %b')}.")
+        messages.info( request, f"Included {weekend_days} weekend day(s)")
+        messages.info( request, f"Included {holiday_days} holiday(s).")
+
+        deleted_leave_id = leave.id
+        leave.delete()
+        pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
+        return _my_leave_response(request, deleted_id=deleted_leave_id, pending_count=pending_count)
+
+    return _my_leave_response(request, status=400)
+
+
+
+
+# @login_required
+# @never_cache
+# def edit_leave(request, leave_id):
+#     leave = get_object_or_404(Leave, id=leave_id)
+
+#     # Security checks
+#     if leave.user != request.user:
+#         return HttpResponseForbidden("Not allowed")
+
+#     if leave.status != 'Pending':
+#         return HttpResponseForbidden("Only pending leaves can be edited")
+
+#     if request.method == 'POST':
+#         leave.leave_type = request.POST.get('leave_type')
+#         leave.from_date = request.POST.get('from_date')
+#         leave.to_date = request.POST.get('to_date')
+#         leave.reason = request.POST.get('reason')
+#         leave.save()
+
+#         return redirect('my_leave')
+    
+#     return redirect("my_leave")
+
+
+
+# @login_required
+# @never_cache
+# def edit_leave(request, leave_id):
+#     leave = get_object_or_404(Leave, id=leave_id)
+#     #leave = get_object_or_404(Leave, id=leave_id, user=request.user)       # if we use this then no need of first security check
+
+#     # 🔐 SECURITY
+#     if leave.user != request.user:
+#         return HttpResponseForbidden("Not allowed")
+
+#     if leave.status != "Pending":
+#         return HttpResponseForbidden("Only pending leaves can be edited")
+
+#     if request.method == "POST":
+        
+#         # print("EDIT LEAVE HIT")
+#         print("POST DATA:", request.POST)
+    
+#         balance = LeaveBalance.objects.get(user=request.user)
+#         #balance = get_object_or_404(LeaveBalance, user=leave.user)        # this will be used if "leave = get_object_or_404(Leave, id=leave_id, user=request.user)" because of security reasons.
+
+#         # -------- STEP 1: CALCULATE OLD LEAVE DAYS --------
+#         old_days = (leave.to_date - leave.from_date).days + 1
+#         old_type = leave.leave_type
+
+#         today = localdate()
+
+#         # ❌ Back date check (all leave types)
+#         if leave.from_date < today or leave.to_date < today:
+#             messages.error(request, "You cannot edit a leave to past dates.")
+#             return redirect("my_leave")
+
+#         old_from = leave.from_date
+#         old_to = leave.to_date
+
+#         # -------- STEP 2: REFUND OLD LEAVE --------
+#         if old_type == "Sick":
+#             balance.sick_used -= old_days
+#             balance.total_leaves += old_days
+
+#         elif old_type == "Earned":
+#             balance.earned_used -= old_days
+#             balance.total_leaves += old_days
+
+#         elif old_type == "Casual":
+#             balance.unpaid -= old_days
+
+#         # -------- STEP 3: READ NEW DATA --------
+#         new_type = request.POST.get("leave_type")
+#         new_from = date.fromisoformat(request.POST.get("from_date"))
+#         new_to = date.fromisoformat(request.POST.get("to_date"))
+#         new_reason = request.POST.get("reason")
+
+#         new_days = (new_to - new_from).days + 1
+#         days_before = (new_from - today).days
+
+#         # -------- STEP 4: VALIDATE NEW LEAVE --------
+#         if new_type == "Sick":
+            
+#             remaining = balance.sick_total - balance.sick_used
+            
+#             # ❌ Backward date range check
+#             if new_to < new_from:
+#                 messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                 return redirect("my_leave")
+                
+#             if new_days > remaining:
+#                 messages.error(request, "Insufficient sick leave balance")
+#                 return redirect("my_leave")
+            
+#             balance.sick_used += new_days
+#             balance.total_leaves -= new_days
+
+#         elif new_type == "Earned":
+            
+#             remaining = balance.earned_total - balance.earned_used
+#             # days_before = (new_from - today).days
+
+#             if days_before < 15:
+                
+#                 messages.error(request, f"The '{new_type} Leave' must be applied in advance.")
+#                 messages.error(request, "Minimum advance period is 15 days.")
+#                 messages.error(request, "Admissible advance period is 21 days.")
+
+#                 # request.session["my_leave_form"] = request.POST.dict()
+#                 return redirect("my_leave")
+
+#             elif days_before >= 15 and days_before < 21:
+                
+#                 # ❌ Backward date range check
+#                 if new_to < new_from:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     return redirect("my_leave")
+                
+#                 # 🔒 BALANCE CHECK
+#                 if new_days > remaining:
+#                     messages.error(request, "Insufficient earned leave balance")
+#                     return redirect("my_leave")
+                
+#                 messages.warning( request, "⚠ Early application")
+#                 messages.warning( request, f"You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#                 messages.warning( request, "Admissible advance period is 21 days.")
+
+#             elif days_before >= 21:
+                
+#                 # ❌ Backward date range check
+#                 if new_to < new_from:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     return redirect("my_leave")
+
+#                 # 🔒 BALANCE CHECK
+#                 if new_days > remaining:
+#                     messages.error(request, "Insufficient earned leave balance")
+#                     return redirect("my_leave")
+
+#             balance.earned_used += new_days
+#             balance.total_leaves -= new_days
+
+#         elif new_type == "Casual":
+
+#             # days_before = (new_from - today).days
+
+#             if days_before < 15:
+                
+#                 messages.error(request, f"The '{new_type} Leave' must be applied in advance.")
+#                 messages.error(request, "Minimum advance period is 15 days.")
+#                 messages.error(request, "Admissible advance period is 21 days.")
+
+#                 # request.session["my_leave_form"] = request.POST.dict()
+#                 return redirect("my_leave")
+
+#             elif days_before >= 15 and days_before < 21:
+                
+#                 # ❌ Backward date range check
+#                 if new_to < new_from:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     return redirect("my_leave")
+                
+#                 messages.warning( request, "⚠ Early application")
+#                 messages.warning( request, f"You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#                 messages.warning( request, "Admissible advance period is 21 days.")
+
+#             elif days_before >= 21:
+                
+#                 # ❌ Backward date range check
+#                 if new_to < new_from:
+#                     messages.error( request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#                     return redirect("my_leave")
+                
+#                 messages.info(request, f"ℹ You are applying {days_before} days in advance." )                   
+
+#             # 🚫 NO LIMIT, NO DEDUCTION    
+#             balance.unpaid += new_days
+
+#         # -------- STEP 5: SAVE EVERYTHING --------
+#         leave.leave_type = new_type
+#         leave.from_date = new_from
+#         leave.to_date = new_to
+#         leave.reason = new_reason
+
+#         balance.save()
+#         leave.save()
+
+#         messages.success(request, "Leave updated successfully")
+#         messages.success(
+#             request,
+#             f"Updated leave: {old_type} → {new_type}, "
+#             f"{old_days} → {new_days} day(s) "
+#             f"({old_from.strftime('%d %b')} → {old_to.strftime('%d %b')} "
+#             f"changed to {new_from.strftime('%d %b')} → {new_to.strftime('%d %b')})"
+#         )
+
+#         return redirect("my_leave")
+
+#     return redirect("my_leave")
+
+
+
+# @login_required
+# @never_cache
+# def edit_leave(request, leave_id):
+
+#     leave = get_object_or_404(Leave, id=leave_id)
+
+#     # 🔐 SECURITY
+#     if leave.user != request.user:
+#         return HttpResponseForbidden("Not allowed")
+
+#     if leave.status != "Pending":
+#         return HttpResponseForbidden("Only pending leaves can be edited")
+
+#     if request.method != "POST":
+#         return redirect("my_leave")
+    
+
+#     today = localdate()             # ✅ Indian timezone safe
+
+#     # -------- STEP 1: READ NEW DATA --------
+#     try:
+#         new_type = request.POST.get("leave_type")
+#         new_from = date.fromisoformat(request.POST.get("from_date"))
+#         new_to = date.fromisoformat(request.POST.get("to_date"))
+#         new_reason = request.POST.get("reason")
+#     except Exception:
+#         messages.error(request, "ℹ Invalid date format.")
+#         return redirect("my_leave")
+
+#     # -------- STEP 2: BASIC VALIDATION --------
+
+#     # ❌ Reverse Date Range check
+#     if new_from > new_to:
+#         messages.error(request, "ℹ From date cannot be after To date.")
+#         return redirect("my_leave")
+
+#     # ❌ Backward date range check
+#     if new_from < today or new_to < today:
+#         messages.error(request, "ℹ You cannot edit a leave to past dates.")
+#         return redirect("my_leave")
+
+
+#     # new_days = (new_to - new_from).days + 1
+    
+    
+
+#     # from App.services.working_days import calculate_working_days
+
+#     # new_days = calculate_working_days(new_from, new_to)
+
+#     # if new_days == 0:
+#     #     messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")        
+#     #     return redirect("my_leave")
+
+
+#     from App.services.leave_breakdown import calculate_leave_breakdown
+
+#     breakdown = calculate_leave_breakdown(new_from, new_to)
+#     new_days = breakdown["working_days"]
+
+#     if new_days == 0:
+#         messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+        
+#         return redirect("my_leave")
+
+
+
+#     # # -------- STEP 3: CHECK OVERLAP --------
+#     # overlapping = Leave.objects.filter(
+#     #     user=request.user,
+#     #     from_date__lte=new_to,
+#     #     to_date__gte=new_from
+#     # ).exclude(id=leave.id)
+
+#     # if overlapping.exists():
+#     #     messages.error(request, "Leave dates overlap with another leave.")
+#     #     return redirect("my_leave")
+
+
+#     # -------- ROBUST OVERLAP CHECK FOR EDIT --------
+
+#     # overlapping_leaves = Leave.objects.filter(user=request.user, from_date__lte=new_to, to_date__gte=new_from).exclude(id=leave.id).order_by("from_date")
+
+#     # if overlapping_leaves.exists():
+
+#     #     messages.error(request, "Leave overlaps with existing leave(s):")
+
+#     #     for existing in overlapping_leaves:
+
+#     #         # Calculate exact overlapping portion
+#     #         overlap_start = max(existing.from_date, new_from)
+#     #         overlap_end = min(existing.to_date, new_to)
+#     #         overlap_days = (overlap_end - overlap_start).days + 1
+
+#     #         messages.error(
+#     #             request,
+#     #             f"{existing.leave_type} Leave ({existing.status}) | "
+#     #             f"{existing.from_date.strftime('%d %b')} → " f"{existing.to_date.strftime('%d %b')} | "
+#     #             f"Overlapping: {overlap_start.strftime('%d %b')} → " f"{overlap_end.strftime('%d %b')} "
+#     #             f"({overlap_days} day(s))"
+#     #         )
+
+#     #     return redirect("my_leave")
+    
+    
+#     # ------------------------------------------------------------
+#     # OVERLAP VALIDATION (Edit Mode)
+#     #
+#     # When editing an existing leave, we must ensure that the
+#     # updated date range does not overlap with other leaves.
+#     #
+#     # Important:
+#     #   • We exclude the current leave record from validation
+#     #     using exclude_id=leave.id
+#     #   • This prevents false-positive overlap with itself
+#     #
+#     # The helper function returns detailed overlap information
+#     # including leave type, status, overlapping dates, and days.
+#     #
+#     # If any conflicts exist, update is blocked.
+#     # ------------------------------------------------------------
+    
+    
+#     from App.services.overlap_service import get_overlap_details
+    
+#     overlaps = get_overlap_details(user=request.user, start_date=new_from, end_date=new_to, exclude_id=leave.id)
+
+#     if overlaps:
+#         messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+#         for o in overlaps:
+#             messages.error(
+#                 request,
+#                 f"{o['leave_type']} Leave ({o['status']}) | "
+#                 f"{o['existing_from'].strftime('%d %b')} → "
+#                 f"{o['existing_to'].strftime('%d %b')} | "
+#                 f"Overlapping: {o['overlap_from'].strftime('%d %b')} → "
+#                 f"{o['overlap_to'].strftime('%d %b')} "
+#                 f"({o['overlap_days']} day(s))"
+#             )
+
+#         return redirect("my_leave")
+
+
+#     # -------- STEP 4: PREPARE OLD DATA --------
+#     # old_days = (leave.to_date - leave.from_date).days + 1
+    
+    
+#     # old_days = calculate_working_days( leave.from_date, leave.to_date )     #working_day service
+    
+    
+    
+#     old_breakdown = calculate_leave_breakdown(leave.from_date, leave.to_date)
+#     old_days = old_breakdown["working_days"]
+
+#     old_type = leave.leave_type
+#     old_from = leave.from_date
+#     old_to = leave.to_date
+
+#     balance = LeaveBalance.objects.get(user=request.user)
+
+#     # -------- STEP 5: VALIDATE NEW BALANCE WITHOUT MODIFYING DB --------
+
+#     # Simulate refund first (in memory only)
+#     sick_used = balance.sick_used
+#     earned_used = balance.earned_used
+#     unpaid = balance.unpaid
+#     total_leaves = balance.total_leaves
+
+#     # Refund old
+#     if old_type == "Sick":
+#         sick_used -= old_days
+#         total_leaves += old_days
+
+#     elif old_type == "Earned":
+#         earned_used -= old_days
+#         total_leaves += old_days
+
+#     elif old_type == "Casual":
+#         unpaid -= old_days
+
+#     # Now validate new leave against simulated values
+
+#     # Sick Leave Validation
+#     if new_type == "Sick":
+
+#         remaining = balance.sick_total - sick_used
+
+#         # 🔒 BALANCE CHECK
+#         if new_days > remaining:
+#             messages.error(request, "ℹ Insufficient 'Sick' leave balance.")
+#             return redirect("my_leave")
+
+#         sick_used += new_days
+#         total_leaves -= new_days
+
+#     # Earned Leave Validation
+#     elif new_type == "Earned":
+
+#         remaining = balance.earned_total - earned_used
+#         days_before = (new_from - today).days
+
+#         # 🔒 BALANCE CHECK
+#         if new_days > remaining:
+#             messages.error(request, "ℹ Insufficient earned leave balance.")
+#             return redirect("my_leave")
+        
+#         if days_before < 15:
+#             messages.error(request, f"The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+#             messages.error(request, "ℹ Minimum advance period is 15 days.")
+#             messages.error(request, "ℹ Admissible advance period is 21 days.")
+#             return redirect("my_leave")
+
+#         elif days_before >= 15 and days_before < 21:
+#             messages.warning( request, "ℹ ⚠ Early application")
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#             messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#         elif days_before >= 21:
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
+                
+#         earned_used += new_days
+#         total_leaves -= new_days
+
+#     # Casual Leave Validation
+#     elif new_type == "Casual":
+
+#         days_before = (new_from - today).days
+
+#         if days_before < 15:
+#             messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+#             messages.error(request, "ℹ Minimum advance period is 15 days.")
+#             messages.error(request, "ℹ Admissible advance period is 21 days.")
+#             return redirect("my_leave")
+
+#         elif days_before >= 15 and days_before < 21:
+#             messages.warning( request, "⚠ Early application")
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#             messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#         elif days_before >= 21:
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )               
+
+#         # 🚫 NO LIMIT, NO DEDUCTION    
+#         unpaid += new_days
+
+#     # -------- STEP 6: SAVE EVERYTHING ATOMICALLY --------
+#     with transaction.atomic():
+
+#         # Apply simulated values
+#         balance.sick_used = max(0, sick_used)
+#         balance.earned_used = max(0, earned_used)
+#         balance.unpaid = max(0, unpaid)
+#         balance.total_leaves = max(0, total_leaves)
+#         balance.save()
+
+#         leave.leave_type = new_type
+#         leave.from_date = new_from
+#         leave.to_date = new_to
+#         leave.reason = new_reason
+#         leave.save()
+
+#     # -------- SUCCESS MESSAGE --------
+#     messages.success(request, "ℹ Leave updated successfully.")
+#     messages.success(
+#         request,
+#         f"Updated leave: {old_type} → {new_type}, "
+#         f"{old_days} → {new_days} day(s) "
+#         f"({old_from.strftime('%d %b')} → {old_to.strftime('%d %b')} "
+#         f"changed to {new_from.strftime('%d %b')} → {new_to.strftime('%d %b')})"
+#     )
+
+#     if old_breakdown["weekend_days"] > 0:
+#         messages.info(request, f"Excluded weekend days: {old_breakdown['weekend_days']}")
+
+#     if old_breakdown["holiday_days"] > 0:
+#         messages.info(request, f"Excluded holidays: {old_breakdown['holiday_days']}")
+
+#     messages.success(request, f"Working leave days: {old_breakdown['working_days']}")
+
+
+#     return redirect("my_leave")
+
+
+
+# Here Short and Half Day Leaves are not Standalone 
+# @login_required
+# @never_cache
+# def edit_leave(request, leave_id):
+
+#     leave = get_object_or_404(Leave, id=leave_id)
+
+#     # 🔐 SECURITY
+#     if leave.user != request.user:
+#         return HttpResponseForbidden("Not allowed")
+
+#     if leave.status != "Pending":
+#         return HttpResponseForbidden("Only pending leaves can be edited")
+
+#     if request.method != "POST":
+#         return redirect("my_leave")
+
+#     today = localdate()
+
+#     # ===============================
+#     # READ NEW DATA
+#     # ===============================
+#     try:
+#         new_type = request.POST.get("leave_type")
+#         new_from = date.fromisoformat(request.POST.get("from_date"))
+#         new_to = date.fromisoformat(request.POST.get("to_date"))
+#         new_reason = request.POST.get("reason", "").strip()
+#     except Exception:
+#         messages.error(request, "Invalid date format.")
+#         return redirect("my_leave")
+
+#     # ===============================
+#     # BASIC VALIDATION
+#     # ===============================
+#     if new_from > new_to:
+#         messages.error(request, "From date cannot be after To date.")
+#         return redirect("my_leave")
+
+#     if new_from < today or new_to < today:
+#         messages.error(request, "You cannot edit leave to past dates.")
+#         return redirect("my_leave")
+
+
+#     # =============================
+#     # Checking working days in the selected range
+#     # =============================
+#     from App.services.leave_breakdown import calculate_leave_breakdown    
+
+#     breakdown = calculate_leave_breakdown(new_from, new_to)
+#     new_days = breakdown["working_days"]
+
+#     if new_days == 0:
+#         messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+
+#         return redirect("my_leave")
+    
+#     if new_days <= 0:
+#         messages.error(request, "Invalid leave duration.")
+        
+#         return redirect("my_leave")
+    
+    
+#     # ===============================
+#     # CHECK OVERLAP WITH OTHER LEAVES
+#     # ===============================
+#     from App.services.overlap_service import get_overlap_details
+
+#     overlaps = get_overlap_details( user=request.user, start_date=new_from, end_date=new_to, exclude_id=leave.id )
+
+#     if overlaps:
+#         messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+#         for o in overlaps:
+#             messages.error(
+#                 request,
+#                 f"{o['leave_type']} Leave ({o['status']}) | "
+#                 f"{o['existing_from'].strftime('%d %b')} → " f"{o['existing_to'].strftime('%d %b')} | "
+#                 f"Overlapping: {o['overlap_from'].strftime('%d %b')} → " f"{o['overlap_to'].strftime('%d %b')} "
+#                 f"({o['overlap_days']} day(s))"
+#             )
+
+#         return redirect("my_leave")
+    
+    
+#     # ===============================
+#     # PREPARE OLD DATA
+#     # ===============================
+
+#     old_type = leave.leave_type
+#     old_from = leave.from_date
+#     old_to = leave.to_date
+    
+#     old_days = (
+#         0.25 if old_type == "Short"
+#         else 0.5 if old_type == "Half"
+#         else (leave.to_date - leave.from_date).days + 1
+#     )
+
+#     balance = LeaveBalance.objects.select_for_update().get(user=request.user)
+
+#     sick_used = balance.sick_used
+#     earned_used = balance.earned_used
+#     unpaid = balance.unpaid
+#     total_leaves = balance.total_leaves
+
+#     # ===============================
+#     # REFUND OLD LEAVE FIRST
+#     # ===============================
+#     if old_type in ["Short", "Half"]:
+#         if leave.deducted_from == "Earned":
+#             earned_used -= old_days
+#             total_leaves += old_days
+#         elif leave.deducted_from == "Sick":
+#             sick_used -= old_days
+#             total_leaves += old_days
+
+#     elif old_type == "Sick":
+#         sick_used -= old_days
+#         total_leaves += old_days
+
+#     elif old_type == "Earned":
+#         earned_used -= old_days
+#         total_leaves += old_days
+
+#     elif old_type == "Casual":
+#         unpaid -= old_days
+
+#     # ===============================
+#     # APPLY NEW LEAVE LOGIC
+#     # ===============================
+#     deducted_from = None
+
+#     # -------- SICK --------
+#     if new_type == "Sick":
+
+#         if new_from == today:
+#             if localtime().time() >= time(8, 0):
+#                 messages.error(
+#                     request,
+#                     "Sick leave cannot be applied after 8:00 AM for today."
+#                 )
+#                 return redirect("my_leave")
+
+#         remaining = balance.sick_total - sick_used
+        
+#         if new_days > remaining:
+#             messages.error(request, "Insufficient Sick leave balance.")
+#             return redirect("my_leave")
+
+#         sick_used += new_days
+#         total_leaves -= new_days
+#         deducted_from = "Sick"
+
+#     # -------- EARNED --------
+#     elif new_type == "Earned":
+
+#         remaining = balance.earned_total - earned_used
+#         days_before = (new_from - today).days
+
+#         # 🔒 BALANCE CHECK
+#         if new_days > remaining:
+#             messages.error(request, "ℹ Insufficient earned leave balance.")
+#             return redirect("my_leave")
+        
+#         if days_before < 15:
+#             messages.error(request, f"The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+#             messages.error(request, "ℹ Minimum advance period is 15 days.")
+#             messages.error(request, "ℹ Admissible advance period is 21 days.")
+#             return redirect("my_leave")
+
+#         elif days_before >= 15 and days_before < 21:
+#             messages.warning( request, "ℹ ⚠ Early application")
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#             messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#         elif days_before >= 21:
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
+                
+#         earned_used += new_days
+#         total_leaves -= new_days
+#         deducted_from = "Earned"
+
+#     # -------- CASUAL --------
+#     elif new_type == "Casual":
+
+#         days_before = (new_from - today).days
+
+#         if days_before < 15:
+#             messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+#             messages.error(request, "ℹ Minimum advance period is 15 days.")
+#             messages.error(request, "ℹ Admissible advance period is 21 days.")
+#             return redirect("my_leave")
+
+#         elif days_before >= 15 and days_before < 21:
+#             messages.warning( request, "⚠ Early application")
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#             messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#         elif days_before >= 21:
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )               
+
+#         # 🚫 NO LIMIT, NO DEDUCTION    
+#         unpaid += new_days
+
+#     # -------- SHORT / HALF --------
+#     elif new_type in ["Short", "Half"]:
+
+#         leave_value = 0.25 if new_type == "Short" else 0.5
+
+#         # Monthly limit check (Pending + Approved only)
+#         month_leaves = Leave.objects.filter(
+#             user=request.user,
+#             leave_type__in=["Short", "Half"],
+#             from_date__month=new_from.month,
+#             from_date__year=new_from.year,
+#             status__in=["Pending", "Approved"]
+#         ).exclude(id=leave.id)
+
+#         short_count = month_leaves.filter(leave_type="Short").count()
+#         half_count = month_leaves.filter(leave_type="Half").count()
+
+#         if new_type == "Short" and short_count >= 2:
+#             messages.error(request, "Maximum 2 Short leaves per month.")
+#             return redirect("my_leave")
+
+#         if new_type == "Half" and half_count >= 1:
+#             messages.error(request, "Only 1 Half-day per month.")
+#             return redirect("my_leave")
+
+#         # Deduct from Earned first
+#         if balance.earned_total - earned_used >= leave_value:
+#             earned_used += leave_value
+#             deducted_from = "Earned"
+#         elif balance.sick_total - sick_used >= leave_value:
+#             sick_used += leave_value
+#             deducted_from = "Sick"
+#         else:
+#             messages.error(request, "Not enough leave balance.")
+#             return redirect("my_leave")
+
+#         total_leaves -= leave_value
+
+#     else:
+#         messages.error(request, "Invalid leave type.")
+#         return redirect("my_leave")
+
+#     # ===============================
+#     # SAVE EVERYTHING ATOMICALLY
+#     # ===============================
+#     with transaction.atomic():
+
+#         balance.sick_used = max(sick_used, 0)
+#         balance.earned_used = max(earned_used, 0)
+#         balance.unpaid = max(unpaid, 0)
+#         balance.total_leaves = max(total_leaves, 0)
+#         balance.save()
+
+#         leave.leave_type = new_type
+#         leave.from_date = new_from
+#         leave.to_date = new_to
+#         leave.reason = new_reason
+#         leave.deducted_from = deducted_from
+#         leave.save()
+
+#     messages.success(request, "ℹ Leave updated successfully.")
+#     messages.success(
+#         request,
+#         f"Updated leave: {old_type} → {new_type}, "
+#         f"{old_days} → {new_days} day(s) "
+#         f"({old_from.strftime('%d %b')} → {old_to.strftime('%d %b')} "
+#         f"changed to {new_from.strftime('%d %b')} → {new_to.strftime('%d %b')})"
+#     )
+
+#     if breakdown["weekend_days"] > 0:
+#         messages.info(request, f"Excluded new weekend days: {breakdown['weekend_days']}")    
+
+#     if breakdown["holiday_days"] > 0:
+#         messages.info(request, f"Excluded new holidays: {breakdown['holiday_days']}")
+
+#     messages.success(request, f"Working leave days: {breakdown['working_days']}")
+
+#     return redirect("my_leave")
+
+
+
+
+# @login_required
+# @never_cache
+# def edit_leave(request, leave_id):
+
+#     leave = get_object_or_404(Leave, id=leave_id)
+#     print(leave_id)
+
+#     # 🔐 SECURITY
+#     if leave.user != request.user:
+#         return HttpResponseForbidden("Not allowed")
+
+#     if leave.status != "Pending":
+#         return HttpResponseForbidden("Only pending leaves can be edited")
+
+#     if request.method != "POST":
+#         return redirect("my_leave")
+
+#     today = localdate()
+
+#     # ===============================
+#     # READ NEW DATA
+#     # ===============================
+#     try:
+#         new_type = request.POST.get("edit_leave_type")
+#         # print(new_type)
+#         new_from = date.fromisoformat(request.POST.get("from_date"))
+#         new_to = date.fromisoformat(request.POST.get("to_date"))
+#         new_reason = request.POST.get("reason", "").strip()
+#     except:
+#         messages.error(request, "Invalid input.")
+#         return redirect("my_leave")
+
+#     # ===============================
+#     # BASIC VALIDATION
+#     # ===============================
+#     if new_from > new_to:
+#         messages.error(request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
+#         return redirect("my_leave")
+
+#     if new_from < today or new_to < today:
+#         messages.error(request, "You cannot edit leave to past dates.")
+#         return redirect("my_leave")
+
+#     balance = LeaveBalance.objects.select_for_update().get(user=request.user)
+    
+#     # =========================================================
+#     # 🔥 STANDALONE SHORT / HALF EDIT
+#     # =========================================================
+#     if new_type in ["Short", "Half"]:
+
+#         # ===== DAILY SHORT LIMIT (EDIT) =====
+#         if new_type == "Short":
+
+#             existing_same_day = Leave.objects.filter( user=request.user, leave_type="Short", from_date=new_from, status__in=["Pending", "Approved"] ).exclude(id=leave.id).exists()
+
+#             if existing_same_day:
+#                 messages.error(request, "Only one Short leave allowed per day.")
+#                 return redirect("my_leave")
+
+#         leave_value = 0.25 if new_type == "Short" else 0.5
+        
+#         if new_from != new_to:
+#             messages.error(request, "Invalid date range: Short/Half Day Leave should be on same date.")
+        
+#         # =============================
+#         # Checking working days in the selected range
+#         # =============================
+#         from App.services.leave_breakdown import calculate_leave_breakdown    
+
+#         breakdown = calculate_leave_breakdown(new_from, new_from)
+#         new_days = breakdown["working_days"]
+
+#         if new_days == 0:
+#             messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+
+#             return redirect("my_leave")
+        
+#         if new_days < 0:
+#             messages.error(request, "Invalid leave duration.")
+            
+#             return redirect("my_leave")
+        
+#         # ===============================
+#         # CHECK OVERLAP WITH OTHER LEAVES
+#         # ===============================
+#         from App.services.overlap_service import get_overlap_details
+
+#         overlaps = get_overlap_details( user=request.user, start_date=new_from, end_date=new_from, exclude_id=leave.id )
+
+#         if overlaps:
+#             messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+#             for o in overlaps:
+#                 messages.error(
+#                     request,
+#                     f"{o['leave_type']} Leave ({o['status']}) | "
+#                     f"{o['existing_from'].strftime('%d %b')} → " f"{o['existing_to'].strftime('%d %b')} | "
+#                     f"Overlapping: {o['overlap_from'].strftime('%d %b')} → " f"{o['overlap_to'].strftime('%d %b')} "
+#                     f"({o['overlap_days']} day(s))"
+#                 )
+
+#             return redirect("my_leave")
+        
+
+#         # ----- Refund old leave -----
+#         old_value = (
+#             0.25 if leave.leave_type == "Short"
+#             else 0.5 if leave.leave_type == "Half"
+#             else (leave.to_date - leave.from_date).days + 1
+#         )
+
+#         if leave.leave_type in ["Short", "Half"]:
+#             if leave.deducted_from == "Earned":
+#                 balance.earned_used -= old_value
+#                 balance.total_leaves += old_value
+#             elif leave.deducted_from == "Sick":
+#                 balance.sick_used -= old_value
+#                 balance.total_leaves += old_value
+
+#         elif leave.leave_type == "Sick":
+#             balance.sick_used -= old_value
+#             balance.total_leaves += old_value
+
+#         elif leave.leave_type == "Earned":
+#             balance.earned_used -= old_value
+#             balance.total_leaves += old_value
+
+#         elif leave.leave_type == "Casual":
+#             balance.unpaid -= old_value
+
+#         # ----- Monthly Limit Check -----
+#         month_leaves = Leave.objects.filter(
+#             user=request.user,
+#             leave_type__in=["Short", "Half"],
+#             from_date__month=new_from.month,
+#             from_date__year=new_from.year,
+#             status__in=["Pending", "Approved"]
+#         ).exclude(id=leave.id)
+
+#         short_count = month_leaves.filter(leave_type="Short").count()
+#         half_count = month_leaves.filter(leave_type="Half").count()
+
+#         if new_type == "Short" and short_count >= 2:
+#             messages.error(request, "Maximum 2 Short leaves allowed per month.")
+#             return redirect("my_leave")
+
+#         if new_type == "Half" and half_count >= 1:
+#             messages.error(request, "Only 1 Half-day allowed per month.")
+#             return redirect("my_leave")
+
+#         # ----- Deduct new -----
+#         if balance.earned_total - balance.earned_used >= leave_value:
+#             balance.earned_used += leave_value
+#             deducted_from = "Earned"
+
+#         elif balance.sick_total - balance.sick_used >= leave_value:
+#             balance.sick_used += leave_value
+#             deducted_from = "Sick"
+
+#         else:
+#             messages.error(request, "Not enough leave balance.")
+#             return redirect("my_leave")
+
+#         balance.total_leaves -= leave_value
+
+#         with transaction.atomic():
+#             balance.save()
+#             leave.leave_type = new_type
+#             leave.from_date = new_from
+#             leave.to_date = new_to
+#             leave.reason = new_reason
+#             leave.deducted_from = deducted_from
+#             leave.save()
+
+#         messages.success(request, "Short/Half leave updated successfully.")
+#         return redirect("my_leave")
+
+#     # =========================================================
+#     # 🔥 NORMAL LEAVE LOGIC BELOW
+#     # =========================================================
+
+#     # =============================
+#     # Checking working days in the selected range
+#     # =============================
+    
+    
+#     # ===============================
+#     # READ NEW DATA
+#     # ===============================
+#     # try:
+#     #     new_type = request.POST.get("edit_leave_type")
+#     #     new_from = date.fromisoformat(request.POST.get("from_date"))
+#     #     new_to = date.fromisoformat(request.POST.get("to_date"))
+#     #     new_reason = request.POST.get("reason", "").strip()
+#     # except:
+#     #     messages.error(request, "Invalid input.")
+#     #     return redirect("my_leave")
+    
+#     from App.services.leave_breakdown import calculate_leave_breakdown
+
+#     breakdown = calculate_leave_breakdown(new_from, new_to)
+#     new_days = breakdown["working_days"]
+    
+#     if new_days == 0:
+#         messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+
+#         return redirect("my_leave")
+
+#     if new_days < 0:
+#         messages.error(request, "Invalid leave duration.")
+#         return redirect("my_leave")
+
+
+#     # ===============================
+#     # CHECK OVERLAP WITH OTHER LEAVES
+#     # ===============================
+#     from App.services.overlap_service import get_overlap_details
+
+#     overlaps = get_overlap_details( user=request.user, start_date=new_from, end_date=new_to, exclude_id=leave.id )
+
+#     if overlaps:
+#         messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+#         for o in overlaps:
+#             messages.error(
+#                 request,
+#                 f"{o['leave_type']} Leave ({o['status']}) | "
+#                 f"{o['existing_from'].strftime('%d %b')} → " f"{o['existing_to'].strftime('%d %b')} | "
+#                 f"Overlapping: {o['overlap_from'].strftime('%d %b')} → " f"{o['overlap_to'].strftime('%d %b')} "
+#                 f"({o['overlap_days']} day(s))"
+#             )
+
+#         return redirect("my_leave")
+
+#     # ----- Refund old leave -----
+#     old_type = leave.leave_type
+#     old_from = leave.from_date
+#     old_to = leave.to_date
+#     old_breakdown = calculate_leave_breakdown(leave.from_date, leave.to_date)
+#     old_days = old_breakdown["working_days"]
+#     # old_days = (leave.to_date - leave.from_date).days + 1
+
+#     # Simulate refund first (in memory only)
+#     sick_used = balance.sick_used
+#     earned_used = balance.earned_used
+#     unpaid = balance.unpaid
+#     total_leaves = balance.total_leaves   
+    
+#     # Refund old
+#     if old_type == "Sick":
+#         sick_used -= old_days
+#         total_leaves += old_days
+
+#     elif old_type == "Earned":
+#         earned_used -= old_days
+#         total_leaves += old_days
+
+#     elif old_type == "Casual":
+#         unpaid -= old_days
+
+#     # ----- Apply new -----
+#     deducted_from = None
+
+#     # -------- SICK --------
+#     if new_type == "Sick":
+        
+#         if new_from == today:
+#             if localtime().time() >= time(8, 0):
+#                 messages.error(
+#                     request,
+#                     "Sick leave cannot be applied after 8:00 AM for today."
+#                 )
+#                 return redirect("my_leave")
+
+#         remaining = balance.sick_total - sick_used
+        
+#         if new_days > remaining:
+#             messages.error(request, "Insufficient Sick leave balance.")
+#             return redirect("my_leave")
+
+#         sick_used += new_days
+#         total_leaves -= new_days
+#         deducted_from = "Sick"
+
+#     # -------- EARNED --------
+#     elif new_type == "Earned":
+
+#         remaining = balance.earned_total - earned_used
+#         days_before = (new_from - today).days
+
+#         # 🔒 BALANCE CHECK
+#         if new_days > remaining:
+#             messages.error(request, "ℹ Insufficient earned leave balance.")
+#             return redirect("my_leave")
+        
+#         if days_before < 15:
+#             messages.error(request, f"The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+#             messages.error(request, "ℹ Minimum advance period is 15 days.")
+#             messages.error(request, "ℹ Admissible advance period is 21 days.")
+#             return redirect("my_leave")
+
+#         elif days_before >= 15 and days_before < 21:
+#             messages.warning( request, "ℹ ⚠ Early application")
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#             messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#         elif days_before >= 21:
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
+                
+#         earned_used += new_days
+#         total_leaves -= new_days
+#         deducted_from = "Earned"
+
+#     # -------- CASUAL --------
+#     elif new_type == "Casual":
+
+#         days_before = (new_from - today).days
+
+#         if days_before < 15:
+#             messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+#             messages.error(request, "ℹ Minimum advance period is 15 days.")
+#             messages.error(request, "ℹ Admissible advance period is 21 days.")
+#             return redirect("my_leave")
+
+#         elif days_before >= 15 and days_before < 21:
+#             messages.warning( request, "⚠ Early application")
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+#             messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+#         elif days_before >= 21:
+#             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )               
+
+#         # 🚫 NO LIMIT, NO DEDUCTION    
+#         unpaid += new_days
+
+#     else:
+#         messages.error(request, "Invalid leave type.")
+#         # print("Invalid leave type received in edit_leave:", new_type)
+#         return redirect("my_leave")
+
+#     # ===============================
+#     # SAVE EVERYTHING ATOMICALLY
+#     # ===============================
+#     with transaction.atomic():
+#         balance.sick_used = max(sick_used, 0)
+#         balance.earned_used = max(earned_used, 0)
+#         balance.unpaid = max(unpaid, 0)
+#         balance.total_leaves = max(total_leaves, 0)
+#         balance.save()
+        
+#         leave.leave_type = new_type
+#         leave.from_date = new_from
+#         leave.to_date = new_to
+#         leave.reason = new_reason
+#         leave.deducted_from = deducted_from
+#         leave.save()
+
+#     messages.success(request, "ℹ Leave updated successfully.")
+#     messages.success(
+#         request,
+#         f"Updated leave: {old_type} → {new_type}, "
+#         f"{old_days} → {new_days} day(s) "
+#         f"({old_from.strftime('%d %b')} → {old_to.strftime('%d %b')} "
+#         f"changed to {new_from.strftime('%d %b')} → {new_to.strftime('%d %b')})"
+#     )
+
+#     if breakdown["weekend_days"] > 0:
+#         messages.info(request, f"Excluded new weekend days: {breakdown['weekend_days']}")    
+
+#     if breakdown["holiday_days"] > 0:
+#         messages.info(request, f"Excluded new holidays: {breakdown['holiday_days']}")
+
+#     messages.success(request, f"Working leave days: {breakdown['working_days']}")
+
+#     return redirect("my_leave")
+
+
+
+
+
+
+@login_required
+@never_cache
+@require_http_methods(["POST"])
+def edit_leave(request, leave_id):
+
+    leave = get_object_or_404(Leave, id=leave_id)
+
+    # 🔐 SECURITY
+    if leave.user != request.user:
+        if _is_ajax_request(request):
+            return JsonResponse({"success": False, "messages": [{"tags": "error", "text": "Not allowed", "title": "Action needed"}]}, status=403)
+        return HttpResponseForbidden("Not allowed")
+
+    if leave.status != "Pending":
+        if _is_ajax_request(request):
+            return JsonResponse({"success": False, "messages": [{"tags": "error", "text": "Only pending leaves can be edited", "title": "Action needed"}]}, status=403)
+        return HttpResponseForbidden("Only pending leaves can be edited")
+
+    today = localdate()
+
+    # ===============================
+    # READ INPUT ONCE
+    # ===============================
+    try:
+        new_type = request.POST.get("edit_leave_type")
+        new_from = date.fromisoformat(request.POST.get("from_date"))
+        new_to = date.fromisoformat(request.POST.get("to_date"))
+        new_reason = request.POST.get("reason", "").strip()
+        
+        old_from = leave.from_date
+        old_to = leave.to_date
+        
+    except Exception:
+        messages.error(request, "Invalid input.")
+        return _my_leave_response(request, status=400)
+
+    # if not new_type:
+    #     messages.error(request, "Leave type missing.")
+    #     return redirect("my_leave")
+
+    # ===============================
+    # BASIC DATE VALIDATION
+    # ===============================
+    if new_from > new_to:
+        messages.error(request, "Invalid date range.")
+        return _my_leave_response(request, status=400)
+
+    if new_from < today or new_to < today:
+        messages.error(request, "You cannot edit leave to past dates.")
+        return _my_leave_response(request, status=400)
+
+    balance = LeaveBalance.objects.select_for_update().get(user=request.user)
+
+    # ===============================
+    # PREPARE SIMULATED BALANCE
+    # ===============================
+    sick_used = balance.sick_used
+    earned_used = balance.earned_used
+    unpaid = balance.unpaid
+    total_leaves = balance.total_leaves
+
+    # ===============================
+    # REFUND OLD LEAVE (SIMULATED)
+    # ===============================
+    old_type = leave.leave_type
+    old_value = 0.25 if old_type == "Short" else 0.5
+    old_days = (leave.to_date - leave.from_date).days + 1
+
+    if old_type in ["Short", "Half"]:
+        
+        if leave.deducted_from == "Earned":
+            earned_used -= old_value
+            total_leaves += old_value
+        elif leave.deducted_from == "Sick":
+            sick_used -= old_value
+            total_leaves += old_value
+
+    else:
+
+        if old_type == "Sick":
+            sick_used -= old_days
+            total_leaves += old_days
+
+        elif old_type == "Earned":
+            earned_used -= old_days
+            total_leaves += old_days
+
+        elif old_type == "Casual":
+            unpaid -= old_days
+
+    # =========================================================
+    # 🔥 SHORT / HALF EDIT LOGIC
+    # =========================================================
+    if new_type in ["Short", "Half"]:
+
+        if new_from != new_to:
+            messages.error(request, "Short/Half leave must be for single day.")
+            return _my_leave_response(request, status=400)
+
+
+
+        from_datetime = request.POST.get("from_datetime")
+        to_datetime = request.POST.get("to_datetime")
+
+        if not from_datetime or not to_datetime:
+            messages.error(request, "Invalid time selection.")
+            return _my_leave_response(request, status=400)
+
+        try:
+            start = datetime.fromisoformat(from_datetime)
+            end = datetime.fromisoformat(to_datetime)
+        except:
+            messages.error(request, "Invalid datetime format.")
+            return _my_leave_response(request, status=400)
+
+        # STRICT BUSINESS HOURS
+        start_hour = 10
+        end_hour = 17 if new_type == "Short" else 15
+
+        # print(start)
+
+        # Convert UTC to Django project timezone (IST)
+        startt = timezone.localtime(start)
+        endd = timezone.localtime(end)
+        
+        if startt.hour < start_hour or startt.hour > end_hour:
+            messages.error(request, "Invalid start time.")
+            return _my_leave_response(request, status=400)
+
+        # 2 HOURS + 1 MIN RULE
+        now = localtime()
+        min_allowed = now + timedelta(hours=2, minutes=1)
+        relaxed_min = min_allowed - timedelta(minutes=7)  # 7 minute grace period
+
+        if start.date() == today:
+            if start < relaxed_min:
+                messages.error(request, "Must apply at least 2 hours before.")
+                messages.error(request, "7 minutes of grace period is also passed.")
+                return _my_leave_response(request, status=400)
+
+        # DURATION CHECK
+        duration = 2 if new_type == "Short" else 4
+        expected_end = start + timedelta(hours=duration)
+
+        if end != expected_end:
+            messages.error(request, "Invalid leave duration.")
+            return _my_leave_response(request, status=400)
+
+        if end <= start:
+            messages.error(request, "Invalid time range.")
+            return _my_leave_response(request, status=400)
+
+
+        # DAILY LIMIT
+        if new_type == "Short":
+            
+            exists_same_day = Leave.objects.filter( user=request.user, leave_type="Short", from_date=new_from, status__in=["Pending", "Approved"] ).exclude(id=leave.id).exists()
+            short_half_same_day_check = Leave.objects.filter( user=request.user, leave_type="Half", from_date=new_from, status__in=["Pending", "Approved"] ).exclude(id=leave.id).exists()
+            
+            if exists_same_day:
+                messages.error(request, "Only one Short leave allowed per day.")
+                return _my_leave_response(request, status=400)
+            
+            if short_half_same_day_check:
+                messages.error(request, "Only one either Short or Half leave allowed per day.")
+                return _my_leave_response(request, status=400)
+
+        if new_type == "Half":       
+                             
+            existing_same_day = Leave.objects.filter( user=request.user, leave_type="Half", from_date=new_from, status__in=["Pending", "Approved"]).exclude(id=leave.id).exists()
+            short_half_same_day_check = Leave.objects.filter( user=request.user, leave_type="Short", from_date=new_from, status__in=["Pending", "Approved"]).exclude(id=leave.id).exists()
+
+            if existing_same_day:
+                messages.error(request, "Only one Half leave allowed per day.")
+                
+                return _my_leave_response(request, status=400)
+            
+            if short_half_same_day_check:
+                messages.error(request, "Only one either Short or Half leave allowed per day.")
+                
+                return _my_leave_response(request, status=400)
+                
+                
+        # MONTHLY LIMIT
+        month_leaves = Leave.objects.filter(
+            user=request.user,
+            leave_type__in=["Short", "Half"],
+            from_date__month=new_from.month,
+            from_date__year=new_from.year,
+            status__in=["Pending", "Approved"]
+        ).exclude(id=leave.id)
+
+        if new_type == "Short" and month_leaves.filter(leave_type="Short").count() >= 2:
+            messages.error(request, "Maximum 2 Short leaves per month.")
+            return _my_leave_response(request, status=400)
+
+        if new_type == "Half" and month_leaves.filter(leave_type="Half").count() >= 1:
+            messages.error(request, "Only 1 Half-day allowed per month.")
+            return _my_leave_response(request, status=400)
+        
+        
+        
+        
+        # Checking working days in the selected range
+        from App.services.leave_breakdown import calculate_leave_breakdown
+    
+        breakdown = calculate_leave_breakdown(new_from, new_to)
+        days = breakdown["working_days"]
+
+        if days == 0:
+            messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
+            return _my_leave_response(request, status=400)            
+
+        if days < 0:
+            messages.error(request, " ℹInvalid leave duration.")    
+            return _my_leave_response(request, status=400)
+
+
+        # ===== Overlap Check (Datetime) =====
+        overlapping = Leave.objects.filter(
+            user=request.user,
+            leave_type__in = ["Short", "Half"],
+            from_datetime__lt=end,
+            to_datetime__gt=start,
+            status__in=["Pending", "Approved"]
+        ).exclude(id=leave.id)
+
+        if overlapping.exists():
+            messages.error(request, "Date/Time Overlaps with existing leave.")
+            return _my_leave_response(request, status=409)
+        
+        
+        leave_value = 0.25 if new_type == "Short" else 0.5
+
+        # BALANCE CHECK
+        deducted_from = None
+
+        if balance.earned_total - earned_used >= leave_value:
+            earned_used += leave_value
+            deducted_from = "Earned"
+
+        elif balance.sick_total - sick_used >= leave_value:
+            sick_used += leave_value
+            deducted_from = "Sick"
+
+        else:
+            messages.error(request, "Not enough leave balance.")
+            return _my_leave_response(request, status=400)
+
+        total_leaves -= leave_value
+
+        # SAVE ATOMICALLY
+        with transaction.atomic():
+            balance.sick_used = max(sick_used, 0)
+            balance.earned_used = max(earned_used, 0)
+            balance.total_leaves = max(total_leaves, 0)
+            balance.unpaid = max(unpaid, 0)
+            balance.save()
+            leave.leave_type = new_type
+            leave.from_date = new_from
+            leave.to_date = new_to
+            leave.reason = new_reason
+            leave.from_datetime = start
+            leave.to_datetime = end
+            leave.deducted_from = deducted_from
+            leave.updated_at = timezone.now()
+            leave.no_of_times_updated = (leave.no_of_times_updated or 0) + 1
+            refresh_pending_leave_notification(leave)
+            leave.save()
+
+        messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
+        messages.success(request, f"Leave date: From {new_from.strftime('%d %b %Y')} → {new_to.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
+        
+        return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
+
+    # =========================================================
+    # 🔥 NORMAL LEAVE LOGIC
+    # =========================================================
+
+    from App.services.leave_breakdown import calculate_leave_breakdown
+    from App.services.overlap_service import get_overlap_details
+
+    breakdown = calculate_leave_breakdown(new_from, new_to)
+    new_days = breakdown["working_days"]
+
+    if new_days <= 0:
+        messages.error(request, "Invalid leave duration.")
+        return _my_leave_response(request, status=400)
+
+    overlaps = get_overlap_details(user=request.user, start_date=new_from, end_date=new_to, exclude_id=leave.id )
+
+    if overlaps:
+        messages.error(request, "ℹ Leave overlaps with existing leave(s):")
+
+        for o in overlaps:
+            messages.error(
+                request,
+                f"{o['leave_type']} Leave ({o['status']}) | "
+                f"{o['existing_from'].strftime('%d %b')} → " f"{o['existing_to'].strftime('%d %b')} | "
+                f"Overlapping: {o['overlap_from'].strftime('%d %b')} → " f"{o['overlap_to'].strftime('%d %b')} "
+                f"({o['overlap_days']} day(s))"
+            )
+
+        return _my_leave_response(request, status=409)
+
+    deducted_from = None
+
+    # -------- SICK --------
+    if new_type == "Sick":
+
+        if new_from == today and localtime().time() >= time(8, 0):
+            messages.error(request, "Sick leave cannot be applied after 8:00 AM.")
+            return _my_leave_response(request, status=400)
+
+        remaining = balance.sick_total - sick_used
+        
+        # 🔒 BALANCE CHECK
+        if new_days > remaining:
+            messages.error(request, "Insufficient Sick leave balance.")
+            return _my_leave_response(request, status=400)
+
+        sick_used += new_days
+        total_leaves -= new_days
+        deducted_from = "Sick"
+
+    # -------- EARNED --------
+    elif new_type == "Earned":
+
+        remaining = balance.earned_total - earned_used
+        days_before = (new_from - today).days
+
+        # 🔒 BALANCE CHECK
+        if new_days > remaining:
+            messages.error(request, "ℹ Insufficient earned leave balance.")
+            return _my_leave_response(request, status=400)
+        
+        if days_before < 15:
+            messages.error(request, f"The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+            messages.error(request, "ℹ Minimum advance period is 15 days.")
+            messages.error(request, "ℹ Admissible advance period is 21 days.")
+            return _my_leave_response(request, status=400)
+
+        elif days_before >= 15 and days_before < 21:
+            messages.warning( request, "ℹ ⚠ Early application")
+            messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+            messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+        elif days_before >= 21:
+            messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
+                
+        earned_used += new_days
+        total_leaves -= new_days
+        deducted_from = "Earned"
+
+    # -------- CASUAL --------
+    elif new_type == "Casual":
+
+        days_before = (new_from - today).days
+
+        if days_before < 15:
+            messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
+            messages.error(request, "ℹ Minimum advance period is 15 days.")
+            messages.error(request, "ℹ Admissible advance period is 21 days.")
+            return redirect("my_leave")
+
+        elif days_before >= 15 and days_before < 21:
+            messages.warning( request, "⚠ Early application")
+            messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
+            messages.warning( request, "ℹ Admissible advance period is 21 days.")
+
+        elif days_before >= 21:
+            messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )               
+
+        # 🚫 NO LIMIT, NO DEDUCTION    
+        unpaid += new_days
+        deducted_from = "Unpaid"
+        
+    else:
+        messages.error(request, "Invalid leave type.")
+        return _my_leave_response(request, status=400)
+
+    # ===============================
+    # SAVE EVERYTHING ATOMICALLY
+    # ===============================
+    with transaction.atomic():
+        balance.sick_used = max(sick_used, 0)
+        balance.earned_used = max(earned_used, 0)
+        balance.unpaid = max(unpaid, 0)
+        balance.total_leaves = max(total_leaves, 0)
+        balance.save()
+
+        leave.leave_type = new_type
+        leave.from_date = new_from
+        leave.to_date = new_to
+        leave.reason = new_reason
+        leave.deducted_from = deducted_from
+        leave.from_datetime = timezone.make_aware(datetime.combine(new_from, time(10, 0)))
+        leave.to_datetime = timezone.make_aware(datetime.combine(new_to, time(19, 0)))
+        leave.updated_at = timezone.now()
+        leave.no_of_times_updated = (leave.no_of_times_updated or 0) + 1
+        refresh_pending_leave_notification(leave)
+        leave.save()
+
+    messages.success(request, "ℹ Leave updated successfully.")
+    
+    if(new_type == "Sick" or new_type == "Earned" or new_type == "Casual"):
+        messages.success(
+            request,
+            f"Updated leave: {old_type} → {new_type}, "
+            f"{old_days} → {new_days} day(s) "
+            f"({old_from.strftime('%d %b')} → {old_to.strftime('%d %b')} "
+            f"changed to {new_from.strftime('%d %b')} → {new_to.strftime('%d %b')})"
+        )
+
+        if breakdown["weekend_days"] > 0:
+            messages.info(request, f"Excluded new weekend days: {breakdown['weekend_days']}")    
+
+        if breakdown["holiday_days"] > 0:
+            messages.info(request, f"Excluded new holidays: {breakdown['holiday_days']}")
+
+        messages.success(request, f"Working leave days: {breakdown['working_days']}, Full Day (10:00 am to 7:00 pm)")
+        
+    return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
+
+
+
+
+
+
+# def logout_view(request):
+#     logout(request)
+#     return redirect('login')
+    
+@never_cache
+def logout_view(request):
+
+    # 🔹 Store role before logout
+    # 🔹 Detect BEFORE logout
+    is_admin = request.user.is_authenticated and request.user.is_superuser
+    role = request.user.role if request.user.is_authenticated else None
+
+    # 🔥 Logout user
+    logout(request)
+
+    # 🔥 Clear full session (extra safety)
+    request.session.flush()
+    
+    # print("ROLE:", role)
+    # print("IS ADMIN:", is_admin)
+    
+    print(role, " - Logged out Successfully")
+
+    if is_admin:
+        return redirect("admin_login")
+    
+    elif role == "HR":
+        return redirect("hr_login")
+
+    elif role == "EMPLOYEE":
+        return redirect("employee_login")
+
+    elif role == "Admin":
+        return redirect("admin_login")
+
+    else:
+        return redirect("role_select")
