@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Manage All Leaves{% endblock %}
@@ -1211,13 +1211,13 @@
 
         const render = function ()
         {
-            const selected = getSelectedOrToday();
+            const selected = getSelected();
             const today = getToday();
 
             // If the user didn't explicitly navigate years, the selected year must win.
             if (!manualYear || !Number.isFinite(viewYear))
             {
-                viewYear = selected.year;
+                viewYear = selected ? selected.year : today.year;
             }
 
             currentNode.textContent = String(viewYear);
@@ -1236,7 +1236,7 @@
                     button.classList.add("is-current");
                 }
 
-                if (viewYear === selected.year && monthNumber === selected.month)
+                if (selected && viewYear === selected.year && monthNumber === selected.month)
                 {
                     button.classList.add("is-selected");
                 }
@@ -1287,15 +1287,8 @@
             // 1) Normalize first so legacy values like "Apr 2026" become "2026-04"
             const normalizedSelected = getMonthFromHidden();
 
-            // 2) If still empty, seed with today's month in YYYY-MM
-            if (!hiddenInput.value)
-            {
-                const today = getToday();
-                hiddenInput.value = formatMonthValue(today.year, today.month);
-            }
-
-            // 3) Now compute selected from normalized hidden value and set the calendar year
-            const selected = normalizedSelected || getSelectedOrToday();
+            // 2) Compute selected from normalized hidden value and set the calendar year
+            const selected = normalizedSelected || getToday();
             viewYear = selected.year;
             currentNode.textContent = String(viewYear);
             shell.classList.add("open");
