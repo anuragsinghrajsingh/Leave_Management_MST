@@ -532,11 +532,11 @@
                                         <div class="reason-label">Reason</div>
                                         <div class="reason-divider"></div>
                                         <div class="reason-content" data-full="{{ leave.reason|escape }}">
-                                            {{ leave.reason|truncatechars:60 }}
-                                            {% if leave.reason|length > 60 %}
-                                                <span class="more-btn" data-reason="{{ leave.reason|escape }}">more</span>
-                                            {% endif %}
+                                            {{ leave.reason }}
                                         </div>
+                                        {% if leave.reason|length > 30 %}
+                                            <span class="more-btn" data-reason="{{ leave.reason|escape }}" style="display: none;">... more</span>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>

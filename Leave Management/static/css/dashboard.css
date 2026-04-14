@@ -1894,13 +1894,10 @@ body {
     background: linear-gradient(135deg, rgba(255, 245, 236, 0.72), rgba(233, 245, 255, 0.8));
     border: 1px solid rgba(47, 115, 217, 0.12);
     min-height: 0;
+    position: relative; /* For absolute positioned more-btn */
 }
 
-.reason-box-full-day .reason-content {
-    height: calc(1em * 1.5 * 3);
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-}
+
 
 .reason-label {
     margin-bottom: 2px;
@@ -1927,13 +1924,28 @@ body {
     height: calc(1em * 1.5 * 2);
 }
 
+.reason-box-full-day .reason-content,
+.activity-card .reason-box-full-day .reason-content {
+    height: auto !important;
+    min-height: calc(1em * 1.5 * 3) !important;
+    max-height: calc(1em * 1.5 * 3) !important;
+    -webkit-line-clamp: 3 !important;
+    line-clamp: 3 !important;
+    display: -webkit-box !important;
+}
+
 .more-btn {
-    margin-left: 6px;
+    position: absolute;
+    bottom: 5px;
+    right: 6px;
+    padding-left: 15px;
+    background: linear-gradient(to right, transparent, rgba(245, 250, 255, 0.95) 40%, rgba(245, 250, 255, 1));
     color: var(--brand-dark);
     font-weight: 800;
     cursor: pointer;
     text-decoration: underline;
     text-underline-offset: 2px;
+    z-index: 2;
 }
 
 .pagination {

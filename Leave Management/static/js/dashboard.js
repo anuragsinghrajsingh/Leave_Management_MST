@@ -249,10 +249,10 @@ function renderLeaveCard(leave, isNew) {
         .replace(/"/g, "&quot;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
-    const shortReason = leave.reason
-        ? leave.reason.substring(0, 60).replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    const displayReason = leave.reason
+        ? leave.reason.replace(/</g, "&lt;").replace(/>/g, "&gt;")
         : "No reason provided";
-    const showMore = leave.reason && leave.reason.length > 60;
+    const showMore = leave.reason && leave.reason.length > 100;
 
     const activityTypeClass = leave.type === "Short"
         ? "activity-short"
@@ -281,9 +281,9 @@ function renderLeaveCard(leave, isNew) {
                     <div class="reason-label">Reason</div>
                     <div class="reason-divider"></div>
                     <div class="reason-content">
-                        ${shortReason}
-                        ${showMore ? `<span class="more-btn" data-reason="${safeReason}">more</span>` : ""}
+                        ${displayReason}
                     </div>
+                    ${leave.reason && leave.reason.length > 30 ? `<span class="more-btn" data-reason="${safeReason}" style="display: none;">... more</span>` : ""}
                 </div>
             </div>
         </div>
@@ -352,8 +352,8 @@ function loadLeaves(page) {
             });
 
             updateAppliedTimeElements(container);
-
             updateNewBadges();
+            syncReasonMoreButtons();
         });
 
         currentPage = data.current_page;
@@ -823,10 +823,33 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    syncReasonMoreButtons();
+    window.addEventListener("resize", syncReasonMoreButtons);
+
     setTimeout(() => {
         isPageLoaded = true;
+        syncReasonMoreButtons();
     }, 300);
 });
+
+function syncReasonMoreButtons() {
+    document.querySelectorAll(".reason-content").forEach(el => {
+        const box = el.closest(".reason-box");
+        if (!box) return;
+        const moreBtn = box.querySelector(".more-btn");
+        if (!moreBtn) return;
+
+        // Reset display to check natural height
+        moreBtn.style.display = "none";
+        
+        // We detect overflow by comparing scrollHeight to clientHeight.
+        const isClamped = el.scrollHeight > (el.clientHeight + 2); // Add small buffer
+        
+        if (isClamped) {
+            moreBtn.style.display = "inline-block";
+        }
+    });
+}
 
 document.addEventListener("click", function(e) {
     const appliedTime = e.target.closest(".applied-time.has-applied-tooltip");
