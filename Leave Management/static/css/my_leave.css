@@ -1758,8 +1758,9 @@ table {
 }
 
 .leave-pill-unpaid {
-    background: rgba(245, 158, 11, 0.14);
-    color: #b45309;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.22));
+    color: #92400e;
+    border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .leave-pill-earned {

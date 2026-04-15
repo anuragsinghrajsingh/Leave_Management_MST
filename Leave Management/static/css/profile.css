@@ -5323,8 +5323,9 @@ header .profile-dropdown,
 }
 
 .profile-page-shell .leave-card.unpaid .leave-card-badge {
-    color: #0891b2 !important;
-    background: linear-gradient(135deg, #ecfeff, #cffafe) !important;
+    color: #92400e !important;
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    border: 1px solid rgba(217, 119, 6, 0.2);
 }
 
 .profile-page-shell .leave-card.short .leave-card-badge {

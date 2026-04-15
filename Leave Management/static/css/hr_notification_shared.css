@@ -615,7 +615,7 @@ body.hr-page .notification-item-unpaid .notification-type-compact::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
-        linear-gradient(135deg, #fde68a, #fb923c);
+        linear-gradient(135deg, #fbbf24, #d97706);
 }
 
 body.hr-page .notification-item-short .notification-type::before,
@@ -698,13 +698,13 @@ body.hr-page .notification-item-sick
 body.hr-page .notification-item-unpaid
 {
     background:
-        linear-gradient(180deg, rgba(255, 248, 238, 1), rgba(255, 238, 219, 0.98)),
-        linear-gradient(135deg, rgba(251, 146, 60, 0.06), rgba(245, 158, 11, 0.05));
-    border-color: rgba(251, 146, 60, 0.46);
+        linear-gradient(180deg, rgba(255, 251, 235, 1), rgba(254, 243, 199, 0.98)),
+        linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(217, 119, 6, 0.08));
+    border-color: rgba(245, 158, 11, 0.48);
     box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.88),
-        0 0 0 1px rgba(255, 255, 255, 0.24),
-        0 10px 18px rgba(251, 146, 60, 0.12);
+        0 0 0 1px rgba(255,255,255,0.24),
+        0 10px 18px rgba(217, 119, 6, 0.14);
 }
 
 body.hr-page .notification-item-earned

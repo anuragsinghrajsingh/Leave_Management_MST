@@ -4195,9 +4195,9 @@ body
 
 .popup-filter-badge-leave-type.is-unpaid
 {
-    border-color: rgba(251, 191, 36, 0.28);
-    background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.95));
-    color: #b45309;
+    border-color: rgba(180, 83, 9, 0.28);
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #451a03;
 }
 
 .popup-filter-badge-leave-type.is-unpaid .popup-filter-badge-icon::before
@@ -6981,8 +6981,9 @@ body
 
 .leave-type-pill-unpaid
 {
-    background: rgba(245, 158, 11, 0.16);
-    color: var(--manage-amber);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.24));
+    color: #92400e;
+    border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .leave-type-pill-earned
