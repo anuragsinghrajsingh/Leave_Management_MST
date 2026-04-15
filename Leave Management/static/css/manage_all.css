@@ -270,10 +270,10 @@ body
     background: linear-gradient(180deg, #fef2f2, #fee2e2);
 }
 
-.notification-count-casual,
-.employee-alert-dot-casual,
-.profile-alert-dot-casual,
-.notification-item-casual
+.notification-count-unpaid,
+.employee-alert-dot-unpaid,
+.profile-alert-dot-unpaid,
+.notification-item-unpaid
 {
     background: linear-gradient(180deg, #fff7ed, #ffedd5);
 }
@@ -317,9 +317,9 @@ body
     background: linear-gradient(180deg, #ef4444, #dc2626);
 }
 
-.notification-count-casual,
-.employee-alert-dot-casual,
-.profile-alert-dot-casual
+.notification-count-unpaid,
+.employee-alert-dot-unpaid,
+.profile-alert-dot-unpaid
 {
     background: linear-gradient(180deg, #f59e0b, #d97706);
 }
@@ -845,7 +845,7 @@ body
         linear-gradient(135deg, #fecaca, #f87171);
 }
 
-.notification-item-casual .notification-type::before
+.notification-item-unpaid .notification-type::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
@@ -1371,7 +1371,7 @@ body
         linear-gradient(135deg, #fecaca, #f87171);
 }
 
-.balance-casual-card .balance-chip-label::before
+.balance-unpaid-card .balance-chip-label::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
@@ -2448,7 +2448,7 @@ body
     color: #ef4444;
 }
 
-.employee-bell-type-symbol-casual
+.employee-bell-type-symbol-unpaid
 {
     color: #f59e0b;
 }
@@ -2478,7 +2478,7 @@ body
     background: linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(254, 226, 226, 0.94));
 }
 
-.employee-bell-item-casual
+.employee-bell-item-unpaid
 {
     background: linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(255, 237, 213, 0.94));
 }
@@ -3674,13 +3674,13 @@ body
 }
 
 
-.balance-casual-card
+.balance-unpaid-card
 {
     background: linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(255, 237, 213, 0.94));
 }
 
-.balance-casual-card .balance-chip-label,
-.balance-casual-card strong
+.balance-unpaid-card .balance-chip-label,
+.balance-unpaid-card strong
 {
     color: #c2410c;
 }
@@ -4193,14 +4193,14 @@ body
     content: "✚";
 }
 
-.popup-filter-badge-leave-type.is-casual
+.popup-filter-badge-leave-type.is-unpaid
 {
     border-color: rgba(251, 191, 36, 0.28);
     background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.95));
     color: #b45309;
 }
 
-.popup-filter-badge-leave-type.is-casual .popup-filter-badge-icon::before
+.popup-filter-badge-leave-type.is-unpaid .popup-filter-badge-icon::before
 {
     content: "◈";
 }
@@ -6979,7 +6979,7 @@ body
     color: var(--manage-red);
 }
 
-.leave-type-pill-casual
+.leave-type-pill-unpaid
 {
     background: rgba(245, 158, 11, 0.16);
     color: var(--manage-amber);
@@ -7838,8 +7838,8 @@ button
         linear-gradient(135deg, #fecaca, #f87171);
 }
 
-.reason-modal-type-casual { color: #c2410c; }
-.reason-modal-type-casual::before
+.reason-modal-type-unpaid { color: #c2410c; }
+.reason-modal-type-unpaid::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
@@ -8123,7 +8123,7 @@ button
     --reason-theme-field-tint: rgba(254, 202, 202, 0.22);
 }
 
-.reason-modal.reason-theme-casual .reason-modal-dialog
+.reason-modal.reason-theme-unpaid .reason-modal-dialog
 {
     --reason-theme-tint: rgba(253, 230, 138, 0.24);
     --reason-theme-border: rgba(251, 146, 60, 0.24);

@@ -415,10 +415,10 @@
                         </div>
                     </div>
 
-                    <div class="leave-card casual">
+                    <div class="leave-card unpaid">
                         <div class="leave-card-head">
-                            <div class="leave-card-badge">CL</div>
-                            <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#9728;</span><span>Casual Leave</span></div>
+                            <div class="leave-card-badge">UL</div>
+                            <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#9728;</span><span>Unpaid Leave</span></div>
                         </div>
                         <div class="leave-row leave-row-single">
                             <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#10003;</span><span>Used</span></span><span data-countup data-countup-target="{{ balance.unpaid }}" data-countup-decimals="2">{{ balance.unpaid }}</span></div>
@@ -893,11 +893,11 @@
         const leaveCtx = document.getElementById("leaveChart");
 
         /* ✅ ADDED: usage check */
-        const casualUsed = {{ balance.unpaid }};
+        const unpaidUsed = {{ balance.unpaid }};
         const sickUsed = {{ balance.sick_used }};
         const earnedUsed = {{ balance.earned_used }};
 
-        const noLeaveUsed = (casualUsed === 0 && sickUsed === 0 && earnedUsed === 0);
+        const noLeaveUsed = (unpaidUsed === 0 && sickUsed === 0 && earnedUsed === 0);
 
         /* ================= EXISTING CODE ================= */
 
@@ -1010,7 +1010,7 @@
             type: "pie",
             data: 
             {
-                labels: ["Casual", "Sick", "Earned"],
+                labels: ["Unpaid", "Sick", "Earned"],
                 datasets: [
                 {
                     data: [
@@ -1104,7 +1104,7 @@
 
                                 const titles=
                                 {
-                                    "Casual":"🌴 Casual Leave Usage",
+                                    "Unpaid":"🌴 Unpaid Leave Usage",
                                     "Sick":"💊 Sick Leave Details",
                                     "Earned":"⭐ Earned Leave Details"
                                 };
@@ -1117,7 +1117,7 @@
                                 const label = context.chart.data.labels[context.dataIndex];
                                 const used = context.raw;
 
-                                if(label==="Casual")
+                                if(label==="Unpaid")
                                 {
                                     return `Used: ${used}`;
                                 }
@@ -1163,7 +1163,7 @@
             }
         , plugins: [centerLabelPlugin]});
         renderCustomLegend("leaveChartLegend", [
-            { label: "Casual", target: casualUsed, suffix: " used", color: "#7dd3fc" },
+            { label: "Unpaid", target: unpaidUsed, suffix: " used", color: "#7dd3fc" },
             { label: "Sick", target: sickUsed, suffix: " used", color: "#f87171" },
             { label: "Earned", target: earnedUsed, suffix: " used", color: "#34d399" }
         ], leaveChart);
@@ -1206,10 +1206,10 @@
 
             let html = "";
 
-            if (label === "Casual") 
+            if (label === "Unpaid") 
             {
                 html = `
-                    <div class="tooltip-title">🌴 Casual Leave</div>
+                    <div class="tooltip-title">🌴 Unpaid Leave</div>
                     <div class="tooltip-row">Used: <b>${value}</b></div>
                 `;
             }
@@ -1288,7 +1288,7 @@
             renderChartEmptyState(
                 leaveCtx,
                 "No leave activity yet",
-                "Full leave usage will appear here once earned, sick, or casual leave is utilized."
+                "Full leave usage will appear here once earned, sick, or unpaid leave is utilized."
             );
         }
 

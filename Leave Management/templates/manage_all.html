@@ -452,9 +452,9 @@
                         <strong><span id="detailSickRemaining">0</span></strong>
                         <small><span id="detailSickUsed">0</span> used of <span id="detailSickTotal">0</span></small>
                     </article>
-                    <article class="balance-chip-card balance-casual-card mobile-popup-card" data-summary-card="balance">
-                        <span class="balance-chip-label">Casual</span>
-                        <strong id="detailCasualTaken">0</strong>
+                    <article class="balance-chip-card balance-unpaid-card mobile-popup-card" data-summary-card="balance">
+                        <span class="balance-chip-label">Unpaid</span>
+                        <strong id="detailUnpaidTaken">0</strong>
                         <small>Taken</small>
                     </article>
                     <article class="balance-chip-card balance-short-card mobile-popup-card" data-summary-card="limit">
@@ -686,7 +686,7 @@
         { key: "half", label: "Half (4 Hours)", symbol: "\u25D0" },
         { key: "sick", label: "Sick", symbol: "\u271A" },
         { key: "earned", label: "Earned", symbol: "\u2726" },
-        { key: "casual", label: "Casual", symbol: "\u25C8" }
+        { key: "unpaid", label: "Unpaid", symbol: "\u25C8" }
     ];
     const popupHistoryFilters = {
         pending: createEmptyPopupHistoryFilter(),
@@ -1924,9 +1924,9 @@
             return "is-sick";
         }
 
-        if (normalized.includes("casual"))
+        if (normalized.includes("unpaid"))
         {
-            return "is-casual";
+            return "is-unpaid";
         }
 
         if (normalized.includes("earned"))
@@ -2704,7 +2704,7 @@
         const leaveSymbolMap = {
             earned: "â˜…",
             sick: "+",
-            casual: "â—",
+            unpaid: "◉",
             short: "â—”",
             half: "â—‘",
             default: "â€¢"
@@ -3443,7 +3443,7 @@
     {
         const leaveSymbolMap = {
             sick: "&#10010;",
-            casual: "&#9673;",
+            unpaid: "&#9673;",
             earned: "&#10022;",
             short: "&#9716;",
             half: "&#9681;",
@@ -4114,7 +4114,7 @@
         const detailSickRemaining = document.getElementById("detailSickRemaining");
         const detailSickUsed = document.getElementById("detailSickUsed");
         const detailSickTotal = document.getElementById("detailSickTotal");
-        const detailCasualTaken = document.getElementById("detailCasualTaken");
+        const detailUnpaidTaken = document.getElementById("detailUnpaidTaken");
         const detailShortUsedMonth = document.getElementById("detailShortUsedMonth");
         const detailShortTotalMonth = document.getElementById("detailShortTotalMonth");
         const detailHalfUsedMonth = document.getElementById("detailHalfUsedMonth");
@@ -4157,7 +4157,7 @@
         animateMetric(detailSickRemaining, selected.sick_remaining);
         animateMetric(detailSickUsed, selected.sick_used);
         animateMetric(detailSickTotal, selected.sick_total);
-        animateMetric(detailCasualTaken, selected.casual_taken);
+        animateMetric(detailUnpaidTaken, selected.unpaid_taken);
         animateMetric(detailShortUsedMonth, selected.short_used_month);
         animateMetric(detailShortTotalMonth, selected.short_total_month);
         animateMetric(detailHalfUsedMonth, selected.half_used_month);
@@ -4575,7 +4575,7 @@
         }
 
         title.textContent = modalLabel;
-        modal.classList.remove("reason-theme-sick", "reason-theme-casual", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
+        modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
         modal.classList.add("reason-theme-" + leaveTypeClass);
         scheduleDateTextNode.textContent = scheduleDateText;
         scheduleTimeTextNode.textContent = showScheduleTime ? scheduleTimeText : "";
@@ -4649,7 +4649,7 @@
             appliedTimeTextNode.textContent = "-";
             updatedTextNode.textContent = "-";
             updatedTimeTextNode.textContent = "-";
-            modal.classList.remove("reason-theme-sick", "reason-theme-casual", "reason-theme-earned", "reason-theme-short", "reason-theme-half");
+            modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half");
             modal.classList.add("reason-theme-default");
             activeReasonAnchor = null;
             reasonModalCloseTimer = null;

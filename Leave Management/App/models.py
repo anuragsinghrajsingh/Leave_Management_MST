@@ -116,7 +116,7 @@ class Leave(models.Model):
     LEAVE_TYPES = [
         ("Short", "Short"),
         ("Half", "Half"),
-        ("Casual", "Casual"),
+        ("Unpaid", "Unpaid"),
         ("Sick", "Sick"),
         ("Earned", "Earned"),
     ]

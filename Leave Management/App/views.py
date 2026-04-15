@@ -78,7 +78,7 @@ def _serialize_leave_for_my_leave(leave):
 
     leave_symbol = {
         "Sick": "✚",
-        "Casual": "☕",
+        "Unpaid": "☕",
         "Earned": "★",
         "Short": "◷",
         "Half": "◐",
@@ -176,7 +176,7 @@ def hr_notifications(request):
 def get_leave_type_class(leave_type):
     return {
         "Sick": "sick",
-        "Casual": "casual",
+        "Unpaid": "unpaid",
         "Earned": "earned",
         "Short": "short",
         "Half": "half",
@@ -975,7 +975,7 @@ def build_manage_employee_card(employee, employee_leaves, today=None):
         "sick_used": balance.sick_used if balance else 0,
         "sick_total": balance.sick_total if balance else 0,
         "sick_remaining": (balance.sick_total - balance.sick_used) if balance else 0,
-        "casual_taken": balance.unpaid if balance else 0,
+        "unpaid_taken": balance.unpaid if balance else 0,
         "short_used_month": month_short_used,
         "short_total_month": 2,
         "half_used_month": month_half_used,
@@ -1134,7 +1134,7 @@ def build_employee_pdf_payload(employee, profile, balance):
         f"Total Leave: {balance.total_leaves if balance else 0}",
         f"Sick Balance: {balance.sick_used if balance else 0}/{balance.sick_total if balance else 0}",
         f"Earned Balance: {balance.earned_used if balance else 0}/{balance.earned_total if balance else 0}",
-        f"Casual/Unpaid: {balance.unpaid if balance else 0}",
+        f"Unpaid: {balance.unpaid if balance else 0}",
         "",
         f"Exported On: {localtime(now()).strftime('%d %b %Y %I:%M %p')}",
     ]
@@ -1594,7 +1594,7 @@ def reject_leave(request, leave_id):
         if leave.leave_type in ["Short", "Half"]:
             leave_value = 0.25 if leave.leave_type == "Short" else 0.5
 
-        elif leave.leave_type in ["Sick", "Earned", "Casual"]:
+        elif leave.leave_type in ["Sick", "Earned", "Unpaid"]:
             leave_value = (leave.to_date - leave.from_date).days + 1
 
         else:
@@ -1625,7 +1625,7 @@ def reject_leave(request, leave_id):
             balance.earned_used = max(balance.earned_used - leave_value, 0)
             balance.total_leaves += leave_value
 
-        elif leave.leave_type == "Casual":
+        elif leave.leave_type == "Unpaid":
             balance.unpaid = max(balance.unpaid - leave_value, 0)
 
         balance.save()
@@ -2049,7 +2049,7 @@ def dashboard(request):
                     "sick_total": float(balance.sick_total),
                     "sick_used": float(balance.sick_used),
                     "sick_remaining": float(max(balance.sick_total - balance.sick_used, 0)),
-                    "casual_used": float(balance.unpaid),
+                    "unpaid_used": float(balance.unpaid),
                     "approved_count": approved_count,
                     "pending_count": pending_count,
                     "rejected_count": rejected_count,
@@ -2123,7 +2123,7 @@ def dashboard(request):
         "sick_total": balance.sick_total,
         "sick_used": balance.sick_used,
         "sick_remaining": max(balance.sick_total - balance.sick_used, 0),
-        "casual_used": balance.unpaid,
+        "unpaid_used": balance.unpaid,
         "pending_count": pending_count,
         "approved_count": approved_count,
         "rejected_count": rejected_count,
@@ -2601,7 +2601,7 @@ def apply_leave(request):
             total_leaves -= days
             deducted_from = "Earned"
 
-        elif leave_type == "Casual":
+        elif leave_type == "Unpaid":
 
             if days_before < 15:
                 messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
@@ -3180,7 +3180,7 @@ def edit_leave(request, leave_id):
             earned_used -= old_days
             total_leaves += old_days
 
-        elif old_type == "Casual":
+        elif old_type == "Unpaid":
             unpaid -= old_days
 
     # =========================================================
@@ -3447,8 +3447,8 @@ def edit_leave(request, leave_id):
         total_leaves -= new_days
         deducted_from = "Earned"
 
-    # -------- CASUAL --------
-    elif new_type == "Casual":
+    # -------- UNPAID --------
+    elif new_type == "Unpaid":
 
         days_before = (new_from - today).days
 
@@ -3498,7 +3498,7 @@ def edit_leave(request, leave_id):
 
     messages.success(request, "ℹ Leave updated successfully.")
     
-    if(new_type == "Sick" or new_type == "Earned" or new_type == "Casual"):
+    if(new_type == "Sick" or new_type == "Earned" or new_type == "Unpaid"):
         messages.success(
             request,
             f"Updated leave: {old_type} → {new_type}, "

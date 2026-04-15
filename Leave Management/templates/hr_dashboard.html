@@ -365,14 +365,14 @@
                                     <td>
                                         <span class="leave-pill
                                             {% if leave.leave_type == 'Sick' %}leave-pill-sick
-                                            {% elif leave.leave_type == 'Casual' %}leave-pill-casual
+                                            {% elif leave.leave_type == 'Unpaid' %}leave-pill-unpaid
                                             {% elif leave.leave_type == 'Earned' %}leave-pill-earned
                                             {% elif leave.leave_type == 'Short' %}leave-pill-short
                                             {% elif leave.leave_type == 'Half' %}leave-pill-half
                                             {% else %}leave-pill-default{% endif %}">
                                             <span class="leave-pill-symbol">
                                                 {% if leave.leave_type == 'Sick' %}✚
-                                                {% elif leave.leave_type == 'Casual' %}☕
+                                                {% elif leave.leave_type == 'Unpaid' %}☕
                                                 {% elif leave.leave_type == 'Earned' %}★
                                                 {% elif leave.leave_type == 'Short' %}⏱
                                                 {% elif leave.leave_type == 'Half' %}◐
@@ -449,7 +449,7 @@
                                                 data-full="{{ leave.reason|escape }}"
                                                 data-employee="{{ leave.user.get_full_name|default:leave.user.username|title|escape }}"
                                                 data-leave-type="{{ leave.leave_type|escape }}"
-                                                data-leave-type-class="{% if leave.leave_type == 'Sick' %}sick{% elif leave.leave_type == 'Casual' %}casual{% elif leave.leave_type == 'Earned' %}earned{% elif leave.leave_type == 'Short' %}short{% elif leave.leave_type == 'Half' %}half{% else %}default{% endif %}"
+                                                data-leave-type-class="{% if leave.leave_type == 'Sick' %}sick{% elif leave.leave_type == 'Unpaid' %}unpaid{% elif leave.leave_type == 'Earned' %}earned{% elif leave.leave_type == 'Short' %}short{% elif leave.leave_type == 'Half' %}half{% else %}default{% endif %}"
                                                 data-schedule-date="{{ leave.from_date|date:'M d, Y' }} -> {{ leave.to_date|date:'M d, Y' }}"
                                                 data-schedule-time="{% if leave.from_datetime and leave.to_datetime %}{{ leave.from_datetime|time:'h:i A' }} -> {{ leave.to_datetime|time:'h:i A' }}{% else %}Full day{% endif %}"
                                                 data-days="{{ leave.from_date|date:'Y-m-d' }}|{{ leave.to_date|date:'Y-m-d' }}"
@@ -1215,7 +1215,7 @@
         }
 
         title.textContent = "Reason detail";
-        modal.classList.remove("reason-theme-sick", "reason-theme-casual", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
+        modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
         modal.classList.add("reason-theme-" + leaveTypeClass);
         employee.textContent = reasonText.dataset.employee || "Employee";
         leaveType.textContent = (reasonText.dataset.leaveType || "Leave type") + " Leave";
@@ -1273,7 +1273,7 @@
         {
             modal.style.display = "none";
             modal.classList.remove("is-closing");
-            modal.classList.remove("reason-theme-sick", "reason-theme-casual", "reason-theme-earned", "reason-theme-short", "reason-theme-half");
+            modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half");
             modal.classList.add("reason-theme-default");
             content.textContent = "";
             employee.textContent = "Employee";

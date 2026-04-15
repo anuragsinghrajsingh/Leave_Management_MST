@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", function ()
 
         if (!type) return;
 
-        if (type === "Casual" || type === "Sick" || type === "Earned")
+        if (type === "Unpaid" || type === "Sick" || type === "Earned")
         {
             if (fromDate.value)
             {
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function ()
 
         if (!type) return;
 
-        if (type === "Casual" || type === "Sick" || type === "Earned")
+        if (type === "Unpaid" || type === "Sick" || type === "Earned")
         {
             if (toDate.value)
             {

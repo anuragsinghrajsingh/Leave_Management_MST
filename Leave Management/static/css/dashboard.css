@@ -47,7 +47,7 @@
     background: linear-gradient(135deg, #ecfdf5, #d1fae5);
 }
 
-.activity-header .leave-type.leave-type-casual::before {
+.activity-header .leave-type.leave-type-unpaid::before {
     content: "\25CC";
     color: #ea580c;
     background: linear-gradient(135deg, #fff7ed, #ffedd5);
@@ -1030,7 +1030,7 @@ body {
     border-color: rgba(194, 65, 12, 0.2);
 }
 
-.casual-balance-card {
+.unpaid-balance-card {
     background: linear-gradient(135deg, rgba(239, 245, 255, 0.98), rgba(255, 255, 255, 0.99));
     border-color: rgba(29, 78, 216, 0.2);
 }
@@ -1649,7 +1649,7 @@ body {
     color: #c2410c !important;
 }
 
-.leave-type-casual {
+.leave-type-unpaid {
     color: #1d4ed8 !important;
 }
 

@@ -1194,7 +1194,7 @@ tbody tr:hover td:last-child
     color: #b91c1c;
 }
 
-.leave-pill-casual
+.leave-pill-unpaid
 {
     background: rgba(245, 158, 11, 0.14);
     color: #b45309;
@@ -1835,12 +1835,12 @@ button
         linear-gradient(135deg, #fecaca, #f87171);
 }
 
-.reason-modal-type-casual
+.reason-modal-type-unpaid
 {
     color: #c2410c;
 }
 
-.reason-modal-type-casual::before
+.reason-modal-type-unpaid::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
@@ -2107,7 +2107,7 @@ button
     --reason-theme-field-tint: rgba(254, 202, 202, 0.22);
 }
 
-.reason-modal.reason-theme-casual .reason-modal-dialog
+.reason-modal.reason-theme-unpaid .reason-modal-dialog
 {
     --reason-theme-tint: rgba(253, 230, 138, 0.24);
     --reason-theme-border: rgba(251, 146, 60, 0.24);

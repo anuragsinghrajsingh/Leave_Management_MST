@@ -600,7 +600,7 @@ LEAVE COLORS
     border-right-color:#f12617;
 }
 
-.casual
+.unpaid
 {
     border-left-color:#23dbf3;
     border-right-color:#23dbf3;
@@ -2547,7 +2547,7 @@ header .profile-dropdown,
     border-top-color: #2563eb;
 }
 
-.casual {
+.unpaid {
     border-top-color: #06b6d4;
 }
 
@@ -3170,7 +3170,7 @@ header .profile-dropdown,
 .earned { color: #16a34a; }
 .sick { color: #dc2626; }
 .total { color: #2563eb; }
-.casual { color: #0891b2; }
+.unpaid { color: #0891b2; }
 .short { color: #ca8a04; }
 .half { color: #ea580c; }
 
@@ -5322,7 +5322,7 @@ header .profile-dropdown,
     background: linear-gradient(135deg, #eef2ff, #e0e7ff) !important;
 }
 
-.profile-page-shell .leave-card.casual .leave-card-badge {
+.profile-page-shell .leave-card.unpaid .leave-card-badge {
     color: #0891b2 !important;
     background: linear-gradient(135deg, #ecfeff, #cffafe) !important;
 }

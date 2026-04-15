@@ -281,10 +281,10 @@
                                 <small>{{ sick_used|floatformat:"-2" }} used of {{ sick_total|floatformat:"-2" }}</small>
                             </article>
 
-                            <article class="stat-card balance-type-card casual-balance-card">
-                                <p class="stat-label">Casual</p>
-                                <p class="count" data-countup data-countup-target="{{ casual_used }}" data-countup-decimals="2">{{ casual_used }}</p>
-                                <small>{{ casual_used|floatformat:"-2" }} used so far</small>
+                            <article class="stat-card balance-type-card unpaid-balance-card">
+                                <p class="stat-label">Unpaid</p>
+                                <p class="count" data-countup data-countup-target="{{ unpaid_used }}" data-countup-decimals="2">{{ unpaid_used }}</p>
+                                <small>{{ unpaid_used|floatformat:"-2" }} used so far</small>
                             </article>
                         </div>
 
@@ -493,7 +493,7 @@
                         {% for leave in recent_leaves|slice:":3" %}
                             <div class="activity-card {{ leave.status|lower }} {% if leave.leave_type == 'Short' %}activity-short{% elif leave.leave_type == 'Half' %}activity-half{% endif %}">
                                 <div class="activity-header">
-                                    <span class="leave-type {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Casual' %}leave-type-casual{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">{{ leave.leave_type }}</span>
+                                    <span class="leave-type {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Unpaid' %}leave-type-unpaid{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">{{ leave.leave_type }}</span>
                                     <span class="status {{ leave.status|lower }}">{{ leave.status }}</span>
                                 </div>
 
@@ -518,7 +518,7 @@
 
                                 <div class="activity-extra">
                                     <p class="applied-time" data-created-time="{{ leave.created_at|date:'c' }}" data-updated-time="{{ leave.updated_at|date:'c' }}"></p>
-                                    <p class="activity-duration {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Casual' %}leave-type-casual{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">
+                                    <p class="activity-duration {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Unpaid' %}leave-type-unpaid{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">
                                         {% if leave.leave_type == "Short" %}
                                             Short leave for <span class="duration-number" data-unit="hour">2</span> hours
                                         {% elif leave.leave_type == "Half" %}

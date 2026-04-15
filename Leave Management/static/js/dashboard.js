@@ -208,8 +208,8 @@ function renderLeaveCard(leave, isNew) {
         leaveTypeClass = "leave-type-short";
     } else if (leave.type === "Sick") {
         leaveTypeClass = "leave-type-sick";
-    } else if (leave.type === "Casual") {
-        leaveTypeClass = "leave-type-casual";
+    } else if (leave.type === "Unpaid") {
+        leaveTypeClass = "leave-type-unpaid";
     } else if (leave.type === "Earned") {
         leaveTypeClass = "leave-type-earned";
     }
@@ -649,12 +649,12 @@ function updateDashboardSummary(summary) {
         if (metaEl) metaEl.textContent = `${formatStatValue(summary.sick_used)} used of ${formatStatValue(summary.sick_total)}`;
     }
 
-    const casualCard = document.querySelector(".casual-balance-card");
-    if (casualCard) {
-        const countEl = casualCard.querySelector(".count");
-        const metaEl = casualCard.querySelector("small");
-        if (countEl) countEl.textContent = formatStatValue(summary.casual_used);
-        if (metaEl) metaEl.textContent = `${formatStatValue(summary.casual_used)} used so far`;
+    const unpaidCard = document.querySelector(".unpaid-balance-card");
+    if (unpaidCard) {
+        const countEl = unpaidCard.querySelector(".count");
+        const metaEl = unpaidCard.querySelector("small");
+        if (countEl) countEl.textContent = formatStatValue(summary.unpaid_used);
+        if (metaEl) metaEl.textContent = `${formatStatValue(summary.unpaid_used)} used so far`;
     }
 
     const approvedCard = document.querySelector(".approved-card");

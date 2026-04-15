@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}My Leaves{% endblock %}
@@ -583,7 +583,7 @@
                 <select name="edit_leave_type" id="edit-leave-type" required>
                     <option value="Short">Short (2 Hours)</option>
                     <option value="Half">Half Day (4 Hours)</option>
-                    <option value="Casual">Casual</option>
+                    <option value="Unpaid">Unpaid</option>
                     <option value="Sick">Sick</option>
                     <option value="Earned">Earned</option>
                 </select>
@@ -2096,7 +2096,7 @@
                     <option ${leave.type==="Half Day"?"selected":""}>Half Day</option>
                     <option ${leave.type==="Sick"?"selected":""}>Sick</option>
                     <option ${leave.type==="Earned"?"selected":""}>Earned</option>
-                    <option ${leave.type==="Casual"?"selected":""}>Casual</option>
+                    <option ${leave.type==="Unpaid"?"selected":""}>Unpaid</option>
                 </select>
 
                 <label>From</label>
@@ -2217,7 +2217,7 @@
     {
         const symbolMap = {
             Sick: "+",
-            Casual: "\u263C",
+            Unpaid: "\u263C",
             Earned: "\u2605",
             Short: "\u25D4",
             Half: "\u25D0",
@@ -3829,7 +3829,7 @@
                     <option value="Short" ${current.leave_type==="Short"?"selected":""}> Short (2-Hours) </option>
                     <option value="Half" ${current.leave_type==="Half"?"selected":""}> Half (4-Hours) </option>
                     <option value="Sick" ${current.leave_type==="Sick"?"selected":""}> Sick </option>
-                    <option value="Casual" ${current.leave_type==="Casual"?"selected":""}> Casual </option>
+                    <option value="Unpaid" ${current.leave_type==="Unpaid"?"selected":""}> Unpaid </option>
                     <option value="Earned" ${current.leave_type==="Earned"?"selected":""}> Earned </option>
                 </select>
 

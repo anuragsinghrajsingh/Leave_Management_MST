@@ -610,8 +610,8 @@ body.hr-page .notification-item-sick .notification-type-compact::before
         linear-gradient(135deg, #fecaca, #f87171);
 }
 
-body.hr-page .notification-item-casual .notification-type::before,
-body.hr-page .notification-item-casual .notification-type-compact::before
+body.hr-page .notification-item-unpaid .notification-type::before,
+body.hr-page .notification-item-unpaid .notification-type-compact::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
@@ -695,7 +695,7 @@ body.hr-page .notification-item-sick
         0 10px 18px rgba(244, 114, 182, 0.12);
 }
 
-body.hr-page .notification-item-casual
+body.hr-page .notification-item-unpaid
 {
     background:
         linear-gradient(180deg, rgba(255, 248, 238, 1), rgba(255, 238, 219, 0.98)),
@@ -756,7 +756,7 @@ body.hr-page .notification-item-default
 }
 
 body.hr-page .notification-item-sick.is-read,
-body.hr-page .notification-item-casual.is-read,
+body.hr-page .notification-item-unpaid.is-read,
 body.hr-page .notification-item-earned.is-read,
 body.hr-page .notification-item-short.is-read,
 body.hr-page .notification-item-half.is-read,
@@ -778,7 +778,7 @@ body.hr-page .notification-item-sick.is-new
         0 16px 26px rgba(244, 114, 182, 0.16);
 }
 
-body.hr-page .notification-item-casual.is-new
+body.hr-page .notification-item-unpaid.is-new
 {
     border-color: rgba(251, 146, 60, 0.54);
     box-shadow:

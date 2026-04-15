@@ -2004,7 +2004,7 @@ header h1
         linear-gradient(135deg, #fecaca, #f87171);
 }
 
-.notification-item-casual .notification-type::before
+.notification-item-unpaid .notification-type::before
 {
     background:
         radial-gradient(circle at 50% 50%, #ffffff 0 28%, transparent 30%),
@@ -2099,7 +2099,7 @@ header h1
 }
 
 .notification-item-sick { background: linear-gradient(180deg, #fff1f2, #ffe4e6); }
-.notification-item-casual { background: linear-gradient(180deg, #fff7ed, #ffedd5); }
+.notification-item-unpaid { background: linear-gradient(180deg, #fff7ed, #ffedd5); }
 .notification-item-earned { background: linear-gradient(180deg, #ecfdf5, #d1fae5); }
 .notification-item-short { background: linear-gradient(180deg, #eff6ff, #dbeafe); }
 .notification-item-half { background: linear-gradient(180deg, #f5f3ff, #ede9fe); }
