@@ -24,9 +24,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-x$=n50=tof7$a2512+dm!@qd2ul!$l))ymr3e6(#y)lhp5koi6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['mst_leave_management.pythonanywhere.com', 'localhost', '127.0.0.1']
+
+CSRF_TRUSTED_ORIGINS = ['https://mst_leave_management.pythonanywhere.com']
 
 # CSRF Cookie Settings
 CSRF_COOKIE_SECURE = True        # ✅ only HTTPS
