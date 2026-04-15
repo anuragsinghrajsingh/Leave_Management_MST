@@ -1367,7 +1367,7 @@ body
     justify-self: center;
     position: relative;
     margin-top: 10px;
-    z-index: 1;
+    z-index: 7000;
 }
 
 .submit-wrap[data-tooltip]::after
