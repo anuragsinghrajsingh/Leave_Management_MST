@@ -1367,7 +1367,7 @@ body
     justify-self: center;
     position: relative;
     margin-top: 10px;
-    z-index: 7000;
+    z-index: auto;
 }
 
 .submit-wrap[data-tooltip]::after
@@ -1389,7 +1389,7 @@ body
     pointer-events: none;
     transition: opacity 0.16s ease;
     text-align: left;
-    z-index: 5001;
+    z-index: 8500;
 }
 
 .submit-wrap[data-tooltip=""]::after
