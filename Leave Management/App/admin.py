@@ -14,16 +14,29 @@ from django.utils.timezone import now, localtime
 
 
 
-# @admin.register(Leave)
-# class LeaveAdmin(admin.ModelAdmin):
-#     list_display = ('user', 'leave_type', 'from_date', 'to_date', 'status')
-#     list_filter = ('status', 'leave_type')
-    
-    
+
+class ProfileInlineForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = "__all__"
+
+    def clean_employee_id(self):
+        eid = self.cleaned_data.get("employee_id")
+        if eid:
+            # Strictly Block duplicates in Admin with an in-line warning
+            # We check if another profile already has this ID
+            qs = Profile.objects.filter(employee_id__iexact=eid)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            
+            if qs.exists():
+                raise forms.ValidationError(f"The ID '{eid}' is already assigned to another user. Please provide a unique ID.")
+        return eid
 
 # class ProfileInline(admin.TabularInline):
 class ProfileInline(admin.StackedInline):
     model = Profile
+    form = ProfileInlineForm
     can_delete = False
     extra = 0
     max_num = 1
@@ -118,6 +131,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
     list_display = ("username", "email", "role", "is_staff", "is_superuser")
+    search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
     
     
     # 🔥 Override the page to force follow the nextstep

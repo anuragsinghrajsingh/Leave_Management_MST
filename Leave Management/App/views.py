@@ -141,8 +141,9 @@ def hr_login(request):
         password = request.POST.get("password")
 
         user = authenticate(request, username=username, password=password)
-
-        if user is not None and user.role == "HR":
+        
+        # 🔥 Security Hardening: Check if user exists, is HR, AND is active
+        if user is not None and user.role == "HR" and user.is_active:
             login(request, user)
             return redirect("hr_dashboard")
         else:
@@ -877,12 +878,13 @@ def hr_dashboard(request):
     if request.user.role != "HR":
         return redirect("role_select")
 
-    total = Leave.objects.count()
-    pending = Leave.objects.filter(status="Pending").count()
-    approved = Leave.objects.filter(status="Approved").count()
-    rejected = Leave.objects.filter(status="Rejected").count()
+    # Filter metrics to only include ACTIVE users
+    total = Leave.objects.filter(user__is_active=True).count()
+    pending = Leave.objects.filter(status="Pending", user__is_active=True).count()
+    approved = Leave.objects.filter(status="Approved", user__is_active=True).count()
+    rejected = Leave.objects.filter(status="Rejected", user__is_active=True).count()
 
-    pending_leaves_qs = Leave.objects.filter(status="Pending").order_by("-created_at")
+    pending_leaves_qs = Leave.objects.filter(status="Pending", user__is_active=True).order_by("-created_at")
     pending_page_number = request.GET.get("queue_page", 1)
     pending_paginator = Paginator(pending_leaves_qs, 7)
     pending_leaves = pending_paginator.get_page(pending_page_number)
@@ -1016,8 +1018,8 @@ def manage_all(request):
     if request.user.role != "HR":
         return redirect("role_select")
 
-    leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
-    employees = User.objects.filter(role="EMPLOYEE").select_related("profile").order_by("username")
+    leaves = Leave.objects.filter(user__is_active=True).select_related("user", "user__profile").order_by("-created_at")
+    employees = User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile").order_by("username")
 
     employee_cards = []
     today = localdate()
@@ -1057,7 +1059,7 @@ def manage_all_employee_detail(request, user_id):
         return JsonResponse({"detail": "HR access required."}, status=403)
 
     employee = get_object_or_404(
-        User.objects.filter(role="EMPLOYEE").select_related("profile"),
+        User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile"),
         id=user_id,
     )
     employee_leaves = list(
@@ -1147,8 +1149,7 @@ def employee_details(request):
     if request.user.role != "HR":
         return redirect("role_select")
 
-    latest_user = User.objects.order_by("-id").first()
-    next_employee_id_preview = f"EMP{((latest_user.id if latest_user else 0) + 1):04d}"
+    next_employee_id_preview = Profile.generate_next_id("EMPLOYEE")
 
     form_values = {
         "username": "",
@@ -1276,7 +1277,7 @@ def employee_details(request):
             messages.success(request, f"Employee '{new_user.get_full_name() or new_user.username}' created successfully.")
             return redirect("employee_details")
 
-    employees = User.objects.filter(role="EMPLOYEE").select_related("profile", "leavebalance").order_by("-date_joined", "-id")
+    employees = User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile", "leavebalance").order_by("-date_joined", "-id")
 
     employee_cards = []
     
@@ -1320,12 +1321,16 @@ def employee_details(request):
 
     context = {
         "employee_cards": employee_cards,
-        "employee_total": len(employee_cards),
-        "joined_this_month_total": sum(
-            1 for employee in employees
-            if employee.date_joined.month == now().month and employee.date_joined.year == now().year
-        ),
-        "joined_this_year_total": sum(1 for employee in employees if employee.date_joined.year == now().year),
+        "employee_total": User.objects.filter(role="EMPLOYEE").count(),
+        "joined_this_month_total": User.objects.filter(
+            role="EMPLOYEE", 
+            date_joined__month=now().month, 
+            date_joined__year=now().year
+        ).count(),
+        "joined_this_year_total": User.objects.filter(
+            role="EMPLOYEE", 
+            date_joined__year=now().year
+        ).count(),
         "form_values": form_values,
         "field_errors": field_errors,
         "employee_id_preview": next_employee_id_preview,
@@ -1359,7 +1364,9 @@ def delete_employee(request, user_id):
     pdf_bytes = build_employee_pdf_payload(employee, profile, balance)
     filename = f"employee-archive-{employee.username}.pdf"
 
-    employee.delete()
+    # Soft Delete: Inactivate user instead of physical deletion
+    employee.is_active = False
+    employee.save()
 
     return JsonResponse({
         "status": "success",
@@ -1431,9 +1438,9 @@ def reports(request):
 
     employee_id = request.GET.get("employee")
 
-    employees = User.objects.filter(role="EMPLOYEE")
+    employees = User.objects.filter(role="EMPLOYEE", is_active=True)
 
-    leave_queryset = Leave.objects.all()
+    leave_queryset = Leave.objects.filter(user__is_active=True)
 
     if employee_id:
         leave_queryset = leave_queryset.filter(user_id=employee_id)
@@ -1943,7 +1950,8 @@ def employee_login(request):
 
         user = authenticate(request, username=username, password=password)
 
-        if user is not None and user.role == "EMPLOYEE":
+        # 🔥 Security Hardening: Check if user exists, is EMPLOYEE, AND is active
+        if user is not None and user.role == "EMPLOYEE" and user.is_active:
             login(request, user)
             return redirect("dashboard")
         
@@ -3552,3 +3560,15 @@ def logout_view(request):
 
     else:
         return redirect("role_select")
+
+
+def get_next_id_api(request, role):
+    """
+    AJAX endpoint for getting the next available Employee ID for a given role.
+    Used in the Django Admin for dynamic pre-filling.
+    """
+    if not request.user.is_staff:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+        
+    next_id = Profile.generate_next_id(role)
+    return JsonResponse({"next_id": next_id})

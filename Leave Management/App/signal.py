@@ -30,12 +30,13 @@ def create_leave_balance(sender, instance, created, **kwargs):
 def create_profile(sender, instance, created, **kwargs):
     
     if created:
-        Profile.objects.create(
+        Profile.objects.get_or_create(
             user=instance,
-            employee_id=f"EMP{instance.id:04d}", # ✅ SYNC ON CREATE
-            department="Not Assigned",
-            role=instance.role,  # ✅ SYNC ON CREATE
-            date_of_joining=instance.date_joined.date(),
+            defaults={
+                'department': "Not Assigned",
+                'role': instance.role,
+                'date_of_joining': instance.date_joined.date(),
+            }
         )
 
     else:

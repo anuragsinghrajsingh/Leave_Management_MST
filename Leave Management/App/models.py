@@ -1,4 +1,5 @@
-from django.db import models
+from django.db import models, transaction
+import re
 # from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -292,6 +293,9 @@ class CompanyHoliday(models.Model):
 
 
 class Profile(models.Model):
+    # --- Production Level ID Configuration ---
+    ID_PREFIX = "MST-"
+    ID_PADDING = 4
 
     ROLE_CHOICES = (
         ("Admin", "Admin"),
@@ -306,7 +310,7 @@ class Profile(models.Model):
     department = models.CharField(max_length=100)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     date_of_joining = models.DateField()
-    phone = models.CharField(max_length=15, unique=True)
+    phone = models.CharField(max_length=15, unique=True, null=True, blank=True)
 
     # -------- Editable by user --------
     address = models.TextField(blank=True)
@@ -315,6 +319,46 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} Profile"
+
+    @classmethod
+    def generate_next_id(cls, role):
+        """
+        STRICT INCREMENT LOGIC.
+        Finds the highest existing number for the role and adds 1.
+        Numbers are NEVER reused even if a user is deleted.
+        """
+        role_map = {
+            "Admin": "MST_Admin-",
+            "HR": "MST_HR-",
+            "EMPLOYEE": "MST_EMP-",
+        }
+        prefix = role_map.get(role, "MST_EMP-")
+        
+        with transaction.atomic():
+            # Get existing IDs ONLY for this specific role's prefix
+            existing_ids = cls.objects.select_for_update().filter(
+                employee_id__startswith=prefix
+            ).values_list('employee_id', flat=True)
+            
+            highest_num = 0
+            pattern = rf"^{re.escape(prefix)}(\d+)$"
+            
+            for eid in existing_ids:
+                match = re.match(pattern, eid)
+                if match:
+                    num = int(match.group(1))
+                    if num > highest_num:
+                        highest_num = num
+            
+            # Find the next available number (Strict Increment)
+            next_num = highest_num + 1
+            return f"{prefix}{next_num:0{cls.ID_PADDING}d}"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate ID only if it's missing AND a role is assigned
+        if not self.employee_id and self.role:
+            self.employee_id = self.generate_next_id(self.role)
+        super().save(*args, **kwargs)
 
 
 class Communication(models.Model):

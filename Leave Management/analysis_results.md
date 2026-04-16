@@ -42,3 +42,17 @@ The project contains an unusually robust custom notification framework avoiding 
 ## 7. Potential Capabilities & Next Steps
 - The presence of `ics` package dictates the system will export calendars dynamically (presumably allowing users to sync their approved leaves to Outlook/Google Calendar).
 - Overall, the project boasts an efficient architecture tailored smartly towards handling dynamic state changes (especially around time-sensitive leaves and multi-state chat systems).
+
+## 8. Role-Based Sequential ID System
+-   **Strict Serial Incrementing**: Implemented a robust ID generation system partitioned by role (e.g., `MST_Admin-XXXX`, `MST_HR-XXXX`, `MST_EMP-XXXX`). The system logic calculates the next ID by finding the maximum existing number in that role sequence and adding 1, ensuring IDs are **never recycled**, even after data deletions.
+-   **Concurrency & Integrity**: 
+    -   **Row Locking**: Utilizes `select_for_update()` during ID generation to prevent race conditions when two HR managers create users simultaneously.
+    -   **Bypass-Proof**: Secured at the database level with a `unique=True` constraint on the `employee_id` field.
+-   **Dynamic Pre-filling**: Integrated a reactive AJAX-based system in the Django Admin that pre-fills the next available ID the moment a role is selected, preventing the field from being prematurely assigned.
+
+## 9. Enterprise Soft-Delete Workflow
+-   **Soft-Deletion Mechanism**: Refactored the "Delete" action from a permanent removal to a soft-delete (marking `is_active=False`). This preserves historical records, leave balances, and audit trails for administrative review.
+-   **System Hardening & Isolation**: 
+    -   **Filtered Access**: All HR management views (`hr_dashboard`, `manage_all`, `details`) strictly filter for `is_active=True`, ensuring deleted employees are completely hidden from daily operations.
+    -   **Login Security**: Hardened authentication views to explicitly block inactive users from accessing the system, revoking access the moment they are marked inactive.
+    -   **Reporting Accuracy**: The reporting engine excludes inactive users from attendance and leave summaries to ensure financial accuracy, while "Hero" cards (Company Growth) preserve the historical count of total joined employees.

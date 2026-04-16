@@ -4,14 +4,46 @@ document.addEventListener("DOMContentLoaded", function ()
 
     if (!userRole) return;
 
+    const employeeIdField = document.querySelector('[name$="-employee_id"]');
+    const initialRole = userRole.value;
+    const initialId = employeeIdField ? employeeIdField.value : "";
+    let lastHandledRole = userRole.value;
+
     function syncRole() 
     {
         const profileRoles = document.querySelectorAll('[name$="-role"]');
-
         profileRoles.forEach(field => 
         {
             field.value = userRole.value;
         });
+
+        // 🔥 Dynamic ID Pre-filling
+        if (employeeIdField && userRole.value) {
+            
+            // If switching BACK to the original role, restore original ID
+            if (userRole.value === initialRole && initialId) {
+                employeeIdField.value = initialId;
+                lastHandledRole = userRole.value;
+                return;
+            }
+
+            // Trigger fetch if the role has changed or if the ID field is currently empty
+            const needsUpdate = (userRole.value !== lastHandledRole) || !employeeIdField.value;
+
+            if (needsUpdate) {
+                lastHandledRole = userRole.value;
+
+                fetch(`/api/get-next-id/${userRole.value}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.next_id) {
+                            // Populate the field (remains fully editable)
+                            employeeIdField.value = data.next_id;
+                        }
+                    })
+                    .catch(err => console.error("Error fetching next ID:", err));
+            }
+        }
     }
 
     syncRole();
