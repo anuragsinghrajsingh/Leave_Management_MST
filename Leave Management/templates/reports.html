@@ -412,8 +412,18 @@
                                 <tr id="reportEmptyRow">
                                     <td colspan="7">
                                         <div class="empty-table-state">
-                                            <strong>No report records found</strong>
-                                            <p>Leave analytics will show here after employees submit requests.</p>
+                                            <div class="crystal-calendar-canvas">
+                                                <div class="calendar-shadow"></div>
+                                                <div class="calendar-block">
+                                                    <div class="calendar-inner"></div>
+                                                    <div class="calendar-glass">
+                                                        <div class="calendar-plate">{% now "d" %}</div>
+                                                    </div>
+                                                    <div class="calendar-tab"></div>
+                                                </div>
+                                            </div>
+                                            <strong>No analytical records found</strong>
+                                            <p>Leave summaries will appear here once employees submit their first requests.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -423,14 +433,18 @@
                 </div>
 
                 <div class="empty-table-state search-empty-state" id="reportSearchEmpty" hidden>
-                    <div class="search-empty-visual" aria-hidden="true">
-                        <div class="search-empty-orbit"></div>
-                        <div class="search-empty-icon"></div>
+                    <div class="crystal-calendar-canvas">
+                        <div class="calendar-shadow"></div>
+                        <div class="calendar-block">
+                            <div class="calendar-inner"></div>
+                            <div class="calendar-glass">
+                                <div class="calendar-plate">{% now "d" %}</div>
+                            </div>
+                            <div class="calendar-tab"></div>
+                        </div>
                     </div>
-                    <div class="search-empty-copy">
-                        <strong>No matching employees</strong>
-                        <p>Try a different employee name or clear the current search.</p>
-                    </div>
+                    <strong>No matching metrics found</strong>
+                    <p>We couldn't find any employees matching that search in the current report view.</p>
                 </div>
             </section>
         </div>

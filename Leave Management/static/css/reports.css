@@ -266,9 +266,7 @@ body
 
 .reports-hero:hover
 {
-    transform: translateY(-2px);
-    border-color: rgba(96, 165, 250, 0.28);
-    box-shadow: 0 28px 48px rgba(74, 92, 110, 0.18);
+    /* Hover effects removed to keep it dead still */
 }
 
 .hero-copy h2
@@ -339,11 +337,7 @@ body
 
 .insight-card:hover
 {
-    transform: translateY(-2px);
-    border-color: rgba(96, 165, 250, 0.28);
-    box-shadow:
-        0 18px 28px rgba(74, 92, 110, 0.16),
-        inset 0 1px 0 rgba(255,255,255,0.92);
+    /* Hover effects removed to keep it dead still */
 }
 
 .spotlight-card
@@ -592,11 +586,7 @@ body
 
 .summary-card:hover
 {
-    transform: translateY(-2px);
-    box-shadow:
-        0 18px 28px rgba(74, 92, 110, 0.16),
-        inset 0 1px 0 rgba(255,255,255,0.92);
-    border-color: rgba(96, 165, 250, 0.26);
+    /* Hover effects removed to keep it dead still */
 }
 
 .total-card
@@ -690,9 +680,7 @@ body
 
 .panel-card:hover
 {
-    transform: translateY(-2px);
-    box-shadow: 0 26px 44px rgba(74, 92, 110, 0.16);
-    border-color: rgba(96, 165, 250, 0.24);
+    /* Hover effects removed to keep it dead still */
 }
 
 .panel-heading
@@ -862,12 +850,7 @@ body
 
 .report-select-shell:hover
 {
-    border-color: rgba(47, 115, 217, 0.72);
-    box-shadow:
-        0 0 0 4px rgba(47, 115, 217, 0.1),
-        0 12px 22px rgba(47, 115, 217, 0.16);
-    background: linear-gradient(135deg, rgba(255, 245, 236, 0.96), rgba(233, 245, 255, 1));
-    transform: translateY(-1px);
+    /* Hover effects removed to keep it dead still */
 }
 
 .report-select-shell:focus-within,
@@ -1011,13 +994,9 @@ body
     transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
-.custom-option:hover,
-.custom-option.selected
+.custom-option:hover
 {
-    transform: translateY(-1px);
-    border-color: rgba(47, 115, 217, 0.34);
-    background: linear-gradient(135deg, rgba(255,255,255,1), rgba(245, 249, 255, 1));
-    box-shadow: 0 10px 18px rgba(47, 115, 217, 0.1);
+    /* Hover effects removed to keep it dead still */
 }
 
 .custom-option.selected
@@ -1093,12 +1072,7 @@ body
 
 .search-field input:hover
 {
-    border-color: rgba(47, 115, 217, 0.84);
-    box-shadow:
-        0 0 0 5px rgba(47, 115, 217, 0.14),
-        0 14px 26px rgba(47, 115, 217, 0.2);
-    background: linear-gradient(135deg, rgba(255, 245, 236, 0.96), rgba(233, 245, 255, 1));
-    transform: translateY(-1px);
+    /* Hover effects removed to keep it dead still */
 }
 
 .search-field input:focus,
@@ -1154,8 +1128,7 @@ body
 
 .report-filter-form button:hover
 {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 32px rgba(8, 145, 178, 0.22);
+    /* Hover effects removed to keep it dead still */
 }
 
 .filter-meta,
@@ -1187,11 +1160,7 @@ body
 .meta-chip:hover,
 .insight-item:hover
 {
-    transform: translateY(-2px);
-    border-color: rgba(96, 165, 250, 0.28);
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.92),
-        0 16px 24px rgba(96, 165, 250, 0.12);
+    /* Hover effects removed to keep it dead still */
 }
 
 .scope-chip
@@ -1584,12 +1553,7 @@ body
 
 .report-table thead th:hover
 {
-    color: #14314a;
-    background: linear-gradient(180deg, #f8fbff, #dbeafe);
-    border-bottom-color: rgba(59, 130, 246, 0.46);
-    box-shadow:
-        inset 0 -2px 0 rgba(37, 99, 235, 0.2),
-        0 12px 18px rgba(59, 130, 246, 0.12);
+    /* Hover effects removed to keep it dead still */
 }
 
 .report-table thead th:first-child
@@ -1622,12 +1586,7 @@ body
 
 .report-table tbody tr:hover
 {
-    background:
-        linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.92), rgba(204, 251, 241, 0.86));
-    transform: translateY(-2px);
-    box-shadow:
-        inset 0 0 0 1px rgba(96, 165, 250, 0.34),
-        0 14px 22px rgba(96, 165, 250, 0.16);
+    /* Hover effects removed to keep it dead still */
 }
 
 .employee-cell
@@ -1806,49 +1765,153 @@ body
         0 16px 28px rgba(96, 165, 250, 0.16);
 }
 
-.search-empty-orbit
-{
+/* 3D Crystal Leave Calendar - Contextual Museum Quality */
+.crystal-calendar-canvas {
+    position: relative;
+    width: 140px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1000px;
+    margin-bottom: 5px;
+}
+
+.calendar-block {
+    position: relative;
+    width: 75px;
+    height: 85px;
+    transform-style: preserve-3d;
+    transform: rotateX(20deg) rotateY(-15deg);
+    animation: calendarFloat 8s ease-in-out infinite;
+}
+
+/* Base Crystal Block */
+.calendar-glass {
     position: absolute;
-    inset: 12px;
-    border-radius: 50%;
-    border: 2px dashed rgba(30, 64, 175, 0.2);
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.1));
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.6),
+        0 12px 24px rgba(0,0,0,0.1);
+    z-index: 5;
+    transform: translateZ(10px);
 }
 
-.search-empty-icon
-{
+/* Calendar Date Plates */
+.calendar-plate {
     position: absolute;
-    left: 22px;
-    top: 20px;
-    width: 18px;
-    height: 18px;
-    border: 3px solid #1d4ed8;
-    border-radius: 50%;
+    width: 80%;
+    height: 80%;
+    top: 10%;
+    left: 10%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(99, 102, 241, 0.15));
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Typography for dynamic date */
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: rgba(99, 102, 241, 0.8);
+    letter-spacing: -0.05em;
+    font-family: inherit;
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.3));
 }
 
-.search-empty-icon::after
-{
-    content: "";
+.calendar-inner {
     position: absolute;
-    right: -7px;
-    bottom: -6px;
-    width: 10px;
-    height: 4px;
-    border-radius: 999px;
-    background: #1d4ed8;
-    transform: rotate(45deg);
+    inset: -2px -4px 2px 4px;
+    background: rgba(244, 63, 94, 0.1);
+    backdrop-filter: blur(4px);
+    border-radius: 8px;
+    z-index: 2;
+    transform: translateZ(-8px) rotate(-3deg);
 }
 
-.search-empty-copy
-{
-    display: grid;
-    gap: 4px;
-    justify-items: center;
+.calendar-tab {
+    position: absolute;
+    top: -12px;
+    left: 15%;
+    width: 70%;
+    height: 15px;
+    background: linear-gradient(90deg, #6366f1, #f43f5e);
+    border-radius: 6px 6px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 4;
 }
 
-.search-empty-copy strong,
-.search-empty-copy p
-{
-    margin: 0;
+.calendar-shadow {
+    position: absolute;
+    bottom: -30px;
+    width: 100px;
+    height: 16px;
+    background: radial-gradient(ellipse at center, rgba(148, 163, 184, 0.3), transparent 75%);
+    filter: blur(10px);
+    z-index: 0;
+    animation: shadowPulse 8s ease-in-out infinite;
+}
+
+@keyframes calendarFloat {
+    0%, 100% { transform: rotateX(20deg) rotateY(-15deg) translateY(0); }
+    50% { transform: rotateX(15deg) rotateY(-8deg) translateY(-10px); }
+}
+
+@keyframes shadowPulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 0.4; }
+}
+
+/* Hover Perfection */
+.crystal-calendar-canvas:hover .calendar-block { animation-play-state: paused; transform: rotateX(10deg) rotateY(-5deg) translateY(-15px) scale(1.05); }
+.crystal-calendar-canvas:hover .calendar-plate { filter: brightness(1.2); box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+.crystal-calendar-canvas:hover .calendar-tab { filter: brightness(1.1); box-shadow: 0 0 15px rgba(244, 63, 194, 0.3); }
+
+.empty-table-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 20px 20px; /* Reduced top padding from 30px */
+    text-align: center;
+}
+
+.empty-table-state strong {
+    font-size: 1.55rem;
+    font-weight: 900;
+    display: block;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #4338ca 0%, #be123c 50%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.empty-table-state strong:hover {
+    transform: translateY(-2.5px);
+    filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4));
+}
+
+.empty-table-state p {
+    color: var(--reports-muted);
+    font-size: 0.96rem;
+    font-weight: 800; /* Bold font */
+    max-width: none; /* Single line: no width limit */
+    white-space: nowrap; /* Single line: prevent wrapping */
+    line-height: 1;
+    letter-spacing: -0.01em;
+}
+
+.search-empty-state {
+    padding: 20px !important;
 }
 
 .sr-only

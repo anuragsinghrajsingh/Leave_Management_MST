@@ -404,20 +404,33 @@
 
                     <div class="directory-search-row">
                         <label class="search-shell" for="employeeSearchInput">
-                            <span class="search-icon" aria-hidden="true"></span>
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="searchIconGradient" x1="0%" y1="0%" x2="100%?" y2="100%?">
+                                        <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                                        <stop offset="50%" style="stop-color:#f43f5e;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="11" cy="11" r="8" stroke="url(#searchIconGradient)"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="url(#searchIconGradient)"></line>
+                            </svg>
                             <input type="search" id="employeeSearchInput" placeholder="Search by employee name, username, employee ID, department, or phone number" autocomplete="off">
                         </label>
                         <span class="section-pill section-pill-rose section-pill-top" id="listEmployeeTotal" data-count="{{ employee_total }}" data-countup data-countup-target="{{ employee_total }}" data-countup-suffix=" employees">{{ employee_total }} employees</span>
                     </div>
 
-                    <div class="search-status-box" id="searchStatusBox" hidden>
-                        <div class="search-status-visual" aria-hidden="true">
-                            <div class="search-status-orbit"></div>
-                            <div class="search-status-icon"></div>
-                        </div>
-                        <div class="search-status-copy">
-                            <strong>No employee match found</strong>
-                            <p>Try another name, employee ID, department, username, or phone number.</p>
+                    <div class="empty-directory-state employee-search-empty" id="searchStatusBox" hidden>
+                        <div class="radiant-trio-wrapper">
+                            <div class="holographic-compass-canvas">
+                                <div class="compass-glow"></div>
+                                <div class="compass-ring r1"></div>
+                                <div class="compass-ring r2"></div>
+                                <div class="compass-core"></div>
+                                <div class="compass-needle"></div>
+                            </div>
+                            <strong>No matching employees</strong>
+                            <p>Try another name, employee ID, joining date, or department.</p>
                         </div>
                     </div>
 
@@ -1468,34 +1481,18 @@
         function toggleFormShell()
         {
             if (!formShell || !formToggle) return;
-            if (!employeeForm || formShell.dataset.transitioning === "true")
-            {
-                return;
-            }
-
-            const isCurrentlyCollapsed = formShell.classList.contains("is-collapsed");
-            formShell.dataset.transitioning = "true";
-
-            if (isCurrentlyCollapsed)
-            {
-                formShell.classList.remove("is-collapsed");
-                formToggle.setAttribute("aria-expanded", "true");
-                employeeForm.style.height = "0px";
-                requestAnimationFrame(function ()
-                {
-                    employeeForm.style.height = employeeForm.scrollHeight + "px";
-                });
-            }
-            else
-            {
-                employeeForm.style.height = employeeForm.scrollHeight + "px";
-                requestAnimationFrame(function ()
-                {
-                    formShell.classList.add("is-collapsed");
-                    formToggle.setAttribute("aria-expanded", "false");
-                    employeeForm.style.height = "0px";
-                });
-            }
+            
+            // Activate 'Graphics Simplification' bridge for low-power performance
+            formShell.classList.add("is-morphing");
+            
+            const isCollapsing = !formShell.classList.contains("is-collapsed");
+            formShell.classList.toggle("is-collapsed");
+            formToggle.setAttribute("aria-expanded", isCollapsing ? "false" : "true");
+            
+            // Restore full visual richness after the movement is complete
+            setTimeout(function() {
+                formShell.classList.remove("is-morphing");
+            }, 200);
         }
 
         function getInitials(fullName, username)
@@ -1787,24 +1784,6 @@
         }
 
         if (formToggle) formToggle.addEventListener("click", toggleFormShell);
-        if (employeeForm)
-        {
-            employeeForm.addEventListener("transitionend", function (event)
-            {
-                if (event.propertyName !== "height")
-                {
-                    return;
-                }
-                if (formShell && !formShell.classList.contains("is-collapsed"))
-                {
-                    employeeForm.style.height = "auto";
-                }
-                if (formShell)
-                {
-                    delete formShell.dataset.transitioning;
-                }
-            });
-        }
         buildJoinDatePicker();
         if (sickTotalField) sickTotalField.addEventListener("input", updateTotalLeave);
         if (earnedTotalField) earnedTotalField.addEventListener("input", updateTotalLeave);

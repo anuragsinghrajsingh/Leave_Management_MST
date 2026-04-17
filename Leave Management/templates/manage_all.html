@@ -222,9 +222,16 @@
                 <div class="employee-directory-tools">
                     <div class="employee-search-bar employee-search-bar-inline">
                         <label for="employeeSearchInput" class="sr-only">Search employees</label>
-                        <svg class="employee-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <svg class="employee-search-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="manageSearchIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#f43f5e;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="11" cy="11" r="8" stroke="url(#manageSearchIconGradient)"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="url(#manageSearchIconGradient)"></line>
                         </svg>
                         <input
                             type="search"

@@ -1490,50 +1490,101 @@ body
     display: none !important;
 }
 
+.employee-search-bar
+{
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: 3px;
+    border-radius: 20px;
+    isolation: isolate;
+    background: 
+        linear-gradient(white, white) padding-box, 
+        linear-gradient(135deg, #6366f1, #f43f5e, #fbbf24) border-box;
+    border: 2px solid transparent;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.72),
+        0 14px 26px rgba(71, 85, 105, 0.06);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.employee-search-bar:hover
+{
+    box-shadow:
+        0 8px 14px rgba(99, 102, 241, 0.34),
+        0 4px 6px rgba(244, 63, 94, 0.28);
+    z-index: 5;
+}
+
+.employee-search-bar:focus-within
+{
+    box-shadow:
+        0 0 0 3px rgba(99, 102, 241, 0.18),
+        0 10px 20px rgba(99, 102, 241, 0.42);
+    z-index: 5;
+}
+
 .employee-search-input
 {
     position: relative;
     z-index: 1;
-    width: 100%;
-    min-width: 560px;
-    max-width: min(100%, 700px);
-    min-height: 36px;
-    padding: 0 16px 0 44px;
-    border-radius: 18px;
-    border: 2px solid transparent; /* Required for gradient border */
-    background: 
-        linear-gradient(white, white) padding-box, 
-        linear-gradient(135deg, #6366f1, #f43f5e, #fbbf24) border-box;
+    width: 600px;
+    max-width: min(100%, 720px);
+    min-height: 34px;
+    padding: 4px 14px 4px 46px;
+    border-radius: 14px;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
     color: #1e1b4b;
-    font-size: 0.95rem;
-    font-weight: 600;
-    box-shadow:
-        0 10px 25px rgba(99, 102, 241, 0.08),
-        0 4px 10px rgba(0, 0, 0, 0.03);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.employee-search-input:hover
-{
-    background: 
-        linear-gradient(white, white) padding-box, 
-        linear-gradient(135deg, #f43f5e, #fbbf24, #6366f1) border-box; /* Color shift on hover */
-    box-shadow:
-        0 20px 35px rgba(244, 63, 94, 0.12),
-        0 8px 15px rgba(0, 0, 0, 0.04);
-}
-
-.employee-search-input:focus
-{
+    box-shadow: none;
     outline: none;
-    transform: translateY(-2px);
-    background: 
-        linear-gradient(white, white) padding-box, 
-        linear-gradient(135deg, #4f46e5, #e11d48, #f59e0b) border-box;
-    box-shadow:
-        0 20px 45px rgba(99, 102, 241, 0.18), /* Enhanced border shadow effect */
-        0 0 0 5px rgba(99, 102, 241, 0.12),
-        inset 0 0 10px rgba(99, 102, 241, 0.05); /* Soft internal shadow */
+}
+
+.employee-search-input::placeholder
+{
+    color: #64748b;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.employee-search-icon
+{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 46px;
+    height: 100%;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    box-sizing: border-box;
+    padding: 12px;
+    transition: all 0.3s ease;
+}
+
+.employee-search-icon svg
+{
+    width: 17px;
+    height: 17px;
+    transform: translateY(-1px);
+    filter: drop-shadow(0 3px 6px rgba(99, 102, 241, 0.22));
+}
+
+.employee-search-bar:hover .employee-search-icon
+{
+    transform: scale(1.1);
+    filter: 
+        drop-shadow(0 0 12px rgba(99, 102, 241, 0.34))
+        drop-shadow(0 0 4px rgba(244, 63, 94, 0.22));
 }
 
 .employee-search-empty
@@ -11460,7 +11511,7 @@ button
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
+    padding: 15px 20px 25px; /* Increased bottom spacing to 25px */
     text-align: center;
 }
 
@@ -11471,7 +11522,7 @@ button
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: 30px; /* Increased gap between text and icon to 30px */
     isolation: isolate;
 }
 
@@ -11592,7 +11643,7 @@ button
 
 
 .employee-search-empty {
-    padding: 30px !important;
+    padding: 15px 30px 25px !important; /* Increased bottom spacing to 25px */
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
