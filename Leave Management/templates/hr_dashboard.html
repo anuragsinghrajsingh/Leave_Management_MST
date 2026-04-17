@@ -307,7 +307,7 @@
                     </div>
                 </div>
             </section>
-            <section class="panel-card request-table-card">
+            <section class="panel-card request-table-card {% if not pending_leaves %}is-empty-state{% endif %}">
                 <div class="table-header">
                     <div>
                         <h3 class="queue-title">Pending Leave Request Queue</h3>
@@ -481,12 +481,65 @@
                                     </td>
                                 </tr>
                             {% empty %}
-                                <tr>
+                                <tr class="empty-hero-row">
                                     <td colspan="8">
-                                        <div class="empty-table-state">
-                                            <strong>No pending leaves</strong>
-                                            <p>Everything is up to date for now.</p>
-                                        </div>
+                                            <div class="workspace-icon-milestone">
+                                                <!-- Subtle Minimalist Dots (Matches the image scattered blobs) -->
+                                                <div class="decorative-icon-system">
+                                                    <!-- Modern Stars -->
+                                                    <div class="star-icon s-1" style="top: 12%; left: 15%;">
+                                                        <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                                                    </div>
+                                                    <div class="star-icon s-2" style="top: 45%; left: 88%;">
+                                                        <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                                                    </div>
+                                                    <div class="star-icon s-3" style="top: 78%; left: 22%;">
+                                                        <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                                                    </div>
+                                                    <div class="star-icon s-4" style="top: 25%; left: 75%;">
+                                                        <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                                                    </div>
+
+                                                    <!-- Refined Dots -->
+                                                    <span class="d-icon dot-pink" style="top: 15%; left: 8%;"></span>
+                                                    <span class="d-icon dot-teal" style="top: 35%; left: 81%;"></span>
+                                                    <span class="d-icon dot-yellow" style="top: 72%; left: 12%;"></span>
+                                                    <span class="d-icon dot-blue" style="top: 22%; left: 78%;"></span>
+                                                    <span class="d-icon dot-purple" style="top: 88%; left: 62%;"></span>
+                                                    <span class="d-icon dot-teal" style="top: 52%; left: 5%;"></span>
+                                                    <span class="d-icon dot-purple" style="top: 12%; left: 88%;"></span>
+                                                    <span class="d-icon dot-blue" style="top: 92%; left: 18%;"></span>
+                                                    <span class="d-icon dot-yellow" style="top: 6%; left: 45%;"></span>
+                                                    <span class="d-icon dot-teal" style="top: 65%; left: 92%;"></span>
+                                                    <span class="d-icon dot-indigo" style="top: 42%; left: 32%;"></span>
+                                                    <span class="d-icon dot-indigo" style="top: 18%; left: 65%;"></span>
+                                                </div>
+
+                                                <div class="milestone-interactive-zone">
+                                                    <div class="milestone-icon-visual">
+                                                        <div class="icon-stack">
+                                                            <div class="icon-layer layer-1"></div>
+                                                            <div class="icon-layer layer-2"></div>
+                                                            <div class="icon-layer layer-3"></div>
+                                                            <div class="icon-layer layer-front">
+                                                                <div class="icon-line l-1"></div>
+                                                                <div class="icon-line l-2"></div>
+                                                                <div class="icon-line l-3"></div>
+                                                                <div class="icon-success-check">
+                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 class="empty-hero-title">All Caught Up.</h4>
+                                                        <p class="empty-hero-text">Your leave request queue is completely clear.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                     </td>
                                 </tr>
                             {% endfor %}
