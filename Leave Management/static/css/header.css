@@ -2244,10 +2244,16 @@ header h1
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: linear-gradient(135deg, #14b8a6, #2563eb);
+    background: linear-gradient(135deg, #10b981, #3b82f6);
     color: #fff;
-    border: 2px solid rgba(255,255,255,0.9);
-    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+    border: 2px solid #fff;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    animation: commPulse 2s infinite ease-in-out;
+}
+
+@keyframes commPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+    50% { transform: scale(1.1); box-shadow: 0 0 25px rgba(16, 185, 129, 0.6); }
 }
 
 .communication-new-badge
@@ -2298,19 +2304,34 @@ header h1
     --communication-pointer-right: 18px;
     width: min(380px, 50vw);
     max-height: min(78vh, 700px);
-    padding: 10px;
+    padding: 7px;
     display: none;
     flex-direction: column;
-    gap: 8px;
-    border-radius: 20px;
-    border: 1px solid rgba(148, 163, 184, 0.24);
+    gap: 5px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
     background:
-        radial-gradient(circle at top right, rgba(125, 211, 252, 0.12), transparent 24%),
-        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,247,255,0.95));
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.4), transparent 28%),
+        rgba(255, 255, 255, 0.76);
+    backdrop-filter: blur(14px) saturate(1.8);
+    -webkit-backdrop-filter: blur(14px) saturate(1.8);
     overflow: visible;
     box-shadow:
-        0 26px 48px rgba(15, 23, 42, 0.22),
-        inset 0 1px 0 rgba(255,255,255,0.82);
+        0 28px 64px rgba(15, 23, 42, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.82),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.communication-panel[data-panel-mode="ANNOUNCEMENT"] {
+    box-shadow: 
+        0 28px 64px rgba(217, 119, 6, 0.12),
+        0 0 40px rgba(245, 158, 11, 0.08); /* Solar Glow */
+}
+
+.communication-panel[data-panel-mode="DIRECT"] {
+    box-shadow: 
+        0 28px 64px rgba(37, 99, 235, 0.12),
+        0 0 40px rgba(59, 130, 246, 0.08); /* Oceanic Glow */
 }
 
 .communication-panel::before
@@ -2325,6 +2346,19 @@ header h1
     border-top: 1px solid rgba(148, 163, 184, 0.24);
     background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,247,255,0.96));
     transform: rotate(45deg);
+}
+
+.communication-panel-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 10% 10%, rgba(245, 158, 11, 0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 16px;
+}
+
+[data-panel-mode="DIRECT"] .communication-panel-glow {
+    background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.05), transparent 60%);
 }
 
 .communication-dropdown.is-open .communication-panel
@@ -2532,17 +2566,32 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding-bottom: 8px;
+    gap: 8px;
+    padding-bottom: 5px;
     border-bottom: 1px solid rgba(191, 219, 254, 0.78);
 }
 
 .communication-panel-header h3
 {
-    font-size: 0.98rem;
-    font-weight: 800;
-    color: #0f172a;
+    font-size: 0.96rem;
+    font-weight: 900;
     letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #1e293b, #475569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: all 0.24s ease;
+}
+
+[data-panel-mode="ANNOUNCEMENT"] .communication-panel-header h3 {
+    background: linear-gradient(135deg, #ea580c, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+[data-panel-mode="DIRECT"] .communication-panel-header h3 {
+    background: linear-gradient(135deg, #2563eb, #0891b2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .communication-panel-header .eyebrow
@@ -2588,9 +2637,9 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 
 .communication-panel-tab.is-active
 {
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-    color: #fff;
-    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+    background: linear-gradient(135deg, #2dd4bf, #0891b2) !important; /* Oceanic Active */
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(8, 145, 178, 0.24);
 }
 
 .communication-panel-tab.has-new:not(.is-active),
@@ -2625,28 +2674,35 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 
 .communication-mode-btn
 {
-    min-height: 38px;
-    padding: 7px 9px;
-    border: 0;
-    border-radius: 12px;
+    min-height: 32px;
+    padding: 4px 7px;
+    border: 1px solid transparent;
+    border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    background: transparent;
-    color: #475569;
-    font-size: 0.72rem;
+    gap: 5px;
+    background: rgba(148, 163, 184, 0.08);
+    color: #64748b;
+    font-size: 0.68rem;
     font-weight: 700;
     cursor: pointer;
-    line-height: 1.25;
+    line-height: 1.2;
     text-align: center;
+    transition: all 0.24s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.communication-mode-btn:hover:not(.is-active) {
+    background: rgba(148, 163, 184, 0.15);
+    color: #1e293b;
+    transform: translateY(-1px);
 }
 
 .communication-tab-count
 {
-    min-width: 20px;
-    height: 20px;
-    padding: 0 7px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2661,9 +2717,28 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 
 .communication-mode-btn.is-active
 {
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
-    color: #fff;
-    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+    color: #fff !important;
+    transform: scale(1.04);
+}
+
+/* Announcement Mode Active State */
+[data-panel-mode="ANNOUNCEMENT"] .communication-mode-btn.is-active
+{
+    background: linear-gradient(135deg, #f59e0b, #ea580c) !important;
+    box-shadow: 0 8px 20px rgba(234, 88, 12, 0.32);
+}
+
+/* Direct Mode Active State */
+[data-panel-mode="DIRECT"] .communication-mode-btn.is-active
+{
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+}
+
+.communication-mode-btn:focus
+{
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .communication-panel-tab.is-active .communication-tab-count,
@@ -2684,9 +2759,9 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 .communication-compose-form
 {
     display: grid;
-    gap: 6px;
-    padding: 7px;
-    border-radius: 16px;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 14px;
     border: 1px solid rgba(191, 219, 254, 0.78);
     background: rgba(255,255,255,0.76);
 }
@@ -2708,7 +2783,12 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #64748b;
+    color: #f59e0b; /* Solar Amber for Announcements */
+    transition: color 0.2s ease;
+}
+
+[data-current-mode="DIRECT"] .communication-field label {
+    color: #3b82f6; /* Oceanic Blue for Messages */
 }
 
 .communication-field input,
@@ -2716,19 +2796,43 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 .communication-field textarea
 {
     width: 100%;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    border-radius: 12px;
-    padding: 6px 8px;
-    font-size: 0.86rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+    padding: 4px 7px;
+    font-size: 0.82rem;
     color: #0f172a;
-    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96));
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(4px);
     outline: none;
+    transition: all 0.2s ease;
+}
+
+.communication-field input:focus,
+.communication-field select:focus,
+.communication-field textarea:focus
+{
+    background: #fff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
 }
 
 .communication-field textarea
 {
-    min-height: 60px;
+    min-height: 42px;
     resize: vertical;
+}
+
+.communication-compose-form[data-current-mode="ANNOUNCEMENT"] textarea
+{
+    min-height: 120px; 
+}
+
+.communication-empty.is-announcement .comm-empty-icon {
+    color: #f59e0b !important; /* Vivid Amber for Announcements */
+}
+
+.communication-empty.is-direct .comm-empty-icon {
+    color: #3b82f6 !important; /* Vivid Blue for Messages */
 }
 
 .communication-field input:focus,
@@ -2768,14 +2872,27 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
     border: 0;
     border-radius: 999px;
     padding: 7px 16px;
-    background: linear-gradient(135deg, #0f766e, #14b8a6);
+    background: linear-gradient(135deg, #f59e0b, #ea580c); /* Solar Default */
     color: #fff;
     font-size: 0.78rem;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 12px 22px rgba(20, 184, 166, 0.24);
+    box-shadow: 0 8px 18px rgba(234, 88, 12, 0.28);
     min-width: 132px;
     justify-content: center;
+    transition: all 0.24s ease;
+}
+
+[data-panel-mode="DIRECT"] .communication-submit-btn
+{
+    background: linear-gradient(135deg, #3b82f6, #2563eb); /* Oceanic */
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+}
+
+.communication-submit-btn:hover
+{
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
 }
 
 .communication-submit-btn:disabled
@@ -2796,14 +2913,24 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 .communication-item
 {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr);
-    gap: 6px;
-    padding: 7px;
-    border-radius: 14px;
-    border: 1px solid rgba(191, 219, 254, 0.7);
-    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,245,249,0.92));
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 5px;
+    padding: 5px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.5);
     cursor: pointer;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.communication-item:hover
+{
+    transform: translateY(-2px) scale(1.01);
+    background: #fff;
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 
+        0 12px 24px rgba(15, 23, 42, 0.12),
+        0 0 0 1px rgba(59, 130, 246, 0.08);
 }
 
 .communication-item:hover
@@ -2878,9 +3005,9 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 
 .communication-avatar
 {
-    width: 34px;
-    height: 34px;
-    border-radius: 11px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
     object-fit: cover;
     background: #dbeafe;
 }
@@ -2970,11 +3097,41 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 
 .communication-empty
 {
-    padding: 12px 10px;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
     border-radius: 14px;
-    text-align: center;
-    font-size: 0.76rem;
-    background: rgba(241, 245, 249, 0.86);
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 800;
+    gap: 12px;
+    border: 1.5px dashed transparent;
+    transition: all 0.3s ease;
+}
+
+.communication-empty.is-announcement
+{
+    color: #d97706;
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.88), rgba(255, 251, 235, 0.82));
+    border-color: rgba(245, 158, 11, 0.36);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
+}
+
+.communication-empty.is-direct
+{
+    color: #2563eb;
+    background: linear-gradient(135deg, rgba(239, 246, 255, 0.88), rgba(248, 250, 252, 0.82));
+    border-color: rgba(59, 130, 246, 0.36);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+
+.comm-empty-icon
+{
+    width: 20px;
+    height: 20px;
+    opacity: 0.85;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
 }
 
 .communication-detail-modal
@@ -3169,6 +3326,11 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
     .communication-mode-switch
     {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .communication-panel-body
+    {
+        min-height: 0;
     }
 
     .communication-panel-tab,

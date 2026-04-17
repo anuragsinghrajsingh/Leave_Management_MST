@@ -469,6 +469,7 @@ body
     align-items: center;
     justify-content: space-between;
     margin-top: 2px;
+    margin-bottom: 8px;
     gap: 10px;
 }
 
@@ -485,36 +486,40 @@ body
 
 .employee-search-bar:hover
 {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
 .employee-search-icon
 {
     position: absolute;
-    left: 14px;
+    left: 0;
+    top: 0;
+    width: 44px; /* Matches input's padding-left */
+    height: 100%;
     z-index: 5;
-    width: 17px;
-    height: 17px;
-    border: 2px solid #5d5ae5; /* Indigo */
-    border-radius: 50%;
-    top: 50%;
-    transform: translateY(-50%);
-    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
+    box-sizing: border-box;
+    padding: 12px;
+    color: #5d5ae5; /* Fallback indigo */
+    transition: all 0.3s ease;
 }
 
-.employee-search-icon::after
+.employee-search-icon svg
 {
-    content: "";
-    position: absolute;
-    right: -6px;
-    bottom: -5px;
-    width: 9px;
-    height: 2px;
-    border-radius: 999px;
-    background: #5d5ae5; /* Indigo */
-    transform: rotate(45deg);
-    transform-origin: center;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-1px); /* Nudge up */
+    filter: drop-shadow(0 3px 6px rgba(93, 90, 229, 0.12));
+}
+
+.employee-search-bar:hover .employee-search-icon
+{
+    color: #4f46e5;
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px rgba(93, 90, 229, 0.28));
 }
 
 .sr-only
@@ -1492,9 +1497,9 @@ body
     width: 100%;
     min-width: 560px;
     max-width: min(100%, 700px);
-    min-height: 48px;
+    min-height: 36px;
     padding: 0 16px 0 44px;
-    border-radius: 20px;
+    border-radius: 18px;
     border: 2px solid transparent; /* Required for gradient border */
     background: 
         linear-gradient(white, white) padding-box, 
@@ -1510,7 +1515,6 @@ body
 
 .employee-search-input:hover
 {
-    transform: translateY(-2px);
     background: 
         linear-gradient(white, white) padding-box, 
         linear-gradient(135deg, #f43f5e, #fbbf24, #6366f1) border-box; /* Color shift on hover */

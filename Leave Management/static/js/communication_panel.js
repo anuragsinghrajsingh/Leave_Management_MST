@@ -73,6 +73,30 @@
         return fallbackText;
     }
 
+    function getEmptyStateHtml(listType, role, currentMode, fallbackText) {
+        const text = getListEmptyText(listType, role, currentMode, fallbackText);
+        let iconHtml = "";
+
+        const isDirect = (listType === "direct") || (listType === "hr" && currentMode === "DIRECT") || (role === "HR" && currentMode === "DIRECT");
+
+        if (isDirect) {
+            // Message Square with dots for Messages
+            iconHtml = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="comm-empty-icon"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>';
+        } else {
+            // Megaphone icon for Announcements
+            iconHtml = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="comm-empty-icon"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>';
+        }
+
+        const typeClass = isDirect ? "is-direct" : "is-announcement";
+
+        return (
+            '<div class="communication-empty ' + typeClass + '">' +
+                iconHtml +
+                "<span>" + escapeHtml(text) + "</span>" +
+            "</div>"
+        );
+    }
+
     function renderItems(items) {
         return items.map(function (item) {
             const avatar = item.photo_url
@@ -108,7 +132,7 @@
         }).join("");
     }
 
-    function renderListContents(list, items, emptyText) {
+    function renderListContents(list, items, emptyText, listType, role, currentMode) {
         const actionsNode = list.querySelector(".communication-list-actions");
 
         Array.from(list.children).forEach(function (child) {
@@ -120,7 +144,7 @@
         });
 
         if (!items.length) {
-            list.insertAdjacentHTML("beforeend", '<div class="communication-empty">' + escapeHtml(emptyText) + "</div>");
+            list.insertAdjacentHTML("beforeend", getEmptyStateHtml(listType, role, currentMode, emptyText));
             return;
         }
 
@@ -523,6 +547,14 @@
                 recipientField.classList.toggle("hidden", mode !== "DIRECT");
             }
 
+            if (form) {
+                form.setAttribute("data-current-mode", mode);
+            }
+
+            if (dropdown) {
+                dropdown.setAttribute("data-panel-mode", mode);
+            }
+
             updateFormCopy();
             restoreDraft(mode);
             filterRenderedItems();
@@ -562,9 +594,13 @@
 
                 if (emptyNode) {
                     emptyNode.classList.toggle("hidden", visibleCount !== 0);
-                    emptyNode.textContent = listEmptyText;
+                    if (visibleCount === 0) {
+                        // Fully re-render to ensure icon/theme/text all match the current mode
+                        const newEmptyHtml = getEmptyStateHtml(listType, role, currentMode, emptyText);
+                        emptyNode.outerHTML = newEmptyHtml;
+                    }
                 } else if (visibleCount === 0) {
-                    list.insertAdjacentHTML("beforeend", '<div class="communication-empty">' + listEmptyText + "</div>");
+                    list.insertAdjacentHTML("beforeend", getEmptyStateHtml(listType, role, currentMode, emptyText));
                 }
             });
         }
@@ -628,7 +664,7 @@
                     filteredItems = items.filter(function (item) { return item.type_class === "direct"; });
                 }
 
-                renderListContents(list, filteredItems, getListEmptyText(listType, role, currentMode, emptyText));
+                renderListContents(list, filteredItems, emptyText, listType, role, currentMode);
                 list.querySelectorAll(".communication-item[data-communication-id]").forEach(function (item) {
                     item.addEventListener("click", function () {
                         const itemId = String(item.dataset.communicationId || "");

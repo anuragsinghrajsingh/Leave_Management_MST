@@ -14,7 +14,8 @@
         <span class="communication-new-badge hidden" data-communication-new-badge></span>
     </button>
 
-    <div class="communication-panel">
+    <div class="communication-panel" data-panel-mode="ANNOUNCEMENT">
+        <div class="communication-panel-glow"></div>
         <div class="communication-panel-header">
             <div>
                 <h3>Announcements & Messages</h3>
@@ -121,7 +122,10 @@
                                 </div>
                             </article>
                         {% empty %}
-                            <div class="communication-empty">No announcements or messages yet.</div>
+                            <div class="communication-empty is-announcement">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="comm-empty-icon"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>
+                                <span>No announcements or messages yet.</span>
+                            </div>
                         {% endfor %}
                     </div>
                 {% else %}
@@ -161,7 +165,10 @@
                             {% endif %}
                         {% empty %}
                         {% endfor %}
-                        <div class="communication-empty{% for item in communication_items %}{% if item.type_class == 'direct' %} hidden{% endif %}{% endfor %}">No messages with HR yet.</div>
+                        <div class="communication-empty is-direct{% for item in communication_items %}{% if item.type_class == 'direct' %} hidden{% endif %}{% endfor %}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="comm-empty-icon"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>
+                            <span>No messages with HR yet.</span>
+                        </div>
                     </div>
                 {% endif %}
             </section>
@@ -204,7 +211,10 @@
                         {% endif %}
                     {% empty %}
                     {% endfor %}
-                    <div class="communication-empty{% for item in communication_items %}{% if item.type_class == 'announcement' %} hidden{% endif %}{% endfor %}">No announcements yet.</div>
+                    <div class="communication-empty is-announcement{% for item in communication_items %}{% if item.type_class == 'announcement' %} hidden{% endif %}{% endfor %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="comm-empty-icon"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>
+                        <span>No announcements yet.</span>
+                    </div>
                 </div>
             </section>
             {% endif %}
