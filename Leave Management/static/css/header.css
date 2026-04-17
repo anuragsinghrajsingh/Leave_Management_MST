@@ -2425,6 +2425,18 @@ header .hamburger[data-header-tooltip]:focus-visible::before
     visibility: visible;
 }
 
+/* Hide header tooltips when the dropdown/menu is active */
+.notification-dropdown.is-open .notification-trigger::after,
+.notification-dropdown.is-open .notification-trigger::before,
+.communication-dropdown.is-open .communication-trigger::after,
+.communication-dropdown.is-open .communication-trigger::before,
+.profile-dropdown.is-open .profile-menu-trigger::after,
+.profile-dropdown.is-open .profile-menu-trigger::before {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 header .nav-links a[data-header-tooltip]:hover::after,
 header .notification-trigger[data-header-tooltip]:hover::after,
 header .communication-trigger[data-header-tooltip]:hover::after,

@@ -272,7 +272,51 @@
             latestNotifications = notifications.slice();
 
             if (!notifications.length) {
-                list.innerHTML = '<div class="notification-empty">' + escapeHtml(emptyText) + '</div>';
+                list.innerHTML = `
+                <div class="notification-empty">
+                    <!-- Decorative Backdrop -->
+                    <div class="notif-decorative-system">
+                        <div class="notif-star notif-s-1">
+                            <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                        </div>
+                        <div class="notif-star notif-s-2">
+                            <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                        </div>
+                        <div class="notif-star notif-s-3">
+                            <svg viewBox="0 0 24 24"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" fill="currentColor"/></svg>
+                        </div>
+                        <span class="notif-d-icon dot-pink" style="top: 20%; left: 80%;"></span>
+                        <span class="notif-d-icon dot-teal" style="top: 60%; left: 10%;"></span>
+                        <span class="notif-d-icon dot-indigo" style="top: 85%; left: 75%;"></span>
+                    </div>
+
+                    <div class="notif-interactive-zone">
+                        <div class="notif-icon-visual">
+                            <div class="radiant-bell-container">
+                                <div class="bell-echo echo-1"></div>
+                                <div class="bell-echo echo-2"></div>
+                                <div class="bell-echo echo-3"></div>
+                                <div class="svg-bell-wrapper">
+                                    <svg class="bell-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <defs>
+                                            <linearGradient id="bellGradientJS" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                                                <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path class="bell-body" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" fill="url(#bellGradientJS)"></path>
+                                        <path class="bell-clapper" d="M13.73 21a2 2 0 0 1-3.46 0" fill="#f59e0b"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="notif-empty-copy">
+                            <h4 class="notif-empty-title">All Clear.</h4>
+                            <p class="notif-empty-text">No active alerts to review.</p>
+                        </div>
+                    </div>
+                </div>`;
                 return;
             }
 
