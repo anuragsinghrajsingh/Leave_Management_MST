@@ -491,11 +491,11 @@ body
 .employee-search-icon
 {
     position: absolute;
-    left: 13px;
-    z-index: 2;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #3b82f6;
+    left: 14px;
+    z-index: 5;
+    width: 17px;
+    height: 17px;
+    border: 2px solid #5d5ae5; /* Indigo */
     border-radius: 50%;
     top: 50%;
     transform: translateY(-50%);
@@ -512,7 +512,7 @@ body
     width: 9px;
     height: 2px;
     border-radius: 999px;
-    background: #3b82f6;
+    background: #5d5ae5; /* Indigo */
     transform: rotate(45deg);
     transform-origin: center;
 }
@@ -1489,45 +1489,47 @@ body
 {
     position: relative;
     z-index: 1;
-    width: fit-content;
+    width: 100%;
     min-width: 560px;
     max-width: min(100%, 700px);
-    min-height: 40px;
-    padding: 0 16px 0 40px;
-    border-radius: 16px;
-    border: 1px solid rgba(147, 197, 253, 0.34);
-    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241, 245, 249, 0.94));
-    color: var(--manage-text);
-    font-size: 0.92rem;
+    min-height: 48px;
+    padding: 0 16px 0 44px;
+    border-radius: 20px;
+    border: 2px solid transparent; /* Required for gradient border */
+    background: 
+        linear-gradient(white, white) padding-box, 
+        linear-gradient(135deg, #6366f1, #f43f5e, #fbbf24) border-box;
+    color: #1e1b4b;
+    font-size: 0.95rem;
     font-weight: 600;
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.84),
-        0 12px 22px rgba(148, 163, 184, 0.08),
-        0 0 0 1px rgba(219, 234, 254, 0.14);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        0 10px 25px rgba(99, 102, 241, 0.08),
+        0 4px 10px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .employee-search-input:hover
 {
-    border-color: rgba(59, 130, 246, 0.58);
+    transform: translateY(-2px);
+    background: 
+        linear-gradient(white, white) padding-box, 
+        linear-gradient(135deg, #f43f5e, #fbbf24, #6366f1) border-box; /* Color shift on hover */
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.9),
-        0 0 0 4px rgba(191, 219, 254, 0.2),
-        0 16px 28px rgba(96, 165, 250, 0.16);
-    background: linear-gradient(180deg, rgba(255,255,255,1), rgba(239, 246, 255, 0.96));
-    transform: translateY(-1px);
+        0 20px 35px rgba(244, 63, 94, 0.12),
+        0 8px 15px rgba(0, 0, 0, 0.04);
 }
 
 .employee-search-input:focus
 {
     outline: none;
-    border-color: rgba(37, 99, 235, 0.6);
+    transform: translateY(-2px);
+    background: 
+        linear-gradient(white, white) padding-box, 
+        linear-gradient(135deg, #4f46e5, #e11d48, #f59e0b) border-box;
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.92),
-        0 0 0 5px rgba(191, 219, 254, 0.28),
-        0 18px 32px rgba(96, 165, 250, 0.18);
-    background: linear-gradient(180deg, rgba(255,255,255,1), rgba(237, 246, 255, 0.98));
-    transform: translateY(-1px);
+        0 20px 45px rgba(99, 102, 241, 0.18), /* Enhanced border shadow effect */
+        0 0 0 5px rgba(99, 102, 241, 0.12),
+        inset 0 0 10px rgba(99, 102, 241, 0.05); /* Soft internal shadow */
 }
 
 .employee-search-empty
@@ -7409,6 +7411,363 @@ button
         0 6px 12px rgba(100, 116, 139, 0.08);
 }
 
+/* Isolated Cosmic Row Reset - Ensures empty state doesn't inherit table row properties */
+.cosmic-tr,
+.cosmic-tr td,
+.cosmic-tr:hover,
+.cosmic-tr td:hover
+{
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    padding: 0 !important;
+}
+
+.cosmic-empty-state
+{
+    padding: 8px 24px;
+    text-align: center;
+    background: transparent !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 110px;
+    overflow: visible;
+    position: relative;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.cosmic-interactive-core
+{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: default;
+    z-index: 5;
+    min-width: 320px;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.cosmic-visual-zone
+{
+    position: relative;
+    width: 200px;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0px;
+}
+
+.cosmic-aura
+{
+    position: absolute;
+    width: 180%;
+    height: 180%;
+    background: transparent;
+    opacity: 0;
+    filter: blur(20px);
+    animation: none;
+    pointer-events: none;
+}
+
+.cosmic-stars,
+.cosmic-particle-field
+{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.cosmic-dot
+{
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.3);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.v1 { top: 25%; left: 25%; width: 11px; height: 11px; animation-delay: -1s; }
+.v2 { top: 30%; right: 28%; width: 7px; height: 7px; animation-delay: -3.5s; }
+.v3 { bottom: 32%; left: 22%; width: 9px; height: 9px; animation-delay: -2s; }
+.v4 { bottom: 25%; right: 25%; width: 5px; height: 5px; animation-delay: -0.5s; }
+.v5 { top: 50%; right: 20%; width: 8px; height: 8px; animation-delay: -4.2s; }
+
+/* --- Pending Palette (Amber/Sky Circles) --- */
+.cosmic-pending .v1 { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+.cosmic-pending .v2 { background: #0ea5e9; box-shadow: 0 0 8px rgba(14, 165, 233, 0.3); }
+.cosmic-pending .v3 { background: #14b8a6; box-shadow: 0 0 8px rgba(20, 184, 166, 0.3); }
+.cosmic-pending .v4 { background: #f59e0b; opacity: 0.1; }
+.cosmic-pending .v5 { background: #0ea5e9; opacity: 0.1; }
+
+/* --- Approved Palette (Emerald/Indigo Diamonds) --- */
+.cosmic-approved .cosmic-dot { 
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); 
+}
+.cosmic-approved .v1 { background: #10b981; box-shadow: 0 0 12px rgba(16, 185, 129, 0.5); }
+.cosmic-approved .v2 { background: #6366f1; box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
+.cosmic-approved .v3 { background: #84cc16; box-shadow: 0 0 10px rgba(132, 204, 22, 0.4); }
+.cosmic-approved .v4 { background: #10b981; opacity: 0.1; }
+.cosmic-approved .v5 { background: #6366f1; opacity: 0.1; }
+
+/* --- Rejected Palette (Rose/Slate Rings) --- */
+.cosmic-rejected .cosmic-dot { 
+    background: transparent !important;
+    border: 1.5px solid currentColor;
+}
+.cosmic-rejected .v1 { color: #f43f5e; box-shadow: 0 0 8px rgba(244, 63, 94, 0.2); }
+.cosmic-rejected .v2 { color: #64748b; box-shadow: 0 0 6px rgba(100, 116, 139, 0.2); }
+.cosmic-rejected .v3 { color: #881337; box-shadow: 0 0 8px rgba(136, 19, 55, 0.2); }
+.cosmic-rejected .v4 { color: #f43f5e; opacity: 0.2; }
+.cosmic-rejected .v5 { color: #64748b; opacity: 0.2; }
+
+@keyframes cosmicBreath {
+    0%, 100% { transform: scale(1) translateY(0); opacity: var(--base-opacity, 0.2); }
+    50% { transform: scale(1.15) translateY(-2px); opacity: calc(var(--base-opacity, 0.2) + 0.2); }
+}
+
+.cosmic-dot { --base-opacity: 0.2; }
+.v4, .v5 { --base-opacity: 0.08; }
+
+.cosmic-interactive-core:hover .cosmic-clock-hand-min
+{
+    transform-origin: 12px 12px;
+    animation: cosmicClockSpin 3s linear infinite;
+}
+
+.cosmic-interactive-core:hover .cosmic-clock-hand-hour
+{
+    transform-origin: 12px 12px;
+    animation: cosmicClockSpin 36s linear infinite;
+}
+
+@keyframes cosmicClockSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.cosmic-interactive-core:hover .cosmic-dot
+{
+    opacity: 0.8;
+    transform: translate(var(--dx, 10px), var(--dy, -10px)) scale(1.1);
+    animation: cosmicBreath 4s ease-in-out infinite;
+}
+
+.cosmic-interactive-core:hover .v1 { --dx: -20px; --dy: -20px; }
+.cosmic-interactive-core:hover .v2 { --dx: 25px; --dy: -15px; }
+.cosmic-interactive-core:hover .v3 { --dx: -15px; --dy: 20px; }
+.cosmic-interactive-core:hover .v4 { --dx: 20px; --dy: 25px; }
+.cosmic-interactive-core:hover .v5 { --dx: 30px; --dy: 0px; }
+
+/* Approved Icon Animations */
+
+.cosmic-interactive-core:hover .cosmic-checkmark
+{
+    animation: checkPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.cosmic-star
+{
+    transform-origin: center;
+    animation: cosmicTwinkle 3s ease-in-out infinite;
+}
+
+.s2 { animation-delay: 1s; }
+.s3 { animation-delay: 2s; }
+
+/* Rejected Icon Animations */
+.cosmic-off-ring
+{
+    transform-origin: center;
+    animation: cosmicRotate 10s linear infinite;
+}
+
+.cosmic-interactive-core:hover .cosmic-cross
+{
+    animation: crossShiver 0.4s ease-in-out infinite;
+}
+
+.cosmic-drift
+{
+    animation: cosmicFloat 6s ease-in-out infinite;
+}
+
+.d2 { animation-delay: 3s; }
+
+@keyframes cosmicPulse {
+    0%, 100% { transform: scale(1); opacity: 0.1; }
+    50% { transform: scale(1.1); opacity: 0.2; }
+}
+
+@keyframes checkPop {
+    0% { transform: scale(0.8) translateY(2px); opacity: 0.5; }
+    100% { transform: scale(1.1) translateY(0); opacity: 1; filter: drop-shadow(0 0 8px var(--theme-color)); }
+}
+
+@keyframes crossShiver {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-0.5px) rotate(-1deg); }
+    75% { transform: translateX(0.5px) rotate(1deg); }
+}
+
+@keyframes cosmicFloat {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(2px, -4px); }
+    66% { transform: translate(-2px, -2px); }
+}
+
+.c-star
+{
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px white;
+    opacity: 0;
+    transform: scale(0.3);
+    transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cosmic-interactive-core:hover .c-star
+{
+    opacity: 0.6;
+    transform: scale(1);
+    animation: cosmicTwinkle 4s infinite;
+}
+
+.s1 { top: 10%; left: 20%; animation-delay: 0s; }
+.s2 { top: 30%; right: 10%; animation-delay: 1.2s; }
+.s3 { bottom: 20%; left: 15%; animation-delay: 0.5s; }
+.s4 { bottom: 10%; right: 25%; animation-delay: 2.2s; }
+.s5 { top: 50%; left: 10%; animation-delay: 1.5s; }
+.s6 { bottom: 40%; right: 15%; animation-delay: 0.8s; }
+.s7 { top: 20%; left: 45%; animation-delay: 2.5s; }
+.s8 { bottom: 15%; left: 50%; animation-delay: 1.8s; }
+
+.cosmic-icon-anchor
+{
+    position: relative;
+    z-index: 2;
+    width: 160px;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    backdrop-filter: none;
+    border: none !important;
+    border-radius: 30%;
+    color: var(--theme-color);
+    box-shadow: none !important;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: default;
+}
+
+.cosmic-icon-reveal-wrapper
+{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: cosmicFloat 4s ease-in-out infinite;
+}
+
+.cosmic-icon-anchor:hover
+{
+    transform: scale(1.15) rotate(8deg);
+    background: transparent;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.cosmic-icon-anchor svg
+{
+    width: 90px;
+    height: 90px;
+    filter: drop-shadow(0 0 12px var(--theme-color));
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cosmic-interactive-core:hover .cosmic-icon-anchor
+{
+    transform: scale(1.15) translateY(-5px);
+}
+
+.cosmic-interactive-core:hover .cosmic-aura
+{
+    opacity: 0.35;
+    transform: scale(1.15) rotate(60deg);
+}
+
+.cosmic-content
+{
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.cosmic-title
+{
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    white-space: nowrap;
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: default;
+}
+
+.cosmic-message
+{
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    opacity: 1;
+    margin: 0;
+    letter-spacing: 0.01em;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cosmic-interactive-core:hover .cosmic-title
+{
+    transform: scale(1.05) translateY(-3px);
+    filter: brightness(1.15) contrast(1.1);
+}
+
+.cosmic-interactive-core:hover .cosmic-message
+{
+    transform: scale(1.02);
+    color: #475569;
+}
+
+/* Themes */
+.cosmic-pending { --aura-color: #6366f1; --theme-color: #6366f1; --shadow-color: rgba(99, 102, 241, 0.4); --text-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+.cosmic-approved { --aura-color: #14b8a6; --theme-color: #14b8a6; --shadow-color: rgba(20, 184, 166, 0.4); --text-gradient: linear-gradient(135deg, #0d9488 0%, #059669 100%); }
+.cosmic-rejected { --aura-color: #f43f5e; --theme-color: #f43f5e; --shadow-color: rgba(244, 63, 94, 0.4); --text-gradient: linear-gradient(135deg, #e11d48 0%, #d97706 100%); }
+
+@keyframes cosmicRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes cosmicFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes cosmicTwinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 0.8; transform: scale(1.2); } }
+
 .empty-table-state
 {
     padding: 22px 14px;
@@ -7417,13 +7776,6 @@ button
     background: linear-gradient(180deg, rgba(248, 250, 252, 0.94), rgba(241, 245, 249, 0.88));
     text-align: center;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.88);
-}
-
-.empty-table-state strong
-{
-    display: block;
-    margin-bottom: 4px;
-    color: #0f4c81;
 }
 
 @keyframes titleFloat
@@ -11096,4 +11448,169 @@ button
         width: 100%;
         min-width: 0;
     }
+}
+
+/* Radiant Trio Illustration - Modern & Colorful Empty Search State */
+.radiant-trio-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.radiant-trio-canvas {
+    position: relative;
+    width: 200px;
+    height: 160px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: 24px;
+    isolation: isolate;
+}
+
+/* Common Silhouette Path */
+.trio-member {
+    position: relative;
+    width: 60px;
+    height: 80px;
+    border-radius: 20px 20px 10px 10px;
+    z-index: 2;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.trio-member::before {
+    content: "";
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Indigo Member (Center) */
+.trio-member-center {
+    width: 70px;
+    height: 95px;
+    background: linear-gradient(180deg, #6366f1, #4338ca);
+    z-index: 3;
+    margin: 0 -15px;
+}
+.trio-member-center::before { background: linear-gradient(135deg, #818cf8, #4f46e5); }
+
+/* Rose Member (Left) */
+.trio-member-left {
+    background: linear-gradient(180deg, #f43f5e, #be123c);
+    transform: rotate(-5deg) translateY(10px);
+}
+.trio-member-left::before { background: linear-gradient(135deg, #fb7185, #e11d48); }
+
+/* Amber Member (Right) */
+.trio-member-right {
+    background: linear-gradient(180deg, #fbbf24, #d97706);
+    transform: rotate(5deg) translateY(10px);
+}
+.trio-member-right::before { background: linear-gradient(135deg, #fbcf33, #f59e0b); }
+
+/* Interaction */
+.radiant-trio-canvas:hover .trio-member-center { transform: scale(1.1) translateY(-5px); }
+.radiant-trio-canvas:hover .trio-member-left { transform: rotate(-10deg) translateX(-10px) translateY(5px); }
+.radiant-trio-canvas:hover .trio-member-right { transform: rotate(10deg) translateX(10px) translateY(5px); }
+
+/* Aura Shimmer Effect */
+.trio-aura {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150%;
+    height: 150%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15), rgba(244, 63, 94, 0.05), transparent 70%);
+    filter: blur(20px);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    z-index: 1;
+}
+
+.radiant-trio-canvas:hover .trio-aura {
+    opacity: 1;
+    animation: auraRotate 4s linear infinite;
+}
+
+/* Constellation Stars & Dots */
+.trio-star-field {
+    position: absolute;
+    inset: -40px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.trio-star, .trio-dot {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.trio-star {
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    box-shadow: 0 0 8px #fff, 0 0 12px var(--manage-indigo);
+}
+
+.trio-dot {
+    width: 2px;
+    height: 2px;
+    background: var(--manage-rose);
+    box-shadow: 0 0 5px var(--manage-rose);
+}
+
+.radiant-trio-canvas:hover .trio-star,
+.radiant-trio-canvas:hover .trio-dot {
+    animation: twinkle 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+    0% { opacity: 0.2; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes auraRotate {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+
+.employee-search-empty {
+    padding: 30px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.employee-search-empty strong {
+    font-size: 1.6rem;
+    font-weight: 900;
+    margin-top: 15px;
+    display: block;
+    background: linear-gradient(135deg, #4338ca 0%, #be123c 50%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+}
+
+.employee-search-empty p {
+    color: #475569;
+    font-weight: 700;
+    white-space: nowrap;
+    margin: 12px auto 0;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
 }

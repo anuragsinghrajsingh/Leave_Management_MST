@@ -351,9 +351,28 @@
                 </div>
 
                 <div class="empty-directory-state employee-search-empty" id="employeeSearchEmpty" hidden>
-                    <span class="empty-directory-icon" aria-hidden="true"></span>
-                    <strong>No matching employees</strong>
-                    <p>Try another name, employee ID, joining date, or department.</p>
+                    <div class="radiant-trio-wrapper">
+                        <div class="radiant-trio-canvas">
+                            <div class="trio-aura"></div>
+                            <div class="trio-star-field">
+                                <!-- Twinkling Stars -->
+                                <div class="trio-star" style="top: 10%; left: 20%; animation-delay: 0.1s;"></div>
+                                <div class="trio-star" style="top: 30%; left: 80%; animation-delay: 0.4s;"></div>
+                                <div class="trio-star" style="top: 70%; left: 10%; animation-delay: 0.7s;"></div>
+                                <div class="trio-star" style="top: 85%; left: 90%; animation-delay: 0.2s;"></div>
+                                <div class="trio-star" style="top: 15%; left: 60%; animation-delay: 0.9s;"></div>
+                                <!-- Colorful Dots -->
+                                <div class="trio-dot" style="top: 40%; left: 30%; animation-delay: 0.3s; background: var(--manage-rose);"></div>
+                                <div class="trio-dot" style="top: 60%; left: 70%; animation-delay: 0.6s; background: var(--manage-amber);"></div>
+                                <div class="trio-dot" style="top: 20%; left: 45%; animation-delay: 0.8s; background: var(--manage-indigo);"></div>
+                            </div>
+                            <div class="trio-member trio-member-left"></div>
+                            <div class="trio-member trio-member-center"></div>
+                            <div class="trio-member trio-member-right"></div>
+                        </div>
+                        <strong>No matching employees</strong>
+                        <p>Try another name, employee ID, joining date, or department.</p>
+                    </div>
                 </div>
 
                 <div class="directory-pagination" id="manageDirectoryPagination" hidden aria-label="Employee directory pages"></div>
@@ -809,7 +828,17 @@
             heading: "Pending Requests",
             countSuffix: " Pending Requests",
             emptyTitle: "No pending requests",
-            emptyMessage: "This employee does not have any pending leave requests right now.",
+            emptyMessage: "No pending leave requests are available for this employee yet.",
+            themeClass: "cosmic-pending",
+            emptyIcon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" class="cosmic-icon-timer">
+                <circle cx="12" cy="12" r="10" opacity="0.15" stroke-dasharray="4 4" />
+                <path d="M12 2v2M22 12h-2M12 22v-2M2 12h2" opacity="0.3" />
+                <line x1="12" y1="12" x2="12" y2="5" class="cosmic-clock-hand-min" opacity="0.7" />
+                <line x1="12" y1="12" x2="16" y2="14" class="cosmic-clock-hand-hour" opacity="0.9" />
+                <circle cx="12" cy="12" r="1" fill="currentColor">
+                    <animate attributeName="opacity" values="1;0.2;1" dur="2s" repeatCount="indefinite" />
+                </circle>
+            </svg>`,
             columns: [
                 { key: "serial", label: "S. No." },
                 { key: "type", label: "Type" },
@@ -826,6 +855,16 @@
             countSuffix: " Approved Requests",
             emptyTitle: "No approved requests",
             emptyMessage: "No approved leave requests are available for this employee yet.",
+            themeClass: "cosmic-approved",
+            emptyIcon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" class="cosmic-icon-shield">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" class="cosmic-shield-base" opacity="0.2" />
+                <path d="m9 12 2 2 4-4" class="cosmic-checkmark" stroke-width="2.5" opacity="0.9" />
+                <g class="cosmic-sparkles">
+                    <circle cx="18" cy="6" r="0.5" class="cosmic-star s1" fill="currentColor" />
+                    <circle cx="6" cy="18" r="0.5" class="cosmic-star s2" fill="currentColor" />
+                    <circle cx="4" cy="7" r="0.5" class="cosmic-star s3" fill="currentColor" />
+                </g>
+            </svg>`,
             columns: [
                 { key: "serial", label: "S. No." },
                 { key: "type", label: "Type" },
@@ -841,6 +880,16 @@
             countSuffix: " Rejected Requests",
             emptyTitle: "No rejected requests",
             emptyMessage: "No rejected leave requests are available for this employee yet.",
+            themeClass: "cosmic-rejected",
+            emptyIcon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" class="cosmic-icon-off">
+                <circle cx="12" cy="12" r="10" class="cosmic-off-ring" stroke-dasharray="3 3" opacity="0.15" />
+                <circle cx="12" cy="12" r="8" opacity="0.05" />
+                <path d="m15 9-6 6M9 9l6 6" class="cosmic-cross" stroke-width="2.5" opacity="0.9" />
+                <g class="cosmic-ash">
+                    <circle cx="12" cy="4" r="0.4" class="cosmic-drift d1" fill="currentColor" opacity="0.3" />
+                    <circle cx="20" cy="16" r="0.3" class="cosmic-drift d2" fill="currentColor" opacity="0.2" />
+                </g>
+            </svg>`,
             columns: [
                 { key: "serial", label: "S. No." },
                 { key: "type", label: "Type" },
@@ -3428,11 +3477,40 @@
         const definition = popupHistoryDefinitions[status] || popupHistoryDefinitions.pending;
 
         return `
-            <tr>
+            <tr class="cosmic-tr">
                 <td colspan="${definition.columns.length}">
-                    <div class="empty-table-state">
-                        <strong>${escapeHtml(definition.emptyTitle)}</strong>
-                        <p>${escapeHtml(definition.emptyMessage)}</p>
+                    <div class="cosmic-empty-state ${definition.themeClass}">
+                        <div class="cosmic-interactive-core">
+                            <div class="cosmic-visual-zone">
+                                <div class="cosmic-aura"></div>
+                                <div class="cosmic-particle-field">
+                                    <span class="cosmic-dot v1"></span>
+                                    <span class="cosmic-dot v2"></span>
+                                    <span class="cosmic-dot v3"></span>
+                                    <span class="cosmic-dot v4"></span>
+                                    <span class="cosmic-dot v5"></span>
+                                </div>
+                                <div class="cosmic-stars">
+                                    <span class="c-star s1"></span>
+                                    <span class="c-star s2"></span>
+                                    <span class="c-star s3"></span>
+                                    <span class="c-star s4"></span>
+                                    <span class="c-star s5"></span>
+                                    <span class="c-star s6"></span>
+                                    <span class="c-star s7"></span>
+                                    <span class="c-star s8"></span>
+                                </div>
+                                <div class="cosmic-icon-anchor">
+                                    <div class="cosmic-icon-reveal-wrapper">
+                                        ${definition.emptyIcon}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="cosmic-content">
+                                <strong class="cosmic-title">${escapeHtml(definition.emptyTitle)}</strong>
+                                <p class="cosmic-message">${escapeHtml(definition.emptyMessage)}</p>
+                            </div>
+                        </div>
                     </div>
                 </td>
             </tr>
