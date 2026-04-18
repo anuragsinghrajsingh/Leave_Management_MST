@@ -349,9 +349,20 @@
 
                 <div class="table-toolbar">
                     <div class="search-field">
-                        <label for="reportSearch" class="sr-only">Search employee report rows</label>
-                        <span class="search-icon" aria-hidden="true"></span>
-                        <input type="search" id="reportSearch" placeholder="Search employee name, ID, or department">
+                        <div class="search-field-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="searchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1" />
+                                        <stop offset="50%" stop-color="#f43f5e" />
+                                        <stop offset="100%" stop-color="#fbbf24" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="11" cy="11" r="8" stroke="url(#searchGradient)" stroke-width="3" stroke-linecap="round"/>
+                                <path d="M16.5 16.5L21 21" stroke="url(#searchGradient)" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <input type="text" id="reportSearch" placeholder="Search employees by name or ID...">
                     </div>
                     <span class="panel-count table-toolbar-count" id="visibleReportCountMobile" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" visible">{{ report_employee_count }} visible</span>
                 </div>
@@ -422,8 +433,10 @@
                                                     <div class="calendar-tab"></div>
                                                 </div>
                                             </div>
-                                            <strong>No analytical records found</strong>
-                                            <p>Leave summaries will appear here once employees submit their first requests.</p>
+                                            <div class="empty-state-copy">
+                                                <strong>No analytical records found</strong>
+                                                <p>Leave summaries will appear here once employees submit their first requests.</p>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -443,8 +456,10 @@
                             <div class="calendar-tab"></div>
                         </div>
                     </div>
-                    <strong>No matching metrics found</strong>
-                    <p>We couldn't find any employees matching that search in the current report view.</p>
+                    <div class="empty-state-copy">
+                        <strong>No matching metrics found</strong>
+                        <p>We couldn't find any employees matching that search in the current report view.</p>
+                    </div>
                 </div>
             </section>
         </div>

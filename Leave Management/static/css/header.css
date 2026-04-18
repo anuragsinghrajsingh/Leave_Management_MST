@@ -241,16 +241,28 @@ header h1
 
 @media (max-width: 768px)
 {
+    header
+    {
+        gap: 2px;
+    }
+
     .header-title-group
     {
-        gap: 8px;
+        gap: 0px !important;
     }
 
     .header-title-icon
     {
-        width: 28px;
-        height: 28px;
-        border-radius: 9px;
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        margin-right: -1px !important;
+    }
+
+    header h1
+    {
+        margin-left: 0px !important;
+        padding-left: 0px !important;
     }
 }
 
@@ -917,13 +929,18 @@ header h1
 {
     header
     {
-        padding: 4px 8px;
-        gap: 8px;
+        padding: 4px 6px;
+        gap: 2px;
         min-height: 48px;
         top: 0;
         left: 0;
         right: 0;
         border-radius: 0 0 16px 16px;
+    }
+
+    .header-title-group
+    {
+        gap: 0px !important;
     }
 
     header h1
@@ -932,6 +949,7 @@ header h1
         white-space: normal;
         line-height: 1.2;
         flex: 1 1 auto;
+        margin-left: -1px !important;
     }
 
     .nav-links
@@ -3508,7 +3526,7 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 {
     .header-actions
     {
-        gap: 10px;
+        gap: 6px;
         margin-left: auto;
     }
 
@@ -3757,5 +3775,35 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
     {
         height: 10px;
         margin: 0 2px;
+    }
+}
+
+
+/* FINAL MOBILE HEADER SPACING FIX - OPTIMIZED GAP */
+@media (max-width: 800px) {
+    header {
+        gap: 8px !important;
+    }
+
+    .header-title-group {
+        gap: 4px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        margin-right: 0 !important;
+    }
+    
+    .header-title-group h1 {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        letter-spacing: -0.02em !important;
+    }
+    
+    .header-title-icon {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        border-radius: 8px !important;
+        margin-right: 0px !important;
     }
 }

@@ -450,9 +450,11 @@
                                             <h4 title="{{ employee.display_name }}" data-responsive-trim data-full-text="{{ employee.display_name }}">{{ employee.display_name }}</h4>
                                             <span class="role-pill">{{ employee.role }}</span>
                                         </div>
-                                        <p>@{{ employee.username }}</p>
-                                        <div class="meta-chips">
-                                            <span>{{ employee.employee_id }}</span>
+                                        <div class="identity-meta-row">
+                                            <p class="employee-username">@{{ employee.username }}</p>
+                                            <span class="employee-id-chip">{{ employee.employee_id }}</span>
+                                        </div>
+                                        <div class="meta-chips department-row">
                                             <span title="{{ employee.department }}" class="meta-chip-department" data-responsive-trim data-full-text="{{ employee.department }}">{{ employee.department }}</span>
                                         </div>
                                     </div>
@@ -524,9 +526,11 @@
                                             <h4 class="placeholder-line placeholder-line-lg"></h4>
                                             <span class="role-pill role-pill-placeholder"></span>
                                         </div>
-                                        <p class="placeholder-line placeholder-line-sm"></p>
-                                        <div class="meta-chips">
+                                        <div class="identity-meta-row">
+                                            <p class="placeholder-line placeholder-line-sm"></p>
                                             <span class="meta-chip-placeholder"></span>
+                                        </div>
+                                        <div class="meta-chips department-row">
                                             <span class="meta-chip-placeholder meta-chip-placeholder-wide"></span>
                                         </div>
                                     </div>
