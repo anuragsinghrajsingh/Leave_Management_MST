@@ -219,7 +219,7 @@
 
                     <div class="form-shell is-collapsed" id="employeeFormShell">
                         <div class="form-shell-bar">
-                            <div class="form-shell-inline-note">Create the record in three clear steps with auto-assigned employee ID and live leave total calculation.</div>
+                            <div class="form-shell-inline-note">Create the record in 3 clear steps with auto-assigned employee ID and live leave total calculation.</div>
                             <button type="button" class="form-shell-toggle" id="employeeFormToggle" aria-expanded="false">
                                 <span class="form-toggle-icon form-toggle-icon-expand" aria-hidden="true"></span>
                                 <span class="form-toggle-icon form-toggle-icon-collapse" aria-hidden="true"></span>
@@ -404,17 +404,19 @@
 
                     <div class="directory-search-row">
                         <label class="search-shell" for="employeeSearchInput">
-                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <defs>
-                                    <linearGradient id="searchIconGradient" x1="0%" y1="0%" x2="100%?" y2="100%?">
-                                        <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-                                        <stop offset="50%" style="stop-color:#f43f5e;stop-opacity:1" />
-                                        <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:1" />
-                                    </linearGradient>
-                                </defs>
-                                <circle cx="11" cy="11" r="8" stroke="url(#searchIconGradient)"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="url(#searchIconGradient)"></line>
-                            </svg>
+                            <div class="search-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <defs>
+                                        <linearGradient id="searchIconGradient" x1="0%" y1="0%" x2="100%?" y2="100%?">
+                                            <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#f43f5e;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="11" cy="11" r="8" stroke="url(#searchIconGradient)"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="url(#searchIconGradient)"></line>
+                                </svg>
+                            </div>
                             <input type="search" id="employeeSearchInput" placeholder="Search by employee name, username, employee ID, department, or phone number" autocomplete="off">
                         </label>
                         <span class="section-pill section-pill-rose section-pill-top" id="listEmployeeTotal" data-count="{{ employee_total }}" data-countup data-countup-target="{{ employee_total }}" data-countup-suffix=" employees">{{ employee_total }} employees</span>
