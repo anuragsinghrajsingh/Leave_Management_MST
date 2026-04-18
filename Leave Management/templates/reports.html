@@ -198,9 +198,9 @@
                     <h2>Clear leave reporting for faster HR decisions.</h2>
                     <p class="hero-text">
                         Review employee leave volume, approval flow, and pending workload in one clean reporting view.
-                        {% if selected_employee_name %}
-                            You are currently focused on <strong>{{ selected_employee_name }}</strong>.
-                        {% endif %}
+                        <span class="hero-focus" id="focusMessage">
+                            You are currently focused on <strong id="focusTarget">{% if selected_employee_name_simple %}{{ selected_employee_name_simple }}{% else %}All Employees{% endif %}</strong>
+                        </span>
                     </p>
                 </div>
 
@@ -241,9 +241,9 @@
                                 <div class="custom-select select-shell report-select-shell" id="employeeFilterDropdown">
                                     <select id="employeeFilter" name="employee" class="native-select" aria-hidden="true" tabindex="-1">
                                         <option value="">All Employees</option>
-                                        {% for emp in employees %}
+                                         {% for emp in employees %}
                                             <option value="{{ emp.id }}" {% if selected_employee == emp.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ emp.username }}
+                                                {{ emp.get_full_name|default:emp.username }} ({{ emp.profile.employee_id|default:"N/A" }}) - {{ emp.profile.department }}
                                             </option>
                                         {% endfor %}
                                     </select>
@@ -261,7 +261,7 @@
                                         </button>
                                         {% for emp in employees %}
                                             <button type="button" class="custom-option{% if selected_employee == emp.id|stringformat:'s' %} selected{% endif %}" data-value="{{ emp.id }}">
-                                                <span class="option-title">{{ emp.username }}</span>
+                                                <span class="option-title">{{ emp.get_full_name|default:emp.username }} ({{ emp.profile.employee_id|default:"N/A" }}) - {{ emp.profile.department }}</span>
                                             </button>
                                         {% endfor %}
                                     </div>
@@ -272,12 +272,12 @@
 
                         <div class="filter-meta">
                             <div class="meta-chip scope-chip">
-                                <span>Scope</span>
-                                <strong>{% if selected_employee_name %}{{ selected_employee_name }}{% else %}All employees{% endif %}</strong>
+                                <span><span class="label-icon">&#9678;</span><span>Scope</span></span>
+                                <strong id="scopeTargetName">{% if selected_employee_name_simple %}{{ selected_employee_name_simple }}{% else %}All Employees{% endif %}</strong>
                                 <small>Current reporting focus</small>
                             </div>
                             <div class="meta-chip count-chip">
-                                <span>Employees shown</span>
+                                <span><span class="label-icon">&#9674;</span><span>Employees shown</span></span>
                                 <strong id="employeesShownCount" data-countup data-countup-target="{{ report_employee_count }}">{{ report_employee_count }}</strong>
                                 <small>Summaries visible in the table</small>
                             </div>
@@ -288,9 +288,9 @@
                 <div class="analytics-column">
                     <section class="summary-grid summary-grid-compact">
                         <article class="summary-card total-card">
-                            <span><span class="label-icon label-icon-total" aria-hidden="true">&#9710;</span><span>Total Requests</span></span>
+                            <span><span class="label-icon label-icon-total" aria-hidden="true">&#916;</span><span>Total Requests</span></span>
                             <strong id="reportTotalRequests" data-countup data-countup-target="{{ total_requests }}">{{ total_requests }}</strong>
-                            <p>Across the selected employee scope</p>
+                            <p>Total volume in current scope</p>
                         </article>
                         <article class="summary-card approved-card">
                             <span><span class="label-icon label-icon-approved" aria-hidden="true">&#10003;</span><span>Approved</span></span>
@@ -305,7 +305,7 @@
                         <article class="summary-card rejected-card">
                             <span><span class="label-icon label-icon-rejected" aria-hidden="true">&#10005;</span><span>Rejected</span></span>
                             <strong id="reportRejectedTotal" data-countup data-countup-target="{{ rejected_total }}">{{ rejected_total }}</strong>
-                            <p>Requests that need follow-up or revision</p>
+                            <p>Finalized denied requests</p>
                         </article>
                     </section>
 
@@ -382,65 +382,7 @@
                         </thead>
 
                         <tbody id="reportTableBody">
-                            {% for report in reports %}
-                                <tr
-                                    data-employee-name="{{ report.user.username|lower }}"
-                                    data-employee-id="{{ report.employee_id|lower }}"
-                                    data-department="{{ report.department|lower }}"
-                                >
-                                    <td>
-                                        <div class="employee-cell">
-                                            {% if report.photo_url %}
-                                                <img src="{{ report.photo_url }}" alt="{{ report.user.username }}" class="employee-avatar employee-avatar-photo">
-                                            {% else %}
-                                                <span class="employee-avatar">{{ report.user.username|slice:":1"|upper }}</span>
-                                            {% endif %}
-                                            <div class="employee-copy">
-                                                <strong>{{ report.user.username }}</strong>
-                                                <small>{{ report.employee_id }} | {{ report.department }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="metric-chip total" data-countup data-countup-target="{{ report.total }}">{{ report.total }}</span></td>
-                                    <td><span class="metric-chip approved" data-countup data-countup-target="{{ report.approved }}">{{ report.approved }}</span></td>
-                                    <td><span class="metric-chip pending" data-countup data-countup-target="{{ report.pending }}">{{ report.pending }}</span></td>
-                                    <td><span class="metric-chip rejected" data-countup data-countup-target="{{ report.rejected }}">{{ report.rejected }}</span></td>
-                                    <td>
-                                        <div class="rate-cell">
-                                            <strong><span data-countup data-countup-target="{{ report.approval_rate }}">{{ report.approval_rate }}</span>%</strong>
-                                            <small>approved</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="status-mix">
-                                            <span class="mix-bar approved" style="width: {{ report.approved_rate }}%"></span>
-                                            <span class="mix-bar pending" style="width: {{ report.pending_rate }}%"></span>
-                                            <span class="mix-bar rejected" style="width: {{ report.rejected_rate }}%"></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr id="reportEmptyRow">
-                                    <td colspan="7">
-                                        <div class="empty-table-state">
-                                            <div class="crystal-calendar-canvas">
-                                                <div class="calendar-shadow"></div>
-                                                <div class="calendar-block">
-                                                    <div class="calendar-inner"></div>
-                                                    <div class="calendar-glass">
-                                                        <div class="calendar-plate">{% now "d" %}</div>
-                                                    </div>
-                                                    <div class="calendar-tab"></div>
-                                                </div>
-                                            </div>
-                                            <div class="empty-state-copy">
-                                                <strong>No analytical records found</strong>
-                                                <p>Leave summaries will appear here once employees submit their first requests.</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                            {% include "partials/reports_table_rows.html" %}
                         </tbody>
                     </table>
                 </div>
@@ -494,6 +436,21 @@
     const reportFilterForm = document.querySelector(".report-filter-form");
     const reportFilterPanel = document.getElementById("reportFilterPanel");
     const reportTablePanel = document.getElementById("reportTablePanel");
+    const reportApplyButton = reportFilterForm ? reportFilterForm.querySelector('button[type="submit"]') : null;
+
+    // Track the current filter state to handle button enabling/disabling
+    let activeFilterValue = employeeFilterSelect ? employeeFilterSelect.value : "";
+
+    function syncApplyButton()
+    {
+        if (!reportApplyButton || !employeeFilterSelect)
+        {
+            return;
+        }
+
+        const isChanged = employeeFilterSelect.value !== activeFilterValue;
+        reportApplyButton.disabled = !isChanged;
+    }
 
     function runReportSurfaceTransition(surfaceElement, updateFn)
     {
@@ -521,6 +478,28 @@
         });
     }
 
+    function animateMetric(element, value, options)
+    {
+        if (!element)
+        {
+            return;
+        }
+
+        const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+        const config = Object.assign({ duration: 280 }, options || {});
+        const suffix = config.suffix || "";
+        element.dataset.countupTarget = String(safeValue);
+        element.textContent = String(safeValue) + suffix;
+        if (typeof window.animateCountUp === "function")
+        {
+            window.animateCountUp(element, safeValue, config);
+        }
+        else
+        {
+            element.textContent = String(safeValue) + suffix;
+        }
+    }
+
     function filterReportRows(searchValue)
     {
         if (!reportTableBody)
@@ -535,28 +514,6 @@
         let approvedTotal = 0;
         let pendingTotal = 0;
         let rejectedTotal = 0;
-
-        const animateMetric = function (element, value, options)
-        {
-            if (!element)
-            {
-                return;
-            }
-
-            const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
-            const config = Object.assign({ duration: 280 }, options || {});
-            const suffix = config.suffix || "";
-            element.dataset.countupTarget = String(safeValue);
-            element.textContent = String(safeValue) + suffix;
-            if (typeof window.animateCountUp === "function")
-            {
-                window.animateCountUp(element, safeValue, config);
-            }
-            else
-            {
-                element.textContent = String(safeValue) + suffix;
-            }
-        };
 
         const animateVisibleTableMetrics = function ()
         {
@@ -682,6 +639,8 @@
         {
             option.classList.toggle("selected", option.dataset.value === value);
         });
+
+        syncApplyButton();
     }
 
     if (reportSearchInput)
@@ -743,16 +702,108 @@
         });
     });
 
+    async function fetchAnalytics(url)
+    {
+        if (typeof window.startAsyncSurfaceSkeleton === "function") 
+        {
+            window.startAsyncSurfaceSkeleton(reportTablePanel);
+        }
+
+        if (reportApplyButton) reportApplyButton.disabled = true;
+
+        try 
+        {
+            const response = await fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const data = await response.json();
+
+            // 1. Update Table
+            if (reportTableBody) 
+            {
+                reportTableBody.innerHTML = data.table_html;
+            }
+
+            // 2. Update Hero Focus
+            const focusTarget = document.getElementById("focusTarget");
+            const scopeTargetName = document.getElementById("scopeTargetName");
+            const customSelectText = document.querySelector(".custom-select-value");
+            
+            if (focusTarget) 
+            {
+                focusTarget.textContent = data.selected_employee_name_simple;
+            }
+            if (scopeTargetName)
+            {
+                scopeTargetName.textContent = data.selected_employee_name_simple;
+            }
+            if (customSelectText)
+            {
+                customSelectText.textContent = data.selected_employee_name;
+            }
+
+            // 3. Update Summary Metrics
+            animateMetric(reportTotalRequests, data.metrics.total_requests);
+            animateMetric(reportApprovedTotal, data.metrics.approved_total);
+            animateMetric(reportPendingTotal, data.metrics.pending_total);
+            animateMetric(reportRejectedTotal, data.metrics.rejected_total);
+            animateMetric(employeesShownCount, data.metrics.report_employee_count);
+            animateMetric(reportCoverageValue, data.metrics.report_employee_count);
+            animateMetric(reportActionQueueValue, data.metrics.pending_total);
+            animateMetric(reportDecisionQualityValue, data.metrics.approval_rate_overall);
+
+            if (reportApprovalRateCopy) 
+            {
+                reportApprovalRateCopy.textContent = data.metrics.approval_rate_overall + "% overall approval rate";
+            }
+
+            // 4. Update URL
+            window.history.pushState({ path: url }, '', url);
+
+            // 5. Re-run local filtering if search is active
+            filterReportRows(reportSearchInput ? reportSearchInput.value : "");
+
+            // 6. Update local state and sync button
+            activeFilterValue = employeeFilterSelect ? employeeFilterSelect.value : "";
+            syncApplyButton();
+
+            if (typeof window.finishAsyncSurfaceSkeleton === "function") 
+            {
+                window.finishAsyncSurfaceSkeleton(reportTablePanel);
+            }
+        } 
+        catch (error) 
+        {
+            console.error('Error fetching analytics:', error);
+            // Re-enable button on error so user can try again
+            if (reportApplyButton) reportApplyButton.disabled = false;
+            // Fallback to full page reload on critical error
+            window.location.href = url;
+        }
+    }
+
     if (reportFilterForm)
     {
-        reportFilterForm.addEventListener("submit", function ()
+        reportFilterForm.addEventListener("submit", function (e)
         {
-            if (typeof window.startAsyncSurfaceSkeleton === "function")
+            e.preventDefault();
+            if (reportApplyButton && reportApplyButton.disabled)
             {
-                window.startAsyncSurfaceSkeleton(reportFilterPanel);
-                window.startAsyncSurfaceSkeleton(reportTablePanel);
+                return;
             }
+            const formData = new FormData(reportFilterForm);
+            const params = new URLSearchParams(formData);
+            const url = `${window.location.pathname}?${params.toString()}`;
+            fetchAnalytics(url);
         });
+
+        // Initial sync
+        syncApplyButton();
     }
 
     filterReportRows(reportSearchInput ? reportSearchInput.value : "");

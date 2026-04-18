@@ -1,0 +1,59 @@
+{% for report in reports %}
+    <tr
+        data-employee-name="{{ report.user.get_full_name|default:report.user.username|lower }}"
+        data-employee-id="{{ report.employee_id|lower }}"
+        data-department="{{ report.department|lower }}"
+    >
+        <td>
+            <div class="employee-cell">
+                {% if report.photo_url %}
+                    <img src="{{ report.photo_url }}" alt="{{ report.user.username }}" class="employee-avatar employee-avatar-photo">
+                {% else %}
+                    <span class="employee-avatar">{{ report.user.username|slice:":1"|upper }}</span>
+                {% endif %}
+                <div class="employee-copy">
+                    <strong>{{ report.user.get_full_name|default:report.user.username }}</strong>
+                    <small>{{ report.employee_id }} | {{ report.department }}</small>
+                </div>
+            </div>
+        </td>
+        <td><span class="metric-chip total" data-countup data-countup-target="{{ report.total }}">{{ report.total }}</span></td>
+        <td><span class="metric-chip approved" data-countup data-countup-target="{{ report.approved }}">{{ report.approved }}</span></td>
+        <td><span class="metric-chip pending" data-countup data-countup-target="{{ report.pending }}">{{ report.pending }}</span></td>
+        <td><span class="metric-chip rejected" data-countup data-countup-target="{{ report.rejected }}">{{ report.rejected }}</span></td>
+        <td>
+            <div class="rate-cell">
+                <strong><span data-countup data-countup-target="{{ report.approval_rate }}">{{ report.approval_rate }}</span>%</strong>
+                <small>approved</small>
+            </div>
+        </td>
+        <td>
+            <div class="status-mix">
+                <span class="mix-bar approved" style="width: {{ report.approved_rate }}%"></span>
+                <span class="mix-bar pending" style="width: {{ report.pending_rate }}%"></span>
+                <span class="mix-bar rejected" style="width: {{ report.rejected_rate }}%"></span>
+            </div>
+        </td>
+    </tr>
+{% empty %}
+    <tr id="reportEmptyRow">
+        <td colspan="7">
+            <div class="empty-table-state">
+                <div class="crystal-calendar-canvas">
+                    <div class="calendar-shadow"></div>
+                    <div class="calendar-block">
+                        <div class="calendar-inner"></div>
+                        <div class="calendar-glass">
+                            <div class="calendar-plate">{% now "d" %}</div>
+                        </div>
+                        <div class="calendar-tab"></div>
+                    </div>
+                </div>
+                <div class="empty-state-copy">
+                    <strong>No analytical records found</strong>
+                    <p>Leave summaries will appear here once employees submit their first requests.</p>
+                </div>
+            </div>
+        </td>
+    </tr>
+{% endfor %}

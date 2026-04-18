@@ -1455,7 +1455,19 @@ def reports(request):
     selected_employee_name = ""
 
     if employee_id:
-        selected_employee_name = employees.filter(id=employee_id).values_list("username", flat=True).first() or ""
+        u = employees.filter(id=employee_id).first()
+        if u:
+            profile = getattr(u, "profile", None)
+            emp_id = getattr(profile, "employee_id", "N/A")
+            dept = getattr(profile, "department", "N/A")
+            full_name = u.get_full_name().strip() or u.username
+            selected_employee_name = f"{full_name} ({emp_id}) - {dept}"
+            selected_employee_name_simple = full_name
+        else:
+            selected_employee_name = ""
+            selected_employee_name_simple = ""
+    else:
+        selected_employee_name_simple = ""
 
     # Convert to usable format
     reports = []
@@ -1488,6 +1500,7 @@ def reports(request):
         "reports": reports,
         "selected_employee": employee_id,
         "selected_employee_name": selected_employee_name,
+        "selected_employee_name_simple": selected_employee_name_simple,
         "report_employee_count": len(reports),
         "total_requests": total_requests,
         "approved_total": approved_total,
@@ -1497,7 +1510,22 @@ def reports(request):
         "top_employee": top_employee,
     }
     context.update(get_hr_notification_context(request.user))
-    context.update(get_communication_context(request.user))
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        from django.template.loader import render_to_string
+        table_html = render_to_string("partials/reports_table_rows.html", context)
+        return JsonResponse({
+            "table_html": table_html,
+            "selected_employee_name": selected_employee_name or "All Employees",
+            "selected_employee_name_simple": selected_employee_name_simple or "All Employees",
+            "metrics": {
+                "total_requests": total_requests,
+                "approved_total": approved_total,
+                "pending_total": pending_total,
+                "rejected_total": rejected_total,
+                "approval_rate_overall": approval_rate_overall,
+                "report_employee_count": len(reports),
+            }
+        })
 
     return render(request, "reports.html", context)
 
