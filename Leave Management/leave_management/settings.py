@@ -66,6 +66,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'leave_management.middleware.NoCacheMiddleware',  # 👈 ADD THIS
+    'leave_management.middleware.YearEndCarryForwardMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

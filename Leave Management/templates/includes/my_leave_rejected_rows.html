@@ -34,9 +34,12 @@
             <div class="days-block js-days-block"
                  data-leave-type="{{ leave.leave_type }}"
                  data-from-date="{{ leave.from_date|date:'Y-m-d' }}"
-                 data-to-date="{{ leave.to_date|date:'Y-m-d' }}">
-                <strong class="js-days-value days-counter">1</strong>
-                <span class="js-days-label">day</span>
+                 data-to-date="{{ leave.to_date|date:'Y-m-d' }}"
+                 data-days-target="{{ leave.days_target }}"
+                 data-days-suffix="{{ leave.days_suffix }}"
+                 data-days-label="{{ leave.days_label }}">
+                <strong class="js-days-value days-counter">{{ leave.days_value_display }}</strong>
+                <span class="js-days-label">{{ leave.days_label }}</span>
             </div>
         </td>
         <td>

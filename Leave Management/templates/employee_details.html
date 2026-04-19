@@ -382,9 +382,15 @@
                                             {% if field_errors.earned_total %}<div class="field-feedback">{% for error in field_errors.earned_total %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
                                         </label>
                                         <label class="field">
-                                            <span>Total leave</span>
+                                            <span>Total leave balance</span>
                                             <div class="input-shell">
-                                                <input type="text" name="total_leaves" id="totalLeaveField" value="{{ form_values.total_leaves }}" readonly>
+                                                <input type="text" name="total_leave_balance" id="totalLeaveField" value="{{ form_values.total_leave_balance }}" readonly>
+                                            </div>
+                                        </label>
+                                        <label class="field">
+                                            <span>Total leave remaining</span>
+                                            <div class="input-shell">
+                                                <input type="text" name="total_leave_remaining" id="totalLeaveRemainingField" value="{{ form_values.total_leave_remaining }}" readonly>
                                             </div>
                                         </label>
                                     </div>
@@ -615,6 +621,7 @@
         const sickTotalField = document.getElementById("sickTotalField");
         const earnedTotalField = document.getElementById("earnedTotalField");
         const totalLeaveField = document.getElementById("totalLeaveField");
+        const totalLeaveRemainingField = document.getElementById("totalLeaveRemainingField");
         const createEmployeeButton = document.getElementById("createEmployeeButton");
         const phoneField = document.getElementById("phoneField");
         const submitWrap = document.getElementById("submitWrap");
@@ -887,6 +894,10 @@
             if (totalLeaveField)
             {
                 totalLeaveField.value = String(total % 1 === 0 ? total.toFixed(0) : total.toFixed(2).replace(/0+$/, "").replace(/\.$/, ""));
+            }
+            if (totalLeaveRemainingField)
+            {
+                totalLeaveRemainingField.value = String(total % 1 === 0 ? total.toFixed(0) : total.toFixed(2).replace(/0+$/, "").replace(/\.$/, ""));
             }
         }
 

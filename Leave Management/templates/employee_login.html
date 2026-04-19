@@ -1,31 +1,148 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Employee Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Login | Leave Management</title>
     <link rel="stylesheet" href="{% static 'css/common_login.css' %}">
 </head>
-<body>
+<body class="login-page employee-theme">
+    <main class="login-shell">
+        <section class="login-panel login-panel--info">
+            <div class="brand-lockup">
+                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
+                <div>
+                    <p class="brand-name">MS Technology</p>
+                    <span class="login-kicker">Employee Portal</span>
+                </div>
+            </div>
+            <h1>Welcome back</h1>
+            <p>
+                Sign in to apply for leave, review your balances, and stay updated on request status
+                from your phone or desktop.
+            </p>
 
-<div class="login-box">
-    <h2>Employee Login</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Fast leave requests</strong>
+                    <span>Submit full-day, short, or half-day leave with less friction.</span>
+                </div>
+                <div class="feature-item">
+                    <strong>Clear status tracking</strong>
+                    <span>See what is pending, approved, or needs your attention.</span>
+                </div>
+                <div class="feature-item">
+                    <strong>Mobile friendly</strong>
+                    <span>Use the same login experience comfortably on smaller screens.</span>
+                </div>
+            </div>
+        </section>
 
-    <form method="post">
-        {% csrf_token %}
-        <label>User-Name</label>
-        <input type="text" name="username" placeholder="Enter your Username" required>
+        <section class="login-panel login-panel--form">
+            <div class="login-card">
+                {% if messages %}
+                    <div class="login-toast-stack" aria-live="polite">
+                        {% for message in messages %}
+                            <div class="login-toast login-toast--{{ message.tags|default:'info' }}">
+                                <div class="login-toast__copy">
+                                    <strong>Try again</strong>
+                                    <span>{{ message }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
-        <label>Password</label>
-        <input type="password" name="password" placeholder="Enter password" required>
+                <div class="login-card__header">
+                    <span class="login-badge login-badge--portal">Employee Portal</span>
+                    <h2>Employee Login</h2>
+                    <p>Use your employee username and password to continue.</p>
+                </div>
 
-        <button style="background:#3498db;">Login</button>
-    </form>
+                <form method="post" class="login-form">
+                    {% csrf_token %}
 
-    <div class="back-link">
-        <a href="{% url 'role_select' %}">← Back</a>
-    </div>
-</div>
+                    <label for="employee-username">Username</label>
+                    <input
+                        id="employee-username"
+                        type="text"
+                        name="username"
+                        value="{{ request.POST.username|default:'' }}"
+                        placeholder="Enter your username"
+                        autocomplete="username"
+                        required
+                    >
 
+                    <label for="employee-password">Password</label>
+                    <div class="password-field">
+                        <input
+                            id="employee-password"
+                            type="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button type="button" class="password-toggle" data-password-toggle aria-label="Show password">
+                            Show
+                        </button>
+                    </div>
+
+                    {% if messages %}
+                        <div class="field-chip-stack" aria-live="polite">
+                            {% for message in messages %}
+                                <div class="field-chip field-chip--{{ message.tags|default:'info' }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="field-note">
+                        <span class="caps-warning" data-caps-warning hidden>Caps Lock appears to be on.</span>
+                    </div>
+
+                    <button type="submit" class="login-button">Login</button>
+                </form>
+
+                <div class="login-footer">
+                    <a href="{% url 'role_select' %}" class="back-link">Back to login selection</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.querySelectorAll("[data-password-toggle]").forEach(function(toggleButton) {
+            const input = toggleButton.parentElement.querySelector("input");
+
+            toggleButton.addEventListener("click", function() {
+                const isPassword = input.type === "password";
+                input.type = isPassword ? "text" : "password";
+                toggleButton.textContent = isPassword ? "Hide" : "Show";
+                toggleButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+            });
+        });
+
+        document.querySelectorAll(".login-form input[type='password']").forEach(function(input) {
+            const warning = input.closest(".login-form").querySelector("[data-caps-warning]");
+            if (!warning) {
+                return;
+            }
+
+            input.addEventListener("keyup", function(event) {
+                warning.hidden = !event.getModifierState("CapsLock");
+            });
+
+            input.addEventListener("keydown", function(event) {
+                warning.hidden = !event.getModifierState("CapsLock");
+            });
+
+            input.addEventListener("blur", function() {
+                warning.hidden = true;
+            });
+        });
+    </script>
 </body>
 </html>

@@ -6,15 +6,20 @@ urlpatterns = [
     # path('', views.login_view, name='login'),
     
     # path('admin/', admin.site.urls),
-    path('', views.role_select, name='role_select'),
+    path('', views.app_loading, name='app_loading'),
+    path('portal/', views.role_select, name='role_select'),
     
-    path('admin-login/', views.admin_login, name='admin_login'),
+    path('admin-login/', views.admin_login_loading, name='admin_login'),
+    path('admin-login/form/', views.admin_login, name='admin_login_form'),
+    path('admin-login/workspace/', views.admin_workspace_loading, name='admin_workspace_loading'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
 
     # Custom Logout only for the Admin we have bypassed the traditional logout and made custom admin logout to redirect to admin login page
     path("admin-logout/", views.logout_view, name="admin_logout_custom"), 
 
-    path('hr-login/', views.hr_login, name='hr_login'),
+    path('hr-login/', views.hr_login_loading, name='hr_login'),
+    path('hr-login/form/', views.hr_login, name='hr_login_form'),
+    path('hr-login/workspace/', views.hr_workspace_loading, name='hr_workspace_loading'),
     path('hr-dashboard/', views.hr_dashboard, name='hr_dashboard'),
     path('manage-all/', views.manage_all, name='manage_all'),
     path('api/manage-all/employee/<int:user_id>/', views.manage_all_employee_detail, name='manage_all_employee_detail'),
@@ -39,7 +44,9 @@ urlpatterns = [
 
 
 
-    path('employee-login/', views.employee_login, name='employee_login'),
+    path('employee-login/', views.employee_login_loading, name='employee_login'),
+    path('employee-login/form/', views.employee_login, name='employee_login_form'),
+    path('employee-login/workspace/', views.employee_workspace_loading, name='employee_workspace_loading'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('apply_leave/', views.apply_leave, name='apply_leave'),
     path('my_leave/', views.my_leave, name='my_leave'),

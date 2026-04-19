@@ -1112,6 +1112,7 @@ label {
 }
 
 .date-day {
+    position: relative;
     height: 30px;
     border: 1px solid rgba(47, 115, 217, 0.18);
     border-radius: 9px;
@@ -1125,6 +1126,10 @@ label {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.82),
         0 4px 8px rgba(47, 115, 217, 0.05);
+}
+
+.date-day:disabled {
+    cursor: not-allowed;
 }
 
 .date-day:hover {
@@ -1145,8 +1150,78 @@ label {
     background: rgba(255, 255, 255, 0.52);
 }
 
-.date-day.muted.weekend,
-.date-day.weekend:disabled {
+.date-day.muted:hover,
+.date-day:disabled:hover {
+    transform: none;
+}
+
+.date-day.weekend:disabled,
+.date-day.weekend.muted {
+    color: #b85b4e;
+    background: linear-gradient(180deg, rgba(255, 242, 238, 0.92), rgba(255, 248, 245, 0.92));
+    border-color: rgba(232, 133, 113, 0.18);
+    box-shadow: none;
+}
+
+.date-day.existing-leave,
+.date-day.existing-leave:disabled {
+    cursor: not-allowed;
+    color: rgba(71, 85, 105, 0.72);
+    background:
+        linear-gradient(180deg, rgba(241, 245, 249, 0.98), rgba(226, 232, 240, 0.96));
+    border-color: rgba(100, 116, 139, 0.24);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-pending,
+.date-day.existing-leave-pending:disabled {
+    color: #9a3412;
+    background:
+        linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(254, 215, 170, 0.96));
+    border-color: rgba(249, 115, 22, 0.28);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-approved,
+.date-day.existing-leave-approved:disabled {
+    color: #166534;
+    background:
+        linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(187, 247, 208, 0.96));
+    border-color: rgba(34, 197, 94, 0.3);
+    box-shadow: none;
+}
+
+.date-day.existing-leave:hover,
+.date-day.existing-leave:disabled:hover {
+    transform: none;
+    color: rgba(71, 85, 105, 0.72);
+    background:
+        linear-gradient(180deg, rgba(241, 245, 249, 0.98), rgba(226, 232, 240, 0.96));
+    border-color: rgba(100, 116, 139, 0.24);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-pending:hover,
+.date-day.existing-leave-pending:disabled:hover {
+    transform: none;
+    color: #9a3412;
+    background:
+        linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(254, 215, 170, 0.96));
+    border-color: rgba(249, 115, 22, 0.28);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-approved:hover,
+.date-day.existing-leave-approved:disabled:hover {
+    transform: none;
+    color: #166534;
+    background:
+        linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(187, 247, 208, 0.96));
+    border-color: rgba(34, 197, 94, 0.3);
+    box-shadow: none;
+}
+
+.date-day.muted:not(.weekend):not(.company-holiday) {
     color: rgba(97, 120, 143, 0.45);
     background: rgba(255, 255, 255, 0.52);
     border-color: rgba(47, 115, 217, 0.10);
@@ -1184,6 +1259,60 @@ label {
     box-shadow:
         0 12px 20px rgba(47, 174, 112, 0.16),
         0 0 0 2px rgba(47, 174, 112, 0.12);
+}
+
+.date-day.company-holiday {
+    border-color: rgba(34, 197, 94, 0.34);
+    background:
+        linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(220, 252, 231, 0.96));
+    color: #166534;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 6px 12px rgba(34, 197, 94, 0.08);
+}
+
+.date-day.company-holiday:disabled,
+.date-day.company-holiday.muted {
+    border-color: rgba(34, 197, 94, 0.34);
+    background:
+        linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(220, 252, 231, 0.96));
+    color: #166534;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 6px 12px rgba(34, 197, 94, 0.08);
+}
+
+.date-day.company-holiday:hover {
+    border-color: rgba(34, 197, 94, 0.48);
+    background:
+        linear-gradient(180deg, rgba(240, 253, 244, 1), rgba(187, 247, 208, 0.98));
+    color: #15803d;
+    box-shadow:
+        0 12px 18px rgba(34, 197, 94, 0.12),
+        0 0 0 2px rgba(34, 197, 94, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+.date-day.company-holiday-blocked {
+    border-color: rgba(22, 163, 74, 0.48);
+    background:
+        linear-gradient(180deg, rgba(220, 252, 231, 1), rgba(187, 247, 208, 0.98));
+    color: #166534;
+}
+
+.date-day.company-holiday-blocked:disabled,
+.date-day.company-holiday-blocked.muted {
+    border-color: rgba(22, 163, 74, 0.48);
+    background:
+        linear-gradient(180deg, rgba(220, 252, 231, 1), rgba(187, 247, 208, 0.98));
+    color: #166534;
+}
+
+.date-day.company-holiday-blocked:hover {
+    border-color: rgba(22, 163, 74, 0.6);
+    background:
+        linear-gradient(180deg, rgba(220, 252, 231, 1), rgba(134, 239, 172, 0.98));
+    color: #15803d;
 }
 
 .date-actions {
@@ -2649,6 +2778,34 @@ textarea {
 
 .holiday-tile::after {
     background: linear-gradient(90deg, #5db7a3, #228b78, #9dd7cb);
+}
+
+.holiday-tile .tile-main {
+    min-height: 98px;
+    align-content: space-between;
+    gap: 6px;
+}
+
+.holiday-tile .leave-progress {
+    margin-top: 8px;
+}
+
+.holiday-tile .leave-progress .progress-bar {
+    border-color: rgba(34, 139, 120, 0.22);
+    background: linear-gradient(135deg, rgba(220, 243, 236, 0.94), rgba(238, 248, 246, 0.98));
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.82),
+        0 4px 10px rgba(34, 139, 120, 0.08);
+}
+
+.holiday-tile .leave-progress .progress-fill {
+    background: linear-gradient(90deg, #228b78, #2fb7a0, #8ce3d3);
+}
+
+.holiday-tile .leave-progress .progress-text {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #1f6f60;
 }
 
 .balance-tile {

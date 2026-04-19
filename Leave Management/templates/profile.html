@@ -366,7 +366,7 @@
                     <div class="insight-stats">
                         <div class="insight-stat">
                             <span>Total leave</span>
-                            <strong data-countup data-countup-target="27">27</strong>
+                            <strong data-countup data-countup-target="{{ balance.total_leave_balance }}" data-countup-decimals="2">{{ balance.total_leave_balance }}</strong>
                         </div>
                         <div class="insight-stat">
                             <span>Total used</span>
@@ -409,7 +409,7 @@
                             <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#8801;</span><span>All Leave</span></div>
                         </div>
                         <div class="leave-row">
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9679;</span><span>Total</span></span><span data-countup data-countup-target="27">27</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9679;</span><span>Total</span></span><span data-countup data-countup-target="{{ balance.total_leave_balance }}" data-countup-decimals="2">{{ balance.total_leave_balance }}</span></div>
                             <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#10003;</span><span>Used</span></span><span data-countup data-countup-target="{{ total_used }}" data-countup-decimals="2">{{ total_used }}</span></div>
                             <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9711;</span><span>Remaining</span></span><span data-countup data-countup-target="{{ total_remaining }}" data-countup-decimals="2">{{ total_remaining }}</span></div>
                         </div>

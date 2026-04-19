@@ -570,7 +570,7 @@
     <div id="form-home" style="display:none;">
         <div id="edit-leave-template">
 
-            <div class="edit-template-title">
+            <div class="edit-template-title popup-panel-title">
                 <h3>Edit Your Leave</h3>
                 <p>Update the leave details below. Existing validation and approval rules remain unchanged.</p>
             </div>
@@ -755,41 +755,23 @@
 
         function hydrateDayBlocks() {
             document.querySelectorAll(".js-days-block").forEach((block) => {
-                const fromDate = block.dataset.fromDate;
-                const toDate = block.dataset.toDate;
-                const leaveType = block.dataset.leaveType;
                 const valueNode = block.querySelector(".js-days-value");
                 const labelNode = block.querySelector(".js-days-label");
 
-                if (!fromDate || !toDate || !valueNode || !labelNode) {
+                if (!valueNode || !labelNode) {
                     return;
                 }
 
-                const start = new Date(`${fromDate}T00:00:00`);
-                const end = new Date(`${toDate}T00:00:00`);
+                const targetValue = Number(block.dataset.daysTarget || "0");
+                const suffixText = block.dataset.daysSuffix || "";
+                const labelText = block.dataset.daysLabel || "";
 
-                if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                if (!Number.isFinite(targetValue)) {
                     return;
                 }
 
-                const msPerDay = 24 * 60 * 60 * 1000;
-                const diffDays = Math.max(1, Math.round((end - start) / msPerDay) + 1);
-
-                if (leaveType === "Short" || leaveType === "Half") {
-                    const hourValue = leaveType === "Short" ? 2 : 4;
-                    block.dataset.daysTarget = String(hourValue);
-                    block.dataset.daysSuffix = " hour";
-                    block.dataset.daysLabel = "of the day";
-                    valueNode.textContent = `${hourValue} hour`;
-                    labelNode.textContent = "of the day";
-                    return;
-                }
-
-                block.dataset.daysTarget = String(diffDays);
-                block.dataset.daysSuffix = "";
-                block.dataset.daysLabel = diffDays === 1 ? "day" : "days";
-                valueNode.textContent = String(diffDays);
-                labelNode.textContent = diffDays === 1 ? "day" : "days";
+                valueNode.textContent = `${targetValue}${suffixText}`;
+                labelNode.textContent = labelText;
             });
         }
 
@@ -1287,13 +1269,16 @@
                 // Load all data (leaves, holidays, company closures) from response
                 const leaves = data.leaves;
                 const holidays = data.holidays;
-                {% comment %} 
-                // const companyClosures = data.company_closures; 
-                {% endcomment %}
+                const companyHolidays = data.company_holidays || [];
 
                 /* ========================================= CLEAR PREVIOUS CONTENT ========================================= */
                 const modalContent = document.getElementById("modal-content");
+                const modalBox = document.querySelector(".modal-box");
                 modalContent.innerHTML = "";
+
+                if (modalBox) {
+                    modalBox.classList.remove("popup-edit-modal-box", "popup-filter-modal-box", "reason-modal", "expanded-calendar", "compact-calendar");
+                }
 
                 /* ========================================= TITLE ================================================= */
                 const title = document.createElement("h3");
@@ -1479,7 +1464,7 @@
 
                 for (let month = 0; month < 12; month++) 
                 {
-                    yearContainer.appendChild( buildMonthCalendar(year, month, leaves, holidays) );
+                    yearContainer.appendChild( buildMonthCalendar(year, month, leaves, holidays, companyHolidays) );
                 }
 
                 // By default, show only current month and hide others to reduce overwhelm and draw attention to current month. 
@@ -1526,7 +1511,6 @@
                 
 
                 // Make modal wider for calendar view only ( in your existing modal, just add a class to trigger wider styles)
-                const modalBox = document.querySelector(".modal-box");
                 modalBox.classList.add("compact-calendar");
 
                 // ===== Inject Calendar Toggle Button (Only For Calendar) =====
@@ -1678,7 +1662,7 @@
             });
     }
 
-    function buildMonthCalendar(year, month, leaves, holidays)
+    function buildMonthCalendar(year, month, leaves, holidays, companyHolidays)
     {
         const monthContainer = document.createElement("div");
         monthContainer.id = `month-${month}`;
@@ -1742,14 +1726,26 @@
             }
 
             const holiday = holidays.find(h => h.date === dateStr);
+            const companyDay = companyHolidays.find(h => h.date === dateStr);
             const leave = leaves.find(l => dateStr >= l.from && dateStr <= l.to);
+            const tooltipParts = [];
 
             /* ===============================
             4ï¸âƒ£ TOOLTIP PREVIEW (HOVER)
             =============================== */
             if (leave) 
             {
-                cell.title = `Leave Type: ${leave.type} \nDate : ${leave.from} &rarr; ${leave.to} \nStatus: ${leave.status}`;
+                tooltipParts.push(`Leave Type: ${leave.type}`);
+                tooltipParts.push(`Date: ${leave.from} -> ${leave.to}`);
+                tooltipParts.push(`Status: ${leave.status}`);
+            }
+
+            if (companyDay) 
+            {
+                const companyDot = document.createElement("span");
+                companyDot.className = "holiday-dot company-dot";
+                cell.appendChild(companyDot);
+                tooltipParts.push(`${companyDay.is_optional ? "Optional" : "Company"} Holiday: ${companyDay.name}`);
             }
 
             // 1ï¸âƒ£ Company closure (highest priority)
@@ -1768,8 +1764,13 @@
             {
                 const publicDot = document.createElement("span");
                 publicDot.className = "holiday-dot public-dot";
-                publicDot.title = `Public Holiday: ${holiday.name}`;
                 cell.appendChild(publicDot);
+                tooltipParts.push(`Public Holiday: ${holiday.name}`);
+            }
+
+            if (tooltipParts.length)
+            {
+                cell.title = tooltipParts.join("\n");
             }
 
             /* ===============================
@@ -2321,27 +2322,11 @@
 
         if (!valueNode || !labelNode) return;
 
-        if (leave.leave_type === "Short" || leave.leave_type === "Half")
-        {
-            const hourValue = leave.leave_type === "Short" ? 2 : 4;
-            block.dataset.daysTarget = String(hourValue);
-            block.dataset.daysSuffix = " hour";
-            block.dataset.daysLabel = "of the day";
-            valueNode.textContent = `${hourValue} hour`;
-            labelNode.textContent = "of the day";
-            return;
-        }
-
-        const start = new Date(`${leave.from_date}T00:00:00`);
-        const end = new Date(`${leave.to_date}T00:00:00`);
-        const msPerDay = 24 * 60 * 60 * 1000;
-        const diffDays = Math.max(1, Math.round((end - start) / msPerDay) + 1);
-
-        block.dataset.daysTarget = String(diffDays);
-        block.dataset.daysSuffix = "";
-        block.dataset.daysLabel = diffDays === 1 ? "day" : "days";
-        valueNode.textContent = String(diffDays);
-        labelNode.textContent = diffDays === 1 ? "day" : "days";
+        block.dataset.daysTarget = String(leave.days_target ?? 0);
+        block.dataset.daysSuffix = leave.days_suffix || "";
+        block.dataset.daysLabel = leave.days_label || "days";
+        valueNode.textContent = leave.days_value_display || "0";
+        labelNode.textContent = leave.days_label || "days";
     }
 
     function applyPendingInlineReason(node, fullText)
@@ -2669,6 +2654,47 @@
         refreshPanelPagination("pending-panel");
     }
 
+    function updateMyLeaveCountElement(element, value)
+    {
+        if (!element)
+        {
+            return;
+        }
+
+        const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+        element.dataset.countupTarget = String(safeValue);
+        element.textContent = String(safeValue);
+
+        if (typeof window.animateCountUp === "function")
+        {
+            window.animateCountUp(element, safeValue, { duration: 260 });
+        }
+    }
+
+    function updateMyLeavePanelCounts(counts)
+    {
+        if (!counts || typeof counts !== "object")
+        {
+            return;
+        }
+
+        const panelMap = {
+            pending: "pending-panel",
+            approved: "approved-panel",
+            rejected: "rejected-panel"
+        };
+
+        Object.entries(panelMap).forEach(([key, panelId]) =>
+        {
+            const count = counts[key] ?? 0;
+            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
+            const panelCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
+
+            updateMyLeaveCountElement(tabCount, count);
+            updateMyLeaveCountElement(panelCount, count);
+        });
+    }
+
     function updatePendingRowFromPayload(leave)
     {
         const row = document.querySelector(`#pending-panel .leave-row[data-leave-id="${leave.id}"]`);
@@ -2806,6 +2832,15 @@
             setupTablePagination();
             renumberPendingRows();
             applyAllMyLeaveFilters();
+            updateMyLeavePanelCounts(payload.counts);
+
+            document.dispatchEvent(new CustomEvent("countup:refresh", {
+                detail: {
+                    root: document,
+                    duration: 220,
+                    force: true
+                }
+            }));
 
             if (typeof window.myLeaveActivatePanel === "function")
             {
@@ -2979,9 +3014,11 @@
                 return false;
             }
 
-            updatePendingRowFromPayload(payload.leave);
-            renumberPendingRows();
-            applyFilterStateToPanel("Pending");
+            await refreshMyLeaveLiveData({
+                activePanel: "pending-panel",
+                targetPanel: "pending-panel",
+                highlightLeaveId: payload.leave.id
+            });
 
             if (typeof closeModal === "function")
             {
@@ -3019,11 +3056,9 @@
                 return;
             }
 
-            const row = form.closest("tr.leave-row");
-            if (row) row.remove();
-
-            renumberPendingRows();
-            applyFilterStateToPanel("Pending");
+            await refreshMyLeaveLiveData({
+                activePanel: "pending-panel"
+            });
         });
 
         document.addEventListener("click", async (event) =>
@@ -3189,7 +3224,8 @@
         const modalBox = document.querySelector(".modal-box");
 
         if (modalBox) {
-            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-filter-modal-box");
+            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-filter-modal-box", "popup-edit-modal-box");
+            modalBox.classList.add("popup-edit-modal-box");
         }
 
         modalContent.innerHTML = "";
@@ -3773,7 +3809,7 @@
         modalContent.innerHTML = "";
 
         if (modalBox) {
-            modalBox.classList.remove("compact-calendar", "expanded-calendar", "popup-filter-modal-box");
+            modalBox.classList.remove("compact-calendar", "expanded-calendar", "popup-filter-modal-box", "popup-edit-modal-box");
             modalBox.classList.add("reason-modal");
         }
 
@@ -3802,7 +3838,8 @@
     {
         const modalBox = document.querySelector(".modal-box");
         if (modalBox) {
-            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar");
+            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-edit-modal-box");
+            modalBox.classList.add("popup-filter-modal-box");
         }
 
         // SAFETY: clear previous content
@@ -3817,7 +3854,10 @@
 
         // 3ï¸âƒ£ Build content safely
         content.innerHTML = `
-            <h3 style="text-align:center;">&#128269; Filter Leaves</h3>
+            <div class="popup-panel-title">
+                <h3>&#128269; Filter Leaves</h3>
+                <p>Refine this leave section by type, month, or a custom date range.</p>
+            </div>
 
             <form method="post" action="/apply-status-filter/${status}/" class="filter-form">
 

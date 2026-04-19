@@ -333,7 +333,7 @@ class LeaveAdmin(admin.ModelAdmin):
 @admin.register(LeaveBalance)
 class LeaveBalanceAdmin(admin.ModelAdmin):
     
-    list_display = ("user", "total_leaves", "sick_total", "sick_used", "earned_total", "earned_used", "unpaid")
+    list_display = ("user", "total_leave_balance", "total_leave_remaining", "sick_total", "sick_used", "earned_total", "earned_used", "unpaid")
     
     
 

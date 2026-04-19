@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="{% static 'css/loading_screen.css' %}">
+</head>
+<body class="loading-page {{ theme_class }}">
+    <a href="{{ target_url }}" class="skip-toast">
+        <span class="skip-toast__label">Skip</span>
+        <span class="skip-toast__count"><span id="toast-countdown">{{ duration }}</span>s</span>
+    </a>
+    <main class="loading-shell">
+        <section class="loading-card">
+            <div class="loading-topbar">
+                <h1 class="company-line">MS Technology</h1>
+                <span class="topbar-tag">{{ kicker }}</span>
+            </div>
+
+            <div class="loading-brand">
+                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
+                <div>
+                    <h2 class="brand-product">{{ company_product }}</h2>
+                    <p class="brand-caption">{{ subtitle }}</p>
+                </div>
+            </div>
+
+            <div class="loading-visual" aria-hidden="true">
+                <div class="orbital orbital-one"></div>
+                <div class="orbital orbital-two"></div>
+                <div class="orbital orbital-three"></div>
+                <div class="loading-core">
+                    <span>{{ center_label }}</span>
+                </div>
+            </div>
+
+            <div class="loading-copy">
+                <h2>{{ headline }}</h2>
+                <p>{{ description }}</p>
+            </div>
+
+            <div class="progress-block progress-block--desktop">
+                <div class="progress-meta">
+                    <span>Preparing experience</span>
+                    <span id="countdown">{{ duration }}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="--duration: {{ duration }}s;"></div>
+                </div>
+                <p class="progress-note">You will be redirected automatically in {{ duration }} seconds.</p>
+            </div>
+
+            <div class="info-grid">
+                {% for item in info_items %}
+                    <article class="info-card">
+                        <strong>{{ item.title }}</strong>
+                        <span>{{ item.text }}</span>
+                    </article>
+                {% endfor %}
+            </div>
+
+            <div class="loading-footer">
+                <span>Secure role-based leave management</span>
+                <span>Powered by MST</span>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function() {
+            const duration = {{ duration }};
+            const targetUrl = "{{ target_url|escapejs }}";
+            const countdown = document.getElementById("countdown");
+            const toastCountdown = document.getElementById("toast-countdown");
+            let remaining = duration;
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({ loader: true }, "", window.location.href);
+            }
+
+            const interval = window.setInterval(function() {
+                remaining -= 1;
+                if (countdown) {
+                    countdown.textContent = remaining > 0 ? remaining : 0;
+                }
+                if (toastCountdown) {
+                    toastCountdown.textContent = remaining > 0 ? remaining : 0;
+                }
+                if (remaining <= 0) {
+                    window.clearInterval(interval);
+                }
+            }, 1000);
+
+            function goNext() {
+                window.location.replace(targetUrl);
+            }
+
+            window.setTimeout(goNext, duration * 1000);
+
+            window.addEventListener("pageshow", function(event) {
+                if (event.persisted) {
+                    goNext();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

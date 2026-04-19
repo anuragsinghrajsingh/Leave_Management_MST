@@ -1,17 +1,29 @@
 <div class="summary-panel summary-panel-balance">
     <span class="summary-label">Available Balance</span>
-    <strong data-countup data-countup-target="{{ balance.total_leaves }}" data-countup-decimals="2">{{ balance.total_leaves }}</strong>
+    <strong data-countup data-countup-target="{{ balance.total_leave_remaining }}" data-countup-decimals="2">{{ balance.total_leave_remaining }}</strong>
     <span class="summary-meta">
         Total remaining leave days
     </span>
     <span class="summary-meta">
         <span data-countup data-countup-target="{{ balance.sick_used|add:balance.earned_used }}" data-countup-decimals="2">{{ balance.sick_used|add:balance.earned_used }}</span>
         used of
-        <span data-countup data-countup-target="27" data-countup-decimals="2">27</span>
+        <span data-countup data-countup-target="{{ balance.total_leave_balance }}" data-countup-decimals="2">{{ balance.total_leave_balance }}</span>
     </span>
 </div>
 
-<div class="summary-panel summary-panel-accent">
+<div class="summary-panel summary-panel-company-holiday">
+    <span class="summary-label">Company Holiday</span>
+    {% if upcoming_company_holiday %}
+        <strong>{{ upcoming_company_holiday.date|date:"M d" }}</strong>
+        <span class="summary-meta">{{ upcoming_company_holiday.name }}</span>
+        <span class="summary-meta">{{ upcoming_company_holiday.date|date:"l, F j, Y" }}</span>
+    {% else %}
+        <strong>-</strong>
+        <span class="summary-meta">No upcoming company holiday</span>
+    {% endif %}
+</div>
+
+<div class="summary-panel summary-panel-open-requests">
     <span class="summary-label">Open Requests</span>
     <strong data-countup data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</strong>
     <span class="summary-meta">Pending review right now</span>

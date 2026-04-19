@@ -144,6 +144,8 @@ class Leave(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     from_date = models.DateField()
     to_date = models.DateField()
+    requested_from_date = models.DateField(blank=True, null=True)
+    requested_to_date = models.DateField(blank=True, null=True)
 
     # Time support
     from_datetime = models.DateTimeField()
@@ -248,7 +250,8 @@ class LeaveBalance(models.Model):
     
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    total_leaves = models.FloatField(default=27)
+    total_leave_balance = models.FloatField(default=27)
+    total_leave_remaining = models.FloatField(default=27)
 
     sick_total = models.FloatField(default=12)
     sick_used = models.FloatField(default=0)
@@ -257,9 +260,28 @@ class LeaveBalance(models.Model):
     earned_used = models.FloatField(default=0)
 
     unpaid = models.FloatField(default=0)
+    last_year_end_processed = models.PositiveIntegerField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.total_leave_remaining = max(float(self.total_leave_remaining or 0), 0)
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.user.username} Leave Balance"
+
+
+class YearEndCarryForwardRun(models.Model):
+    year = models.PositiveIntegerField(unique=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-year"]
+        verbose_name = "Year-end carry forward run"
+        verbose_name_plural = "Year-end carry forward runs"
+
+    def __str__(self):
+        status = "completed" if self.completed_at else "pending"
+        return f"{self.year} carry forward ({status})"
 
 
 
@@ -268,7 +290,8 @@ class LeaveBalance(models.Model):
 class CompanyHoliday(models.Model):
     """
     Company-wide holiday for a specific date.
-    These dates are excluded from leave calculations.
+    Employees cannot apply leave only for a blocked company holiday date,
+    but the day still counts when it falls inside a wider leave range.
     """
 
     name = models.CharField(max_length=200)

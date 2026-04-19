@@ -1,37 +1,74 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Select Login Type</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Login | Leave Management</title>
     <link rel="stylesheet" href="{% static 'css/role_select.css' %}">
 </head>
 <body>
+    <main class="role-shell">
+        <section class="hero-panel">
+            <div class="brand-lockup">
+                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
+                <div>
+                    <p class="brand-name">MS Technology</p>
+                    <span class="hero-kicker">Leave Management Portal</span>
+                </div>
+            </div>
+            <h1>Choose how you want to sign in</h1>
+            <p>
+                Access the workspace built for your role. Each portal is tailored for faster leave
+                requests, approvals, and team visibility across desktop and mobile.
+            </p>
 
-<div class="role-container">
-    <h1>Leave Management System</h1>
-    <p>Select your login type</p>
+            <div class="hero-points">
+                <div class="hero-point">
+                    <strong>Employees</strong>
+                    <span>Apply, track, and manage leave requests smoothly.</span>
+                </div>
+                <div class="hero-point">
+                    <strong>HR</strong>
+                    <span>Review approvals, oversee records, and support teams.</span>
+                </div>
+                <div class="hero-point">
+                    <strong>Admin</strong>
+                    <span>Handle configuration, policies, and overall system access.</span>
+                </div>
+            </div>
+        </section>
 
-    <div class="role-options">
-       <a href="{% url 'employee_login' %}" class="role-card employee">
-            👨‍💼
-            <h2>Employee</h2>
-            <p>Apply and manage your leaves</p>
-        </a>
+        <section class="role-container">
+            <div class="role-heading">
+                <span class="section-label">Secure Access</span>
+                <h2>Select your login type</h2>
+                <p>Pick the right portal to continue.</p>
+            </div>
 
-        <a href="{% url 'hr_login' %}" class="role-card hr">
-            🧑‍💻
-            <h2>HR</h2>
-            <p>Approve & manage employee leaves</p>
-        </a>
+            <div class="role-options">
+                <a href="{% url 'employee_login' %}" class="role-card employee">
+                    <span class="role-badge">Employee</span>
+                    <h3>Employee Login</h3>
+                    <p>Request leave, view balances, and check approvals from any device.</p>
+                    <span class="role-link">Open employee portal</span>
+                </a>
 
-        <a href="{% url 'admin_login' %}" class="role-card admin">
-            🛡
-            <h2>Admin</h2>
-            <p>System management & control</p>
-        </a>
-    </div>
-</div>
+                <a href="{% url 'hr_login' %}" class="role-card hr">
+                    <span class="role-badge">HR</span>
+                    <h3>HR Login</h3>
+                    <p>Manage leave workflows, review requests, and support policy decisions.</p>
+                    <span class="role-link">Open HR portal</span>
+                </a>
 
+                <a href="{% url 'admin_login' %}" class="role-card admin">
+                    <span class="role-badge">Admin</span>
+                    <h3>Admin Login</h3>
+                    <p>Access system administration, user oversight, and platform controls.</p>
+                    <span class="role-link">Open admin portal</span>
+                </a>
+            </div>
+        </section>
+    </main>
 </body>
 </html>

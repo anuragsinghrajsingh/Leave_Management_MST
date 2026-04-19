@@ -559,12 +559,23 @@
                         <article class="info-card compact-card holiday-tile">
                             <div class="tile-top">
                                 <span class="tile-icon">📅</span>
-                                <span class="tile-badge">Holiday</span>
+                                <span class="tile-badge">Company Holiday</span>
                             </div>
                             <div class="tile-main">
                                 <strong>Upcoming Holiday</strong>
-                                <div class="tile-dates">Friday</div>
-                                <p>Next public holiday on the calendar.</p>
+                                {% if upcoming_company_holiday %}
+                                    <div class="tile-dates">{{ upcoming_company_holiday.date|date:"l, F j" }}</div>
+                                    <p>{{ upcoming_company_holiday.name }}</p>
+                                    <div class="leave-progress holiday-progress">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" data-from="{{ upcoming_company_holiday.date|date:'Y-m-d' }}"></div>
+                                        </div>
+                                        <div class="progress-text">{{ upcoming_company_holiday_days }} days left</div>
+                                    </div>
+                                {% else %}
+                                    <div class="tile-dates">No upcoming date</div>
+                                    <p>No company holiday has been added yet.</p>
+                                {% endif %}
                             </div>
                         </article>
 
@@ -575,7 +586,7 @@
                             </div>
                             <div class="tile-main">
                                 <strong>Leave Balance</strong>
-                                <div class="tile-dates">{{ total_leaves }} Days Available</div>
+                                <div class="tile-dates">{{ total_leave_remaining }} Days Available</div>
                                 <p>Used {{ leaves_used }} days so far.</p>
                             </div>
                         </article>
@@ -586,6 +597,9 @@
     </section>
 
     <script>
+        const companyHolidayDates = {{ company_holidays_json|safe }};
+        const companyHolidayMap = new Map(companyHolidayDates.map((holiday) => [holiday.date, holiday]));
+        const existingLeaveRanges = {{ existing_leaves_json|safe }};
         const leaveType = document.getElementById("leaveType");
         const form = document.querySelector(".leave-form");
         const fromTimeBlock = document.getElementById("fromTimeBlock");
@@ -1019,6 +1033,15 @@
             return `${year}-${month}-${day}`;
         }
 
+        function getCompanyHoliday(date) {
+            return companyHolidayMap.get(formatValueDate(date)) || null;
+        }
+
+        function getExistingLeave(date) {
+            const target = formatValueDate(date);
+            return existingLeaveRanges.find((leave) => target >= leave.from && target <= leave.to) || null;
+        }
+
         function parseValueDate(value) {
             if (!value) {
                 return null;
@@ -1190,14 +1213,17 @@
                 dayButton.type = "button";
                 dayButton.className = "date-day";
                 dayButton.textContent = String(day);
+                const companyHoliday = getCompanyHoliday(date);
+                const existingLeave = getExistingLeave(date);
 
                 const minDate = getInputMinDate(hiddenInput);
-                const isDisabled = minDate && date < minDate;
                 const isToday =
                     date.getFullYear() === today.getFullYear() &&
                     date.getMonth() === today.getMonth() &&
                     date.getDate() === today.getDate();
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isCompanyHolidayBlocked = !!companyHoliday;
+                const isDisabled = (minDate && date < minDate) || !!existingLeave || isWeekend || isCompanyHolidayBlocked;
 
                 const isSelected =
                     selectedDate &&
@@ -1211,6 +1237,26 @@
 
                 if (isWeekend) {
                     dayButton.classList.add("weekend");
+                }
+
+                if (companyHoliday) {
+                    dayButton.classList.add("company-holiday");
+                    if (!companyHoliday.is_optional) {
+                        dayButton.classList.add("company-holiday-blocked");
+                    }
+                    dayButton.title = companyHoliday.is_optional
+                        ? `Optional Company Holiday: ${companyHoliday.name}. This date is blocked in the calendar.`
+                        : `Company Holiday: ${companyHoliday.name}. This date cannot be selected.`;
+                }
+
+                if (existingLeave) {
+                    const statusClass = (existingLeave.status || "").toLowerCase();
+                    dayButton.classList.add("existing-leave", `existing-leave-${statusClass}`);
+                    dayButton.title = `${existingLeave.type} leave already applied (${existingLeave.status})`;
+                }
+
+                if (isWeekend && !existingLeave && !companyHoliday) {
+                    dayButton.title = "Weekend cannot be selected.";
                 }
 
                 if (isSelected) {

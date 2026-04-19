@@ -145,6 +145,8 @@ body.hr-page .notification-meta
 
 body.hr-page .notification-panel
 {
+    --notification-pointer-size: 8px;
+    --notification-pointer-right: 12px;
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
@@ -161,18 +163,39 @@ body.hr-page .notification-panel
     z-index: 250;
 }
 
-body.hr-page .notification-panel::before
+body.hr-page .notification-panel::before,
+body.hr-page .notification-panel::after
 {
     content: "";
     position: absolute;
-    top: -8px;
-    right: 12px;
-    width: 16px;
-    height: 16px;
-    background: rgba(255,255,255,0.98);
-    border-top: 1px solid rgba(148, 163, 184, 0.22);
-    border-left: 1px solid rgba(148, 163, 184, 0.22);
-    transform: rotate(45deg);
+    width: 0;
+    height: 0;
+    left: auto;
+    background: transparent;
+    transform: none;
+    pointer-events: none;
+}
+
+body.hr-page .notification-panel::before
+{
+    top: calc((var(--notification-pointer-size) * -1) - 1px);
+    right: calc(var(--notification-pointer-right) - 1px);
+    border-left: calc(var(--notification-pointer-size) + 1px) solid transparent;
+    border-right: calc(var(--notification-pointer-size) + 1px) solid transparent;
+    border-top: 0;
+    border-bottom: calc(var(--notification-pointer-size) + 1px) solid rgba(148, 163, 184, 0.22);
+    filter: drop-shadow(0 8px 12px rgba(71, 85, 105, 0.08));
+}
+
+body.hr-page .notification-panel::after
+{
+    top: calc(var(--notification-pointer-size) * -1);
+    right: var(--notification-pointer-right);
+    border-left: var(--notification-pointer-size) solid transparent;
+    border-right: var(--notification-pointer-size) solid transparent;
+    border-top: 0;
+    border-bottom: var(--notification-pointer-size) solid rgba(255,255,255,0.98);
+    filter: drop-shadow(0 8px 12px rgba(71, 85, 105, 0.12));
 }
 
 body.hr-page .notification-dropdown.is-open .notification-panel
@@ -1049,6 +1072,8 @@ body.hr-page .notification-item-half.is-new
 
     body.hr-page .notification-panel
     {
+        --notification-pointer-size: 7px;
+        --notification-pointer-right: 10px;
         width: min(222px, calc(100vw - 8px));
         max-width: calc(100vw - 8px);
         padding: 6px 1px 6px 5px !important;

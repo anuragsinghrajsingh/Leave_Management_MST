@@ -22,61 +22,48 @@ from django.utils.html import escape
 from django.template.loader import render_to_string
 import base64
 
-
-def _get_leave_day_display(leave):
-    if leave.leave_type == "Short":
-        return {
-            "days_value": 0.25,
-            "days_value_display": "0.25 day",
-            "days_target": 0.25,
-            "days_suffix": "",
-            "days_label": "day",
-        }
-
-    if leave.leave_type == "Half":
-        return {
-            "days_value": 0.5,
-            "days_value_display": "0.5 day",
-            "days_target": 0.5,
-            "days_suffix": "",
-            "days_label": "day",
-        }
-
-    from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
-
-    working_days = calculate_leave_breakdown_for_leave(leave)["working_days"]
-    safe_days = max(int(working_days or 0), 0)
-    return {
-        "days_value": safe_days,
-        "days_value_display": str(safe_days),
-        "days_target": safe_days,
-        "days_suffix": "",
-        "days_label": "day" if safe_days == 1 else "days",
-    }
+from App.view_modules.communications import (
+    communications_feed,
+    communications_mark_read,
+    communications_mark_seen,
+    communications_send,
+    get_communication_context,
+)
+from App.view_modules.notifications import (
+    build_employee_notifications,
+    build_hr_pending_notifications,
+    employee_notifications,
+    get_employee_notification_context,
+    get_hr_notification_context,
+    get_leave_activity_datetime,
+    hr_notifications,
+    notifications_mark_read,
+    notifications_mark_seen,
+    refresh_pending_leave_notification,
+)
 
 
-
-
-def _get_flash_title(message_tags):
-    tags = message_tags or ""
-
-    if "success" in tags:
-        return "Success"
-    if "error" in tags:
-        return "Action needed"
-    if "warning" in tags:
-        return "Please note"
-    return "Update"
 
 
 def _serialize_flash_messages(request):
+    def get_flash_title(message_tags):
+        tags = message_tags or ""
+
+        if "success" in tags:
+            return "Success"
+        if "error" in tags:
+            return "Action needed"
+        if "warning" in tags:
+            return "Please note"
+        return "Update"
+
     serialized_messages = []
 
     for message in get_messages(request):
         serialized_messages.append({
             "tags": message.tags,
             "text": str(message),
-            "title": _get_flash_title(message.tags),
+            "title": get_flash_title(message.tags),
         })
 
     return serialized_messages
@@ -108,14 +95,11 @@ def _remaining_from_balance(balance):
     return float(getattr(balance, "total_leave_remaining", 0) or 0)
 
 
-def _get_company_holiday(target_date):
+def _get_blocking_company_holiday(target_date):
     if not target_date:
         return None
-    return CompanyHoliday.objects.filter(date=target_date).first()
 
-
-def _get_blocking_company_holiday(target_date):
-    holiday = _get_company_holiday(target_date)
+    holiday = CompanyHoliday.objects.filter(date=target_date).first()
     if holiday and not holiday.is_optional:
         return holiday
     return None
@@ -126,70 +110,8 @@ def _get_upcoming_company_holiday(today=None):
     return CompanyHoliday.objects.filter(date__gte=today).order_by("date").first()
 
 
-def _fallback_public_holidays(year):
-    """
-    Minimal fallback for fixed-date national holidays only.
-    This is not the full public holiday calendar.
-    Used only when the live Google holiday calendar cannot be fetched.
-    """
-    return [
-        {
-            "date": f"{year}-01-26",
-            "name": "Republic Day",
-            "type": "Public",
-        },
-        {
-            "date": f"{year}-08-15",
-            "name": "Independence Day",
-            "type": "Public",
-        },
-        {
-            "date": f"{year}-10-02",
-            "name": "Gandhi Jayanti",
-            "type": "Public",
-        },
-    ]
-
-def _serialize_leave_for_my_leave(leave):
-    leave_type_class = (leave.leave_type or "").lower()
-
-    if leave.leave_type == "Short":
-        day_display = {
-            "days_value": 2,
-            "days_value_display": "2 hour",
-            "days_target": 2,
-            "days_suffix": " hour",
-            "days_label": "of the day",
-        }
-    elif leave.leave_type == "Half":
-        day_display = {
-            "days_value": 4,
-            "days_value_display": "4 hour",
-            "days_target": 4,
-            "days_suffix": " hour",
-            "days_label": "of the day",
-        }
-    else:
-        from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
-
-        working_days = calculate_leave_breakdown_for_leave(leave)["working_days"]
-        safe_days = max(int(working_days or 0), 0)
-        day_display = {
-            "days_value": safe_days,
-            "days_value_display": str(safe_days),
-            "days_target": safe_days,
-            "days_suffix": "",
-            "days_label": "day" if safe_days == 1 else "days",
-        }
-
-    if leave.leave_type == "Short":
-        leave_code = "S"
-    elif leave.leave_type == "Half":
-        leave_code = "H"
-    else:
-        leave_code = (leave.leave_type or "")[:1].upper()
-
-    leave_symbol = {
+if False:
+    _ = """
         "Sick": "✚",
         "Unpaid": "☕",
         "Earned": "★",
@@ -197,35 +119,7 @@ def _serialize_leave_for_my_leave(leave):
         "Half": "◐",
     }.get(leave.leave_type, "✦")
 
-    updated_count = leave.no_of_times_updated or 0
-
-    return {
-        "id": leave.id,
-        "leave_type": leave.leave_type,
-        "leave_type_class": leave_type_class,
-        "leave_code": leave_code,
-        "leave_symbol": leave_symbol,
-        "from_date": leave.from_date.strftime("%Y-%m-%d"),
-        "to_date": leave.to_date.strftime("%Y-%m-%d"),
-        "from_date_display": leave.from_date.strftime("%b %d, %Y"),
-        "to_date_display": leave.to_date.strftime("%b %d, %Y"),
-        "from_datetime_iso": localtime(leave.from_datetime).isoformat() if leave.from_datetime else "",
-        "to_datetime_iso": localtime(leave.to_datetime).isoformat() if leave.to_datetime else "",
-        "from_time_display": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
-        "to_time_display": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
-        "is_time_based": leave.leave_type in ["Short", "Half"],
-        "reason": leave.reason or "",
-        "updated_iso": localtime(leave.updated_at).isoformat() if leave.updated_at else "",
-        "updated_date_display": localtime(leave.updated_at).strftime("%b %d, %Y") if leave.updated_at else "-",
-        "updated_time_display": localtime(leave.updated_at).strftime("%I:%M %p") if leave.updated_at else "",
-        "updated_count": updated_count,
-        "days_value": day_display["days_value"],
-        "days_value_display": day_display["days_value_display"],
-        "days_target": day_display["days_target"],
-        "days_suffix": day_display["days_suffix"],
-        "days_label": day_display["days_label"],
-        "pending_count": Leave.objects.filter(user=leave.user, status="Pending").count(),
-    }
+    """
 
 @never_cache
 def role_select(request):
@@ -247,244 +141,6 @@ def role_select(request):
     return render(request, "role_select.html")
 
 
-def _show_login_failure_message(request, username, expected_role, portal_label):
-    User = get_user_model()
-    username = (username or "").strip()
-
-    if not username:
-        messages.error(request, "Please enter your username.")
-        return
-
-    user = User.objects.filter(username=username).first()
-
-    if user is None:
-        messages.error(request, f"No account found for username '{username}'.")
-        return
-
-    if not user.is_active:
-        messages.warning(request, "This account is inactive. Please contact HR or the administrator.")
-        return
-
-    if expected_role == "ADMIN":
-        if not user.is_superuser:
-            messages.warning(request, "This account does not have admin access. Please use the correct portal.")
-        else:
-            messages.error(request, "Incorrect admin password. Please try again.")
-        return
-
-    if user.role != expected_role:
-        messages.warning(request, f"This account belongs to the {user.role.title()} portal. Please use the correct login page.")
-        return
-
-    messages.error(request, f"Incorrect {portal_label.lower()} password. Please try again.")
-
-
-def _render_loading_screen(request, *, page_title, theme_class, company_product, subtitle, kicker,
-                           headline, description, center_label, duration, target_url, info_items):
-    return render(request, "loading_screen.html", {
-        "page_title": page_title,
-        "theme_class": theme_class,
-        "company_product": company_product,
-        "subtitle": subtitle,
-        "kicker": kicker,
-        "headline": headline,
-        "description": description,
-        "center_label": center_label,
-        "duration": duration,
-        "target_url": target_url,
-        "info_items": info_items,
-    })
-
-
-@never_cache
-def app_loading(request):
-    if request.user.is_authenticated:
-        if getattr(request.user, "is_superuser", False):
-            return redirect("admin:index")
-        if getattr(request.user, "role", None) == "HR":
-            return redirect("hr_dashboard")
-        if getattr(request.user, "role", None) == "EMPLOYEE":
-            return redirect("dashboard")
-
-    return _render_loading_screen(
-        request,
-        page_title="MS Technology | Launching Portal",
-        theme_class="theme-app",
-        company_product="Leave Management Platform",
-        subtitle="Modern workforce leave operations for teams, HR, and administrators.",
-        kicker="Initializing Workspace",
-        headline="Launching MS Technology leave portal",
-        description="We are preparing the secure role-based experience, loading brand assets, and getting the right login gateways ready for you.",
-        center_label="MST",
-        duration=10,
-        target_url=reverse("role_select"),
-        info_items=[
-            {"title": "Company", "text": "MS Technology workplace leave management system."},
-            {"title": "Secure Access", "text": "Role-aware access paths for Employee, HR, and Admin users."},
-            {"title": "Experience", "text": "Responsive interface optimized for desktop and mobile devices."},
-        ],
-    )
-
-
-@never_cache
-def employee_login_loading(request):
-    if request.user.is_authenticated and request.user.role == "EMPLOYEE":
-        return redirect("dashboard")
-
-    return _render_loading_screen(
-        request,
-        page_title="Employee Portal | MS Technology",
-        theme_class="theme-employee",
-        company_product="MS Technology Employee Access",
-        subtitle="Your personal entry point for leave requests, balances, and status updates.",
-        kicker="Employee Authentication",
-        headline="Preparing the employee login experience",
-        description="We are loading your employee workspace, secure sign-in panel, and responsive tools so you can access leave actions smoothly.",
-        center_label="EMP",
-        duration=5,
-        target_url=reverse("employee_login_form"),
-        info_items=[
-            {"title": "Best For", "text": "Applying leave, tracking approvals, and checking balances quickly."},
-            {"title": "Optimized", "text": "Works comfortably across mobile, tablet, and desktop layouts."},
-            {"title": "Support", "text": "Wrong password and portal mismatch warnings appear clearly on sign-in."},
-        ],
-    )
-
-
-@never_cache
-def hr_login_loading(request):
-    if request.user.is_authenticated and request.user.role == "HR":
-        return redirect("hr_dashboard")
-
-    return _render_loading_screen(
-        request,
-        page_title="HR Portal | MS Technology",
-        theme_class="theme-hr",
-        company_product="MS Technology HR Access",
-        subtitle="Focused entry for leave approvals, records review, and people operations support.",
-        kicker="HR Authentication",
-        headline="Preparing the HR review workspace",
-        description="We are loading the approval-focused HR experience with fast access to employee leave workflows, requests, and oversight tools.",
-        center_label="HR",
-        duration=5,
-        target_url=reverse("hr_login_form"),
-        info_items=[
-            {"title": "Best For", "text": "Approving leave, reviewing records, and maintaining policy visibility."},
-            {"title": "Operational View", "text": "Built for quick oversight of employee leave activity and workflow actions."},
-            {"title": "Secure Entry", "text": "Protected login path with clear warnings for invalid credentials or wrong portal use."},
-        ],
-    )
-
-
-@never_cache
-def admin_login_loading(request):
-    if request.user.is_authenticated and request.user.is_superuser:
-        return redirect("admin:index")
-
-    return _render_loading_screen(
-        request,
-        page_title="Admin Portal | MS Technology",
-        theme_class="theme-admin",
-        company_product="MS Technology Admin Access",
-        subtitle="Professional control point for platform settings, administration, and secure oversight.",
-        kicker="Admin Authentication",
-        headline="Preparing the administrative control panel entry",
-        description="We are loading the administration gateway, system control experience, and secure access layer for elevated users.",
-        center_label="ADM",
-        duration=5,
-        target_url=reverse("admin_login_form"),
-        info_items=[
-            {"title": "Best For", "text": "Administrative access, platform control, and overall system management."},
-            {"title": "Focused Access", "text": "Built specifically for privileged accounts and administrator workflows."},
-            {"title": "Professional Flow", "text": "Modern branded loading experience aligned with MS Technology identity."},
-        ],
-    )
-
-
-@never_cache
-def employee_workspace_loading(request):
-    if not request.user.is_authenticated:
-        return redirect("employee_login")
-
-    if request.user.role != "EMPLOYEE":
-        return redirect("role_select")
-
-    return _render_loading_screen(
-        request,
-        page_title="MST Employee Workspace",
-        theme_class="theme-employee",
-        company_product="MST Employee Workspace",
-        subtitle="Your leave dashboard is being prepared with account-specific data and controls.",
-        kicker="Entering Workspace",
-        headline="Signing you into the employee dashboard",
-        description="We are loading leave balances, request actions, and your latest status widgets so the dashboard is ready as soon as it opens.",
-        center_label="MST",
-        duration=5,
-        target_url=reverse("dashboard"),
-        info_items=[
-            {"title": "Dashboard", "text": "Recent leave activity, balances, and request actions are being prepared."},
-            {"title": "Personalized", "text": "This screen appears only after a successful employee sign-in."},
-            {"title": "Ready Next", "text": "You will land directly inside the employee dashboard."},
-        ],
-    )
-
-
-@never_cache
-def hr_workspace_loading(request):
-    if not request.user.is_authenticated:
-        return redirect("hr_login")
-
-    if request.user.role != "HR":
-        return redirect("role_select")
-
-    return _render_loading_screen(
-        request,
-        page_title="MST HR Workspace",
-        theme_class="theme-hr",
-        company_product="MST HR Workspace",
-        subtitle="Approval tools and leave oversight panels are being initialized for your session.",
-        kicker="Entering Workspace",
-        headline="Signing you into the HR dashboard",
-        description="We are loading employee leave queues, review tools, and approval-ready information so your HR workspace opens prepared.",
-        center_label="MST",
-        duration=5,
-        target_url=reverse("hr_dashboard"),
-        info_items=[
-            {"title": "Approvals", "text": "Pending requests and employee records are being readied now."},
-            {"title": "HR View", "text": "This post-login screen appears only for successful HR sign-in."},
-            {"title": "Ready Next", "text": "You will be redirected straight into the HR dashboard."},
-        ],
-    )
-
-
-@never_cache
-def admin_workspace_loading(request):
-    if not request.user.is_authenticated:
-        return redirect("admin_login")
-
-    if not request.user.is_superuser:
-        return redirect("role_select")
-
-    return _render_loading_screen(
-        request,
-        page_title="MST Admin Workspace",
-        theme_class="theme-admin",
-        company_product="MST Admin Workspace",
-        subtitle="Administrative tools and system control panels are being prepared for secure access.",
-        kicker="Entering Workspace",
-        headline="Signing you into the admin control area",
-        description="We are loading protected admin controls, elevated settings access, and system management tools for your current session.",
-        center_label="MST",
-        duration=5,
-        target_url=reverse("admin:index"),
-        info_items=[
-            {"title": "Admin Access", "text": "Privileged controls and management panels are being initialized."},
-            {"title": "Secure Session", "text": "This post-login loader appears only after successful administrator authentication."},
-            {"title": "Ready Next", "text": "You will move directly into the admin control panel."},
-        ],
-    )
-
-
 @never_cache
 def hr_login(request):
     # 🔥 If already logged in, don't allow login page
@@ -501,9 +157,9 @@ def hr_login(request):
         # 🔥 Security Hardening: Check if user exists, is HR, AND is active
         if user is not None and user.role == "HR" and user.is_active:
             login(request, user)
-            return redirect("hr_workspace_loading")
+            return redirect("hr_dashboard")
         else:
-            _show_login_failure_message(request, username, "HR", "HR")
+            messages.error(request, "Invalid HR Credentials")
 
     return render(request, "hr_login.html")
 
@@ -1245,14 +901,6 @@ def hr_dashboard(request):
     pending_paginator = Paginator(pending_leaves_qs, 7)
     pending_leaves = pending_paginator.get_page(pending_page_number)
 
-    for leave in pending_leaves:
-        day_display = _get_leave_day_display(leave)
-        leave.days_value = day_display["days_value"]
-        leave.days_value_display = day_display["days_value_display"]
-        leave.days_target = day_display["days_target"]
-        leave.days_suffix = day_display["days_suffix"]
-        leave.days_label = day_display["days_label"]
-
     context = {
         "total": total,
         "pending": pending,
@@ -1350,7 +998,6 @@ def build_manage_employee_card(employee, employee_leaves, today=None):
         "half_total_month": 1,
         "leaves": [
             {
-                **_get_leave_day_display(leave),
                 "id": leave.id,
                 "type": leave.leave_type,
                 "type_class": get_leave_type_class(leave.leave_type),
@@ -1443,16 +1090,15 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-def _pdf_escape(value):
-    return str(value).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-
-
 def build_simple_employee_pdf(lines):
+    def pdf_escape(value):
+        return str(value).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
     content_lines = ["BT", "/F1 12 Tf", "50 790 Td", "16 TL"]
 
     for index, line in enumerate(lines):
         prefix = "" if index == 0 else "T* "
-        content_lines.append(f"{prefix}({_pdf_escape(line)}) Tj")
+        content_lines.append(f"{prefix}({pdf_escape(line)}) Tj")
 
     content_lines.append("ET")
     content = "\n".join(content_lines).encode("latin-1", "replace")
@@ -2124,10 +1770,10 @@ def admin_login(request):
             login(request, user)
 
             # 🔥 Redirect to Django Admin Panel
-            return redirect("admin_workspace_loading")
+            return redirect("admin:index")
 
         else:
-            _show_login_failure_message(request, username, "ADMIN", "Admin")
+            messages.error(request, "Invalid Admin Credentials")
 
     response = render(request, "admin_login.html")
 
@@ -2357,10 +2003,10 @@ def employee_login(request):
         # 🔥 Security Hardening: Check if user exists, is EMPLOYEE, AND is active
         if user is not None and user.role == "EMPLOYEE" and user.is_active:
             login(request, user)
-            return redirect("employee_workspace_loading")
+            return redirect("dashboard")
         
         else:
-            _show_login_failure_message(request, username, "EMPLOYEE", "Employee")
+            messages.error(request, "Invalid Employee Credentials")
 
     return render(request, "employee_login.html")
 
@@ -3218,6 +2864,30 @@ def leave_calendar_data(request):
     
     HOLIDAY_CACHE_KEY = "public_holidays_india"
     HOLIDAY_CACHE_TIMEOUT = 60 * 60 * 24 * 30  # 30 days
+
+    def fallback_public_holidays(year):
+        """
+        Minimal fallback for fixed-date national holidays only.
+        This is not the full public holiday calendar.
+        Used only when the live Google holiday calendar cannot be fetched.
+        """
+        return [
+            {
+                "date": f"{year}-01-26",
+                "name": "Republic Day",
+                "type": "Public",
+            },
+            {
+                "date": f"{year}-08-15",
+                "name": "Independence Day",
+                "type": "Public",
+            },
+            {
+                "date": f"{year}-10-02",
+                "name": "Gandhi Jayanti",
+                "type": "Public",
+            },
+        ]
     
     holidays = cache.get(HOLIDAY_CACHE_KEY)
 
@@ -3244,56 +2914,6 @@ def leave_calendar_data(request):
         }
         for holiday in company_holidays
     ]
-
-    # 2️⃣ COMPANY CLOSURES (MANUAL)
-    # company_closures = CompanyClosure.objects.all()
-    # closure_data = [
-    #     {
-    #         "date": c.date.strftime("%Y-%m-%d"),
-    #         "name": c.name,
-    #     }
-    #     for c in company_closures
-    # ]
-
-    # 3️⃣ AUTO HOLIDAYS (INDIA + INTERNATIONAL)
-    # holidays = []
-    # year = date.today().year
-    # try:
-    #     res = requests.get(
-    #         f"https://date.nager.at/api/v3/PublicHolidays/{year}/IN",
-    #         timeout=5
-    #     )
-    #     if res.status_code == 200:
-    #         for h in res.json():
-    #             holidays.append({
-    #                 "date": h["date"],
-    #                 "name": h["localName"],
-    #                 "type": "National" if h["global"] else "Festival"
-    #             })
-    # except Exception:
-    #     pass  # fail silently (calendar still works)
-    
-    # ===== GOOGLE PUBLIC HOLIDAYS (INDIA) =====
-    # holidays = []
-    # try:
-    #     res = requests.get(
-    #         "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics", 
-    #          timeout=10)
-
-    #     calendar = Calendar(res.text)
-    #     current_year = date.today().year
-
-    #     for event in calendar.events:
-    #         if event.begin.year == current_year:
-    #             holidays.append({
-    #                 "date": event.begin.format("YYYY-MM-DD"),
-    #                 "name": event.name,
-    #                 "type": "Public"
-    #             })
-
-    # except Exception as e:
-    #     print("Holiday fetch failed:", e)
-        
         
     if not holidays:
         holidays = []
@@ -3319,7 +2939,7 @@ def leave_calendar_data(request):
             print("Holiday fetch failed:", e)
 
         if not holidays:
-            holidays = _fallback_public_holidays(current_year)
+            holidays = fallback_public_holidays(current_year)
             cache.set(HOLIDAY_CACHE_KEY, holidays, HOLIDAY_CACHE_TIMEOUT)
 
     return JsonResponse({
@@ -3657,6 +3277,83 @@ def edit_leave(request, leave_id):
 
     today = localdate()
 
+    def serialize_leave_for_my_leave(target_leave):
+        leave_type_class = (target_leave.leave_type or "").lower()
+
+        if target_leave.leave_type == "Short":
+            day_display = {
+                "days_value": 2,
+                "days_value_display": "2 hour",
+                "days_target": 2,
+                "days_suffix": " hour",
+                "days_label": "of the day",
+            }
+        elif target_leave.leave_type == "Half":
+            day_display = {
+                "days_value": 4,
+                "days_value_display": "4 hour",
+                "days_target": 4,
+                "days_suffix": " hour",
+                "days_label": "of the day",
+            }
+        else:
+            from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
+
+            working_days = calculate_leave_breakdown_for_leave(target_leave)["working_days"]
+            safe_days = max(int(working_days or 0), 0)
+            day_display = {
+                "days_value": safe_days,
+                "days_value_display": str(safe_days),
+                "days_target": safe_days,
+                "days_suffix": "",
+                "days_label": "day" if safe_days == 1 else "days",
+            }
+
+        if target_leave.leave_type == "Short":
+            leave_code = "S"
+        elif target_leave.leave_type == "Half":
+            leave_code = "H"
+        else:
+            leave_code = (target_leave.leave_type or "")[:1].upper()
+
+        leave_symbol = {
+            "Sick": "âœš",
+            "Unpaid": "â˜•",
+            "Earned": "â˜…",
+            "Short": "â—·",
+            "Half": "â—",
+        }.get(target_leave.leave_type, "âœ¦")
+
+        updated_count = target_leave.no_of_times_updated or 0
+
+        return {
+            "id": target_leave.id,
+            "leave_type": target_leave.leave_type,
+            "leave_type_class": leave_type_class,
+            "leave_code": leave_code,
+            "leave_symbol": leave_symbol,
+            "from_date": target_leave.from_date.strftime("%Y-%m-%d"),
+            "to_date": target_leave.to_date.strftime("%Y-%m-%d"),
+            "from_date_display": target_leave.from_date.strftime("%b %d, %Y"),
+            "to_date_display": target_leave.to_date.strftime("%b %d, %Y"),
+            "from_datetime_iso": localtime(target_leave.from_datetime).isoformat() if target_leave.from_datetime else "",
+            "to_datetime_iso": localtime(target_leave.to_datetime).isoformat() if target_leave.to_datetime else "",
+            "from_time_display": localtime(target_leave.from_datetime).strftime("%I:%M %p") if target_leave.from_datetime else "",
+            "to_time_display": localtime(target_leave.to_datetime).strftime("%I:%M %p") if target_leave.to_datetime else "",
+            "is_time_based": target_leave.leave_type in ["Short", "Half"],
+            "reason": target_leave.reason or "",
+            "updated_iso": localtime(target_leave.updated_at).isoformat() if target_leave.updated_at else "",
+            "updated_date_display": localtime(target_leave.updated_at).strftime("%b %d, %Y") if target_leave.updated_at else "-",
+            "updated_time_display": localtime(target_leave.updated_at).strftime("%I:%M %p") if target_leave.updated_at else "",
+            "updated_count": updated_count,
+            "days_value": day_display["days_value"],
+            "days_value_display": day_display["days_value_display"],
+            "days_target": day_display["days_target"],
+            "days_suffix": day_display["days_suffix"],
+            "days_label": day_display["days_label"],
+            "pending_count": Leave.objects.filter(user=target_leave.user, status="Pending").count(),
+        }
+
     # ===============================
     # READ INPUT ONCE
     # ===============================
@@ -3924,7 +3621,7 @@ def edit_leave(request, leave_id):
         messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
         messages.success(request, f"Leave date: From {new_from.strftime('%d %b %Y')} → {new_to.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
         
-        return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
+        return _my_leave_response(request, leave=serialize_leave_for_my_leave(leave))
 
     # =========================================================
     # 🔥 NORMAL LEAVE LOGIC
@@ -4102,7 +3799,7 @@ def edit_leave(request, leave_id):
 
         messages.success(request, f"Working leave days: {breakdown['working_days']}, Full Day (10:00 am to 7:00 pm)")
         
-    return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
+    return _my_leave_response(request, leave=serialize_leave_for_my_leave(leave))
 
 
 

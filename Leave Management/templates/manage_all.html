@@ -3593,9 +3593,9 @@
             default: "&#10023;"
         };
         const leaveSymbol = leaveSymbolMap[leave.type_class] || leaveSymbolMap.default;
-        const leaveDayCount = calculateLeaveDayCount(leave.from_date, leave.to_date, leave.type);
-        const leaveDayValue = parseFloat(leaveDayCount);
-        const leaveDaySuffix = leaveDayCount.replace(/^[\d.]+\s*/, "");
+        const leaveDayCount = String(leave.days_value_display || calculateLeaveDayCount(leave.from_date, leave.to_date, leave.type));
+        const leaveDayValue = Number.parseFloat(leave.days_target ?? leave.days_value ?? leaveDayCount);
+        const leaveDaySuffix = leave.days_suffix != null ? String(leave.days_suffix) : leaveDayCount.replace(/^[\d.]+\s*/, "");
         const canAnimateLeaveDay = Number.isFinite(leaveDayValue) && Number.isInteger(leaveDayValue);
         const leaveDayChip = canAnimateLeaveDay
             ? `<span class="leave-day-chip" data-day-value="${leaveDayValue}" data-day-suffix="${escapeHtml(leaveDaySuffix)}">${escapeHtml(leaveDayCount)}</span>`
@@ -3610,7 +3610,7 @@
             `data-leave-type-class="${escapeHtml(leave.type_class || "default")}"`,
             `data-schedule-date="${escapeHtml(scheduleDateModalText)}"`,
             `data-schedule-time="${escapeHtml(scheduleTimeModalText)}"`,
-            `data-days="${escapeHtml((leave.from_date || "") + "|" + (leave.to_date || ""))}"`,
+            `data-days-display="${escapeHtml(leaveDayCount)}"`,
             `data-applied="${escapeHtml(leave.applied_at || "-")}"`,
             `data-applied-iso="${escapeHtml(leave.applied_at_iso || "")}"`,
             `data-updated="${escapeHtml(leave.updated_at || "-")}"`,
@@ -4692,8 +4692,7 @@
             modal.style.setProperty("--reason-origin-y", (anchorCenterY - viewportCenterY) + "px");
         }
 
-        const dayParts = String(reasonText.dataset.days || "").split("|");
-        let dayText = "-";
+        let dayText = reasonText.dataset.daysDisplay || "-";
         const appliedIso = reasonText.dataset.appliedIso || "";
         const updatedIso = reasonText.dataset.updatedIso || "";
         const updatedCount = Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0;
@@ -4704,18 +4703,6 @@
         const updatedHeading = reasonText.dataset.updatedLabel || "Updates";
         const showScheduleTime = leaveTypeClass === "short" || leaveTypeClass === "half";
         const modalLabel = reasonText.dataset.modalTitle || (leaveTypeLabel + " Leave");
-
-        if (dayParts.length === 2)
-        {
-            const fromDate = new Date(dayParts[0]);
-            const toDate = new Date(dayParts[1]);
-
-            if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()))
-            {
-                const totalDays = Math.max(1, Math.round((toDate - fromDate) / 86400000) + 1);
-                dayText = totalDays + (totalDays === 1 ? " day" : " days");
-            }
-        }
 
         title.textContent = modalLabel;
         modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");

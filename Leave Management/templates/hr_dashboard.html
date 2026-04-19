@@ -403,9 +403,9 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="days-block" data-from="{{ leave.from_date|date:'Y-m-d' }}" data-to="{{ leave.to_date|date:'Y-m-d' }}">
+                                        <div class="days-block" data-target="{{ leave.days_target|default:0 }}" data-display="{{ leave.days_value_display|default:'0' }}">
                                             <strong class="days-counter">0</strong>
-                                            <span class="days-label">day</span>
+                                            <span class="days-label">{{ leave.days_label|default:"days" }}</span>
                                         </div>
                                     </td>
                                     <td>
@@ -960,22 +960,37 @@
         {
             const counter = block.querySelector(".days-counter");
             const label = block.querySelector(".days-label");
-            const fromDate = new Date(block.dataset.from);
-            const toDate = new Date(block.dataset.to);
-            const dayDiff = Math.round((toDate - fromDate) / 86400000) + 1;
-            const target = Math.max(1, dayDiff);
+            const target = Number.parseFloat(block.dataset.target || "0");
+            const finalDisplay = block.dataset.display || "0";
             const duration = 700;
             const startTime = performance.now();
 
-            if (label)
+            if (!counter)
             {
-                label.textContent = target > 1 ? "days" : "day";
+                return;
+            }
+
+            if (!Number.isFinite(target) || target < 0)
+            {
+                counter.textContent = finalDisplay;
+                return;
+            }
+
+            if (!Number.isInteger(target))
+            {
+                counter.textContent = String(target).replace(/\.0+$/, "");
+                return;
+            }
+
+            if (label && target === 1)
+            {
+                label.textContent = "day";
             }
 
             function step(now)
             {
                 const progress = Math.min((now - startTime) / duration, 1);
-                counter.textContent = Math.round(target * progress);
+                counter.textContent = progress < 1 ? String(Math.round(target * progress)) : finalDisplay;
 
                 if (progress < 1)
                 {
