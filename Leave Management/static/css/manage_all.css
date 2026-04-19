@@ -1890,12 +1890,11 @@ body {
 
 .employee-bell-badge {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    border-radius: 10px;
+    top: 7px;
+    right: 7px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
     background: transparent;
     border: none;
     box-shadow: none;
@@ -1931,7 +1930,6 @@ body {
 
 .employee-bell-badge.has-alert .employee-bell-icon {
     stroke: #ef4444;
-    animation: bellShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both infinite;
 }
 
 @keyframes bellShake {
@@ -1999,11 +1997,9 @@ body {
 }
 
 .employee-bell-dropdown:hover {
-    transform: translateY(-1px);
-    border-color: rgba(147, 197, 253, 0.5);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.92),
-        0 10px 16px rgba(148, 163, 184, 0.12);
+    transform: none;
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .employee-bell-panel {
@@ -9955,8 +9951,8 @@ button {
 
     .employee-bell-badge {
         position: absolute !important;
-        top: -1px !important;
-        right: -1px !important;
+        top: 5px !important;
+        right: 5px !important;
         width: 22px !important;
         height: 22px !important;
         min-width: 22px !important;
