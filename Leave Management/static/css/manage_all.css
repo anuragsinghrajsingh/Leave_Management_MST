@@ -2023,7 +2023,7 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.88);
     z-index: 30;
     transform-origin: top right;
-    overflow-x: hidden;
+    overflow: visible;
 }
 
 .employee-bell-dropdown.is-open .employee-bell-panel {
@@ -2035,18 +2035,6 @@ body {
     z-index: 40;
 }
 
-.employee-bell-panel::before {
-    content: "";
-    position: absolute;
-    top: 14px;
-    right: -6px;
-    width: 12px;
-    height: 12px;
-    background: rgba(255, 255, 255, 0.98);
-    border-top: 1px solid rgba(250, 204, 21, 0.24);
-    border-right: 1px solid rgba(250, 204, 21, 0.24);
-    transform: rotate(45deg);
-}
 
 .employee-bell-panel-header {
     display: flex;
@@ -2302,13 +2290,158 @@ body {
 }
 
 .employee-bell-empty {
-    padding: 8px 6px;
-    border-radius: 10px;
+    padding: 15px 10px 0px; /* Reduced top spacing for tighter fit */
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.employee-bell-empty .profile-bell-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    z-index: 5;
+    position: relative;
+}
+
+.employee-bell-empty .radiant-bell-container {
+    position: relative;
+    width: 48px; /* Corrected for the slightly larger icon */
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    cursor: default;
+    z-index: 10;
+}
+
+.employee-bell-empty .bell-svg {
+    width: 38px; /* Increased from 30px */
+    height: 38px;
+    filter: drop-shadow(0 6px 12px rgba(99, 102, 241, 0.35));
+    position: relative;
+    z-index: 11;
+}
+
+.employee-bell-empty .bell-body-outline {
+    fill: rgba(250, 204, 21, 0.08);
+    stroke: #fbbf24;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.4));
+    transition: transform 0.3s ease;
+}
+
+.employee-bell-empty .bell-clapper-glow {
+    fill: #f59e0b;
+    stroke: #f59e0b;
+    stroke-width: 1;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+}
+
+/* Interaction strictly scoped to the bell icon specifically */
+.svg-bell-wrapper:hover .bell-body-outline {
+    animation: energyCoreVibrate 0.1s infinite linear;
+}
+
+.svg-bell-wrapper:hover .bell-clapper-glow {
+    animation: energyCoreVibrate 0.1s infinite linear reverse;
+}
+
+.svg-bell-wrapper:hover {
+    animation: swingRing 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    transform-origin: top center;
+}
+
+.svg-bell-wrapper:hover ~ .bell-echo {
+    animation-duration: 0.6s;
+    border-color: rgba(251, 191, 36, 0.85);
+}
+
+.employee-bell-empty .notif-empty-copy {
     text-align: center;
-    color: var(--manage-muted);
-    font-size: 0.6rem;
-    font-weight: 700;
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.94));
+    display: flex;
+    flex-direction: column;
+    gap: 1.5px;
+    pointer-events: none; /* Text won't trigger hover effects */
+}
+
+.employee-bell-empty .notif-empty-title {
+    font-size: 0.94rem;
+    font-weight: 1000;
+    color: transparent;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #fbbf24 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.employee-bell-empty .notif-empty-text {
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #64748b;
+    line-height: 1.25;
+}
+
+.employee-bell-empty .bell-echo {
+    position: absolute;
+    inset: -20%;
+    border: 5px solid rgba(251, 191, 36, 0.45); /* Thicker border for more mass */
+    border-radius: 50%;
+    filter: blur(4px);
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); /* Integrated glow */
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+    animation: softBloomExpand 2.8s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+    will-change: transform, opacity;
+}
+
+.employee-bell-empty .echo-2 {
+    animation-delay: 1.4s;
+}
+
+.svg-bell-wrapper:hover ~ .bell-echo {
+    animation-duration: 1.5s; /* Slowed from 0.8s */
+    border-color: rgba(251, 191, 36, 0.85); /* Significantly brighter on hover */
+    filter: blur(2px);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+@keyframes softBloomExpand {
+    0% { transform: scale(0.6); opacity: 0; }
+    30% { opacity: 0.9; } /* Peak opacity raised for visibility */
+    100% { transform: scale(1.4); opacity: 0; } /* Reduced from 1.8 */
+}
+
+@keyframes energyCoreVibrate {
+    0% { filter: url(#bellVibrate1) drop-shadow(0 0 4px rgba(251, 191, 36, 0.4)); }
+    33% { filter: url(#bellVibrate2) drop-shadow(0 0 7px rgba(251, 191, 36, 0.6)); }
+    66% { filter: url(#bellVibrate3) drop-shadow(0 0 4px rgba(251, 191, 36, 0.4)); }
+}
+
+@keyframes energyAura {
+    0% { transform: scale(0.6); opacity: 0; }
+    30% { opacity: 0.7; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes swingRing {
+    0% { transform: rotate(0deg); }
+    15% { transform: rotate(20deg); }
+    30% { transform: rotate(-16deg); }
+    45% { transform: rotate(10deg); }
+    60% { transform: rotate(-6deg); }
+    75% { transform: rotate(3deg); }
+    100% { transform: rotate(0deg); }
 }
 
 .employee-card-metrics {
@@ -8604,11 +8737,6 @@ button {
         transform: none;
     }
 
-    .employee-bell-panel.is-align-left::before {
-        right: 12px;
-        left: auto;
-        transform: rotate(45deg);
-    }
 
     .employee-bell-panel.is-align-right {
         left: -2px;
@@ -8616,11 +8744,6 @@ button {
         transform: none;
     }
 
-    .employee-bell-panel.is-align-right::before {
-        left: 12px;
-        right: auto;
-        transform: rotate(45deg);
-    }
 
     .employee-bell-panel.is-align-center {
         left: 50%;
@@ -8628,19 +8751,7 @@ button {
         transform: translateX(-50%);
     }
 
-    .employee-bell-panel.is-align-center::before {
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%) rotate(45deg);
-    }
 
-    .employee-bell-panel::before {
-        top: -7px;
-        right: 12px;
-        border-right: 0;
-        border-top: 1px solid rgba(250, 204, 21, 0.24);
-        border-left: 1px solid rgba(250, 204, 21, 0.24);
-    }
 
     .employee-bell-panel-header p {
         font-size: 0.52rem;
