@@ -10,37 +10,43 @@
 <body class="login-page admin-theme">
     <main class="login-shell">
         <section class="login-panel login-panel--info">
+            <div class="panel-glow panel-glow--info" aria-hidden="true"></div>
             <div class="brand-lockup">
                 <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                <div>
+                <div class="brand-copy">
                     <p class="brand-name">MS Technology</p>
                     <span class="login-kicker">Admin Portal</span>
                 </div>
             </div>
-            <h1>Control access and platform operations</h1>
+            <h1>Welcome back</h1>
             <p>
-                Sign in with your administrator account to manage system settings, secure access, and
-                maintain the leave platform efficiently.
+                Sign in to manage and configure your leave system, oversee all accounts,
+                and set up system preferences.
             </p>
 
             <div class="feature-list">
                 <div class="feature-item">
-                    <strong>System oversight</strong>
-                    <span>Access the control surface designed for higher-level administration.</span>
+                    <span class="feature-icon" aria-hidden="true">SM</span>
+                    <strong>System management</strong>
+                    <span>Configure system settings and manage new requests with less friction.</span>
                 </div>
                 <div class="feature-item">
-                    <strong>Secure feedback</strong>
-                    <span>Wrong credentials are shown immediately so failed login attempts are obvious.</span>
+                    <span class="feature-icon" aria-hidden="true">US</span>
+                    <strong>User oversight</strong>
+                    <span>Oversee all accounts and ensure proper permission levels.</span>
                 </div>
                 <div class="feature-item">
-                    <strong>Works on mobile</strong>
-                    <span>Responsive spacing and layout keep the admin login usable on small screens.</span>
+                    <span class="feature-icon" aria-hidden="true">SP</span>
+                    <strong>System preferences</strong>
+                    <span>Set up leave types, policies, and other configurations.</span>
                 </div>
             </div>
         </section>
 
         <section class="login-panel login-panel--form">
             <div class="login-card">
+                <div class="panel-glow panel-glow--form" aria-hidden="true"></div>
+                <div class="portal-ring" aria-hidden="true"></div>
                 {% if messages %}
                     <div class="login-toast-stack" aria-live="polite">
                         {% for message in messages %}
@@ -57,25 +63,51 @@
                 <div class="login-card__header">
                     <span class="login-badge login-badge--portal">Admin Portal</span>
                     <h2>Admin Login</h2>
-                    <p>Use your administrator credentials to continue.</p>
+                    <p>Use your admin username and password to continue.</p>
                 </div>
 
                 <form method="post" class="login-form">
                     {% csrf_token %}
 
-                    <label for="admin-username">Username</label>
-                    <input
-                        id="admin-username"
-                        type="text"
-                        name="username"
-                        value="{{ request.POST.username|default:'' }}"
-                        placeholder="Enter your username"
-                        autocomplete="username"
-                        required
-                    >
+                    <label for="admin-username" class="field-label">
+                        <span class="label-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                            </svg>
+                        </span>
+                        <span>Username</span>
+                    </label>
+                    <div class="field-shell field-shell--with-icon">
+                        <span class="field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                            </svg>
+                        </span>
+                        <input
+                            id="admin-username"
+                            type="text"
+                            name="username"
+                            value="{{ request.POST.username|default:'' }}"
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
 
-                    <label for="admin-password">Password</label>
-                    <div class="password-field">
+                    <label for="admin-password" class="field-label">
+                        <span class="label-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                            </svg>
+                        </span>
+                        <span>Password</span>
+                    </label>
+                    <div class="password-field field-shell">
+                        <span class="field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                            </svg>
+                        </span>
                         <input
                             id="admin-password"
                             type="password"

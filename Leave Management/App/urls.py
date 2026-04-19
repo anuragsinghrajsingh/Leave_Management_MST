@@ -13,6 +13,7 @@ urlpatterns = [
     path('admin-login/form/', views.admin_login, name='admin_login_form'),
     path('admin-login/workspace/', views.admin_workspace_loading, name='admin_workspace_loading'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('logout/loading/', views.logout_loading, name='logout_loading'),
 
     # Custom Logout only for the Admin we have bypassed the traditional logout and made custom admin logout to redirect to admin login page
     path("admin-logout/", views.logout_view, name="admin_logout_custom"), 

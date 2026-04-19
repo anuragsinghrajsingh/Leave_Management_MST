@@ -486,6 +486,72 @@ def admin_workspace_loading(request):
 
 
 @never_cache
+def logout_loading(request):
+    portal = (request.GET.get("portal") or "").strip().lower()
+
+    config = {
+        "employee": {
+            "page_title": "Employee Logout | MS Technology",
+            "theme_class": "theme-employee",
+            "company_product": "MS Technology Employee Access",
+            "subtitle": "Closing your employee session and clearing role-based workspace data.",
+            "kicker": "Employee Logout",
+            "headline": "Signing you out of the employee workspace",
+            "description": "We are ending your employee session securely and preparing the sign-in page for your next access.",
+            "center_label": "EMP",
+            "duration": 3,
+            "target_url": reverse("employee_login_form"),
+            "info_items": [
+                {"title": "Session Closed", "text": "Your employee session has been ended securely."},
+                {"title": "Next Step", "text": "You will return to the employee login screen automatically."},
+                {"title": "Safe Exit", "text": "Workspace access is cleared before the portal becomes available again."},
+            ],
+        },
+        "hr": {
+            "page_title": "HR Logout | MS Technology",
+            "theme_class": "theme-hr",
+            "company_product": "MS Technology HR Access",
+            "subtitle": "Closing your HR session and protecting approval workspace access.",
+            "kicker": "HR Logout",
+            "headline": "Signing you out of the HR workspace",
+            "description": "We are ending your HR session securely and preparing the approval portal sign-in page.",
+            "center_label": "HR",
+            "duration": 3,
+            "target_url": reverse("hr_login_form"),
+            "info_items": [
+                {"title": "Session Closed", "text": "Your HR approval session has been ended securely."},
+                {"title": "Next Step", "text": "You will return to the HR login screen automatically."},
+                {"title": "Safe Exit", "text": "Review tools and protected access are cleared before re-entry."},
+            ],
+        },
+        "admin": {
+            "page_title": "Admin Logout | MS Technology",
+            "theme_class": "theme-admin",
+            "company_product": "MS Technology Admin Access",
+            "subtitle": "Closing your admin session and securing elevated control access.",
+            "kicker": "Admin Logout",
+            "headline": "Signing you out of the admin control area",
+            "description": "We are ending your administrative session securely and preparing the admin sign-in page.",
+            "center_label": "ADM",
+            "duration": 3,
+            "target_url": reverse("admin_login_form"),
+            "info_items": [
+                {"title": "Session Closed", "text": "Your elevated admin session has been ended securely."},
+                {"title": "Next Step", "text": "You will return to the admin login screen automatically."},
+                {"title": "Safe Exit", "text": "Privileged controls are cleared before the portal is shown again."},
+            ],
+        },
+    }
+
+    selected_config = config.get(portal)
+
+    if not selected_config:
+        return redirect("role_select")
+
+    return _render_loading_screen(request, **selected_config)
+
+
+@never_cache
 def hr_login(request):
     # 🔥 If already logged in, don't allow login page
 
@@ -4108,7 +4174,7 @@ def edit_leave(request, leave_id):
 
 @never_cache
 def logout_view(request):
-
+  
     # 🔹 Store role before logout
     # 🔹 Detect BEFORE logout
     is_admin = request.user.is_authenticated and request.user.is_superuser
@@ -4125,18 +4191,15 @@ def logout_view(request):
     
     print(role, " - Logged out Successfully")
 
-    if is_admin:
-        return redirect("admin_login")
+    if is_admin or role == "Admin":
+        return redirect(f"{reverse('logout_loading')}?portal=admin")
     
     elif role == "HR":
-        return redirect("hr_login")
+        return redirect(f"{reverse('logout_loading')}?portal=hr")
 
     elif role == "EMPLOYEE":
-        return redirect("employee_login")
-
-    elif role == "Admin":
-        return redirect("admin_login")
-
+        return redirect(f"{reverse('logout_loading')}?portal=employee")
+  
     else:
         return redirect("role_select")
 

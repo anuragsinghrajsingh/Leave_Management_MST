@@ -8,66 +8,89 @@
     <link rel="stylesheet" href="{% static 'css/role_select.css' %}">
 </head>
 <body>
-    <main class="role-shell">
-        <section class="hero-panel">
-            <div class="brand-lockup">
-                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                <div>
-                    <p class="brand-name">MS Technology</p>
+    <main class="portal-stage">
+        <section class="portal-frame">
+            <div class="frame-glow frame-glow--cyan"></div>
+            <div class="frame-glow frame-glow--gold"></div>
+
+            <header class="portal-header">
+                <div class="portal-header__row">
+                    <div class="brand-lockup">
+                        <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
+                        <div class="brand-copy">
+                            <p class="brand-name">MS Technology</p>
+                        </div>
+                    </div>
                     <span class="hero-kicker">Leave Management Portal</span>
                 </div>
-            </div>
-            <h1>Choose how you want to sign in</h1>
-            <p>
-                Access the workspace built for your role. Each portal is tailored for faster leave
-                requests, approvals, and team visibility across desktop and mobile.
-            </p>
+            </header>
 
-            <div class="hero-points">
-                <div class="hero-point">
-                    <strong>Employees</strong>
-                    <span>Apply, track, and manage leave requests smoothly.</span>
-                </div>
-                <div class="hero-point">
-                    <strong>HR</strong>
-                    <span>Review approvals, oversee records, and support teams.</span>
-                </div>
-                <div class="hero-point">
-                    <strong>Admin</strong>
-                    <span>Handle configuration, policies, and overall system access.</span>
-                </div>
-            </div>
-        </section>
+            <section class="hero-copy">
+                <h1>Choose how you want to sign in</h1>
+                <p>
+                    Access the workspace built for your role. Each portal is tailored for faster leave
+                    requests, approvals, and team visibility across desktop and mobile.
+                </p>
+            </section>
 
-        <section class="role-container">
-            <div class="role-heading">
-                <span class="section-label">Secure Access</span>
-                <h2>Select your login type</h2>
-                <p>Pick the right portal to continue.</p>
-            </div>
+            <section class="role-grid">
+                <article class="role-card employee">
+                    <div class="role-card__spark"></div>
+                    <div class="role-icon-shell">
+                        <span class="role-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="role-card__body">
+                        <h2>Employees</h2>
+                        <p>Apply, track, and manage leave requests smoothly.</p>
+                    </div>
+                    <a href="{% url 'employee_login' %}" class="role-action">
+                        <span>Open employee screen</span>
+                        <span class="role-action__arrow" aria-hidden="true">›</span>
+                    </a>
+                </article>
 
-            <div class="role-options">
-                <a href="{% url 'employee_login' %}" class="role-card employee">
-                    <span class="role-badge">Employee</span>
-                    <h3>Employee Login</h3>
-                    <p>Request leave, view balances, and check approvals from any device.</p>
-                    <span class="role-link">Open employee portal</span>
-                </a>
+                <article class="role-card hr">
+                    <div class="role-card__spark"></div>
+                    <div class="role-icon-shell">
+                        <span class="role-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M7 2h10a2 2 0 0 1 2 2v18H5V4a2 2 0 0 1 2-2Zm4.3 2.5h1.4a.8.8 0 0 1 .8.8v.2h1.7a1 1 0 0 1 1 1v10.8a1 1 0 0 1-1 1H8.8a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1h1.7v-.2a.8.8 0 0 1 .8-.8Zm-1.5 5.7 1.3 1.3 2.9-2.9 1 1-3.9 3.9-2.3-2.3Zm0 4.6 1.3 1.3 2.9-2.9 1 1-3.9 3.9-2.3-2.3Z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="role-card__body">
+                        <h2>HR</h2>
+                        <p>Review approvals, oversee records, and support teams.</p>
+                    </div>
+                    <a href="{% url 'hr_login' %}" class="role-action">
+                        <span>Go to HR approvals</span>
+                        <span class="role-action__arrow" aria-hidden="true">›</span>
+                    </a>
+                </article>
 
-                <a href="{% url 'hr_login' %}" class="role-card hr">
-                    <span class="role-badge">HR</span>
-                    <h3>HR Login</h3>
-                    <p>Manage leave workflows, review requests, and support policy decisions.</p>
-                    <span class="role-link">Open HR portal</span>
-                </a>
-
-                <a href="{% url 'admin_login' %}" class="role-card admin">
-                    <span class="role-badge">Admin</span>
-                    <h3>Admin Login</h3>
-                    <p>Access system administration, user oversight, and platform controls.</p>
-                    <span class="role-link">Open admin portal</span>
-                </a>
-            </div>
+                <article class="role-card admin">
+                    <div class="role-card__spark"></div>
+                    <div class="role-icon-shell">
+                        <span class="role-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3.2 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V7Zm0 2.3a2.8 2.8 0 1 1-2.8 2.8A2.8 2.8 0 0 1 12 7.5Zm0 6.2c1.87 0 3.53.9 4.6 2.29-.85 1.55-2.08 2.85-3.44 3.45a4.3 4.3 0 0 0-2.24 0c-1.36-.6-2.59-1.9-3.44-3.45A5.74 5.74 0 0 1 12 13.7Z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="role-card__body">
+                        <h2>Admin</h2>
+                        <p>Handle configuration, policies, and overall system access.</p>
+                    </div>
+                    <a href="{% url 'admin_login' %}" class="role-action">
+                        <span>Enter admin controls</span>
+                        <span class="role-action__arrow" aria-hidden="true">›</span>
+                    </a>
+                </article>
+            </section>
         </section>
     </main>
 </body>

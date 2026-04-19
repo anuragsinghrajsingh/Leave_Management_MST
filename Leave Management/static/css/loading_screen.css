@@ -22,6 +22,7 @@ body.loading-page {
     margin: 0;
     min-height: 100vh;
     font-family: var(--font-stack);
+    font-weight: 700;
     background: var(--page-bg);
     background-attachment: fixed;
     color: var(--heading);
@@ -62,12 +63,13 @@ body.loading-page {
 
 .loading-page.theme-admin {
     --page-bg:
-        radial-gradient(circle at top left, rgba(248, 113, 113, 0.34), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(244, 63, 94, 0.28), transparent 22%),
-        linear-gradient(135deg, #3d0a14 0%, #7f1d1d 45%, #be123c 100%);
-    --accent: #dc2626;
-    --accent-strong: #b91c1c;
-    --accent-soft: rgba(220, 38, 38, 0.18);
+        radial-gradient(circle at top left, rgba(248, 113, 113, 0.16), transparent 22%),
+        radial-gradient(circle at top right, rgba(251, 191, 36, 0.1), transparent 18%),
+        radial-gradient(circle at bottom right, rgba(244, 63, 94, 0.14), transparent 20%),
+        linear-gradient(135deg, #160c14 0%, #2b1930 52%, #4c2747 100%);
+    --accent: #f06292;
+    --accent-strong: #c63d6f;
+    --accent-soft: rgba(240, 98, 146, 0.16);
 }
 
 .loading-shell {
@@ -167,6 +169,7 @@ body.loading-page {
 .loading-footer span {
     color: var(--text-soft);
     line-height: 1.6;
+    font-weight: 700;
 }
 
 .brand-caption {
@@ -301,6 +304,7 @@ body.loading-page {
 .info-card span {
     font-size: 0.8rem;
     line-height: 1.38;
+    font-weight: 700;
 }
 
 .loading-footer {

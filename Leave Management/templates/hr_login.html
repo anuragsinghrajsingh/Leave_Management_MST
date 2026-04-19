@@ -10,37 +10,43 @@
 <body class="login-page hr-theme">
     <main class="login-shell">
         <section class="login-panel login-panel--info">
+            <div class="panel-glow panel-glow--info" aria-hidden="true"></div>
             <div class="brand-lockup">
                 <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                <div>
+                <div class="brand-copy">
                     <p class="brand-name">MS Technology</p>
                     <span class="login-kicker">HR Portal</span>
                 </div>
             </div>
-            <h1>Manage leave operations with clarity</h1>
+            <h1>Welcome back</h1>
             <p>
-                Sign in to review employee requests, handle approvals, and keep the leave process
-                consistent across teams.
+                Sign in to review and approve leave requests, oversee records, support teams,
+                and manage HR tasks efficiently.
             </p>
 
             <div class="feature-list">
                 <div class="feature-item">
-                    <strong>Approval overview</strong>
-                    <span>Review requests quickly with a cleaner role-specific dashboard flow.</span>
+                    <span class="feature-icon" aria-hidden="true">RA</span>
+                    <strong>Review and approve</strong>
+                    <span>Effortlessly review and approve pending leave requests.</span>
                 </div>
                 <div class="feature-item">
-                    <strong>Policy support</strong>
-                    <span>Keep decisions aligned with leave rules and operational planning.</span>
+                    <span class="feature-icon" aria-hidden="true">OR</span>
+                    <strong>Oversee records</strong>
+                    <span>Manage employee leave balances and maintain accurate records.</span>
                 </div>
                 <div class="feature-item">
-                    <strong>Responsive layout</strong>
-                    <span>Monitor and manage leave even when you are away from your desk.</span>
+                    <span class="feature-icon" aria-hidden="true">ST</span>
+                    <strong>Support teams</strong>
+                    <span>Assist employees and provide HR support as needed.</span>
                 </div>
             </div>
         </section>
 
         <section class="login-panel login-panel--form">
             <div class="login-card">
+                <div class="panel-glow panel-glow--form" aria-hidden="true"></div>
+                <div class="portal-ring" aria-hidden="true"></div>
                 {% if messages %}
                     <div class="login-toast-stack" aria-live="polite">
                         {% for message in messages %}
@@ -57,25 +63,51 @@
                 <div class="login-card__header">
                     <span class="login-badge login-badge--portal">HR Portal</span>
                     <h2>HR Login</h2>
-                    <p>Enter your HR account details to continue.</p>
+                    <p>Use your HR username and password to continue.</p>
                 </div>
 
                 <form method="post" class="login-form">
                     {% csrf_token %}
 
-                    <label for="hr-username">Username</label>
-                    <input
-                        id="hr-username"
-                        type="text"
-                        name="username"
-                        value="{{ request.POST.username|default:'' }}"
-                        placeholder="Enter your username"
-                        autocomplete="username"
-                        required
-                    >
+                    <label for="hr-username" class="field-label">
+                        <span class="label-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                            </svg>
+                        </span>
+                        <span>Username</span>
+                    </label>
+                    <div class="field-shell field-shell--with-icon">
+                        <span class="field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                            </svg>
+                        </span>
+                        <input
+                            id="hr-username"
+                            type="text"
+                            name="username"
+                            value="{{ request.POST.username|default:'' }}"
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
 
-                    <label for="hr-password">Password</label>
-                    <div class="password-field">
+                    <label for="hr-password" class="field-label">
+                        <span class="label-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                            </svg>
+                        </span>
+                        <span>Password</span>
+                    </label>
+                    <div class="password-field field-shell">
+                        <span class="field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                            </svg>
+                        </span>
                         <input
                             id="hr-password"
                             type="password"

@@ -5,6 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
+    <script>
+        (function() {
+            const targetUrl = "{{ target_url|escapejs }}";
+            const navigationEntry = window.performance && window.performance.getEntriesByType
+                ? window.performance.getEntriesByType("navigation")[0]
+                : null;
+            const legacyNavigation = window.performance && window.performance.navigation
+                ? window.performance.navigation.type
+                : null;
+            const isHistoryNavigation = (navigationEntry && navigationEntry.type === "back_forward")
+                || legacyNavigation === 2;
+
+            if (isHistoryNavigation) {
+                window.location.replace(targetUrl);
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="{% static 'css/loading_screen.css' %}">
 </head>
 <body class="loading-page {{ theme_class }}">
