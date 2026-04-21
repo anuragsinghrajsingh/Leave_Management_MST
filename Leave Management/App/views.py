@@ -570,8 +570,13 @@ def hr_login(request):
             return redirect("hr_workspace_loading")
         else:
             _show_login_failure_message(request, username, "HR", "HR")
+            request.session["hr_login_username"] = username or ""
+            return redirect("hr_login_form")
 
-    return render(request, "hr_login.html")
+    context = {
+        "prefill_username": request.session.pop("hr_login_username", ""),
+    }
+    return render(request, "hr_login.html", context)
 
 
 
@@ -2194,8 +2199,14 @@ def admin_login(request):
 
         else:
             _show_login_failure_message(request, username, "ADMIN", "Admin")
+            request.session["admin_login_username"] = username or ""
+            return redirect("admin_login_form")
 
-    response = render(request, "admin_login.html")
+    response = render(
+        request,
+        "admin_login.html",
+        {"prefill_username": request.session.pop("admin_login_username", "")},
+    )
 
     # 🔥 Prevent caching login page
     response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -2427,8 +2438,14 @@ def employee_login(request):
         
         else:
             _show_login_failure_message(request, username, "EMPLOYEE", "Employee")
+            request.session["employee_login_username"] = username or ""
+            return redirect("employee_login_form")
 
-    return render(request, "employee_login.html")
+    return render(
+        request,
+        "employee_login.html",
+        {"prefill_username": request.session.pop("employee_login_username", "")},
+    )
 
 
 

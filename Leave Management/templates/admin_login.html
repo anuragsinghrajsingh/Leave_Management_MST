@@ -11,12 +11,16 @@
     <main class="login-shell">
         <section class="login-panel login-panel--info">
             <div class="panel-glow panel-glow--info" aria-hidden="true"></div>
-            <div class="brand-lockup">
-                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                <div class="brand-copy">
-                    <p class="brand-name">MS Technology</p>
-                    <span class="login-kicker">Admin Portal</span>
+            <div class="brand-banner">
+                <div class="brand-banner__logo-shell">
+                    <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
                 </div>
+                <div class="brand-banner__title-shell">
+                    <p class="brand-name">MS Technology</p>
+                </div>
+            </div>
+            <div class="brand-copy">
+                <span class="login-kicker">Admin Portal</span>
             </div>
             <h1>Welcome back</h1>
             <p>
@@ -87,7 +91,7 @@
                             id="admin-username"
                             type="text"
                             name="username"
-                            value="{{ request.POST.username|default:'' }}"
+                            value="{{ prefill_username|default:'' }}"
                             placeholder="Enter your username"
                             autocomplete="username"
                             required
