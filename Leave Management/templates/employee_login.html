@@ -33,12 +33,73 @@
             box-shadow: none !important;
         }
 
+        .employee-theme .login-shell {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 24px 4px !important;
+        }
+
+        .employee-frame {
+            position: relative;
+            width: min(1520px, 100%);
+            min-height: min(680px, calc(100vh - 16px));
+            padding: 18px;
+            border-radius: 28px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: minmax(0, 1.22fr) minmax(420px, 500px);
+            gap: 14px;
+            align-items: stretch;
+            border: 1px solid rgba(190, 206, 255, 0.26);
+            background:
+                radial-gradient(circle at 10% 12%, rgba(255, 205, 235, 0.12), transparent 18%),
+                radial-gradient(circle at 86% 14%, rgba(122, 196, 255, 0.12), transparent 18%),
+                radial-gradient(circle at 92% 88%, rgba(255, 179, 120, 0.1), transparent 16%),
+                linear-gradient(180deg, rgba(8, 27, 39, 0.98), rgba(9, 38, 49, 0.98));
+            box-shadow:
+                inset 0 0 0 1px rgba(134, 227, 216, 0.14),
+                0 0 0 1px rgba(50, 127, 180, 0.28),
+                0 30px 90px rgba(0, 0, 0, 0.38);
+        }
+
+        .employee-frame::before,
+        .employee-frame::after {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .employee-frame::before {
+            inset: 0;
+            background:
+                radial-gradient(circle at 18% 28%, rgba(255, 183, 120, 0.08), transparent 20%),
+                radial-gradient(circle at 75% 20%, rgba(139, 226, 255, 0.08), transparent 18%),
+                radial-gradient(circle at 62% 78%, rgba(61, 239, 190, 0.08), transparent 18%);
+        }
+
+        .employee-frame::after {
+            left: 8%;
+            right: 34%;
+            bottom: -72px;
+            height: 220px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 25% 50%, rgba(255, 179, 89, 0.42) 0, rgba(255, 179, 89, 0.12) 10%, transparent 42%),
+                radial-gradient(circle at 45% 50%, rgba(77, 228, 255, 0.34) 0, rgba(77, 228, 255, 0.12) 12%, transparent 45%),
+                radial-gradient(circle at 60% 50%, rgba(48, 231, 170, 0.38) 0, rgba(48, 231, 170, 0.1) 12%, transparent 45%);
+            filter: blur(18px);
+            opacity: 0.9;
+        }
+
         .employee-theme .login-kicker {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
             font-size: 1.10rem !important;
             font-weight: 1000 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
             letter-spacing: 0.04em !important;
-            color: #eef4ff !important;
             background:
                 linear-gradient(135deg, rgba(82, 168, 255, 0.22), rgba(132, 96, 255, 0.2), rgba(255, 124, 201, 0.18)) !important;
             border: 1px solid rgba(171, 196, 255, 0.3) !important;
@@ -46,16 +107,61 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.16),
                 0 10px 22px rgba(81, 100, 255, 0.16),
                 0 0 20px rgba(120, 127, 255, 0.12) !important;
-            -webkit-text-stroke: 1.4px rgba(255, 255, 255, 0.24) !important;
+            -webkit-text-stroke: 0 !important;
+            text-shadow: none !important;
+        }
+
+        .employee-theme .login-kicker__text {
+            display: inline-block !important;
+            font-weight: 1000 !important;
+            letter-spacing: 0.03em !important;
+            background: linear-gradient(90deg, #ffffff 0%, #9fe6ff 28%, #8da2ff 58%, #ffb6f2 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            color: transparent !important;
+            -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.14) !important;
             text-shadow:
-                0 0 1px rgba(255, 255, 255, 0.26),
-                0 0 2px rgba(255, 255, 255, 0.2),
-                0 0 3px rgba(255, 255, 255, 0.14),
-                0 1px 10px rgba(84, 106, 255, 0.22) !important;
+                0 2px 12px rgba(160, 176, 255, 0.2),
+                0 0 24px rgba(126, 170, 255, 0.18) !important;
+        }
+
+        .employee-theme .login-kicker__icon {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 20px !important;
+            height: 20px !important;
+            color: #9fe6ff !important;
+            filter: drop-shadow(0 0 10px rgba(159, 230, 255, 0.28)) !important;
+        }
+
+        @media (min-width: 641px) {
+            .employee-theme .login-kicker__icon {
+                position: relative !important;
+                top: 1px !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .employee-theme .login-kicker__icon {
+                position: relative !important;
+                top: 0.5px !important;
+            }
+        }
+
+        .employee-theme .login-kicker__icon svg {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+            fill: none !important;
+            stroke: currentColor !important;
+            stroke-width: 1.9px !important;
+            stroke-linecap: round !important;
+            stroke-linejoin: round !important;
         }
 
         .employee-theme .login-panel--info h1 {
-            margin-top: 70px !important;
+            margin-top: 42px !important;
             font-weight: 1000 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
             -webkit-text-stroke: 0.8px rgba(255, 255, 255, 0.18) !important;
@@ -80,6 +186,15 @@
             text-shadow: 0 4px 16px rgba(145, 162, 255, 0.16) !important;
         }
 
+        .employee-theme .login-panel--info {
+            padding: 16px 26px 16px !important;
+        }
+
+        .employee-theme .feature-list {
+            margin-top: 48px !important;
+            gap: 14px !important;
+        }
+
         .employee-theme .feature-list .feature-item strong {
             background: linear-gradient(90deg, #ffffff 0%, #d7e5ff 42%, #d7c6ff 100%) !important;
             -webkit-background-clip: text !important;
@@ -101,13 +216,36 @@
         @media (min-width: 641px) {
             .employee-theme .feature-list {
                 gap: 24px !important;
+                width: min(100%, 84%) !important;
+                margin-left: 0 !important;
+                margin-right: auto !important;
+            }
+
+            .employee-theme .feature-item {
+                width: 100% !important;
+                padding: 10px 14px !important;
+                column-gap: 12px !important;
+            }
+
+            .employee-theme .feature-list .feature-item:nth-child(1) strong,
+            .employee-theme .feature-list .feature-item:nth-child(2) strong,
+            .employee-theme .feature-list .feature-item:nth-child(3) strong {
+                font-weight: 1000 !important;
+                font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+                -webkit-text-stroke: 0.4px rgba(255, 255, 255, 0.16) !important;
+            }
+
+            .employee-theme .feature-list .feature-item:nth-child(1) > span:last-child,
+            .employee-theme .feature-list .feature-item:nth-child(2) > span:last-child,
+            .employee-theme .feature-list .feature-item:nth-child(3) > span:last-child {
+                font-weight: 1000 !important;
+                font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+                -webkit-text-stroke: 0.25px rgba(255, 255, 255, 0.12) !important;
             }
         }
 
         .employee-theme .login-panel--form,
-        .employee-theme .login-panel--form *,
-        .employee-theme .login-card,
-        .employee-theme .login-card * {
+        .employee-theme .login-panel--form * {
             font-weight: 900 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
         }
@@ -118,40 +256,22 @@
                 radial-gradient(circle at 16% 78%, rgba(122, 196, 255, 0.14), transparent 24%),
                 linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
                 var(--panel-bg) !important;
-            padding: 18px 10px 16px !important;
+            padding: 8px 10px 12px !important;
             border: 1px solid rgba(190, 206, 255, 0.26) !important;
-            box-shadow: var(--shadow) !important;
+            box-shadow: none !important;
         }
 
-        .employee-theme .login-card {
-            min-height: 600px !important;
-            margin-top: 28px !important;
-            padding: 28px 20px 22px !important;
-            border-radius: 30px !important;
-            background:
-                radial-gradient(circle at top center, rgba(110, 120, 200, 0.16), transparent 34%),
-                linear-gradient(180deg, rgba(56, 64, 112, 0.72), rgba(35, 40, 80, 0.58)) !important;
-            border: 1px solid rgba(190, 203, 255, 0.24) !important;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                0 18px 44px rgba(16, 16, 44, 0.28),
-                0 0 22px rgba(95, 128, 255, 0.1) !important;
-            backdrop-filter: blur(12px) !important;
-        }
+        @media (max-width: 980px) {
+            .employee-frame {
+                grid-template-columns: 1fr;
+                width: min(100%, 620px);
+                min-height: auto;
+                gap: 12px;
+            }
 
-        .employee-theme .login-card::after {
-            content: "" !important;
-            opacity: 0.72 !important;
-        }
-
-        .employee-theme .login-card::before {
-            content: "" !important;
-            inset: 10px !important;
-            border-radius: 24px !important;
-            border-color: rgba(235, 240, 255, 0.34) !important;
-            box-shadow:
-                0 0 0 1px rgba(132, 184, 255, 0.12),
-                inset 0 0 18px rgba(255, 255, 255, 0.05) !important;
+            .employee-theme .login-panel--form {
+                justify-content: flex-start !important;
+            }
         }
 
         .employee-theme .login-card__header {
@@ -160,8 +280,8 @@
             align-items: center !important;
             gap: 10px !important;
             padding-top: 0 !important;
-            margin-top: -6px !important;
-            margin-bottom: 16px !important;
+            margin-top: 0 !important;
+            margin-bottom: 12px !important;
         }
 
         .employee-theme .login-card__header h2,
@@ -204,6 +324,37 @@
                 0 0 16px rgba(95, 128, 255, 0.1) !important;
         }
 
+        .employee-theme .login-card {
+            min-height: 600px !important;
+            margin-top: 6px !important;
+            padding: 8px 20px 16px !important;
+            border-radius: 30px !important;
+            background:
+                radial-gradient(circle at top center, rgba(110, 120, 200, 0.16), transparent 34%),
+                linear-gradient(180deg, rgba(56, 64, 112, 0.72), rgba(35, 40, 80, 0.58)) !important;
+            border: 1px solid rgba(190, 203, 255, 0.24) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 18px 44px rgba(16, 16, 44, 0.28),
+                0 0 22px rgba(95, 128, 255, 0.1) !important;
+            backdrop-filter: blur(12px) !important;
+        }
+
+        .employee-theme .login-card::after {
+            content: "" !important;
+            opacity: 0.72 !important;
+        }
+
+        .employee-theme .login-card::before {
+            content: "" !important;
+            inset: 10px !important;
+            border-radius: 24px !important;
+            border-color: rgba(235, 240, 255, 0.34) !important;
+            box-shadow:
+                0 0 0 1px rgba(132, 184, 255, 0.12),
+                inset 0 0 18px rgba(255, 255, 255, 0.05) !important;
+        }
+
         .employee-theme .login-footer {
             margin-top: 28px !important;
         }
@@ -239,23 +390,24 @@
             padding: 7px 18px !important;
             border-radius: 999px !important;
             background:
-                linear-gradient(135deg, rgba(255, 255, 255, 0.48), rgba(233, 228, 255, 0.72), rgba(218, 232, 255, 0.6)) !important;
-            border: 1px solid rgba(180, 194, 255, 0.42) !important;
+                linear-gradient(135deg, rgba(68, 78, 145, 0.96), rgba(42, 48, 102, 0.94), rgba(85, 92, 178, 0.92)) !important;
+            border: 1px solid rgba(171, 196, 255, 0.42) !important;
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.42),
-                0 10px 24px rgba(120, 132, 255, 0.12),
-                0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+                inset 0 1px 0 rgba(255, 255, 255, 0.14),
+                0 10px 26px rgba(95, 128, 255, 0.18),
+                0 0 28px rgba(120, 127, 255, 0.14),
+                0 0 0 1px rgba(255, 255, 255, 0.12) !important;
             background-clip: padding-box !important;
             background:
-                linear-gradient(135deg, rgba(255, 255, 255, 0.48), rgba(233, 228, 255, 0.72), rgba(218, 232, 255, 0.6)) !important;
-            color: #5a64d6 !important;
+                linear-gradient(135deg, rgba(68, 78, 145, 0.96), rgba(42, 48, 102, 0.94), rgba(85, 92, 178, 0.92)) !important;
+            color: #dfe8ff !important;
             font-weight: 1000 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
             letter-spacing: 0.08em !important;
             font-size: 0.84rem !important;
             text-shadow:
-                0 0 8px rgba(76, 174, 255, 0.18),
-                0 0 14px rgba(207, 108, 255, 0.14) !important;
+                0 0 8px rgba(159, 230, 255, 0.2),
+                0 0 14px rgba(126, 170, 255, 0.18) !important;
         }
 
         .employee-theme .login-card__header h2 {
@@ -265,7 +417,7 @@
             gap: 10px !important;
             width: fit-content !important;
             margin: 0 auto !important;
-            padding: 10px 24px !important;
+            padding: 6px 22px !important;
             border-radius: 999px !important;
             background:
                 linear-gradient(180deg, rgba(58, 67, 118, 0.72), rgba(36, 42, 84, 0.58)) !important;
@@ -283,14 +435,15 @@
             background-clip: text, padding-box !important;
             -webkit-text-stroke: 0.4px rgba(255, 255, 255, 0.1) !important;
             text-shadow: 0 6px 20px rgba(100, 110, 255, 0.18) !important;
+            line-height: 1 !important;
         }
 
         .employee-theme .login-card__header-icon {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            width: 30px !important;
-            height: 30px !important;
+            width: 26px !important;
+            height: 26px !important;
             position: relative !important;
             top: 1px !important;
             color: #9fcfff !important;
@@ -539,13 +692,14 @@
 
         .employee-theme .login-divider span {
             background:
-                linear-gradient(135deg, rgba(60, 68, 118, 0.92), rgba(38, 44, 88, 0.84)) !important;
-            border: 1px solid rgba(187, 201, 255, 0.24) !important;
-            color: #8c96ff !important;
+                linear-gradient(135deg, rgba(68, 78, 145, 0.96), rgba(42, 48, 102, 0.94), rgba(85, 92, 178, 0.92)) !important;
+            border: 1px solid rgba(171, 196, 255, 0.42) !important;
+            color: #dfe8ff !important;
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                0 10px 22px rgba(13, 18, 46, 0.28),
-                0 0 16px rgba(95, 128, 255, 0.1) !important;
+                inset 0 1px 0 rgba(255, 255, 255, 0.14),
+                0 10px 26px rgba(95, 128, 255, 0.18),
+                0 0 28px rgba(120, 127, 255, 0.14),
+                0 0 0 1px rgba(255, 255, 255, 0.12) !important;
         }
 
         .employee-theme .brand-banner__title-shell {
@@ -558,6 +712,7 @@
             min-height: 0 !important;
             height: auto !important;
             padding: 6px 12px !important;
+            text-align: center !important;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)) !important;
             border: 1px solid rgba(188, 206, 255, 0.24) !important;
             box-shadow:
@@ -639,25 +794,34 @@
         .employee-theme .brand-name {
             font-size: clamp(2.2rem, 3.2vw, 3rem) !important;
             font-weight: 1000 !important;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
             line-height: 1 !important;
-            letter-spacing: 0.05em !important;
+            letter-spacing: 0 !important;
             padding: 0 !important;
             margin: 0 !important;
             display: inline-flex !important;
             align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
             position: static !important;
             transform: none !important;
-            -webkit-text-stroke: 2.8px rgba(255, 255, 255, 0.34) !important;
-            text-shadow:
-                0 0 1px rgba(255, 255, 255, 0.28),
-                0 0 4px rgba(255, 255, 255, 0.2),
-                0 0 6px rgba(255, 255, 255, 0.14) !important;
+            -webkit-text-stroke: 0 !important;
+            text-shadow: none !important;
         }
 
         @media (max-width: 640px) {
             .employee-theme .login-shell {
                 padding: 4px !important;
-                gap: 6px !important;
+                gap: 2px !important;
+            }
+
+            .employee-frame {
+                width: 100%;
+                min-height: auto;
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 12px 10px;
+                border-radius: 22px;
             }
 
             .employee-theme .login-panel--info,
@@ -670,19 +834,27 @@
             }
 
             .employee-theme .login-card {
-                margin-top: 12px !important;
+                margin-top: 6px !important;
+                padding: 22px 16px 18px !important;
             }
 
             .employee-theme .login-panel--info {
+                padding-top: 4px !important;
                 padding-bottom: 0 !important;
+                justify-content: flex-start !important;
             }
 
             .employee-theme .login-panel--info > *:not(.panel-glow) {
-                transform: translateY(-14px) !important;
+                transform: translateY(-6px) !important;
+            }
+
+            .employee-theme .brand-banner__title-shell {
+                margin-bottom: 2px !important;
             }
 
             .employee-theme .brand-name {
-                font-size: 1.9rem !important;
+                font-size: 1.68rem !important;
+                margin-bottom: 0 !important;
             }
 
             .employee-theme .brand-logo {
@@ -693,12 +865,13 @@
                 flex-direction: column !important;
                 align-items: center !important;
                 justify-content: center !important;
-                gap: 4px !important;
+                gap: 2px !important;
             }
 
             .employee-theme .brand-banner__main {
                 justify-content: center !important;
                 margin-left: 0 !important;
+                margin-top: 0 !important;
             }
 
             .employee-theme .brand-copy {
@@ -711,7 +884,7 @@
             .employee-theme .login-panel--info h1 {
                 margin-top: 10px !important;
                 margin-bottom: 4px !important;
-                font-size: 1.68rem !important;
+                font-size: 1.9rem !important;
             }
 
             .employee-theme .login-kicker {
@@ -724,30 +897,58 @@
                 white-space: normal !important;
                 overflow-wrap: anywhere !important;
                 word-break: break-word !important;
-                font-size: 0.8rem !important;
+                font-size: 0.75rem !important;
                 line-height: 1.35 !important;
                 text-align: center !important;
-                font-weight: 700 !important;
-                font-family: "Trebuchet MS", "Segoe UI", sans-serif !important;
+                font-weight: 1000 !important;
+                font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+                -webkit-text-stroke: 0.25px rgba(255, 255, 255, 0.08) !important;
+                letter-spacing: 0.01em !important;
+            }
+
+            .employee-theme .login-card__header h2 {
+                font-size: 1.55rem !important;
+            }
+
+            .employee-theme .login-card__header {
+                gap: 8px !important;
+                margin-bottom: 12px !important;
+            }
+
+            .employee-theme .login-form input::placeholder {
+                font-size: 0.9rem !important;
             }
 
             .employee-theme .feature-list {
-                margin-top: 18px !important;
-                gap: 12px !important;
+                margin-top: 6px !important;
+                gap: 6px !important;
+            }
+
+            .employee-theme .feature-item {
+                padding: 8px 12px !important;
+                gap: 8px !important;
             }
 
             .employee-theme .feature-item strong {
-                font-size: 0.88rem !important;
-                line-height: 1.2 !important;
+                margin-bottom: 0 !important;
+            }
+
+            .employee-theme .feature-item strong {
+                font-size: 0.84rem !important;
+                line-height: 1.15 !important;
+                font-weight: 1000 !important;
+                font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+                -webkit-text-stroke: 0.25px rgba(255, 255, 255, 0.12) !important;
             }
 
             .employee-theme .feature-list .feature-item:nth-child(1) > span:last-child,
             .employee-theme .feature-list .feature-item:nth-child(2) > span:last-child,
             .employee-theme .feature-list .feature-item:nth-child(3) > span:last-child {
-                font-size: 0.74rem !important;
-                line-height: 1.22 !important;
-                font-weight: 600 !important;
-                font-family: "Trebuchet MS", "Segoe UI", sans-serif !important;
+                font-size: 0.69rem !important;
+                line-height: 1.16 !important;
+                font-weight: 900 !important;
+                font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+                -webkit-text-stroke: 0.2px rgba(255, 255, 255, 0.08) !important;
             }
         }
 
@@ -765,6 +966,7 @@
 </head>
 <body class="login-page employee-theme">
     <main class="login-shell">
+        <div class="employee-frame">
         <section class="login-panel login-panel--info">
             <div class="panel-glow panel-glow--info" aria-hidden="true"></div>
             <div class="brand-banner">
@@ -777,7 +979,16 @@
                     </div>
                 </div>
                 <div class="brand-copy">
-                    <span class="login-kicker">Employee Portal</span>
+                    <span class="login-kicker">
+                        <span class="login-kicker__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M7 4.5h10A2.5 2.5 0 0 1 19.5 7v10A2.5 2.5 0 0 1 17 19.5H7A2.5 2.5 0 0 1 4.5 17V7A2.5 2.5 0 0 1 7 4.5Z"/>
+                                <path d="M9.2 9.2a2.8 2.8 0 1 1 5.6 0 2.8 2.8 0 0 1-5.6 0Z"/>
+                                <path d="M8.3 15.8c.9-1.5 2.4-2.3 3.7-2.3s2.8.8 3.7 2.3"/>
+                            </svg>
+                        </span>
+                        <span class="login-kicker__text">Employee Portal</span>
+                    </span>
                 </div>
             </div>
             <h1>Welcome back</h1>
@@ -817,7 +1028,6 @@
                 </div>
             </div>
         </section>
-
         <section class="login-panel login-panel--form">
             <div class="login-card">
                 <div class="panel-glow panel-glow--form" aria-hidden="true"></div>
@@ -946,6 +1156,7 @@
                 </div>
             </div>
         </section>
+        </div>
     </main>
 
     <script>

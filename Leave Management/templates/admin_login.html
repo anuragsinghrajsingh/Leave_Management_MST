@@ -6,157 +6,1283 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login | Leave Management</title>
     <link rel="stylesheet" href="{% static 'css/common_login.css' %}">
+    <style>
+        .admin-theme {
+            --admin-cyan: #2cd4ff;
+            --admin-blue: #4b7dff;
+            --admin-violet: #8a4dff;
+            --admin-pink: #ff5db4;
+            --admin-ink: #05091b;
+            --admin-panel: rgba(6, 12, 38, 0.88);
+            --admin-card: linear-gradient(180deg, rgba(10, 21, 66, 0.96), rgba(8, 17, 52, 0.95));
+            --admin-text: #f5f7ff;
+            --admin-muted: rgba(223, 232, 255, 0.78);
+            --admin-border: rgba(86, 131, 255, 0.38);
+            --admin-grid: rgba(135, 92, 255, 0.12);
+            --admin-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
+            --admin-text-gradient: linear-gradient(90deg, #74e7ff 0%, #87cfff 38%, #b39cff 72%, #d7b2ff 100%);
+            --admin-soft-gradient: linear-gradient(90deg, #c9f4ff 0%, #d6e6ff 40%, #d8ccff 100%);
+        }
+
+        .admin-theme .login-shell {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 4px;
+            background:
+                radial-gradient(circle at 14% 16%, rgba(255, 153, 110, 0.14), transparent 20%),
+                radial-gradient(circle at 18% 16%, rgba(22, 126, 255, 0.2), transparent 24%),
+                radial-gradient(circle at 84% 14%, rgba(181, 53, 255, 0.22), transparent 22%),
+                radial-gradient(circle at 72% 84%, rgba(42, 231, 193, 0.16), transparent 20%),
+                radial-gradient(circle at 50% 100%, rgba(0, 132, 255, 0.24), transparent 24%),
+                linear-gradient(135deg, #030816 0%, #0b1333 38%, #23114c 74%, #103d5c 100%);
+        }
+
+        .admin-frame {
+            position: relative;
+            width: min(1480px, 100%);
+            min-height: min(640px, calc(100vh - 16px));
+            padding: 10px;
+            border-radius: 24px;
+            border: 1px solid rgba(137, 84, 255, 0.48);
+            background:
+                linear-gradient(180deg, rgba(7, 11, 34, 0.98), rgba(4, 8, 27, 0.98)),
+                linear-gradient(135deg, rgba(19, 167, 255, 0.12), rgba(187, 59, 255, 0.12), rgba(46, 229, 186, 0.08));
+            box-shadow:
+                inset 0 0 0 1px rgba(46, 120, 255, 0.35),
+                0 0 0 2px rgba(18, 84, 255, 0.12),
+                0 0 60px rgba(145, 46, 255, 0.18),
+                0 0 90px rgba(28, 108, 255, 0.16);
+            overflow: hidden;
+        }
+
+        .admin-frame::before,
+        .admin-frame::after {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .admin-frame::before {
+            inset: 0;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(88, 211, 255, 0.12), transparent 16%),
+                radial-gradient(circle at 76% 22%, rgba(184, 112, 255, 0.12), transparent 18%),
+                radial-gradient(circle at 52% 62%, rgba(88, 124, 255, 0.08), transparent 20%),
+                radial-gradient(circle at 24% 82%, rgba(255, 158, 106, 0.12), transparent 18%),
+                radial-gradient(circle at 0 100%, rgba(17, 132, 255, 0.28), transparent 18%),
+                radial-gradient(circle at 100% 0, rgba(192, 59, 255, 0.18), transparent 18%);
+        }
+
+        .admin-frame::after {
+            top: 0;
+            right: 0;
+            width: 180px;
+            height: 180px;
+            background-image:
+                linear-gradient(var(--admin-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--admin-grid) 1px, transparent 1px);
+            background-size: 24px 24px;
+            mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.96), transparent 82%);
+            opacity: 0.9;
+        }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.82fr);
+            gap: 16px;
+            align-items: stretch;
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-hero,
+        .admin-form-panel {
+            position: relative;
+        }
+
+        .admin-hero {
+            padding: 2px 4px 4px;
+            color: var(--admin-text);
+        }
+
+        .admin-hero::before,
+        .admin-hero::after,
+        .admin-form-panel::before {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+            border-radius: 999px;
+            filter: blur(28px);
+            opacity: 0.7;
+        }
+
+        .admin-hero::before {
+            top: 86px;
+            left: 8%;
+            width: 240px;
+            height: 78px;
+            background: radial-gradient(circle, rgba(75, 189, 255, 0.22) 0%, rgba(75, 189, 255, 0.08) 36%, transparent 72%);
+        }
+
+        .admin-hero::after {
+            right: 9%;
+            top: 26px;
+            width: 190px;
+            height: 190px;
+            background: radial-gradient(circle, rgba(188, 112, 255, 0.18) 0%, rgba(188, 112, 255, 0.08) 38%, transparent 74%);
+        }
+
+        .admin-form-panel::before {
+            right: 6%;
+            bottom: 18%;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(78, 178, 255, 0.16) 0%, rgba(78, 178, 255, 0.08) 40%, transparent 74%);
+        }
+
+        .admin-brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .admin-brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+
+        .admin-logo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            position: relative;
+        }
+
+        .admin-logo-badge img {
+            width: 100%;
+            height: auto;
+            filter:
+                drop-shadow(0 0 12px rgba(17, 132, 255, 0.22))
+                drop-shadow(0 0 18px rgba(210, 80, 255, 0.12));
+        }
+
+        .admin-brand-text {
+            min-width: 0;
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 24px 12px;
+            border-radius: 999px;
+            background:
+                linear-gradient(180deg, rgba(62, 88, 164, 0.22), rgba(39, 52, 104, 0.18));
+            border: 1px solid rgba(112, 144, 238, 0.28);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 0 0 1px rgba(113, 141, 255, 0.1),
+                0 10px 26px rgba(8, 13, 34, 0.18),
+                0 0 20px rgba(88, 117, 255, 0.08);
+        }
+
+        .admin-brand-text h1 {
+            margin: 0;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: clamp(1.82rem, 2.78vw, 2.78rem);
+            line-height: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.045em;
+            font-weight: 1000;
+            white-space: nowrap;
+            background: linear-gradient(90deg, #61f1ff 0%, #6fc7ff 26%, #8f95ff 52%, #d47bff 74%, #ffba72 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-stroke: 1.3px rgba(198, 227, 255, 0.18);
+            text-shadow:
+                0 0 10px rgba(88, 211, 255, 0.18),
+                0 0 22px rgba(126, 112, 255, 0.14);
+        }
+
+        .admin-portal-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.9rem;
+            font-weight: 1000 !important;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            background:
+                linear-gradient(180deg, rgba(82, 90, 162, 0.42), rgba(72, 43, 136, 0.34));
+            border: 1px solid rgba(153, 123, 255, 0.42);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 0 0 1px rgba(120, 142, 255, 0.08),
+                0 10px 24px rgba(33, 27, 88, 0.18),
+                0 0 22px rgba(143, 98, 255, 0.12);
+            white-space: nowrap;
+            color: #eef3ff;
+        }
+
+        .admin-portal-pill span {
+            display: inline-block;
+            background: linear-gradient(90deg, #86e8ff 0%, #9dd0ff 34%, #c7a7ff 72%, #ffd37d 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-stroke: 0.35px rgba(243, 247, 255, 0.28);
+            text-shadow:
+                0 0 1px rgba(255, 255, 255, 0.18),
+                0 0 10px rgba(126, 170, 255, 0.12),
+                0 0 16px rgba(177, 132, 255, 0.1);
+        }
+
+        .admin-portal-pill svg {
+            display: block;
+            width: 15px;
+            height: 15px;
+            fill: #d8d8ff;
+            filter: drop-shadow(0 0 8px rgba(173, 150, 255, 0.22));
+        }
+
+        .admin-hero-copy {
+            transform: translateY(14px);
+        }
+
+        .admin-hero-copy h2 {
+            margin: 36px 0 10px;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: clamp(2.05rem, 3.2vw, 3.15rem);
+            line-height: 1.02;
+            font-weight: 1000 !important;
+            text-align: center;
+            background: linear-gradient(90deg, #68e6ff 0%, #86c5ff 34%, #b896ff 68%, #ffb86f 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow:
+                0 0 12px rgba(104, 230, 255, 0.14),
+                0 0 22px rgba(184, 150, 255, 0.12);
+        }
+
+        .admin-hero-copy p {
+            margin: 12px 0 0;
+            max-width: none;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.35;
+            font-weight: 1000 !important;
+            text-align: center;
+            white-space: nowrap;
+            background: var(--admin-soft-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-feature-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 74px;
+            position: relative;
+            width: min(100%, 88%);
+        }
+
+        .admin-feature-list::after {
+            content: "";
+            position: absolute;
+            left: 32%;
+            bottom: -12px;
+            width: 320px;
+            height: 90px;
+            background: radial-gradient(circle, rgba(33, 145, 255, 0.2) 0%, rgba(33, 145, 255, 0.08) 34%, transparent 74%);
+            filter: blur(26px);
+            opacity: 0.68;
+            pointer-events: none;
+        }
+
+        .admin-feature-card {
+            --card-accent: #2f89ff;
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr);
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px 11px 11px;
+            border-radius: 18px;
+            color: transparent;
+            text-decoration: none;
+            background:
+                radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--card-accent) 20%, transparent), transparent 24%),
+                linear-gradient(135deg, rgba(9, 22, 64, 0.94), rgba(14, 22, 58, 0.82));
+            border: 1px solid color-mix(in srgb, var(--card-accent) 70%, rgba(255, 255, 255, 0.18));
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+                0 16px 34px rgba(0, 0, 0, 0.22),
+                0 0 26px color-mix(in srgb, var(--card-accent) 18%, transparent);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .admin-feature-card:hover {
+            transform: translateY(-2px);
+            border-color: color-mix(in srgb, var(--card-accent) 86%, white 14%);
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+                0 22px 40px rgba(0, 0, 0, 0.25),
+                0 0 34px color-mix(in srgb, var(--card-accent) 24%, transparent);
+        }
+
+        .admin-feature-card:nth-child(2) { --card-accent: #a35bff; }
+        .admin-feature-card:nth-child(3) { --card-accent: #ff4db8; }
+        .admin-feature-card:nth-child(4) { --card-accent: #28dbc8; }
+        .admin-feature-card:nth-child(5) { --card-accent: #f3d34a; }
+
+        .admin-feature-card:nth-child(1) .admin-feature-copy strong,
+        .admin-feature-card:nth-child(1) .admin-feature-copy span {
+            background-image: linear-gradient(90deg, #7cf0ff 0%, #54bbff 40%, #9bc7ff 72%, #d6e7ff 100%);
+        }
+
+        .admin-feature-card:nth-child(2) .admin-feature-copy strong,
+        .admin-feature-card:nth-child(2) .admin-feature-copy span {
+            background-image: linear-gradient(90deg, #7be6ff 0%, #8e8dff 36%, #b06dff 70%, #eadbff 100%);
+        }
+
+        .admin-feature-card:nth-child(3) .admin-feature-copy strong,
+        .admin-feature-card:nth-child(3) .admin-feature-copy span {
+            background-image: linear-gradient(90deg, #75e7ff 0%, #9f8fff 34%, #ff69c7 70%, #ffd9ef 100%);
+        }
+
+        .admin-feature-card:nth-child(4) .admin-feature-copy strong,
+        .admin-feature-card:nth-child(4) .admin-feature-copy span {
+            background-image: linear-gradient(90deg, #8bfbff 0%, #39dcc8 38%, #5de5ff 70%, #d8fffb 100%);
+        }
+
+        .admin-feature-card:nth-child(5) .admin-feature-copy strong,
+        .admin-feature-card:nth-child(5) .admin-feature-copy span {
+            background-image: linear-gradient(90deg, #8cefff 0%, #d7c35e 36%, #f3d34a 70%, #fff5c9 100%);
+        }
+
+        .admin-feature-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), transparent 32%),
+                linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 72%, rgba(255, 255, 255, 0.14)), color-mix(in srgb, var(--card-accent) 34%, rgba(0, 0, 0, 0.1)));
+            box-shadow:
+                0 0 0 8px color-mix(in srgb, var(--card-accent) 8%, transparent),
+                0 0 30px color-mix(in srgb, var(--card-accent) 18%, transparent);
+        }
+
+        .admin-feature-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .admin-feature-copy strong {
+            display: block;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 1.15rem;
+            line-height: 1.15;
+            margin-bottom: 2px;
+            font-weight: 1000 !important;
+            background: var(--admin-text-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-feature-copy span {
+            display: block;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.88rem;
+            line-height: 1.35;
+            font-weight: 1000 !important;
+            background: var(--admin-soft-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-form-panel {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .admin-login-card {
+            position: relative;
+            width: min(100%, 470px);
+            min-height: 600px;
+            padding: 24px 18px 16px;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at 50% 0, rgba(113, 54, 255, 0.18), transparent 28%),
+                radial-gradient(circle at 18% 84%, rgba(53, 201, 255, 0.12), transparent 28%),
+                radial-gradient(circle at 84% 16%, rgba(255, 126, 183, 0.12), transparent 22%),
+                linear-gradient(180deg, rgba(11, 26, 78, 0.98), rgba(8, 21, 64, 0.96));
+            border: 1px solid rgba(96, 152, 255, 0.72);
+            box-shadow:
+                inset 0 0 0 1px rgba(217, 231, 255, 0.08),
+                0 24px 60px rgba(0, 0, 0, 0.3),
+                0 0 44px rgba(113, 54, 255, 0.18);
+            overflow: hidden;
+            margin-right: 18px;
+            margin-top: 40px;
+        }
+
+        .admin-login-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(16, 144, 255, 0.8), rgba(212, 69, 255, 0.72), rgba(77, 234, 201, 0.7));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .admin-login-card::after {
+            content: "";
+            position: absolute;
+            inset: auto 14% 10px 14%;
+            height: 34px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(114, 83, 255, 0.2) 0%, rgba(114, 83, 255, 0.08) 42%, transparent 80%);
+            filter: blur(14px);
+            pointer-events: none;
+            opacity: 0.82;
+        }
+
+        .admin-card-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(74, 104, 185, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(74, 104, 185, 0.08) 1px, transparent 1px);
+            background-size: 20px 20px;
+            mask-image: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8) 30%, transparent 100%);
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        .admin-login-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-card-header {
+            text-align: center;
+            color: var(--admin-text);
+            margin-bottom: 14px;
+        }
+
+        .admin-shield {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            margin-bottom: 8px;
+            color: #1a8dff;
+            filter: drop-shadow(0 0 18px rgba(28, 130, 255, 0.22));
+        }
+
+        .admin-shield svg {
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .admin-card-header h3 {
+            margin: 0;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 1.8rem;
+            line-height: 1.1;
+            font-weight: 1000 !important;
+            background: var(--admin-text-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-card-header p {
+            margin: 10px 0 0;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            font-weight: 1000 !important;
+            background: var(--admin-soft-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-title-accent {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px auto 0;
+        }
+
+        .admin-title-accent span {
+            display: block;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(20, 159, 255, 0.5), rgba(17, 163, 255, 1), rgba(213, 66, 255, 0.48));
+            box-shadow: 0 0 16px rgba(17, 163, 255, 0.18);
+        }
+
+        .admin-title-accent span:nth-child(1),
+        .admin-title-accent span:nth-child(3) {
+            width: 8px;
+        }
+
+        .admin-title-accent span:nth-child(2) {
+            width: 76px;
+        }
+
+        .admin-message-stack {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .admin-message {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 112, 163, 0.32);
+            background: linear-gradient(135deg, rgba(79, 19, 54, 0.82), rgba(30, 11, 43, 0.88));
+            color: #ffe3ef;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+        }
+
+        .admin-message strong {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 0.88rem;
+            font-weight: 900;
+        }
+
+        .admin-message span {
+            display: block;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            font-weight: 700;
+        }
+
+        .admin-form {
+            display: grid;
+            gap: 8px;
+        }
+
+        .admin-form .field-label {
+            padding-left: 2px;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.92rem;
+            font-weight: 1000 !important;
+            background: var(--admin-soft-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-form label[for="admin-username"] {
+            margin-top: 14px;
+        }
+
+        .admin-form label[for="admin-password"] {
+            margin-top: 16px;
+        }
+
+        .admin-form .label-icon {
+            color: var(--admin-cyan);
+        }
+
+        .admin-form .field-shell {
+            border-radius: 16px;
+        }
+
+        .admin-form .field-shell::before {
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(97, 140, 255, 0.5), rgba(231, 69, 255, 0.38));
+        }
+
+        .admin-form .field-icon {
+            display: inline-flex;
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            width: 18px;
+            height: 18px;
+            transform: translateY(-50%);
+            color: rgba(181, 207, 255, 0.82);
+            z-index: 1;
+        }
+
+        .admin-form input {
+            border-radius: 14px;
+            padding: 13px 14px 13px 40px;
+            background: linear-gradient(180deg, rgba(15, 28, 81, 0.94), rgba(9, 20, 62, 0.96));
+            border: 1px solid rgba(99, 122, 201, 0.42);
+            color: #f4f7ff;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000 !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                0 8px 18px rgba(3, 9, 29, 0.22);
+        }
+
+        .admin-form input::placeholder {
+            color: rgba(202, 214, 244, 0.62);
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            text-indent: 0;
+        }
+
+        .admin-form input:focus {
+            background: linear-gradient(180deg, rgba(18, 34, 95, 1), rgba(10, 23, 72, 0.98));
+            border-color: rgba(56, 166, 255, 0.84);
+            box-shadow:
+                0 0 0 4px rgba(28, 132, 255, 0.16),
+                0 0 24px rgba(182, 59, 255, 0.16);
+        }
+
+        .admin-form .password-field input {
+            padding-right: 52px;
+        }
+
+        .admin-form .password-toggle {
+            right: 8px;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(123, 152, 232, 0.28);
+            background: linear-gradient(180deg, rgba(13, 26, 76, 0.96), rgba(9, 21, 63, 0.98));
+            color: rgba(216, 226, 255, 0.82);
+            box-shadow: none;
+        }
+
+        .admin-form .password-toggle svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .admin-caps-note {
+            min-height: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            font-size: 0.82rem;
+            color: #ffbd63;
+        }
+
+        .admin-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 6px;
+            padding: 11px 18px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(190, 224, 255, 0.34);
+            border-radius: 18px;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(120, 224, 255, 0.22), transparent 26%),
+                radial-gradient(circle at 82% 22%, rgba(215, 114, 255, 0.18), transparent 26%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07) 28%, rgba(255, 255, 255, 0.02) 100%),
+                linear-gradient(135deg, rgba(34, 71, 158, 0.52), rgba(26, 44, 115, 0.44), rgba(67, 27, 126, 0.42));
+            backdrop-filter: blur(18px) saturate(165%);
+            -webkit-backdrop-filter: blur(18px) saturate(165%);
+            font-size: 1.16rem;
+            font-weight: 1000 !important;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(39, 56, 128, 0.22),
+                0 18px 34px rgba(18, 48, 122, 0.26),
+                0 0 26px rgba(115, 88, 255, 0.18);
+            color: #eef6ff;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .admin-submit::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 38%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 46%);
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        .admin-submit:hover {
+            transform: translateY(-2px);
+            border-color: rgba(216, 235, 255, 0.46);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.24),
+                inset 0 -1px 0 rgba(46, 65, 142, 0.24),
+                0 24px 40px rgba(20, 52, 132, 0.28),
+                0 0 34px rgba(129, 93, 255, 0.22);
+        }
+
+        .admin-submit > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-submit svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.9px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 12px rgba(166, 210, 255, 0.2));
+        }
+
+        .admin-submit span {
+            font-size: 1.16rem;
+            font-weight: 1000 !important;
+        }
+
+        .admin-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 24px 0 18px;
+            min-height: 36px;
+        }
+
+        .admin-divider::before,
+        .admin-divider::after {
+            content: "";
+            flex: 1 1 auto;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(86, 210, 255, 0.9), rgba(176, 96, 255, 0.82), transparent);
+            box-shadow:
+                0 0 10px rgba(86, 210, 255, 0.18),
+                0 0 14px rgba(176, 96, 255, 0.12);
+        }
+
+        .admin-divider span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 72px;
+            padding: 7px 18px;
+            border-radius: 999px;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.88rem;
+            font-weight: 1000 !important;
+            letter-spacing: 0.08em;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(221, 231, 255, 0.1)),
+                linear-gradient(135deg, rgba(58, 71, 136, 0.94), rgba(31, 39, 89, 0.92));
+            border: 1px solid rgba(149, 181, 255, 0.34);
+            color: #b8d9ff;
+            text-shadow:
+                0 0 8px rgba(125, 239, 255, 0.16),
+                0 0 14px rgba(207, 158, 255, 0.12);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 10px 22px rgba(6, 12, 38, 0.24),
+                0 0 18px rgba(120, 145, 255, 0.1);
+        }
+
+        .admin-login-card .login-footer {
+            margin-top: 0;
+        }
+
+        .admin-back-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 48px;
+            border-radius: 14px;
+            border: 1px solid rgba(72, 160, 255, 0.7);
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            background:
+                linear-gradient(180deg, rgba(8, 20, 62, 0.92), rgba(6, 16, 50, 0.95));
+            text-decoration: none;
+            font-size: 0.94rem;
+            font-weight: 1000 !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 14px 30px rgba(4, 10, 31, 0.26);
+            color: #eef6ff;
+        }
+
+        .admin-back-link svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .admin-back-link:hover {
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+
+        .admin-orbit {
+            position: absolute;
+            left: 44%;
+            bottom: 18px;
+            width: 220px;
+            height: 80px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at center, rgba(22, 153, 255, 0.26), transparent 54%);
+            filter: blur(8px);
+            opacity: 0.78;
+            pointer-events: none;
+        }
+
+        @media (max-width: 1160px) {
+            .admin-layout {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+
+            .admin-form-panel {
+                justify-content: flex-start;
+            }
+
+            .admin-login-card {
+                width: min(100%, 560px);
+                min-height: auto;
+                margin-right: 0;
+                margin-top: 0;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .admin-theme .login-shell {
+                padding: 3px;
+            }
+
+            .admin-layout {
+                gap: 8px;
+            }
+
+            .admin-frame {
+                width: calc(100vw - 6px);
+                min-height: calc(100vh - 22px);
+                padding: 8px 6px;
+                border-radius: 18px;
+            }
+
+            .admin-brand-row {
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+            }
+
+            .admin-hero::before {
+                top: 70px;
+                left: 2%;
+                width: 180px;
+                height: 56px;
+            }
+
+            .admin-hero::after {
+                right: 2%;
+                top: 18px;
+                width: 120px;
+                height: 120px;
+            }
+
+            .admin-form-panel::before,
+            .admin-feature-list::after {
+                display: none;
+            }
+
+            .admin-brand-lockup {
+                gap: 12px;
+                width: 100%;
+                justify-content: center;
+                flex-wrap: nowrap;
+            }
+
+            .admin-logo-badge {
+                width: 58px;
+                height: 58px;
+            }
+
+            .admin-brand-text {
+                min-width: 0;
+                padding: 9px 16px 10px;
+            }
+
+            .admin-brand-text h1 {
+                font-size: 1.56rem;
+                -webkit-text-stroke: 1px rgba(224, 233, 255, 0.4);
+            }
+
+            .admin-portal-pill {
+                align-self: center;
+                margin-top: 4px;
+                padding: 8px 20px;
+                font-size: 0.92rem;
+                font-weight: 1000 !important;
+            }
+
+            .admin-hero-copy h2 {
+                margin-top: 0;
+                font-size: 2rem;
+                font-weight: 1000 !important;
+                letter-spacing: 0.015em;
+                -webkit-text-stroke: 0.75px rgba(255, 255, 255, 0.14);
+            }
+
+            .admin-hero-copy p {
+                font-size: 0.72rem;
+                white-space: normal;
+            }
+
+            .admin-hero-copy {
+                margin-top: 14px;
+                transform: translateY(0);
+            }
+
+            .admin-feature-card {
+                grid-template-columns: 52px minmax(0, 1fr);
+                padding-right: 12px;
+            }
+
+            .admin-feature-list {
+                width: 100%;
+                margin-top: 28px;
+            }
+
+            .admin-feature-arrow {
+                display: none;
+            }
+
+            .admin-feature-copy strong {
+                font-size: 1rem;
+            }
+
+            .admin-feature-copy span {
+                font-size: 0.72rem;
+            }
+
+            .admin-login-card {
+                padding: 5px 14px 10px;
+                border-radius: 20px;
+            }
+
+            .admin-form label[for="admin-username"] {
+                margin-top: 0;
+            }
+
+            .admin-card-header h3 {
+                font-size: 1.55rem;
+            }
+
+            .admin-card-header p {
+                font-size: 0.88rem;
+            }
+
+            .admin-form-options {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .admin-back-link,
+            .admin-submit {
+                min-height: 54px;
+            }
+        }
+    </style>
 </head>
 <body class="login-page admin-theme">
     <main class="login-shell">
-        <section class="login-panel login-panel--info">
-            <div class="panel-glow panel-glow--info" aria-hidden="true"></div>
-            <div class="brand-banner">
-                <div class="brand-banner__logo-shell">
-                    <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                </div>
-                <div class="brand-banner__title-shell">
-                    <p class="brand-name">MS Technology</p>
-                </div>
-            </div>
-            <div class="brand-copy">
-                <span class="login-kicker">Admin Portal</span>
-            </div>
-            <h1>Welcome back</h1>
-            <p>
-                Sign in to manage and configure your leave system, oversee all accounts,
-                and set up system preferences.
-            </p>
-
-            <div class="feature-list">
-                <div class="feature-item">
-                    <span class="feature-icon" aria-hidden="true">SM</span>
-                    <strong>System management</strong>
-                    <span>Configure system settings and manage new requests with less friction.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon" aria-hidden="true">US</span>
-                    <strong>User oversight</strong>
-                    <span>Oversee all accounts and ensure proper permission levels.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon" aria-hidden="true">SP</span>
-                    <strong>System preferences</strong>
-                    <span>Set up leave types, policies, and other configurations.</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="login-panel login-panel--form">
-            <div class="login-card">
-                <div class="panel-glow panel-glow--form" aria-hidden="true"></div>
-                <div class="portal-ring" aria-hidden="true"></div>
-                {% if messages %}
-                    <div class="login-toast-stack" aria-live="polite">
-                        {% for message in messages %}
-                            <div class="login-toast login-toast--{{ message.tags|default:'info' }}">
-                                <div class="login-toast__copy">
-                                    <strong>Try again</strong>
-                                    <span>{{ message }}</span>
-                                </div>
+        <div class="admin-frame">
+            <div class="admin-layout">
+                <section class="admin-hero" aria-label="Admin portal overview">
+                    <div class="admin-brand-row">
+                        <div class="admin-brand-lockup">
+                            <div class="admin-logo-badge">
+                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
                             </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="login-card__header">
-                    <span class="login-badge login-badge--portal">Admin Portal</span>
-                    <h2>Admin Login</h2>
-                    <p>Use your admin username and password to continue.</p>
-                </div>
-
-                <form method="post" class="login-form">
-                    {% csrf_token %}
-
-                    <label for="admin-username" class="field-label">
-                        <span class="label-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
-                            </svg>
-                        </span>
-                        <span>Username</span>
-                    </label>
-                    <div class="field-shell field-shell--with-icon">
-                        <span class="field-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
-                            </svg>
-                        </span>
-                        <input
-                            id="admin-username"
-                            type="text"
-                            name="username"
-                            value="{{ prefill_username|default:'' }}"
-                            placeholder="Enter your username"
-                            autocomplete="username"
-                            required
-                        >
-                    </div>
-
-                    <label for="admin-password" class="field-label">
-                        <span class="label-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
-                            </svg>
-                        </span>
-                        <span>Password</span>
-                    </label>
-                    <div class="password-field field-shell">
-                        <span class="field-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
-                            </svg>
-                        </span>
-                        <input
-                            id="admin-password"
-                            type="password"
-                            name="password"
-                            placeholder="Enter your password"
-                            autocomplete="current-password"
-                            required
-                        >
-                        <button type="button" class="password-toggle" data-password-toggle aria-label="Show password">
-                            Show
-                        </button>
-                    </div>
-
-                    {% if messages %}
-                        <div class="field-chip-stack" aria-live="polite">
-                            {% for message in messages %}
-                                <div class="field-chip field-chip--{{ message.tags|default:'info' }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
+                            <div class="admin-brand-text">
+                                <h1>MS Technology</h1>
+                            </div>
                         </div>
-                    {% endif %}
-
-                    <div class="field-note">
-                        <span class="caps-warning" data-caps-warning hidden>Caps Lock appears to be on.</span>
+                        <div class="admin-portal-pill">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 2.5 4.5 6v5.3c0 4.7 3 8.7 7.5 10.2 4.5-1.5 7.5-5.5 7.5-10.2V6L12 2.5Zm0 3.1 4.8 2.2v3.5c0 3.4-2 6.4-4.8 7.7-2.8-1.3-4.8-4.3-4.8-7.7V7.8L12 5.6Zm-1 3.2h2v2h2v2h-2v2h-2v-2H9v-2h2v-2Z"/>
+                            </svg>
+                            <span>Admin Portal</span>
+                        </div>
                     </div>
 
-                    <button type="submit" class="login-button">Login</button>
-                </form>
+                    <div class="admin-hero-copy">
+                        <h2>Welcome back</h2>
+                        <p>
+                            Access and manage the entire platform with powerful tools,
+                            insightful analytics, and complete control.
+                        </p>
+                    </div>
 
-                <div class="login-footer">
-                    <a href="{% url 'role_select' %}" class="back-link">Back to login selection</a>
-                </div>
+                    <div class="admin-feature-list">
+                        <div class="admin-feature-card">
+                            <div class="admin-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M4 13h4v7H4zm6-5h4v12h-4zm6-4h4v16h-4z"/>
+                                </svg>
+                            </div>
+                            <div class="admin-feature-copy">
+                                <strong>User Management</strong>
+                                <span>Add, update, and manage employee and HR accounts.</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-feature-card">
+                            <div class="admin-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="m19.4 13-1.1-.6c.1-.6.1-1.2 0-1.8l1.1-.6a1 1 0 0 0 .4-1.4l-1.2-2.1a1 1 0 0 0-1.3-.4l-1.1.5a6.8 6.8 0 0 0-1.5-.9L13.6 3a1 1 0 0 0-1-.8h-2.4a1 1 0 0 0-1 .8L8.9 4.7a6.8 6.8 0 0 0-1.5.9l-1.1-.5a1 1 0 0 0-1.3.4L3.8 7.6a1 1 0 0 0 .4 1.4l1.1.6a6.6 6.6 0 0 0 0 1.8l-1.1.6a1 1 0 0 0-.4 1.4l1.2 2.1a1 1 0 0 0 1.3.4l1.1-.5c.5.4 1 .7 1.5.9l.3 1.7a1 1 0 0 0 1 .8h2.4a1 1 0 0 0 1-.8l.3-1.7c.5-.2 1-.5 1.5-.9l1.1.5a1 1 0 0 0 1.3-.4l1.2-2.1a1 1 0 0 0-.4-1.4ZM11.9 14.8a3.3 3.3 0 1 1 0-6.6 3.3 3.3 0 0 1 0 6.6Z"/>
+                                </svg>
+                            </div>
+                            <div class="admin-feature-copy">
+                                <strong>System Configuration</strong>
+                                <span>Configure policies, leave types, workflows, and settings.</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-feature-card">
+                            <div class="admin-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2 4.5 5v6c0 4.7 3.2 8.9 7.5 10 4.3-1.1 7.5-5.3 7.5-10V5L12 2Zm0 5.2a2.3 2.3 0 1 1 0 4.6 2.3 2.3 0 0 1 0-4.6Zm0 10.1a6.3 6.3 0 0 1-4.1-1.7c.2-1.8 1.8-3.2 4.1-3.2 2.3 0 3.9 1.4 4.1 3.2a6.3 6.3 0 0 1-4.1 1.7Z"/>
+                                </svg>
+                            </div>
+                            <div class="admin-feature-copy">
+                                <strong>Security &amp; Roles</strong>
+                                <span>Manage roles, permissions, and administrator access control.</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-feature-card">
+                            <div class="admin-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M11 2v20a10 10 0 1 1 0-20Zm2 1.3A8 8 0 0 1 20.7 11H13Zm0 9.7h7.7A8 8 0 0 1 13 20.7Z"/>
+                                </svg>
+                            </div>
+                            <div class="admin-feature-copy">
+                                <strong>Reports &amp; Analytics</strong>
+                                <span>Generate system reports and monitor platform activity.</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-feature-card">
+                            <div class="admin-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 3a5 5 0 0 0-5 5v1.1A3 3 0 0 0 5 12v4.8A3.2 3.2 0 0 0 8.2 20h7.6A3.2 3.2 0 0 0 19 16.8V12a3 3 0 0 0-2-2.9V8a5 5 0 0 0-5-5Zm-3 6V8a3 3 0 0 1 6 0v1Zm3 12a2.3 2.3 0 0 1-2.3-2.3h4.6A2.3 2.3 0 0 1 12 21Z"/>
+                                </svg>
+                            </div>
+                            <div class="admin-feature-copy">
+                                <strong>Notifications</strong>
+                                <span>Manage system notifications and announcements.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="admin-form-panel">
+                    <div class="admin-login-card">
+                        <div class="admin-card-grid" aria-hidden="true"></div>
+
+                        {% if messages %}
+                            <div class="admin-message-stack" aria-live="polite">
+                                {% for message in messages %}
+                                    <div class="admin-message">
+                                        <strong>Try again</strong>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="admin-card-header">
+                            <div class="admin-shield" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2.8 5.5 5.7v5.4c0 4.5 2.8 8.5 6.5 9.9 3.7-1.4 6.5-5.4 6.5-9.9V5.7L12 2.8Z"/>
+                                    <path d="M9.3 11.2V9.9a2.7 2.7 0 0 1 5.4 0v1.3"/>
+                                    <rect x="8.2" y="11.2" width="7.6" height="5.7" rx="1.4"/>
+                                </svg>
+                            </div>
+                            <h3>Admin Login</h3>
+                            <div class="admin-title-accent" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <p>Use your admin credentials to continue.</p>
+                        </div>
+
+                        <form method="post" class="login-form admin-form">
+                            {% csrf_token %}
+
+                            <label for="admin-username" class="field-label">
+                                <span class="label-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                                    </svg>
+                                </span>
+                                <span>Username</span>
+                            </label>
+                            <div class="field-shell field-shell--with-icon">
+                                <span class="field-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="admin-username"
+                                    type="text"
+                                    name="username"
+                                    value="{{ prefill_username|default:'' }}"
+                                    placeholder="Enter your username"
+                                    autocomplete="username"
+                                    required
+                                >
+                            </div>
+
+                            <label for="admin-password" class="field-label">
+                                <span class="label-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                                    </svg>
+                                </span>
+                                <span>Password</span>
+                            </label>
+                            <div class="password-field field-shell">
+                                <span class="field-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="admin-password"
+                                    type="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    autocomplete="current-password"
+                                    required
+                                >
+                                <button type="button" class="password-toggle" data-password-toggle aria-label="Show password">
+                                    <span data-eye-open aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    </span>
+                                    <span data-eye-closed hidden aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                            <path d="M4 4 20 20"/>
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div class="field-note admin-caps-note">
+                                <span class="caps-warning" data-caps-warning hidden>Caps Lock appears to be on.</span>
+                            </div>
+
+                            <button type="submit" class="login-button admin-submit">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M15 8V6.5A3.5 3.5 0 0 0 8 6.5V8"/>
+                                    <rect x="6" y="8" width="12" height="10" rx="2.2"/>
+                                    <path d="M12 11.25v3.5"/>
+                                    <path d="M10.75 13h2.5"/>
+                                </svg>
+                                <span>Login</span>
+                            </button>
+                        </form>
+
+                        <div class="admin-divider" aria-hidden="true">
+                            <span>OR</span>
+                        </div>
+
+                        <div class="login-footer">
+                            <a href="{% url 'role_select' %}" class="admin-back-link">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M14.7 6.3a1 1 0 0 1 0 1.4L11.41 11H19a1 1 0 1 1 0 2h-7.59l3.29 3.29a1 1 0 0 1-1.41 1.41l-5-5a1 1 0 0 1 0-1.41l5-5a1 1 0 0 1 1.41 0Z"/>
+                                </svg>
+                                <span>Back to login selection</span>
+                            </a>
+                        </div>
+                    </div>
+                </section>
             </div>
-        </section>
+
+            <div class="admin-orbit" aria-hidden="true"></div>
+        </div>
     </main>
 
     <script>
         document.querySelectorAll("[data-password-toggle]").forEach(function(toggleButton) {
             const input = toggleButton.parentElement.querySelector("input");
+            const openIcon = toggleButton.querySelector("[data-eye-open]");
+            const closedIcon = toggleButton.querySelector("[data-eye-closed]");
 
             toggleButton.addEventListener("click", function() {
                 const isPassword = input.type === "password";
                 input.type = isPassword ? "text" : "password";
-                toggleButton.textContent = isPassword ? "Hide" : "Show";
+                if (openIcon && closedIcon) {
+                    openIcon.hidden = isPassword;
+                    closedIcon.hidden = !isPassword;
+                }
                 toggleButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
             });
         });

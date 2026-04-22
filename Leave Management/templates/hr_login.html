@@ -6,179 +6,1324 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Login | Leave Management</title>
     <link rel="stylesheet" href="{% static 'css/common_login.css' %}">
+    <style>
+        .hr-theme {
+            --hr-bg: #091f24;
+            --hr-bg-deep: #06131b;
+            --hr-panel: rgba(9, 27, 35, 0.88);
+            --hr-panel-border: rgba(104, 213, 194, 0.46);
+            --hr-card: linear-gradient(180deg, rgba(247, 251, 248, 0.98), rgba(230, 241, 241, 0.96));
+            --hr-card-border: rgba(165, 219, 216, 0.66);
+            --hr-accent: #2fd7a4;
+            --hr-accent-strong: #2f7dff;
+            --hr-accent-soft: #9fe7d5;
+            --hr-text: #f5f3ea;
+            --hr-muted: rgba(233, 240, 235, 0.82);
+            --hr-ink: #154f5a;
+            --hr-ink-soft: #5b7280;
+            --hr-input: #f4faf8;
+            --hr-input-border: rgba(129, 185, 184, 0.45);
+            --hr-shadow: 0 28px 70px rgba(0, 0, 0, 0.38);
+        }
+
+        .hr-theme.login-page {
+            background:
+                radial-gradient(circle at 10% 14%, rgba(255, 175, 111, 0.16), transparent 18%),
+                radial-gradient(circle at 84% 12%, rgba(90, 172, 255, 0.16), transparent 20%),
+                radial-gradient(circle at 74% 84%, rgba(66, 232, 189, 0.14), transparent 18%),
+                linear-gradient(135deg, var(--hr-bg-deep) 0%, #0c2232 42%, #11384a 74%, #13353d 100%);
+        }
+
+        .hr-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 4px;
+        }
+
+        .hr-frame {
+            position: relative;
+            width: min(1480px, 100%);
+            min-height: min(640px, calc(100vh - 16px));
+            padding: 24px;
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid var(--hr-panel-border);
+            background:
+                radial-gradient(circle at 10% 12%, rgba(255, 174, 105, 0.1), transparent 18%),
+                radial-gradient(circle at 86% 14%, rgba(89, 162, 255, 0.12), transparent 18%),
+                radial-gradient(circle at 92% 88%, rgba(58, 233, 196, 0.1), transparent 16%),
+                linear-gradient(180deg, rgba(8, 27, 39, 0.98), rgba(9, 38, 49, 0.98));
+            box-shadow:
+                inset 0 0 0 1px rgba(134, 227, 216, 0.14),
+                0 0 0 1px rgba(50, 127, 180, 0.28),
+                0 30px 90px rgba(0, 0, 0, 0.38);
+        }
+
+        .hr-frame::before,
+        .hr-frame::after {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .hr-frame::before {
+            inset: 0;
+            background:
+                radial-gradient(circle at 18% 28%, rgba(255, 183, 120, 0.1), transparent 20%),
+                radial-gradient(circle at 75% 20%, rgba(139, 226, 255, 0.08), transparent 18%),
+                radial-gradient(circle at 62% 78%, rgba(61, 239, 190, 0.08), transparent 18%);
+        }
+
+        .hr-frame::after {
+            left: 8%;
+            right: 34%;
+            bottom: -72px;
+            height: 220px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 25% 50%, rgba(255, 179, 89, 0.55) 0, rgba(255, 179, 89, 0.15) 10%, transparent 42%),
+                radial-gradient(circle at 45% 50%, rgba(77, 228, 255, 0.5) 0, rgba(77, 228, 255, 0.16) 12%, transparent 45%),
+                radial-gradient(circle at 60% 50%, rgba(48, 231, 170, 0.54) 0, rgba(48, 231, 170, 0.14) 12%, transparent 45%);
+            filter: blur(18px);
+            opacity: 0.9;
+        }
+
+        .hr-layout {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: minmax(0, 1.22fr) minmax(420px, 500px);
+            gap: 22px;
+            align-items: stretch;
+            min-height: 100%;
+        }
+
+        .hr-overview {
+            position: relative;
+            padding: 0 6px 6px 0;
+            margin-left: -10px;
+            margin-top: 0;
+            color: var(--hr-text);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hr-brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hr-brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .hr-logo-badge {
+            width: 74px;
+            height: 74px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            border: 1px solid rgba(166, 233, 185, 0.42);
+            background: linear-gradient(180deg, rgba(21, 60, 50, 0.88), rgba(7, 33, 29, 0.88));
+            box-shadow:
+                inset 0 0 0 1px rgba(220, 246, 225, 0.08),
+                0 0 24px rgba(204, 224, 109, 0.18);
+        }
+
+        .hr-logo-badge img {
+            width: 100%;
+            height: auto;
+            filter:
+                drop-shadow(0 0 10px rgba(183, 223, 92, 0.22))
+                drop-shadow(0 0 18px rgba(60, 197, 155, 0.16));
+        }
+
+        .hr-brand-name {
+            margin: 0;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000 !important;
+            font-size: clamp(2rem, 3vw, 2.9rem);
+            line-height: 0.96;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ffcc74 0%, #9af4d8 32%, #7cc6ff 62%, #d9ff7f 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-stroke: 0.7px rgba(244, 252, 239, 0.18);
+            text-shadow: 0 0 12px rgba(154, 244, 216, 0.08);
+        }
+
+        .hr-portal-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(17, 67, 74, 0.78), rgba(31, 73, 116, 0.62));
+            border: 1px solid rgba(135, 224, 212, 0.32);
+            color: #ffe19a;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 1.04rem;
+            font-weight: 1000;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            -webkit-text-stroke: 0.50px rgba(255, 245, 214, 0.22);
+            text-shadow:
+                0 0 10px rgba(255, 225, 154, 0.12),
+                0 0 18px rgba(120, 214, 200, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .hr-portal-pill svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .hr-copy h1 {
+            margin: 0 0 10px;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            font-size: clamp(2.5rem, 4vw, 3.6rem);
+            line-height: 1.02;
+            background: linear-gradient(90deg, #fff4d7 0%, #b4fff0 34%, #b9d8ff 68%, #ffe0f0 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-stroke: 0.8px rgba(255, 248, 228, 0.18);
+            text-shadow:
+                0 0 12px rgba(180, 255, 240, 0.08),
+                0 0 22px rgba(185, 216, 255, 0.08);
+        }
+
+        .hr-copy {
+            margin-top: 34px;
+            text-align: center;
+        }
+
+        .hr-copy p {
+            margin: 16px 0 0;
+            max-width: 100%;
+            font-size: 0.98rem;
+            line-height: 1.55;
+            color: var(--hr-muted);
+            font-weight: 900;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            white-space: normal;
+        }
+
+        .hr-feature-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 62px;
+            max-width: 660px;
+        }
+
+        .hr-feature-card {
+            --card-accent: #35cfd8;
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr);
+            gap: 14px;
+            align-items: center;
+            padding: 14px 16px 14px 12px;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--card-accent) 20%, transparent), transparent 24%),
+                linear-gradient(135deg, rgba(9, 63, 65, 0.92), rgba(10, 51, 63, 0.86));
+            border: 1px solid color-mix(in srgb, var(--card-accent) 70%, rgba(255, 255, 255, 0.18));
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+                0 18px 36px rgba(0, 0, 0, 0.18),
+                0 0 26px color-mix(in srgb, var(--card-accent) 18%, transparent);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .hr-feature-card:hover {
+            transform: translateY(-2px);
+            border-color: color-mix(in srgb, var(--card-accent) 86%, white 14%);
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+                0 22px 40px rgba(0, 0, 0, 0.24),
+                0 0 34px color-mix(in srgb, var(--card-accent) 24%, transparent);
+        }
+
+        .hr-feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.26), transparent 30%),
+                linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 72%, rgba(255, 255, 255, 0.14)), color-mix(in srgb, var(--card-accent) 34%, rgba(0, 0, 0, 0.1)));
+            box-shadow:
+                0 0 0 10px color-mix(in srgb, var(--card-accent) 12%, transparent),
+                0 0 28px color-mix(in srgb, var(--card-accent) 20%, transparent);
+        }
+
+        .hr-feature-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .hr-feature-card:nth-child(2) { --card-accent: #58a8ff; }
+        .hr-feature-card:nth-child(3) { --card-accent: #9b7dff; }
+        .hr-feature-card:nth-child(4) { --card-accent: #f0c35b; }
+
+        .hr-feature-card:nth-child(1) .hr-feature-copy strong,
+        .hr-feature-card:nth-child(1) .hr-feature-copy span {
+            background-image: linear-gradient(90deg, #8effe0 0%, #56e8c2 42%, #d8fffb 100%);
+        }
+
+        .hr-feature-card:nth-child(2) .hr-feature-copy strong,
+        .hr-feature-card:nth-child(2) .hr-feature-copy span {
+            background-image: linear-gradient(90deg, #8ae3ff 0%, #58a8ff 42%, #dce9ff 100%);
+        }
+
+        .hr-feature-card:nth-child(3) .hr-feature-copy strong,
+        .hr-feature-card:nth-child(3) .hr-feature-copy span {
+            background-image: linear-gradient(90deg, #89dfff 0%, #9b7dff 40%, #efe1ff 100%);
+        }
+
+        .hr-feature-card:nth-child(4) .hr-feature-copy strong,
+        .hr-feature-card:nth-child(4) .hr-feature-copy span {
+            background-image: linear-gradient(90deg, #fff0a2 0%, #f0c35b 38%, #fff6d7 100%);
+        }
+
+        .hr-feature-copy strong {
+            display: block;
+            font-size: 1.28rem;
+            line-height: 1.14;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            background: linear-gradient(90deg, #8effe0 0%, #56e8c2 42%, #d8fffb 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hr-feature-copy span {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.82rem;
+            line-height: 1.34;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            background: linear-gradient(90deg, #8effe0 0%, #56e8c2 42%, #d8fffb 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hr-form-panel {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .hr-login-card {
+            position: relative;
+            width: min(100%, 500px);
+            min-height: 560px;
+            padding: 14px 12px 10px;
+            border-radius: 30px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 0, rgba(47, 215, 164, 0.2), transparent 28%),
+                radial-gradient(circle at 18% 84%, rgba(53, 201, 255, 0.14), transparent 28%),
+                radial-gradient(circle at 84% 16%, rgba(255, 178, 107, 0.12), transparent 22%),
+                linear-gradient(180deg, rgba(9, 31, 43, 0.97), rgba(9, 24, 38, 0.95));
+            border: 1px solid rgba(112, 220, 208, 0.5);
+            box-shadow:
+                inset 0 0 0 1px rgba(230, 250, 247, 0.08),
+                0 24px 60px rgba(0, 0, 0, 0.32),
+                0 0 44px rgba(47, 143, 255, 0.16);
+            backdrop-filter: blur(18px) saturate(135%);
+            -webkit-backdrop-filter: blur(18px) saturate(135%);
+        }
+
+        .hr-login-card::before,
+        .hr-login-card::after {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .hr-login-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(47, 215, 164, 0.72), rgba(78, 177, 255, 0.64), rgba(255, 187, 110, 0.5));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .hr-login-card::after {
+            inset: auto 22px 18px 22px;
+            height: 28px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(47, 215, 164, 0.16), rgba(77, 170, 255, 0.16) 42%, transparent 72%);
+            filter: blur(12px);
+        }
+
+        .hr-card-header,
+        .hr-form,
+        .hr-footer,
+        .hr-message-stack,
+        .hr-caps-toast {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hr-message-stack {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .hr-message {
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: rgba(255, 244, 229, 0.92);
+            border: 1px solid rgba(224, 152, 81, 0.26);
+            color: #8b4d22;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            box-shadow: 0 10px 24px rgba(163, 118, 75, 0.08);
+        }
+
+        .hr-message strong {
+            display: block;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hr-message span {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.92rem;
+            line-height: 1.4;
+            font-weight: 1000;
+        }
+
+        .hr-caps-toast {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 11px 14px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(255, 237, 210, 0.98), rgba(255, 248, 228, 0.96));
+            border: 1px solid rgba(222, 160, 86, 0.34);
+            color: #8b4d22;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            box-shadow: 0 12px 28px rgba(163, 118, 75, 0.1);
+        }
+
+        .hr-caps-toast[hidden] {
+            display: none;
+        }
+
+        .hr-caps-toast svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            fill: currentColor;
+        }
+
+        .hr-caps-toast strong {
+            display: block;
+            font-size: 0.84rem;
+            line-height: 1.1;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hr-caps-toast span {
+            display: block;
+            margin-top: 3px;
+            font-size: 0.92rem;
+            line-height: 1.35;
+            font-weight: 1000;
+        }
+
+        .hr-card-header {
+            text-align: center;
+            color: var(--hr-text);
+            margin-bottom: 14px;
+        }
+
+        .hr-header-icon {
+            width: 74px;
+            height: 74px;
+            margin: 0 auto 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: #eefcff;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), transparent 28%),
+                linear-gradient(145deg, #2fd7a4, #3f87ff);
+            box-shadow: 0 16px 30px rgba(39, 121, 212, 0.28);
+        }
+
+        .hr-header-icon svg {
+            width: 34px;
+            height: 34px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .hr-card-header h2 {
+            margin: 0;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            font-size: 2rem;
+            background: linear-gradient(90deg, #a8ffe9 0%, #9dcfff 50%, #ffe49d 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hr-card-header p {
+            margin: 10px auto 0;
+            max-width: 100%;
+            color: rgba(229, 240, 244, 0.82);
+            font-size: 0.94rem;
+            line-height: 1.45;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            white-space: normal;
+        }
+
+        .hr-title-accent {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px 0 0;
+        }
+
+        .hr-title-accent span {
+            display: inline-block;
+            border-radius: 999px;
+            background: #8bded2;
+        }
+
+        .hr-title-accent span:nth-child(1),
+        .hr-title-accent span:nth-child(3) {
+            width: 6px;
+            height: 6px;
+        }
+
+        .hr-title-accent span:nth-child(2) {
+            width: 78px;
+            height: 4px;
+            background: linear-gradient(90deg, #48d7b1, #58a8ff);
+        }
+
+        .hr-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .hr-field-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            font-size: 1rem;
+            color: #dbf8f0;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+        }
+
+        .hr-field-shell + .hr-field-label {
+            margin-top: 12px;
+        }
+
+        .hr-field-label svg,
+        .hr-field-shell .field-icon svg,
+        .hr-password-toggle svg,
+        .hr-back-link svg,
+        .hr-submit svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .hr-field-shell {
+            position: relative;
+        }
+
+        .hr-field-shell input {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 48px 0 44px;
+            border-radius: 14px;
+            border: 1px solid rgba(118, 201, 202, 0.32);
+            background:
+                linear-gradient(180deg, rgba(22, 53, 69, 0.92), rgba(15, 37, 55, 0.88)),
+                rgba(13, 29, 44, 0.9);
+            color: #ecfbff;
+            font-size: 1rem;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            outline: none;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 10px 24px rgba(5, 16, 27, 0.18);
+        }
+
+        .hr-field-shell input::placeholder {
+            color: rgba(194, 224, 231, 0.62);
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+        }
+
+        .hr-field-shell input:focus {
+            border-color: rgba(79, 186, 255, 0.62);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 0 0 4px rgba(73, 155, 255, 0.16),
+                0 0 24px rgba(47, 155, 255, 0.18);
+        }
+
+        .hr-field-shell .field-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9bd6cb;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hr-password-shell input {
+            padding-right: 52px;
+        }
+
+        .hr-password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #96c7df;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            cursor: pointer;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hr-password-toggle:focus-visible {
+            outline: 2px solid rgba(31, 157, 106, 0.3);
+            outline-offset: 3px;
+            border-radius: 8px;
+        }
+
+        .hr-submit {
+            margin-top: 8px;
+            min-height: 52px;
+            border: none;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(90deg, #2fd7a4 0%, #3ca4ff 52%, #5d73ff 100%);
+            color: #f7fbf6;
+            font-size: 1.05rem;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            cursor: pointer;
+            box-shadow: 0 18px 32px rgba(48, 115, 216, 0.24);
+        }
+
+        .hr-submit:hover {
+            filter: brightness(1.03);
+        }
+
+        .hr-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 26px 0;
+            color: transparent;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.98rem;
+            font-weight: 1000;
+            line-height: 1.8;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            -webkit-text-stroke: 0.45px rgba(255, 244, 210, 0.2);
+            text-shadow: 0 0 12px rgba(120, 214, 200, 0.12);
+            background: linear-gradient(90deg, #fff0a8 0%, #91ffe9 40%, #8cc8ff 72%, #d8b7ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .hr-divider span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 68px;
+            padding: 5px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(150, 221, 214, 0.34);
+            background:
+                linear-gradient(90deg, #fff0a8 0%, #91ffe9 40%, #8cc8ff 72%, #d8b7ff 100%),
+                linear-gradient(135deg, rgba(13, 52, 61, 0.94), rgba(24, 58, 92, 0.86));
+            -webkit-background-clip: text, padding-box;
+            background-clip: text, padding-box;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 10px 20px rgba(7, 25, 31, 0.18),
+                0 0 18px rgba(104, 216, 195, 0.1);
+        }
+
+        .hr-divider::before,
+        .hr-divider::after {
+            content: "";
+            height: 3px;
+            flex: 1 1 auto;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent, rgba(255, 225, 118, 0.7), rgba(82, 232, 201, 0.8), rgba(90, 164, 255, 0.78), transparent);
+            box-shadow:
+                0 0 12px rgba(82, 232, 201, 0.14),
+                0 0 18px rgba(90, 164, 255, 0.12);
+        }
+
+        .hr-footer {
+            display: flex;
+            justify-content: center;
+        }
+
+        .hr-back-link {
+            width: min(100%, 288px);
+            min-height: 46px;
+            border-radius: 999px;
+            border: 1px solid rgba(112, 187, 208, 0.42);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #b3ebf6;
+            text-decoration: none;
+            font-size: 1rem;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000;
+            background: linear-gradient(135deg, rgba(23, 64, 77, 0.74), rgba(23, 51, 78, 0.7));
+        }
+
+        @media (max-width: 980px) {
+            .hr-shell {
+                padding: 16px;
+            }
+
+            .hr-frame {
+                min-height: auto;
+                padding: 18px;
+            }
+
+            .hr-layout {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            .hr-form-panel {
+                justify-content: center;
+            }
+
+            .hr-login-card {
+                width: min(100%, 460px);
+                min-height: auto;
+                padding: 12px 10px 8px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hr-overview {
+                margin-left: 0;
+            }
+
+            .hr-copy {
+                margin-top: 0;
+            }
+
+            .hr-shell {
+                padding: 8px;
+            }
+
+            .hr-frame {
+                min-height: auto;
+                padding: 12px 10px;
+                border-radius: 22px;
+            }
+
+            .hr-layout {
+                gap: 12px;
+            }
+
+            .hr-overview {
+                padding: 0;
+            }
+
+            .hr-brand-row {
+                justify-content: center;
+                margin-bottom: 18px;
+            }
+
+            .hr-brand-lockup {
+                gap: 10px;
+                justify-content: center;
+            }
+
+            .hr-logo-badge {
+                width: 54px;
+                height: 54px;
+                border-radius: 16px;
+            }
+
+            .hr-brand-name {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px 18px;
+                border-radius: 999px;
+                font-size: 2rem;
+                line-height: 1;
+                text-align: center;
+                white-space: nowrap;
+                transform: translateX(-8px);
+                background:
+                    linear-gradient(90deg, #ffcc74 0%, #9af4d8 32%, #7cc6ff 62%, #d9ff7f 100%),
+                    linear-gradient(135deg, rgba(17, 67, 74, 0.9), rgba(31, 73, 116, 0.72));
+                -webkit-background-clip: text, padding-box;
+                background-clip: text, padding-box;
+                border: 1px solid rgba(152, 225, 214, 0.3);
+                box-shadow:
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                    0 10px 22px rgba(7, 25, 31, 0.22),
+                    0 0 18px rgba(104, 216, 195, 0.12);
+            }
+
+            .hr-portal-pill {
+                padding: 10px 16px;
+                font-size: 0.92rem;
+                font-weight: 1000;
+            }
+
+            .hr-copy h1 {
+                font-size: 2.35rem;
+                text-align: center;
+            }
+
+            .hr-copy p {
+                font-size: 0.8rem;
+                line-height: 1.35;
+                text-align: center;
+                overflow-wrap: anywhere;
+            }
+
+            .hr-feature-card {
+                grid-template-columns: 48px minmax(0, 1fr);
+                padding: 12px;
+            }
+
+            .hr-feature-arrow {
+                display: none;
+            }
+
+            .hr-feature-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .hr-feature-copy strong {
+                font-size: 1.12rem;
+            }
+
+            .hr-feature-copy span {
+                font-size: 0.74rem;
+                line-height: 1.28;
+            }
+
+            .hr-login-card {
+                width: 100%;
+                padding: 15px 12px 12px;
+                border-radius: 24px;
+            }
+
+            .hr-header-icon {
+                width: 62px;
+                height: 62px;
+                margin-bottom: 10px;
+            }
+
+            .hr-card-header h2 {
+                font-size: 1.7rem;
+            }
+
+            .hr-card-header p {
+                font-size: 0.82rem;
+                line-height: 1.4;
+            }
+
+            .hr-field-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .hr-submit,
+            .hr-back-link {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .hr-overview {
+                margin-left: 0;
+            }
+
+            .hr-shell {
+                padding: 6px;
+            }
+
+            .hr-frame {
+                padding: 10px 8px;
+                border-radius: 18px;
+            }
+
+            .hr-brand-row {
+                gap: 10px;
+                margin-bottom: 14px;
+            }
+
+            .hr-brand-name {
+                padding: 8px 15px;
+                font-size: 1.7rem;
+                transform: translateX(-6px);
+            }
+
+            .hr-portal-pill {
+                width: fit-content;
+                max-width: 100%;
+                margin: 0 auto;
+                justify-content: center;
+                white-space: normal;
+                text-align: center;
+            }
+
+            .hr-copy h1 {
+                font-size: 2rem;
+            }
+
+            .hr-copy p {
+                font-size: 0.74rem;
+                line-height: 1.3;
+            }
+
+            .hr-feature-list {
+                margin-top: 18px;
+                gap: 10px;
+            }
+
+            .hr-feature-card {
+                gap: 10px;
+                border-radius: 16px;
+            }
+
+            .hr-login-card {
+                padding: 14px 10px 12px;
+                border-radius: 20px;
+            }
+
+            .hr-card-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .hr-field-label {
+                font-size: 0.92rem;
+            }
+
+            .hr-field-shell input {
+                min-height: 46px;
+                padding-left: 40px;
+                padding-right: 44px;
+                font-size: 0.96rem;
+            }
+
+            .hr-field-shell .field-icon {
+                left: 12px;
+            }
+
+            .hr-password-toggle {
+                right: 12px;
+            }
+
+            .hr-submit,
+            .hr-back-link {
+                min-height: 48px;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
 </head>
 <body class="login-page hr-theme">
-    <main class="login-shell">
-        <section class="login-panel login-panel--info">
-            <div class="panel-glow panel-glow--info" aria-hidden="true"></div>
-            <div class="brand-banner">
-                <div class="brand-banner__logo-shell">
-                    <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                </div>
-                <div class="brand-banner__title-shell">
-                    <p class="brand-name">MS Technology</p>
-                </div>
-            </div>
-            <div class="brand-copy">
-                <span class="login-kicker">HR Portal</span>
-            </div>
-            <h1>Welcome back</h1>
-            <p>
-                Sign in to review and approve leave requests, oversee records, support teams,
-                and manage HR tasks efficiently.
-            </p>
-
-            <div class="feature-list">
-                <div class="feature-item">
-                    <span class="feature-icon" aria-hidden="true">RA</span>
-                    <strong>Review and approve</strong>
-                    <span>Effortlessly review and approve pending leave requests.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon" aria-hidden="true">OR</span>
-                    <strong>Oversee records</strong>
-                    <span>Manage employee leave balances and maintain accurate records.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon" aria-hidden="true">ST</span>
-                    <strong>Support teams</strong>
-                    <span>Assist employees and provide HR support as needed.</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="login-panel login-panel--form">
-            <div class="login-card">
-                <div class="panel-glow panel-glow--form" aria-hidden="true"></div>
-                <div class="portal-ring" aria-hidden="true"></div>
-                {% if messages %}
-                    <div class="login-toast-stack" aria-live="polite">
-                        {% for message in messages %}
-                            <div class="login-toast login-toast--{{ message.tags|default:'info' }}">
-                                <div class="login-toast__copy">
-                                    <strong>Try again</strong>
-                                    <span>{{ message }}</span>
-                                </div>
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+        <defs>
+            <linearGradient id="hrFeatureIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fff1a6"></stop>
+                <stop offset="45%" stop-color="#7bf3dc"></stop>
+                <stop offset="100%" stop-color="#8fb8ff"></stop>
+            </linearGradient>
+        </defs>
+    </svg>
+    <main class="hr-shell">
+        <div class="hr-frame">
+            <div class="hr-layout">
+                <section class="hr-overview" aria-label="HR portal overview">
+                    <div class="hr-brand-row">
+                        <div class="hr-brand-lockup">
+                            <div class="hr-logo-badge">
+                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
                             </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="login-card__header">
-                    <span class="login-badge login-badge--portal">HR Portal</span>
-                    <h2>HR Login</h2>
-                    <p>Use your HR username and password to continue.</p>
-                </div>
-
-                <form method="post" class="login-form">
-                    {% csrf_token %}
-
-                    <label for="hr-username" class="field-label">
-                        <span class="label-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
-                            </svg>
-                        </span>
-                        <span>Username</span>
-                    </label>
-                    <div class="field-shell field-shell--with-icon">
-                        <span class="field-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
-                            </svg>
-                        </span>
-                        <input
-                            id="hr-username"
-                            type="text"
-                            name="username"
-                            value="{{ prefill_username|default:'' }}"
-                            placeholder="Enter your username"
-                            autocomplete="username"
-                            required
-                        >
-                    </div>
-
-                    <label for="hr-password" class="field-label">
-                        <span class="label-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
-                            </svg>
-                        </span>
-                        <span>Password</span>
-                    </label>
-                    <div class="password-field field-shell">
-                        <span class="field-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
-                            </svg>
-                        </span>
-                        <input
-                            id="hr-password"
-                            type="password"
-                            name="password"
-                            placeholder="Enter your password"
-                            autocomplete="current-password"
-                            required
-                        >
-                        <button type="button" class="password-toggle" data-password-toggle aria-label="Show password">
-                            Show
-                        </button>
-                    </div>
-
-                    {% if messages %}
-                        <div class="field-chip-stack" aria-live="polite">
-                            {% for message in messages %}
-                                <div class="field-chip field-chip--{{ message.tags|default:'info' }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
+                            <h1 class="hr-brand-name">MS Technology</h1>
                         </div>
-                    {% endif %}
-
-                    <div class="field-note">
-                        <span class="caps-warning" data-caps-warning hidden>Caps Lock appears to be on.</span>
+                        <div class="hr-portal-pill">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M16 11a4 4 0 1 0-3.999-4A4 4 0 0 0 16 11Zm-8 1a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 8 12Zm0 2c-2.67 0-8 1.34-8 4v1h10v-1c0-1.14.59-2.12 1.55-2.94A8.35 8.35 0 0 0 8 14Zm8 0c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4Z"/>
+                            </svg>
+                            <span>HR Portal</span>
+                        </div>
                     </div>
 
-                    <button type="submit" class="login-button">Login</button>
-                </form>
+                    <div class="hr-copy">
+                        <h1>Welcome back</h1>
+                        <p>
+                            Streamline HR operations, empower employees, and manage approvals
+                            from one compact workspace.
+                        </p>
+                    </div>
 
-                <div class="login-footer">
-                    <a href="{% url 'role_select' %}" class="back-link">Back to login selection</a>
-                </div>
+                    <div class="hr-feature-list">
+                        <div class="hr-feature-card">
+                            <div class="hr-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                                    <path d="M19 8h2v8h-2z"/>
+                                    <path d="M16 11h8v2h-8z"/>
+                                </svg>
+                            </div>
+                            <div class="hr-feature-copy">
+                                <strong>Employee Management</strong>
+                                <span>Manage employee profiles, documents, and account access.</span>
+                            </div>
+                        </div>
+
+                        <div class="hr-feature-card">
+                            <div class="hr-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M7 2h2v3H7zM15 2h2v3h-2zM4 5h16a1 1 0 0 1 1 1v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1Zm1 6v8h14v-8Z"/>
+                                </svg>
+                            </div>
+                            <div class="hr-feature-copy">
+                                <strong>Leave Management</strong>
+                                <span>Review, approve, and monitor leave requests quickly.</span>
+                            </div>
+                        </div>
+
+                        <div class="hr-feature-card">
+                            <div class="hr-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M4 19h16v2H4zm1-8h3v6H5zm5-4h3v10h-3zm5-3h3v13h-3z"/>
+                                </svg>
+                            </div>
+                            <div class="hr-feature-copy">
+                                <strong>Attendance &amp; Reports</strong>
+                                <span>Track records and generate useful HR insights.</span>
+                            </div>
+                        </div>
+
+                        <div class="hr-feature-card">
+                            <div class="hr-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 3.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"/>
+                                    <path d="M5 20a7 7 0 0 1 14 0v.5H5V20Z"/>
+                                    <path d="M18.2 7.8 20 9.6l2.8-2.8"/>
+                                </svg>
+                            </div>
+                            <div class="hr-feature-copy">
+                                <strong>Performance &amp; Support</strong>
+                                <span>Support teams with reviews, follow-ups, and policy help.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="hr-form-panel">
+                    <div class="hr-login-card">
+                        {% if messages %}
+                            <div class="hr-message-stack" aria-live="polite">
+                                {% for message in messages %}
+                                    <div class="hr-message">
+                                        <strong>Try again</strong>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="hr-caps-toast" data-caps-toast hidden aria-live="polite">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 2 1 21h22L12 2Zm1 15h-2v-2h2v2Zm0-4h-2v-4h2v4Z"/>
+                            </svg>
+                            <div>
+                                <strong>Caps Lock On</strong>
+                                <span>Password may be entered incorrectly.</span>
+                            </div>
+                        </div>
+
+                        <div class="hr-card-header">
+                            <div class="hr-header-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M8 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/>
+                                    <path d="M16 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/>
+                                    <path d="M2.5 19c0-2.6 2.6-4 5.5-4s5.5 1.4 5.5 4"/>
+                                    <path d="M10.5 19c0-2.2 2.2-3.5 5.5-3.5 3 0 5.5 1.3 5.5 3.5"/>
+                                </svg>
+                            </div>
+                            <div class="hr-title-accent" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <h2>HR Login</h2>
+                            <p>Use your HR username and password to continue.</p>
+                        </div>
+
+                        <form method="post" class="hr-form">
+                            {% csrf_token %}
+
+                            <label for="hr-username" class="hr-field-label">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                                </svg>
+                                <span>Username</span>
+                            </label>
+                            <div class="hr-field-shell">
+                                <span class="field-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="hr-username"
+                                    type="text"
+                                    name="username"
+                                    value="{{ prefill_username|default:'' }}"
+                                    placeholder="Enter your username"
+                                    autocomplete="username"
+                                    required
+                                >
+                            </div>
+
+                            <label for="hr-password" class="hr-field-label">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                                </svg>
+                                <span>Password</span>
+                            </label>
+                            <div class="hr-field-shell hr-password-shell">
+                                <span class="field-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M17 10V8a5 5 0 0 0-10 0v2H5v10h14V10Zm-8 0V8a3 3 0 0 1 6 0v2Zm3 7.2a1.7 1.7 0 1 1 1.7-1.7 1.7 1.7 0 0 1-1.7 1.7Z"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="hr-password"
+                                    type="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    autocomplete="current-password"
+                                    required
+                                >
+                                <button type="button" class="hr-password-toggle" data-password-toggle aria-label="Show password">
+                                    <span data-eye-open aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    </span>
+                                    <span data-eye-closed hidden aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                            <path d="M4 4 20 20"/>
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
+
+                            <button type="submit" class="hr-submit">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M17 9V7a5 5 0 0 0-10 0v2H5v10h14V9Zm-8 0V7a3 3 0 1 1 6 0v2Z"/>
+                                </svg>
+                                <span>Login</span>
+                            </button>
+                        </form>
+
+                        <div class="hr-divider" aria-hidden="true">
+                            <span>OR</span>
+                        </div>
+
+                        <div class="hr-footer">
+                            <a href="{% url 'role_select' %}" class="hr-back-link">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M14.7 6.3a1 1 0 0 1 0 1.4L11.41 11H19a1 1 0 1 1 0 2h-7.59l3.29 3.29a1 1 0 0 1-1.41 1.41l-5-5a1 1 0 0 1 0-1.41l5-5a1 1 0 0 1 1.41 0Z"/>
+                                </svg>
+                                <span>Back to login selection</span>
+                            </a>
+                        </div>
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
     </main>
 
     <script>
         document.querySelectorAll("[data-password-toggle]").forEach(function(toggleButton) {
             const input = toggleButton.parentElement.querySelector("input");
+            const openIcon = toggleButton.querySelector("[data-eye-open]");
+            const closedIcon = toggleButton.querySelector("[data-eye-closed]");
 
             toggleButton.addEventListener("click", function() {
                 const isPassword = input.type === "password";
                 input.type = isPassword ? "text" : "password";
-                toggleButton.textContent = isPassword ? "Hide" : "Show";
+                if (openIcon && closedIcon) {
+                    openIcon.hidden = isPassword;
+                    closedIcon.hidden = !isPassword;
+                }
                 toggleButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
             });
         });
 
-        document.querySelectorAll(".login-form input[type='password']").forEach(function(input) {
-            const warning = input.closest(".login-form").querySelector("[data-caps-warning]");
-            if (!warning) {
+        (function() {
+            const input = document.getElementById("hr-password");
+            if (!input) {
                 return;
             }
 
-            input.addEventListener("keyup", function(event) {
-                warning.hidden = !event.getModifierState("CapsLock");
-            });
+            const card = input.closest(".hr-login-card");
+            const toast = card ? card.querySelector("[data-caps-toast]") : null;
+            if (!toast) {
+                return;
+            }
 
-            input.addEventListener("keydown", function(event) {
-                warning.hidden = !event.getModifierState("CapsLock");
+            let isWatchingCaps = false;
+            let capsLockOn = false;
+
+            function setCapsToast(isCapsOn) {
+                capsLockOn = !!isCapsOn;
+                toast.hidden = !capsLockOn;
+            }
+
+            function inferCapsLockFromKey(event) {
+                if (!event || !event.key || event.key.length !== 1) {
+                    return null;
+                }
+
+                const isLetter = event.key >= "a" && event.key <= "z" || event.key >= "A" && event.key <= "Z";
+                if (!isLetter) {
+                    return null;
+                }
+
+                const isUpper = event.key === event.key.toUpperCase();
+                return event.shiftKey ? !isUpper : isUpper;
+            }
+
+            function updateCapsWarning(event) {
+                if (!isWatchingCaps) {
+                    return;
+                }
+
+                if (event && typeof event.getModifierState === "function") {
+                    setCapsToast(event.getModifierState("CapsLock"));
+                    return;
+                }
+
+                const inferred = inferCapsLockFromKey(event);
+                if (inferred !== null) {
+                    setCapsToast(inferred);
+                }
+            }
+
+            input.addEventListener("focus", function() {
+                isWatchingCaps = true;
+                setCapsToast(false);
             });
 
             input.addEventListener("blur", function() {
-                warning.hidden = true;
+                isWatchingCaps = false;
+                setCapsToast(false);
             });
-        });
+
+            input.addEventListener("keydown", updateCapsWarning);
+            input.addEventListener("keyup", updateCapsWarning);
+
+            document.addEventListener("keydown", function(event) {
+                if (!isWatchingCaps) {
+                    return;
+                }
+
+                if (event.key === "CapsLock") {
+                    setCapsToast(!capsLockOn);
+                    return;
+                }
+
+                updateCapsWarning(event);
+            });
+
+            document.addEventListener("keyup", updateCapsWarning);
+
+            window.addEventListener("blur", function() {
+                isWatchingCaps = false;
+                setCapsToast(false);
+            });
+        })();
     </script>
 </body>
 </html>
