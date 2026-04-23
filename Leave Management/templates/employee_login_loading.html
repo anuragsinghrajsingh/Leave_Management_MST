@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <script>
+        (function() {
+            const targetUrl = "{{ target_url|escapejs }}";
+            const navigationEntry = window.performance && window.performance.getEntriesByType
+                ? window.performance.getEntriesByType("navigation")[0]
+                : null;
+            const legacyNavigation = window.performance && window.performance.navigation
+                ? window.performance.navigation.type
+                : null;
+            const isHistoryNavigation = (navigationEntry && navigationEntry.type === "back_forward")
+                || legacyNavigation === 2;
+
+            if (isHistoryNavigation) {
+                window.location.replace(targetUrl);
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'css/employee_login_loading.css' %}">
+</head>
+<body class="portal-loading portal-loading--employee">
+    <a href="{{ target_url }}" class="portal-loading__skip">
+        <strong>Skip</strong>
+        <span><span id="toast-countdown">{{ duration }}</span>s</span>
+    </a>
+
+    <main class="portal-loading__shell">
+        <section class="portal-loading__frame">
+            <section class="portal-loading__layout">
+                <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+                    <defs>
+                        <linearGradient id="portalIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#2db5ff"></stop>
+                            <stop offset="55%" stop-color="#7d7cff"></stop>
+                            <stop offset="100%" stop-color="#c867ff"></stop>
+                        </linearGradient>
+                    </defs>
+                </svg>
+
+                <section class="portal-loading__brand">
+                    <div class="portal-loading__topbar">
+                        <div class="portal-loading__brand-lockup">
+                            <div class="portal-loading__logo">
+                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
+                            </div>
+                            <h1 class="portal-loading__title"><span class="accent">MS</span> <span class="plain">Technology</span></h1>
+                        </div>
+                    </div>
+                    <p class="portal-loading__subtitle">Employee Portal</p>
+
+                    <div class="portal-loading__center">
+                        <div class="portal-loading__ring" aria-hidden="true">
+                            <div class="portal-loading__hub"></div>
+                        </div>
+                    </div>
+
+                    <h2 class="portal-loading__headline">Preparing your workspace...</h2>
+                    <p class="portal-loading__description">Please wait a moment while we securely set things up for you.</p>
+
+                    <section class="portal-loading__progress">
+                        <div class="portal-loading__progress-row">
+                            <div class="portal-loading__progress-track">
+                                <div class="portal-loading__progress-fill" id="progress-fill"></div>
+                            </div>
+                            <strong class="portal-loading__progress-value" id="progress-value">0%</strong>
+                        </div>
+                    </section>
+
+                    <section class="portal-loading__footer-panels" aria-label="Employee portal highlights">
+                        <article class="portal-loading__mini">
+                            <div class="portal-loading__mini-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2 4.5 5.3v5.3c0 4.6 3 8.7 7.5 10.1 4.5-1.4 7.5-5.5 7.5-10.1V5.3L12 2Zm-1 5.8h2v4.2l2.7 1.4-.9 1.8L11 13.3V7.8Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong>Secure Access</strong>
+                                <span>Your data is protected</span>
+                            </div>
+                        </article>
+                        <article class="portal-loading__mini">
+                            <div class="portal-loading__mini-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M13.2 2 5.8 13h4.8L9.8 22 18.2 10h-4.6L13.2 2Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong>Quick &amp; Easy</strong>
+                                <span>Save time, do more</span>
+                            </div>
+                        </article>
+                        <article class="portal-loading__mini">
+                            <div class="portal-loading__mini-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M4 5.5h11A2.5 2.5 0 0 1 17.5 8v8A2.5 2.5 0 0 1 15 18.5H4A2.5 2.5 0 0 1 1.5 16V8A2.5 2.5 0 0 1 4 5.5Zm14 5h2A2.5 2.5 0 0 1 22.5 13v3A2.5 2.5 0 0 1 20 18.5h-2Zm-9 9h6"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong>Anytime, Anywhere</strong>
+                                <span>Access across all devices</span>
+                            </div>
+                        </article>
+                    </section>
+                </section>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        (function() {
+            const duration = {{ duration }};
+            const targetUrl = "{{ target_url|escapejs }}";
+            const countdown = document.getElementById("toast-countdown");
+            const progressValue = document.getElementById("progress-value");
+            const progressFill = document.getElementById("progress-fill");
+            let remaining = duration;
+
+            function updateProgress() {
+                const completed = Math.max(0, duration - remaining);
+                const rawPercent = duration > 0 ? Math.round((completed / duration) * 100) : 100;
+                const visiblePercent = Math.min(100, Math.max(8, rawPercent || 8));
+
+                if (progressValue) {
+                    progressValue.textContent = visiblePercent + "%";
+                }
+
+                if (progressFill) {
+                    progressFill.style.width = visiblePercent + "%";
+                }
+
+                if (countdown) {
+                    countdown.textContent = remaining > 0 ? remaining : 0;
+                }
+            }
+
+            function goNext() {
+                window.location.replace(targetUrl);
+            }
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({ loader: true }, "", window.location.href);
+            }
+
+            updateProgress();
+
+            const interval = window.setInterval(function() {
+                remaining -= 1;
+                updateProgress();
+
+                if (remaining <= 0) {
+                    window.clearInterval(interval);
+                }
+            }, 1000);
+
+            window.setTimeout(goNext, duration * 1000);
+
+            window.addEventListener("pageshow", function(event) {
+                if (event.persisted) {
+                    goNext();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

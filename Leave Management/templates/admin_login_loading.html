@@ -1,0 +1,237 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <script>
+        (function() {
+            const targetUrl = "{{ target_url|escapejs }}";
+            const navigationEntry = window.performance && window.performance.getEntriesByType
+                ? window.performance.getEntriesByType("navigation")[0]
+                : null;
+            const legacyNavigation = window.performance && window.performance.navigation
+                ? window.performance.navigation.type
+                : null;
+            const isHistoryNavigation = (navigationEntry && navigationEntry.type === "back_forward")
+                || legacyNavigation === 2;
+
+            if (isHistoryNavigation) {
+                window.location.replace(targetUrl);
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'css/admin_login_loading.css' %}">
+</head>
+<body class="portal-loading portal-loading--admin">
+    <a href="{{ target_url }}" class="portal-loading__skip">
+        <strong>Skip</strong>
+        <span><span id="toast-countdown">{{ duration }}</span>s</span>
+    </a>
+
+    <main class="portal-loading__shell">
+        <section class="portal-loading__frame">
+            <div class="portal-loading__glow portal-loading__glow--left" aria-hidden="true"></div>
+            <div class="portal-loading__glow portal-loading__glow--right" aria-hidden="true"></div>
+            <div class="portal-loading__dots" aria-hidden="true">
+                {% for _ in "1234567890123456789012345" %}
+                    <span></span>
+                {% endfor %}
+            </div>
+            <div class="portal-loading__wave portal-loading__wave--left" aria-hidden="true"></div>
+            <div class="portal-loading__wave portal-loading__wave--right" aria-hidden="true"></div>
+
+            <section class="portal-loading__layout">
+                <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+                    <defs>
+                        <linearGradient id="portalIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ff5164"></stop>
+                            <stop offset="50%" stop-color="#c04fff"></stop>
+                            <stop offset="100%" stop-color="#3c7bff"></stop>
+                        </linearGradient>
+                    </defs>
+                </svg>
+
+                <section class="portal-loading__brand">
+                    <div class="portal-loading__topbar">
+                        <div class="portal-loading__brand-lockup">
+                            <div class="portal-loading__logo">
+                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
+                            </div>
+                            <h1 class="portal-loading__title"><span class="accent">MS</span> <span class="plain">Technology</span></h1>
+                        </div>
+                        <div class="portal-loading__badge">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 2 4.5 5.5v5.6c0 4.5 2.8 8.5 7.5 9.9 4.7-1.4 7.5-5.4 7.5-9.9V5.5L12 2Zm0 4.4 4.8 2.1v2.8c0 3.1-1.8 5.8-4.8 7.2-3-1.4-4.8-4.1-4.8-7.2V8.5L12 6.4Zm-1.1 2.7h2.2v1.8h1.8v2.2h-1.8v1.8h-2.2v-1.8H9.1v-2.2h1.8V9.1Z"/>
+                            </svg>
+                            <span>Admin Authentication</span>
+                        </div>
+                    </div>
+                    <p class="portal-loading__subtitle">Admin Portal</p>
+
+                    <div class="portal-loading__center">
+                        <div class="portal-loading__ring" aria-hidden="true">
+                            <div class="portal-loading__hub">
+                                <div>
+                                    <svg class="portal-loading__hub-icon" viewBox="0 0 24 24" focusable="false">
+                                        <path d="m12 3 2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.3-4.4 2.3.8-5-3.6-3.5 5-.7L12 3Z"/>
+                                    </svg>
+                                    <span class="portal-loading__hub-label">ADMIN</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="portal-loading__headline">Preparing your admin workspace...</h2>
+                    <p class="portal-loading__description">Initializing secure connection to the admin control panel.</p>
+
+                    <section class="portal-loading__progress">
+                        <div class="portal-loading__progress-row">
+                            <div class="portal-loading__progress-track">
+                                <div class="portal-loading__progress-fill" id="progress-fill"></div>
+                            </div>
+                            <strong class="portal-loading__progress-value" id="progress-value">0%</strong>
+                        </div>
+                    </section>
+
+                    <section class="portal-loading__footer-panels" aria-label="Admin portal benefits">
+                        <article class="portal-loading__mini">
+                            <div class="portal-loading__mini-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2 4.5 5.3v5.3c0 4.6 3 8.7 7.5 10.1 4.5-1.4 7.5-5.5 7.5-10.1V5.3L12 2Zm0 4.8A2.2 2.2 0 0 1 14.2 9v1h1.1A1.7 1.7 0 0 1 17 11.7v3.1a1.7 1.7 0 0 1-1.7 1.7H8.7A1.7 1.7 0 0 1 7 14.8v-3.1A1.7 1.7 0 0 1 8.7 10h1.1V9A2.2 2.2 0 0 1 12 6.8Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong>Secure Access</strong>
+                                <span>Advanced security for privileged accounts.</span>
+                            </div>
+                        </article>
+                        <article class="portal-loading__mini">
+                            <div class="portal-loading__mini-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M3 4h18v14H3Zm3 3v8h3V7Zm5 3v5h3v-5Zm5-4v9h3V6ZM7 21h10v2H7Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong>Full Control</strong>
+                                <span>Manage users, roles, and system settings.</span>
+                            </div>
+                        </article>
+                        <article class="portal-loading__mini">
+                            <div class="portal-loading__mini-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M13.2 2 5.8 13h4.8L9.8 22 18.2 10h-4.6L13.2 2Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong>Powerful &amp; Efficient</strong>
+                                <span>Built for performance and productivity.</span>
+                            </div>
+                        </article>
+                    </section>
+
+                    <div class="portal-loading__wait">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 2a4 4 0 0 0-4 4v2H7a2 2 0 0 0-2 2v7.5A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5V10a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4Zm-2 6V6a2 2 0 1 1 4 0v2h-4Z"/>
+                        </svg>
+                        <span>Please wait while we set things up for you...</span>
+                    </div>
+                </section>
+
+                <aside class="portal-loading__sidebar" aria-label="Admin portal details">
+                    <article class="portal-loading__feature" style="--feature-accent:#ff4b61;">
+                        <div class="portal-loading__feature-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4.5 5.5v5.6c0 4.5 2.8 8.5 7.5 9.9 4.7-1.4 7.5-5.4 7.5-9.9V5.5L12 2Zm0 3.7 1.4 2.8 3.1.5-2.2 2.1.5 3.1-2.8-1.5-2.8 1.5.5-3.1-2.2-2.1 3.1-.5L12 5.7Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Best For</h3>
+                            <p>Administrative access, platform control, and overall system management.</p>
+                        </div>
+                    </article>
+                    <article class="portal-loading__feature" style="--feature-accent:#a34fff;">
+                        <div class="portal-loading__feature-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M8 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 1a4 4 0 1 1 0-8 4 4 0 0 1 0 8ZM2.5 19c0-2.6 2.6-4 5.5-4s5.5 1.4 5.5 4m-3 0c0-2.2 2.4-3.5 5.5-3.5 3 0 5.5 1.3 5.5 3.5"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Complete Oversight</h3>
+                            <p>Monitor, configure, and manage the entire platform with confidence.</p>
+                        </div>
+                    </article>
+                    <article class="portal-loading__feature" style="--feature-accent:#377cff;">
+                        <div class="portal-loading__feature-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M4 7h16v10H4Zm3 3h4v2H7Zm6 0h4v2h-4ZM7 14h10v2H7Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>System Control</h3>
+                            <p>Built for administrators to manage users, roles, modules, and system configurations.</p>
+                        </div>
+                    </article>
+                </aside>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        (function() {
+            const duration = {{ duration }};
+            const targetUrl = "{{ target_url|escapejs }}";
+            const countdown = document.getElementById("toast-countdown");
+            const progressValue = document.getElementById("progress-value");
+            const progressFill = document.getElementById("progress-fill");
+            let remaining = duration;
+
+            function updateProgress() {
+                const completed = Math.max(0, duration - remaining);
+                const rawPercent = duration > 0 ? Math.round((completed / duration) * 100) : 100;
+                const visiblePercent = Math.min(100, Math.max(8, rawPercent || 8));
+
+                if (progressValue) {
+                    progressValue.textContent = visiblePercent + "%";
+                }
+
+                if (progressFill) {
+                    progressFill.style.width = visiblePercent + "%";
+                }
+
+                if (countdown) {
+                    countdown.textContent = remaining > 0 ? remaining : 0;
+                }
+            }
+
+            function goNext() {
+                window.location.replace(targetUrl);
+            }
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({ loader: true }, "", window.location.href);
+            }
+
+            updateProgress();
+
+            const interval = window.setInterval(function() {
+                remaining -= 1;
+                updateProgress();
+
+                if (remaining <= 0) {
+                    window.clearInterval(interval);
+                }
+            }, 1000);
+
+            window.setTimeout(goNext, duration * 1000);
+
+            window.addEventListener("pageshow", function(event) {
+                if (event.persisted) {
+                    goNext();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -296,6 +296,14 @@ def _render_loading_screen(request, *, page_title, theme_class, company_product,
     })
 
 
+def _render_portal_login_loading_screen(request, *, template_name, page_title, duration, target_url):
+    return render(request, template_name, {
+        "page_title": page_title,
+        "duration": duration,
+        "target_url": target_url,
+    })
+
+
 @never_cache
 def app_loading(request):
     if request.user.is_authenticated:
@@ -331,23 +339,12 @@ def employee_login_loading(request):
     if request.user.is_authenticated and request.user.role == "EMPLOYEE":
         return redirect("dashboard")
 
-    return _render_loading_screen(
+    return _render_portal_login_loading_screen(
         request,
+        template_name="employee_login_loading.html",
         page_title="Employee Portal | MS Technology",
-        theme_class="theme-employee",
-        company_product="MS Technology Employee Access",
-        subtitle="Your personal entry point for leave requests, balances, and status updates.",
-        kicker="Employee Authentication",
-        headline="Preparing the employee login experience",
-        description="We are loading your employee workspace, secure sign-in panel, and responsive tools so you can access leave actions smoothly.",
-        center_label="EMP",
         duration=5,
         target_url=reverse("employee_login_form"),
-        info_items=[
-            {"title": "Best For", "text": "Applying leave, tracking approvals, and checking balances quickly."},
-            {"title": "Optimized", "text": "Works comfortably across mobile, tablet, and desktop layouts."},
-            {"title": "Support", "text": "Wrong password and portal mismatch warnings appear clearly on sign-in."},
-        ],
     )
 
 
@@ -356,23 +353,12 @@ def hr_login_loading(request):
     if request.user.is_authenticated and request.user.role == "HR":
         return redirect("hr_dashboard")
 
-    return _render_loading_screen(
+    return _render_portal_login_loading_screen(
         request,
+        template_name="hr_login_loading.html",
         page_title="HR Portal | MS Technology",
-        theme_class="theme-hr",
-        company_product="MS Technology HR Access",
-        subtitle="Focused entry for leave approvals, records review, and people operations support.",
-        kicker="HR Authentication",
-        headline="Preparing the HR review workspace",
-        description="We are loading the approval-focused HR experience with fast access to employee leave workflows, requests, and oversight tools.",
-        center_label="HR",
         duration=5,
         target_url=reverse("hr_login_form"),
-        info_items=[
-            {"title": "Best For", "text": "Approving leave, reviewing records, and maintaining policy visibility."},
-            {"title": "Operational View", "text": "Built for quick oversight of employee leave activity and workflow actions."},
-            {"title": "Secure Entry", "text": "Protected login path with clear warnings for invalid credentials or wrong portal use."},
-        ],
     )
 
 
@@ -381,23 +367,12 @@ def admin_login_loading(request):
     if request.user.is_authenticated and request.user.is_superuser:
         return redirect("admin:index")
 
-    return _render_loading_screen(
+    return _render_portal_login_loading_screen(
         request,
+        template_name="admin_login_loading.html",
         page_title="Admin Portal | MS Technology",
-        theme_class="theme-admin",
-        company_product="MS Technology Admin Access",
-        subtitle="Professional control point for platform settings, administration, and secure oversight.",
-        kicker="Admin Authentication",
-        headline="Preparing the administrative control panel entry",
-        description="We are loading the administration gateway, system control experience, and secure access layer for elevated users.",
-        center_label="ADM",
         duration=5,
         target_url=reverse("admin_login_form"),
-        info_items=[
-            {"title": "Best For", "text": "Administrative access, platform control, and overall system management."},
-            {"title": "Focused Access", "text": "Built specifically for privileged accounts and administrator workflows."},
-            {"title": "Professional Flow", "text": "Modern branded loading experience aligned with MS Technology identity."},
-        ],
     )
 
 
@@ -567,7 +542,7 @@ def hr_login(request):
         # 🔥 Security Hardening: Check if user exists, is HR, AND is active
         if user is not None and user.role == "HR" and user.is_active:
             login(request, user)
-            return redirect("hr_workspace_loading")
+            return redirect("hr_dashboard")
         else:
             _show_login_failure_message(request, username, "HR", "HR")
             request.session["hr_login_username"] = username or ""
@@ -2194,8 +2169,8 @@ def admin_login(request):
         if user and user.is_superuser:
             login(request, user)
 
-            # 🔥 Redirect to Django Admin Panel
-            return redirect("admin_workspace_loading")
+            # 🔥 Redirect to Django Admin
+            return redirect("admin:index")
 
         else:
             _show_login_failure_message(request, username, "ADMIN", "Admin")
@@ -2434,7 +2409,7 @@ def employee_login(request):
         # 🔥 Security Hardening: Check if user exists, is EMPLOYEE, AND is active
         if user is not None and user.role == "EMPLOYEE" and user.is_active:
             login(request, user)
-            return redirect("employee_workspace_loading")
+            return redirect("dashboard")
         
         else:
             _show_login_failure_message(request, username, "EMPLOYEE", "Employee")
@@ -4209,13 +4184,13 @@ def logout_view(request):
     print(role, " - Logged out Successfully")
 
     if is_admin or role == "Admin":
-        return redirect(f"{reverse('logout_loading')}?portal=admin")
+        return redirect("admin_login")
     
     elif role == "HR":
-        return redirect(f"{reverse('logout_loading')}?portal=hr")
+        return redirect("hr_login")
 
     elif role == "EMPLOYEE":
-        return redirect(f"{reverse('logout_loading')}?portal=employee")
+        return redirect("employee_login")
   
     else:
         return redirect("role_select")
