@@ -21,7 +21,7 @@
         }
 
         .employee-theme .brand-copy {
-            margin: -6px 0 0 !important;
+            margin: -6px 0 0 -10px !important;
             align-items: center !important;
             align-self: flex-start !important;
         }
@@ -45,18 +45,21 @@
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+            width: 100% !important;
+            max-width: none !important;
             padding: 10px 4px !important;
         }
 
         .employee-frame {
             position: relative;
-            width: min(96vw, 1680px);
-            padding: 10px;
+            width: min(97vw, 1740px);
+            max-width: 1740px;
+            padding: clamp(10px, 0.8vw, 16px);
             border-radius: 28px;
             overflow: hidden;
             display: grid;
-            grid-template-columns: minmax(0, 1.22fr) minmax(420px, 500px);
-            gap: 14px;
+            grid-template-columns: minmax(0, 1.32fr) minmax(450px, 0.8fr);
+            gap: clamp(16px, 1.2vw, 26px);
             align-items: stretch;
             border: 1px solid rgba(190, 206, 255, 0.26);
             background:
@@ -103,10 +106,12 @@
             display: inline-flex !important;
             align-items: center !important;
             gap: 8px !important;
-            font-size: 1.10rem !important;
+            font-size: 1.06rem !important;
             font-weight: 1000 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
-            letter-spacing: 0.04em !important;
+            letter-spacing: 0.05em !important;
+            -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.16) !important;
+            padding: 9px 16px !important;
             background:
                 linear-gradient(135deg, rgba(82, 168, 255, 0.22), rgba(132, 96, 255, 0.2), rgba(255, 124, 201, 0.18)) !important;
             border: 1px solid rgba(171, 196, 255, 0.3) !important;
@@ -116,20 +121,23 @@
                 0 0 20px rgba(120, 127, 255, 0.12) !important;
             -webkit-text-stroke: 0 !important;
             text-shadow: none !important;
+            transform: translateX(14px) !important;
         }
 
         .employee-theme .login-kicker__text {
             display: inline-block !important;
             font-weight: 1000 !important;
-            letter-spacing: 0.03em !important;
+            letter-spacing: 0.04em !important;
+            -webkit-text-stroke: 0.9px rgba(255, 255, 255, 0.24) !important;
+            paint-order: stroke fill !important;
             background: linear-gradient(90deg, #ffffff 0%, #9fe6ff 28%, #8da2ff 58%, #ffb6f2 100%) !important;
             -webkit-background-clip: text !important;
             background-clip: text !important;
             color: transparent !important;
-            -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.14) !important;
             text-shadow:
-                0 2px 12px rgba(160, 176, 255, 0.2),
-                0 0 24px rgba(126, 170, 255, 0.18) !important;
+                0 2px 12px rgba(160, 176, 255, 0.24),
+                0 0 24px rgba(126, 170, 255, 0.2),
+                0 0 1px rgba(255, 255, 255, 0.3) !important;
         }
 
         .employee-theme .login-kicker__icon {
@@ -202,36 +210,31 @@
         }
 
         .employee-theme .login-panel--info {
-            padding: 16px 26px 16px !important;
+            padding: clamp(14px, 1.1vw, 22px) clamp(18px, 1.4vw, 28px) !important;
         }
 
         .employee-theme .feature-list {
-            margin-top: 48px !important;
-            gap: 14px !important;
+            margin-top: clamp(34px, 3vw, 60px) !important;
+            gap: clamp(14px, 1.1vw, 22px) !important;
         }
 
         .employee-theme .feature-list .feature-item strong {
-            background: linear-gradient(90deg, #ffffff 0%, #d7e5ff 42%, #d7c6ff 100%) !important;
-            -webkit-background-clip: text !important;
-            background-clip: text !important;
-            color: transparent !important;
+            color: #ffffff !important;
             text-shadow: 0 4px 16px rgba(145, 162, 255, 0.14) !important;
         }
 
         .employee-theme .feature-list .feature-item > span:last-child {
-            background: linear-gradient(90deg, #f5f8ff 0%, #bfd4ff 40%, #d4c0ff 72%, #efc8ff 100%) !important;
-            -webkit-background-clip: text !important;
-            background-clip: text !important;
-            color: transparent !important;
+            color: #e7efff !important;
             font-family: "Trebuchet MS", "Segoe UI", sans-serif !important;
             font-weight: 800 !important;
             text-shadow: 0 4px 16px rgba(145, 162, 255, 0.12) !important;
         }
 
+
         @media (min-width: 641px) {
             .employee-theme .feature-list {
-                gap: 24px !important;
-                width: min(100%, 84%) !important;
+                gap: clamp(18px, 1.4vw, 26px) !important;
+                width: min(100%, 94%) !important;
                 margin-left: 0 !important;
                 margin-right: auto !important;
             }
@@ -271,15 +274,15 @@
                 radial-gradient(circle at 16% 78%, rgba(122, 196, 255, 0.14), transparent 24%),
                 linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
                 var(--panel-bg) !important;
-            padding: 8px 10px 12px !important;
+            padding: clamp(8px, 0.8vw, 14px) !important;
             border: 1px solid rgba(190, 206, 255, 0.26) !important;
             box-shadow: none !important;
         }
 
         @media (min-width: 641px) {
             .employee-theme .login-panel--form {
-                min-height: 600px !important;
-                padding: 8px 20px 16px !important;
+                min-height: clamp(640px, 70vh, 860px) !important;
+                padding: clamp(10px, 1vw, 18px) !important;
                 border-radius: 30px !important;
                 background:
                     radial-gradient(circle at top center, rgba(110, 120, 200, 0.16), transparent 34%),
@@ -373,9 +376,10 @@
         }
 
         .employee-theme .login-card {
-            min-height: 600px !important;
+            width: min(100%, 680px) !important;
+            min-height: clamp(640px, 70vh, 860px) !important;
             margin-top: 6px !important;
-            padding: 8px 20px 16px !important;
+            padding: clamp(10px, 1vw, 18px) clamp(16px, 1.3vw, 24px) clamp(14px, 1.1vw, 20px) !important;
             border-radius: 30px !important;
             background:
                 radial-gradient(circle at top center, rgba(110, 120, 200, 0.16), transparent 34%),
@@ -544,28 +548,26 @@
         }
 
         .employee-theme .back-link span {
-            background: none !important;
-            -webkit-background-clip: border-box !important;
-            background-clip: border-box !important;
-            color: #f8fbff !important;
-            font-size: 1.04rem !important;
+            background: linear-gradient(90deg, #f9fbff 0%, #bfd6ff 34%, #c9baff 66%, #f0c4ff 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            color: transparent !important;
+            font-size: 1rem !important;
             font-weight: 1000 !important;
             letter-spacing: 0 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
-            -webkit-text-stroke: 0.6px rgba(255, 255, 255, 0.4) !important;
-            text-shadow:
-                0 1px 0 rgba(255, 255, 255, 0.24),
-                0 2px 10px rgba(170, 190, 255, 0.22) !important;
+            -webkit-text-stroke: 0 !important;
+            text-shadow: 0 4px 14px rgba(145, 162, 255, 0.14) !important;
         }
 
         .employee-theme .field-label .label-icon,
         .employee-theme .back-link svg {
-            color: #f3f7ff !important;
+            color: #d7e6ff !important;
         }
 
         .employee-theme .back-link svg {
-            color: #ffb6d9 !important;
-            filter: drop-shadow(0 0 10px rgba(255, 182, 217, 0.18)) !important;
+            color: #d7e6ff !important;
+            filter: none !important;
         }
 
         .employee-theme label[for="employee-username"] .label-icon {
@@ -633,30 +635,22 @@
         }
 
         .employee-theme .back-link {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 12px !important;
-            min-width: 320px !important;
-            padding: 12px 22px !important;
+            width: min(100%, 288px) !important;
+            box-sizing: border-box !important;
+            min-height: 46px !important;
+            gap: 10px !important;
+            padding: 0 14px !important;
             border-radius: 999px !important;
-            background:
-                linear-gradient(135deg, rgba(84, 98, 170, 0.95), rgba(58, 68, 126, 0.92)) !important;
-            border: 1px solid rgba(214, 224, 255, 0.22) !important;
-            color: transparent !important;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.14),
-                0 12px 24px rgba(13, 18, 46, 0.24),
-                0 0 18px rgba(126, 146, 255, 0.12) !important;
+            background: linear-gradient(135deg, rgba(84, 98, 170, 0.74), rgba(58, 68, 126, 0.7)) !important;
+            border: 1px solid rgba(214, 224, 255, 0.42) !important;
+            color: #d7e6ff !important;
+            box-shadow: none !important;
         }
 
         .employee-theme .back-link:hover {
-            transform: translateY(-2px) !important;
+            transform: none !important;
             text-decoration: none !important;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.18),
-                0 16px 30px rgba(13, 18, 46, 0.3),
-                0 0 22px rgba(126, 146, 255, 0.16) !important;
+            box-shadow: none !important;
         }
 
         .employee-theme .login-button {
@@ -1001,19 +995,22 @@
             .employee-theme .login-panel--info h1 {
                 margin-top: 4px !important;
                 margin-bottom: 4px !important;
-                font-size: 1.9rem !important;
+                font-size: 1.65rem !important;
             }
 
             .employee-theme .login-kicker {
-                font-size: 0.92rem !important;
+                font-size: 0.82rem !important;
+                transform: translateX(0) !important;
             }
 
             .employee-theme .login-kicker__text {
                 font-weight: 1000 !important;
-                -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.18) !important;
+                -webkit-text-stroke: 0.75px rgba(255, 255, 255, 0.22) !important;
+                paint-order: stroke fill !important;
                 text-shadow:
                     0 2px 12px rgba(160, 176, 255, 0.24),
-                    0 0 24px rgba(126, 170, 255, 0.2) !important;
+                    0 0 24px rgba(126, 170, 255, 0.2),
+                    0 0 1px rgba(255, 255, 255, 0.3) !important;
             }
 
             .employee-theme .login-panel--info > p {
@@ -1022,8 +1019,8 @@
                 white-space: normal !important;
                 overflow-wrap: anywhere !important;
                 word-break: break-word !important;
-                font-size: 0.75rem !important;
-                line-height: 1.35 !important;
+                font-size: 0.68rem !important;
+                line-height: 1.28 !important;
                 text-align: center !important;
                 font-weight: 1000 !important;
                 font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
@@ -1032,7 +1029,7 @@
             }
 
             .employee-theme .login-card__header h2 {
-                font-size: 1.55rem !important;
+                font-size: 1.35rem !important;
             }
 
             .employee-theme .login-card__header {
@@ -1041,16 +1038,16 @@
             }
 
             .employee-theme .login-form input::placeholder {
-                font-size: 0.9rem !important;
+                font-size: 0.82rem !important;
             }
 
             .employee-theme .feature-list {
                 margin-top: 18px !important;
                 gap: 6px !important;
-                width: calc(100% + 34px) !important;
+                width: calc(100% + 18px) !important;
                 max-width: none !important;
-                margin-left: -17px !important;
-                margin-right: -17px !important;
+                margin-left: -9px !important;
+                margin-right: -9px !important;
                 justify-items: stretch !important;
                 align-self: stretch !important;
             }
@@ -1058,7 +1055,7 @@
             .employee-theme .feature-item {
                 width: 100% !important;
                 grid-template-columns: 58px minmax(0, 1fr) !important;
-                padding: 6px 12px !important;
+                padding: 6px 10px !important;
                 gap: 6px !important;
                 justify-content: flex-start !important;
                 align-items: flex-start !important;
@@ -1080,7 +1077,7 @@
             }
 
             .employee-theme .feature-item strong {
-                font-size: 0.84rem !important;
+                font-size: 0.76rem !important;
                 line-height: 1.15 !important;
                 font-weight: 1000 !important;
                 font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
@@ -1090,8 +1087,8 @@
             .employee-theme .feature-list .feature-item:nth-child(1) > span:last-child,
             .employee-theme .feature-list .feature-item:nth-child(2) > span:last-child,
             .employee-theme .feature-list .feature-item:nth-child(3) > span:last-child {
-                font-size: 0.69rem !important;
-                line-height: 1.16 !important;
+                font-size: 0.62rem !important;
+                line-height: 1.12 !important;
                 font-weight: 900 !important;
                 font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
                 -webkit-text-stroke: 0.2px rgba(255, 255, 255, 0.08) !important;
