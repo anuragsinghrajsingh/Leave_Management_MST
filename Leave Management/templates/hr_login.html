@@ -39,14 +39,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px 4px;
+            padding: 10px 4px;
         }
 
         .hr-frame {
             position: relative;
-            width: min(1480px, 100%);
-            min-height: min(640px, calc(100vh - 16px));
-            padding: 24px;
+            width: min(96vw, 1680px);
+            padding: 10px;
             border-radius: 28px;
             overflow: hidden;
             border: 1px solid var(--hr-panel-border);
@@ -116,6 +115,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
+            margin-top: -14px;
             margin-bottom: 12px;
             flex-wrap: wrap;
         }
@@ -150,26 +150,44 @@
         }
 
         .hr-brand-name {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 999px;
             margin: 0;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
             font-weight: 1000 !important;
-            font-size: clamp(2rem, 3vw, 2.9rem);
+            font-size: clamp(1.9rem, 2.8vw, 2.7rem);
             line-height: 0.96;
             letter-spacing: 0.02em;
             text-transform: uppercase;
-            background: linear-gradient(90deg, #ffcc74 0%, #9af4d8 32%, #7cc6ff 62%, #d9ff7f 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
+            background:
+                linear-gradient(180deg, rgba(28, 78, 76, 0.88), rgba(10, 39, 47, 0.9));
+            border: 1px solid rgba(154, 230, 217, 0.3);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 0 0 1px rgba(104, 192, 187, 0.08),
+                0 16px 34px rgba(5, 24, 32, 0.22),
+                0 0 20px rgba(104, 216, 195, 0.1);
+            white-space: nowrap;
+            background-image:
+                linear-gradient(90deg, #ffcc74 0%, #9af4d8 32%, #7cc6ff 62%, #d9ff7f 100%),
+                linear-gradient(180deg, rgba(28, 78, 76, 0.88), rgba(10, 39, 47, 0.9));
+            background-clip: text, border-box;
+            -webkit-background-clip: text, border-box;
             color: transparent;
-            -webkit-text-stroke: 0.7px rgba(244, 252, 239, 0.18);
-            text-shadow: 0 0 12px rgba(154, 244, 216, 0.08);
+            -webkit-text-stroke: 0.55px rgba(244, 252, 239, 0.16);
+            text-shadow:
+                0 0 10px rgba(154, 244, 216, 0.14),
+                0 0 18px rgba(124, 198, 255, 0.1);
         }
 
         .hr-portal-pill {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 12px 20px;
+            padding: 9px 20px;
             border-radius: 999px;
             background: linear-gradient(135deg, rgba(17, 67, 74, 0.78), rgba(31, 73, 116, 0.62));
             border: 1px solid rgba(135, 224, 212, 0.32);
@@ -566,7 +584,7 @@
         }
 
         .hr-field-shell + .hr-field-label {
-            margin-top: 12px;
+            margin-top: 18px;
         }
 
         .hr-field-label svg,
@@ -574,9 +592,14 @@
         .hr-password-toggle svg,
         .hr-back-link svg,
         .hr-submit svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.9px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 10px rgba(222, 247, 255, 0.18));
         }
 
         .hr-field-shell {
@@ -628,52 +651,150 @@
         }
 
         .hr-password-shell input {
-            padding-right: 52px;
+            padding-right: 96px;
         }
 
         .hr-password-toggle {
             position: absolute;
-            right: 14px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            border: none;
-            background: transparent;
-            color: #96c7df;
+            border: 1px solid rgba(157, 222, 216, 0.24);
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(16, 90, 76, 0.94), rgba(12, 62, 61, 0.9));
+            color: #dbf8f0;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
             font-weight: 1000;
             cursor: pointer;
-            padding: 0;
+            padding: 6px 12px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
+            line-height: 1;
+            min-height: 36px;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 10px 20px rgba(2, 20, 19, 0.2);
+        }
+
+        .hr-password-toggle .password-toggle__icon,
+        .hr-password-toggle [data-password-toggle-label] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .hr-password-toggle .password-toggle__icon {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 20px;
+        }
+
+        .hr-password-toggle .password-toggle__icon[hidden] {
+            display: none;
+        }
+
+        .hr-password-toggle .password-toggle__icon svg {
+            display: block;
         }
 
         .hr-password-toggle:focus-visible {
             outline: 2px solid rgba(31, 157, 106, 0.3);
             outline-offset: 3px;
-            border-radius: 8px;
         }
 
         .hr-submit {
+            position: relative;
+            overflow: hidden;
             margin-top: 8px;
+            width: 100%;
             min-height: 52px;
-            border: none;
-            border-radius: 14px;
+            padding: 11px 18px;
+            border: 1px solid rgba(219, 249, 244, 0.28);
+            border-radius: 16px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            background: linear-gradient(90deg, #2fd7a4 0%, #3ca4ff 52%, #5d73ff 100%);
-            color: #f7fbf6;
-            font-size: 1.05rem;
+            gap: 12px;
+            background:
+                radial-gradient(circle at 14% 24%, rgba(255, 186, 108, 0.2), transparent 28%),
+                radial-gradient(circle at 86% 18%, rgba(97, 198, 255, 0.18), transparent 30%),
+                radial-gradient(circle at 70% 82%, rgba(58, 228, 188, 0.16), transparent 28%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05) 38%, transparent 62%),
+                linear-gradient(120deg, rgba(43, 169, 160, 0.16) 0%, rgba(56, 151, 255, 0.14) 52%, rgba(112, 135, 255, 0.16) 100%),
+                rgba(14, 48, 62, 0.34);
+            color: #eefcff;
+            font-size: 1.08rem;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
             font-weight: 1000;
+            letter-spacing: 0.01em;
             cursor: pointer;
-            box-shadow: 0 18px 32px rgba(48, 115, 216, 0.24);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.22),
+                inset 0 -1px 0 rgba(112, 184, 224, 0.12),
+                0 16px 28px rgba(9, 29, 46, 0.26),
+                0 0 22px rgba(78, 203, 205, 0.1);
+            backdrop-filter: blur(16px) saturate(140%);
+            -webkit-backdrop-filter: blur(16px) saturate(140%);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+        }
+
+        .hr-submit::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06) 30%, transparent 58%),
+                linear-gradient(135deg, rgba(184, 250, 239, 0.12), transparent 46%);
+            opacity: 1;
+            pointer-events: none;
+        }
+
+        .hr-submit::after {
+            content: "";
+            position: absolute;
+            left: 12%;
+            right: 12%;
+            bottom: -12px;
+            height: 24px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(255, 188, 104, 0.18), rgba(86, 230, 205, 0.22), rgba(96, 154, 255, 0.18));
+            filter: blur(12px);
+            pointer-events: none;
         }
 
         .hr-submit:hover {
-            filter: brightness(1.03);
+            transform: translateY(-2px);
+            border-color: rgba(228, 251, 247, 0.38);
+            filter: saturate(1.06);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.26),
+                inset 0 -1px 0 rgba(130, 201, 232, 0.14),
+                0 20px 34px rgba(13, 38, 58, 0.28),
+                0 0 26px rgba(87, 208, 198, 0.14);
+        }
+
+        .hr-submit > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hr-submit .hr-submit-label {
+            background: linear-gradient(90deg, #ffffff 0%, #ebfffb 36%, #e0ebff 72%, #ffffff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.16rem;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+            font-weight: 1000 !important;
+            letter-spacing: 0.025em;
+            -webkit-text-stroke: 0.6px rgba(255, 255, 255, 0.22);
+            text-shadow:
+                0 1px 8px rgba(255, 255, 255, 0.12),
+                0 0 10px rgba(214, 245, 255, 0.08);
         }
 
         .hr-divider {
@@ -803,6 +924,7 @@
 
             .hr-brand-row {
                 justify-content: center;
+                margin-top: 1px;
                 margin-bottom: 18px;
             }
 
@@ -929,6 +1051,7 @@
 
             .hr-brand-row {
                 gap: 10px;
+                margin-top: 1px;
                 margin-bottom: 14px;
             }
 
@@ -982,7 +1105,7 @@
             .hr-field-shell input {
                 min-height: 46px;
                 padding-left: 40px;
-                padding-right: 44px;
+                padding-right: 84px;
                 font-size: 0.96rem;
             }
 
@@ -992,6 +1115,8 @@
 
             .hr-password-toggle {
                 right: 12px;
+                min-height: 34px;
+                padding: 5px 10px;
             }
 
             .hr-submit,
@@ -1182,27 +1307,32 @@
                                     required
                                 >
                                 <button type="button" class="hr-password-toggle" data-password-toggle aria-label="Show password">
-                                    <span data-eye-open aria-hidden="true">
+                                    <span class="password-toggle__icon" data-eye-open aria-hidden="true">
                                         <svg viewBox="0 0 24 24" focusable="false">
                                             <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
                                             <circle cx="12" cy="12" r="3"/>
                                         </svg>
                                     </span>
-                                    <span data-eye-closed hidden aria-hidden="true">
+                                    <span class="password-toggle__icon" data-eye-closed hidden aria-hidden="true">
                                         <svg viewBox="0 0 24 24" focusable="false">
                                             <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
                                             <circle cx="12" cy="12" r="3"/>
                                             <path d="M4 4 20 20"/>
                                         </svg>
                                     </span>
+                                    <span data-password-toggle-label>Show</span>
                                 </button>
                             </div>
 
                             <button type="submit" class="hr-submit">
                                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <path d="M17 9V7a5 5 0 0 0-10 0v2H5v10h14V9Zm-8 0V7a3 3 0 1 1 6 0v2Z"/>
+                                    <path d="M14 7l5 5-5 5"/>
+                                    <path d="M19 12H9"/>
+                                    <path d="M5 5.75h5"/>
+                                    <path d="M5 18.25h5"/>
+                                    <path d="M5 5.75v12.5"/>
                                 </svg>
-                                <span>Login</span>
+                                <span class="hr-submit-label">LOGIN</span>
                             </button>
                         </form>
 
@@ -1227,17 +1357,22 @@
     <script>
         document.querySelectorAll("[data-password-toggle]").forEach(function(toggleButton) {
             const input = toggleButton.parentElement.querySelector("input");
+            const label = toggleButton.querySelector("[data-password-toggle-label]");
             const openIcon = toggleButton.querySelector("[data-eye-open]");
             const closedIcon = toggleButton.querySelector("[data-eye-closed]");
 
             toggleButton.addEventListener("click", function() {
                 const isPassword = input.type === "password";
                 input.type = isPassword ? "text" : "password";
+                if (label) {
+                    label.textContent = isPassword ? "Hide" : "Show";
+                }
                 if (openIcon && closedIcon) {
                     openIcon.hidden = isPassword;
                     closedIcon.hidden = !isPassword;
                 }
                 toggleButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+                toggleButton.blur();
             });
         });
 

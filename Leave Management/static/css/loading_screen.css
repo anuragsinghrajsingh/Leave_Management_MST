@@ -1,16 +1,16 @@
 :root {
-    --page-bg:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 24%),
-        linear-gradient(135deg, #07111f 0%, #0d1b34 54%, #122c52 100%);
-    --surface-bg: rgba(8, 15, 30, 0.72);
-    --surface-border: rgba(148, 163, 184, 0.2);
-    --text-soft: rgba(226, 232, 240, 0.78);
-    --heading: #f8fafc;
-    --accent: #38bdf8;
-    --accent-strong: #2563eb;
-    --accent-soft: rgba(56, 189, 248, 0.18);
-    --chip-bg: rgba(255, 255, 255, 0.08);
+    --page-bg: #090b14;
+    --panel-bg: rgba(9, 11, 20, 0.84);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --soft-border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-soft: rgba(226, 232, 240, 0.72);
+    --text-muted: rgba(226, 232, 240, 0.52);
+    --glow-a: #ff8a00;
+    --glow-b: #ff2d87;
+    --glow-c: #8b5cf6;
+    --accent-gradient: linear-gradient(90deg, var(--glow-a) 0%, var(--glow-b) 55%, var(--glow-c) 100%);
+    --accent-shadow: rgba(255, 114, 44, 0.28);
     --font-stack: "Segoe UI", "Trebuchet MS", sans-serif;
 }
 
@@ -18,309 +18,549 @@
     box-sizing: border-box;
 }
 
+.svg-defs {
+    position: absolute;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
 body.loading-page {
     margin: 0;
-    min-height: 100vh;
     font-family: var(--font-stack);
-    font-weight: 700;
-    background: var(--page-bg);
-    background-attachment: fixed;
-    color: var(--heading);
-    overflow: hidden;
-}
-
-.loading-page.theme-app {
-    --page-bg:
-        radial-gradient(circle at top left, rgba(34, 211, 238, 0.26), transparent 22%),
-        radial-gradient(circle at top right, rgba(251, 191, 36, 0.22), transparent 18%),
-        radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.18), transparent 20%),
-        radial-gradient(circle at bottom right, rgba(96, 165, 250, 0.18), transparent 18%),
-        linear-gradient(135deg, #09111f 0%, #152845 52%, #183b67 100%);
-    --accent: #38bdf8;
-    --accent-strong: #8b5cf6;
-    --accent-soft: rgba(56, 189, 248, 0.2);
-}
-
-.loading-page.theme-employee {
-    --page-bg:
-        radial-gradient(circle at top left, rgba(34, 211, 238, 0.34), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.28), transparent 22%),
-        linear-gradient(135deg, #072b3a 0%, #0c4a6e 45%, #0369a1 100%);
-    --accent: #0284c7;
-    --accent-strong: #0369a1;
-    --accent-soft: rgba(2, 132, 199, 0.18);
-}
-
-.loading-page.theme-hr {
-    --page-bg:
-        radial-gradient(circle at top left, rgba(251, 191, 36, 0.35), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(249, 115, 22, 0.26), transparent 24%),
-        linear-gradient(135deg, #3b1804 0%, #78350f 48%, #b45309 100%);
-    --accent: #d97706;
-    --accent-strong: #b45309;
-    --accent-soft: rgba(217, 119, 6, 0.18);
+    font-weight: 800;
+    color: var(--text-main);
+    background:
+        radial-gradient(circle at 18% 12%, rgba(255, 108, 44, 0.16), transparent 22%),
+        radial-gradient(circle at 86% 88%, rgba(255, 45, 135, 0.12), transparent 18%),
+        linear-gradient(135deg, #04060c 0%, #090c14 48%, #060913 100%);
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .loading-page.theme-admin {
-    --page-bg:
-        radial-gradient(circle at top left, rgba(248, 113, 113, 0.16), transparent 22%),
-        radial-gradient(circle at top right, rgba(251, 191, 36, 0.1), transparent 18%),
-        radial-gradient(circle at bottom right, rgba(244, 63, 94, 0.14), transparent 20%),
-        linear-gradient(135deg, #160c14 0%, #2b1930 52%, #4c2747 100%);
-    --accent: #f06292;
-    --accent-strong: #c63d6f;
-    --accent-soft: rgba(240, 98, 146, 0.16);
+    --glow-a: #ff4d5d;
+    --glow-b: #ff3c7f;
+    --glow-c: #4a7dff;
+    --accent-shadow: rgba(255, 77, 93, 0.26);
+}
+
+.loading-page.theme-hr {
+    --glow-a: #ff8a00;
+    --glow-b: #ff4b6e;
+    --glow-c: #a34bff;
+    --accent-shadow: rgba(255, 138, 0, 0.26);
+}
+
+.loading-page.theme-employee {
+    --glow-a: #2eb5ff;
+    --glow-b: #6e7dff;
+    --glow-c: #d06aff;
+    --accent-shadow: rgba(46, 181, 255, 0.24);
+    background:
+        radial-gradient(circle at 16% 18%, rgba(46, 181, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 82% 82%, rgba(208, 106, 255, 0.1), transparent 18%),
+        linear-gradient(135deg, #07102b 0%, #0a1534 55%, #09142f 100%);
 }
 
 .loading-shell {
-    height: 100vh;
+    min-height: 100vh;
+    padding: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px;
+    align-items: stretch;
+    justify-content: flex-start;
 }
 
 .loading-card {
-    width: min(100%, 1100px);
-    max-height: calc(100vh - 32px);
-    padding: 18px 20px;
+    position: relative;
+    width: 100%;
+    min-height: auto;
+    min-height: 100vh;
+    height: auto;
+    max-height: none;
+    margin: 0;
     border-radius: 24px;
-    border: 1px solid var(--surface-border);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
-        var(--surface-bg);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 30px 80px rgba(2, 6, 23, 0.36);
-    display: grid;
-    grid-template-columns: minmax(250px, 0.9fr) minmax(230px, 0.8fr) minmax(260px, 0.95fr);
-    grid-template-areas:
-        "topbar topbar topbar"
-        "brand visual info"
-        "copy visual info"
-        "progress progress footer";
-    gap: 14px 18px;
-    align-items: center;
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+        var(--panel-bg);
+    box-shadow:
+        0 36px 80px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
-.loading-topbar {
-    grid-area: topbar;
+.loading-card::before,
+.loading-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.loading-card::before {
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.loading-card::after {
+    background:
+        radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--glow-a) 36%, transparent), transparent 34%),
+        radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--glow-b) 28%, transparent), transparent 26%);
+    opacity: 0.9;
+}
+
+.layout {
+    position: relative;
+    z-index: 1;
+}
+
+.layout-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(340px, 0.82fr);
+    gap: 28px;
+    padding: 34px 38px 12px;
+}
+
+.hero-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.brand-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    justify-content: center;
+    gap: 18px;
 }
 
-.company-line {
+.brand-mark {
+    width: 92px;
+    height: 92px;
+    border-radius: 22px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.brand-mark__logo {
+    width: 62px;
+    height: auto;
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.05));
+}
+
+.brand-copy {
+    margin-top: 10px;
+}
+
+.company-name {
     margin: 0;
-    font-size: clamp(1.55rem, 3vw, 2.35rem);
-    line-height: 1;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    background: linear-gradient(90deg, #38bdf8 0%, #60a5fa 30%, #a78bfa 60%, #f59e0b 100%);
+    font-size: clamp(2.35rem, 4.2vw, 4.2rem);
+    line-height: 0.98;
+    letter-spacing: 0.02em;
+    font-weight: 900;
+}
+
+.gradient-text,
+.company-name,
+.loader-center strong,
+.progress-value,
+.auth-badge span,
+.info-copy h3,
+.benefit-card strong {
+    background: var(--accent-gradient);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
-.topbar-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-size: 0.74rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--accent);
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.gradient-icon {
+    display: block;
+    filter:
+        drop-shadow(0 0 10px rgba(255, 138, 0, 0.22))
+        saturate(1.2);
 }
 
-.loading-brand {
-    grid-area: brand;
+.gradient-icon path {
+    fill: url(#fallback-gradient);
+}
+
+.auth-badge svg path,
+.info-icon svg path,
+.benefit-icon svg path,
+.loading-footer svg path {
+    fill: url(#fallback-gradient);
+}
+
+.portal-line {
+    margin-top: 12px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    align-self: start;
+    justify-content: center;
+    gap: 18px;
 }
 
-.brand-logo {
-    width: 84px;
-    max-width: 100%;
-    height: auto;
+.portal-line span {
+    width: 42px;
+    height: 2px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--glow-a) 65%, transparent);
 }
 
-.brand-product,
-.loading-copy h2 {
+.portal-line p {
     margin: 0;
-    line-height: 1.06;
+    color: rgba(241, 245, 249, 0.68);
+    font-size: clamp(1rem, 1.55vw, 1.55rem);
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
 }
 
-.brand-product {
-    font-size: clamp(1.1rem, 2vw, 1.55rem);
-    color: var(--heading);
-}
-
-.brand-caption,
-.loading-copy p,
-.progress-note,
-.info-card span,
-.loading-footer span {
-    color: var(--text-soft);
-    line-height: 1.6;
-    font-weight: 700;
-}
-
-.brand-caption {
-    margin: 5px 0 0;
-    font-size: 0.84rem;
-    max-width: 300px;
-}
-
-.loading-visual {
-    grid-area: visual;
-    align-self: center;
-    justify-self: center;
+.loader-visual {
     position: relative;
-    width: min(100%, 220px);
+    width: min(100%, 270px);
     aspect-ratio: 1;
+    margin-top: 18px;
     display: grid;
     place-items: center;
 }
 
-.orbital {
+.loader-ring,
+.loader-ring::before {
     position: absolute;
+    inset: 0;
     border-radius: 50%;
+}
+
+.loader-ring--outer {
     border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.orbital-one {
-    inset: 12%;
-    animation: rotate-ring 10s linear infinite;
+.loader-ring--outer::before {
+    content: "";
+    inset: 8px;
+    border: 10px solid rgba(255, 255, 255, 0.06);
+    border-top-color: transparent;
+    border-left-color: transparent;
+    border-right-color: transparent;
 }
 
-.orbital-two {
-    inset: 24%;
-    border-style: dashed;
-    animation: rotate-ring-reverse 7s linear infinite;
+.loader-ring--mid {
+    inset: 22px;
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    animation: spin 7s linear infinite;
 }
 
-.orbital-three {
-    inset: 36%;
-    animation: pulse-ring 2.4s ease-in-out infinite;
+.loader-ring--inner {
+    inset: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.03),
+        inset 0 0 34px rgba(255, 255, 255, 0.03);
 }
 
-.loading-core {
-    width: 38%;
-    aspect-ratio: 1;
+.loader-ring--inner::before {
+    content: "";
+    inset: 16px;
     border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: radial-gradient(circle at top left, var(--accent), var(--accent-strong));
-    box-shadow: 0 0 0 12px var(--accent-soft);
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 0 24px var(--accent-shadow),
+        inset 0 0 28px rgba(255, 255, 255, 0.04);
+}
+
+.loader-node {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    box-shadow: 0 0 18px var(--accent-shadow);
+}
+
+.loader-node--one {
+    top: 48px;
+    right: 42px;
+    animation: pulse 2.2s ease-in-out infinite;
+}
+
+.loader-node--two {
+    bottom: 48px;
+    left: 42px;
+    animation: pulse 2.2s ease-in-out infinite 0.8s;
+}
+
+.loader-center {
+    position: relative;
+    z-index: 2;
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background:
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 50%),
+        #0b0f1b;
+    box-shadow:
+        inset 0 0 20px rgba(255, 255, 255, 0.05),
+        0 0 44px rgba(0, 0, 0, 0.28);
+}
+
+.loader-center svg {
+    width: 32px;
+    height: 32px;
+    stroke: none;
+}
+
+.loader-center strong {
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    font-size: 0.9rem;
 }
 
-.loading-copy {
-    grid-area: copy;
-    align-self: start;
+.hero-copy-block {
+    margin-top: 14px;
 }
 
-.loading-copy h2 {
-    font-size: clamp(1.2rem, 2vw, 1.7rem);
+.hero-copy-block h2 {
+    margin: 0;
+    font-size: clamp(1.65rem, 2.15vw, 2.45rem);
+    line-height: 1.15;
+    font-weight: 900;
 }
 
-.loading-copy p {
-    margin: 7px 0 0;
-    max-width: 360px;
-    font-size: 0.86rem;
-    line-height: 1.45;
+.hero-copy-block p {
+    margin: 8px auto 0;
+    max-width: 620px;
+    font-size: clamp(0.98rem, 1.08vw, 1.12rem);
+    line-height: 1.5;
+    color: var(--text-soft);
+    font-weight: 800;
 }
 
 .progress-block {
-    grid-area: progress;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: min(100%, 720px);
+    margin-top: 18px;
 }
 
-.progress-meta {
-    display: flex;
+.progress-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
-    font-size: 0.88rem;
-    font-weight: 700;
+    gap: 14px;
 }
 
 .progress-track {
-    height: 10px;
+    height: 12px;
     border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.1);
+    position: relative;
 }
 
 .progress-fill {
+    width: 8%;
     height: 100%;
-    width: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--accent), var(--accent-strong));
-    transform-origin: left center;
-    animation: progress-drain linear forwards;
-    animation-duration: var(--duration, 10s);
+    background: var(--accent-gradient);
+    box-shadow: 0 0 24px var(--accent-shadow);
+    transition: width 0.85s ease;
 }
 
-.progress-note {
+.progress-value {
+    min-width: 60px;
+    text-align: right;
+    font-size: clamp(1.25rem, 1.6vw, 1.75rem);
+    font-weight: 900;
+    color: color-mix(in srgb, var(--glow-b) 72%, white 18%);
+}
+
+.progress-caption {
     margin: 10px 0 0;
-    font-size: 0.84rem;
+    font-size: clamp(0.96rem, 1vw, 1.06rem);
+    color: var(--text-muted);
+    font-weight: 800;
 }
 
-.info-grid {
-    grid-area: info;
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-badge {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--glow-a) 58%, white 26%);
+    background: rgba(10, 12, 20, 0.88);
+    border: 1px solid color-mix(in srgb, var(--glow-a) 38%, rgba(255, 255, 255, 0.08));
+    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.02);
+    font-size: 0.94rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.auth-badge svg,
+.loading-footer svg,
+.info-icon svg,
+.benefit-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+.info-stack {
     display: grid;
-    gap: 8px;
-    align-content: start;
+    gap: 12px;
 }
 
 .info-card {
-    padding: 11px 13px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+    padding: 16px 18px 16px 16px;
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
+        rgba(14, 16, 27, 0.92);
+    border: 1px solid var(--soft-border);
+    position: relative;
+    overflow: hidden;
 }
 
-.info-card strong {
+.info-card::after {
+    content: "";
+    position: absolute;
+    top: 16%;
+    right: 10px;
+    width: 3px;
+    height: 68%;
+    border-radius: 999px;
+    background: var(--accent-gradient);
+}
+
+.info-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: color-mix(in srgb, var(--glow-a) 60%, white 16%);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid color-mix(in srgb, var(--glow-a) 28%, rgba(255, 255, 255, 0.08));
+    box-shadow:
+        inset 0 0 20px rgba(255, 255, 255, 0.02),
+        0 0 28px rgba(0, 0, 0, 0.18);
+}
+
+.info-copy h3 {
+    margin: 0 0 4px;
+    font-size: clamp(1.08rem, 1.16vw, 1.4rem);
+    font-weight: 900;
+}
+
+.info-copy p {
+    margin: 0;
+    font-size: clamp(0.94rem, 0.98vw, 1.03rem);
+    line-height: 1.45;
+    color: var(--text-soft);
+    font-weight: 800;
+}
+
+.benefit-strip {
+    position: relative;
+    z-index: 1;
+    margin: 0 38px 0;
+    padding: 10px 0 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.benefit-card {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 6px 4px;
+    position: relative;
+}
+
+.benefit-card:not(:first-child)::before {
+    content: "";
+    position: absolute;
+    left: -11px;
+    top: 14%;
+    width: 1px;
+    height: 72%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.benefit-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: color-mix(in srgb, var(--glow-b) 58%, white 18%);
+    border: 1px solid color-mix(in srgb, var(--glow-b) 36%, rgba(255, 255, 255, 0.08));
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.benefit-card span {
     display: block;
-    margin-bottom: 4px;
-    font-size: 0.84rem;
+    color: var(--text-soft);
+    font-size: clamp(0.88rem, 0.96vw, 1rem);
+    line-height: 1.4;
+    font-weight: 800;
 }
 
-.info-card span {
-    font-size: 0.8rem;
-    line-height: 1.38;
-    font-weight: 700;
-}
 
 .loading-footer {
-    grid-area: footer;
+    position: relative;
+    z-index: 1;
+    margin: 8px 38px 60px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding-top: 2px;
-    font-size: 0.86rem;
+    justify-content: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: clamp(0.96rem, 1vw, 1.08rem);
+    font-weight: 900;
+}
+
+.loading-footer svg {
+    color: color-mix(in srgb, var(--glow-b) 68%, white 18%);
+}
+
+.loading-footer p {
+    margin: 0;
 }
 
 .skip-toast {
     position: fixed;
-    top: 12px;
-    right: 12px;
+    top: 14px;
+    right: 16px;
     z-index: 5;
     display: inline-flex;
     align-items: center;
@@ -328,129 +568,855 @@ body.loading-page {
     padding: 8px 12px;
     border-radius: 999px;
     text-decoration: none;
-    color: var(--heading);
-    font-weight: 700;
-    background: rgba(8, 15, 30, 0.74);
+    color: var(--text-main);
+    background: rgba(7, 9, 16, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.3);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
 .skip-toast__label {
-    color: var(--heading);
+    font-size: 0.92rem;
+    font-weight: 900;
 }
 
 .skip-toast__count {
     min-width: 42px;
-    text-align: center;
     padding: 4px 8px;
     border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-size: 0.84rem;
+    text-align: center;
+    color: color-mix(in srgb, var(--glow-a) 54%, white 26%);
+    background: rgba(255, 255, 255, 0.06);
+    font-weight: 900;
+    font-size: 0.88rem;
 }
 
-@keyframes rotate-ring {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+.ambient,
+.dot-grid {
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
 }
 
-@keyframes rotate-ring-reverse {
-    from { transform: rotate(360deg); }
-    to { transform: rotate(0deg); }
+.ambient-left {
+    left: -90px;
+    bottom: -80px;
+    width: 560px;
+    height: 760px;
+    background:
+        radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--glow-a) 30%, transparent), transparent 26%),
+        repeating-radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 18px);
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.55) 18%, #000 45%, rgba(0, 0, 0, 0.22) 100%);
+    opacity: 0.72;
 }
 
-@keyframes pulse-ring {
-    0%, 100% { transform: scale(1); opacity: 0.7; }
-    50% { transform: scale(1.08); opacity: 1; }
+.ambient-right {
+    right: -80px;
+    bottom: -100px;
+    width: 420px;
+    height: 360px;
+    background:
+        radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--glow-b) 28%, transparent), transparent 22%),
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 8px);
+    mask-image: linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.38) 22%, #000 78%);
+    opacity: 0.36;
 }
 
-@keyframes progress-drain {
-    from { transform: scaleX(1); }
-    to { transform: scaleX(0); }
+.dot-grid {
+    top: 52px;
+    left: 34px;
+    display: grid;
+    grid-template-columns: repeat(5, 10px);
+    gap: 10px 12px;
 }
 
-@media (max-width: 980px) {
-    .loading-card {
-        grid-template-columns: minmax(220px, 0.95fr) minmax(220px, 1.05fr);
-        grid-template-areas:
-            "topbar topbar"
-            "brand visual"
-            "copy visual"
-            "progress progress"
-            "info footer";
-        max-height: calc(100vh - 28px);
-        gap: 12px 14px;
-        padding: 16px;
+.dot-grid span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--glow-a) 70%, white 18%);
+    opacity: 0.95;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.22);
+        opacity: 0.72;
+    }
+}
+
+@media (max-width: 1280px) {
+    .layout-main {
+        gap: 24px;
+        padding: 30px 28px 10px;
     }
 
-    .loading-visual {
-        width: min(100%, 190px);
+    .benefit-strip,
+    .loading-footer {
+        margin-left: 28px;
+        margin-right: 28px;
     }
 
-    .brand-caption,
-    .loading-copy p {
-        max-width: none;
+    .company-name {
+        font-size: clamp(2.2rem, 3.8vw, 3.4rem);
+    }
+
+    .hero-copy-block h2 {
+        font-size: clamp(1.45rem, 2vw, 2rem);
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1080px) {
     .loading-shell {
-        padding: 8px;
+        padding: 0;
     }
 
     .loading-card {
-        width: 100%;
-        max-height: calc(100vh - 20px);
-        padding: 14px;
-        border-radius: 20px;
+        height: auto;
+        max-height: none;
+    }
+
+    .layout-main {
         grid-template-columns: 1fr;
-        grid-template-areas:
-            "topbar"
-            "brand"
-            "copy"
-            "visual"
-            "info"
-            "progress"
-            "footer";
+        gap: 22px;
+    }
+
+    .side-panel {
+        gap: 20px;
+    }
+
+    .auth-badge {
+        align-self: center;
+    }
+
+    .benefit-strip {
+        grid-template-columns: 1fr;
         gap: 10px;
     }
 
-    .loading-brand {
-        align-items: flex-start;
+    .benefit-card:not(:first-child)::before {
+        display: none;
+    }
+}
+
+@media (max-height: 900px) and (min-width: 701px) {
+    .loading-shell {
+        padding: 0;
     }
 
-    .brand-logo {
-        width: 72px;
+    .loading-card {
+        min-height: 100vh;
+        height: auto;
+        max-height: none;
+        border-radius: 20px;
     }
 
-    .loading-topbar {
+    .layout-main {
+        gap: 18px;
+        padding: 22px 26px 8px;
+    }
+
+    .brand-mark {
+        width: 76px;
+        height: 76px;
+        border-radius: 18px;
+    }
+
+    .brand-mark__logo {
+        width: 52px;
+    }
+
+    .brand-copy {
+        margin-top: 8px;
+    }
+
+    .company-name {
+        font-size: clamp(1.85rem, 3.2vw, 3rem);
+    }
+
+    .brand-header {
+        gap: 14px;
+    }
+
+    .portal-line {
+        margin-top: 8px;
+        gap: 12px;
+    }
+
+    .portal-line span {
+        width: 28px;
+    }
+
+    .portal-line p {
+        font-size: clamp(0.82rem, 1.1vw, 1.08rem);
+        letter-spacing: 0.16em;
+    }
+
+    .loader-visual {
+        width: min(100%, 220px);
+        margin-top: 12px;
+    }
+
+    .loader-ring--mid {
+        inset: 18px;
+    }
+
+    .loader-ring--inner {
+        inset: 30px;
+    }
+
+    .loader-ring--inner::before {
+        inset: 13px;
+    }
+
+    .loader-center {
+        width: 96px;
+        height: 96px;
+    }
+
+    .loader-center svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    .loader-center strong {
+        font-size: 1.18rem;
+    }
+
+    .loader-node {
+        width: 10px;
+        height: 10px;
+    }
+
+    .loader-node--one {
+        top: 38px;
+        right: 34px;
+    }
+
+    .loader-node--two {
+        bottom: 38px;
+        left: 34px;
+    }
+
+    .hero-copy-block {
+        margin-top: 10px;
+    }
+
+    .hero-copy-block h2 {
+        font-size: clamp(1.18rem, 1.45vw, 1.6rem);
+    }
+
+    .hero-copy-block p {
+        margin-top: 6px;
+        max-width: 540px;
+        font-size: 0.84rem;
+        line-height: 1.42;
+    }
+
+    .progress-block {
+        width: min(100%, 620px);
+        margin-top: 12px;
+    }
+
+    .progress-track {
+        height: 10px;
+    }
+
+    .progress-value {
+        min-width: 52px;
+        font-size: 1.08rem;
+    }
+
+    .progress-caption {
+        margin-top: 8px;
+        font-size: 0.82rem;
+    }
+
+    .side-panel {
         gap: 10px;
-        padding-right: 96px;
     }
 
-    .company-line {
-        font-size: 1.3rem;
+    .auth-badge {
+        padding: 10px 16px;
+        font-size: 0.76rem;
     }
 
-    .topbar-tag {
-        font-size: 0.68rem;
+    .auth-badge svg,
+    .loading-footer svg,
+    .info-icon svg,
+    .benefit-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .info-stack {
+        gap: 8px;
+    }
+
+    .info-card {
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 10px;
+        padding: 12px 14px 12px 12px;
+        border-radius: 16px;
+    }
+
+    .info-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    .info-copy h3 {
+        margin-bottom: 2px;
+        font-size: 0.92rem;
+    }
+
+    .info-copy p {
+        font-size: 0.8rem;
+        line-height: 1.32;
+    }
+
+    .benefit-strip {
+        margin: 0 26px;
+        padding-top: 6px;
+        gap: 10px;
+    }
+
+    .benefit-card {
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 8px;
+        padding: 4px 2px;
+    }
+
+    .benefit-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .benefit-card strong {
+        margin-bottom: 2px;
+        font-size: 0.86rem;
+    }
+
+    .benefit-card span {
+        font-size: 0.74rem;
+        line-height: 1.25;
     }
 
     .loading-footer {
-        gap: 10px;
-        flex-direction: column;
-        align-items: flex-start;
+        margin: 10px 26px 40px;
+        gap: 8px;
+        font-size: 0.8rem;
     }
 
-    .loading-visual {
-        width: 150px;
+    .dot-grid {
+        top: 34px;
+        left: 24px;
+        grid-template-columns: repeat(5, 8px);
+        gap: 8px 10px;
+    }
+
+    .dot-grid span {
+        width: 4px;
+        height: 4px;
+    }
+
+    .ambient-left,
+    .ambient-right {
+        opacity: 0.22;
+    }
+}
+
+@media (max-height: 760px) and (min-width: 701px) {
+    .layout-main {
+        padding-top: 18px;
+        gap: 14px;
+    }
+
+    .company-name {
+        font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+    }
+
+    .loader-visual {
+        width: min(100%, 186px);
+        margin-top: 8px;
+    }
+
+    .loader-ring--mid {
+        inset: 15px;
+    }
+
+    .loader-ring--inner {
+        inset: 25px;
+    }
+
+    .loader-center {
+        width: 84px;
+        height: 84px;
+    }
+
+    .hero-copy-block h2 {
+        font-size: 1.04rem;
+    }
+
+    .hero-copy-block p {
+        font-size: 0.76rem;
+        line-height: 1.28;
+    }
+
+    .info-card {
+        padding: 10px 12px 10px 10px;
+    }
+
+    .info-copy h3 {
+        font-size: 0.84rem;
+    }
+
+    .info-copy p,
+    .benefit-card span,
+    .progress-caption,
+    .loading-footer {
+        font-size: 0.72rem;
+    }
+
+    .benefit-card strong {
+        font-size: 0.8rem;
+    }
+
+    .skip-toast {
+        top: 10px;
+        right: 12px;
+        padding: 6px 10px;
+    }
+
+    .skip-toast__label {
+        font-size: 0.78rem;
+    }
+}
+
+@media (max-width: 700px) {
+    body.loading-page {
+        overflow-y: auto;
     }
 
     .skip-toast {
         top: 10px;
         right: 10px;
-        padding: 8px 12px;
-        font-size: 0.85rem;
+        padding: 7px 10px;
+        gap: 8px;
+    }
+
+    .loading-shell {
+        min-height: 100vh;
+        padding: 0;
+        align-items: stretch;
+    }
+
+    .loading-card {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+        max-height: none;
+        border-radius: 20px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .layout-main {
+        grid-template-columns: 1fr;
+        padding: 56px 14px 10px;
+        gap: 16px;
+    }
+
+    .hero-panel,
+    .side-panel {
+        width: 100%;
+    }
+
+    .brand-copy {
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .brand-header {
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: nowrap;
+    }
+
+    .brand-mark {
+        width: 62px;
+        height: 62px;
+        border-radius: 16px;
+        flex: 0 0 auto;
+    }
+
+    .brand-mark__logo {
+        width: 42px;
+    }
+
+    .company-name {
+        font-size: clamp(1.42rem, 7.2vw, 2rem);
+        letter-spacing: 0.01em;
+        text-align: left;
+    }
+
+    .portal-line {
+        margin-top: 10px;
+        gap: 10px;
+    }
+
+    .portal-line span {
+        width: 20px;
+    }
+
+    .portal-line p {
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-align: center;
+    }
+
+    .loader-visual {
+        width: min(100%, 190px);
+        margin-top: 10px;
+    }
+
+    .loader-ring--mid {
+        inset: 16px;
+    }
+
+    .loader-ring--inner {
+        inset: 28px;
+    }
+
+    .loader-ring--inner::before {
+        inset: 12px;
+    }
+
+    .loader-center {
+        width: 86px;
+        height: 86px;
+    }
+
+    .loader-center strong {
+        font-size: 1.1rem;
+    }
+
+    .loader-center svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .loader-node {
+        width: 9px;
+        height: 9px;
+    }
+
+    .loader-node--one {
+        top: 33px;
+        right: 30px;
+    }
+
+    .loader-node--two {
+        bottom: 33px;
+        left: 30px;
+    }
+
+    .hero-copy-block {
+        margin-top: 8px;
+    }
+
+    .hero-copy-block h2 {
+        font-size: 1.1rem;
+        line-height: 1.24;
+    }
+
+    .hero-copy-block p {
+        margin-top: 6px;
+        max-width: 100%;
+        font-size: 0.8rem;
+        line-height: 1.42;
+    }
+
+    .progress-block {
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .progress-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+
+    .progress-track {
+        height: 10px;
+    }
+
+    .progress-value {
+        min-width: 42px;
+        font-size: 0.96rem;
+    }
+
+    .progress-caption {
+        margin-top: 8px;
+        font-size: 0.76rem;
+    }
+
+    .auth-badge {
+        width: 100%;
+        justify-content: center;
+        align-self: stretch;
+        padding: 11px 14px;
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+        text-align: center;
+    }
+
+    .side-panel {
+        gap: 10px;
+    }
+
+    .info-card {
+        grid-template-columns: 46px minmax(0, 1fr);
+        text-align: left;
+        gap: 10px;
+        padding: 12px 14px 12px 12px;
+        border-radius: 16px;
+    }
+
+    .info-icon {
+        width: 38px;
+        height: 38px;
+        margin: 0;
+    }
+
+    .info-card::after {
+        top: 18%;
+        bottom: auto;
+        left: auto;
+        right: 8px;
+        width: 2px;
+        height: 64%;
+    }
+
+    .info-copy h3 {
+        font-size: 0.88rem;
+        margin-bottom: 3px;
+    }
+
+    .info-copy p {
+        font-size: 0.75rem;
+        line-height: 1.34;
+    }
+
+    .benefit-strip,
+    .loading-footer {
+        margin-left: 14px;
+        margin-right: 14px;
+    }
+
+    .benefit-card {
+        grid-template-columns: 42px 1fr;
+        gap: 10px;
+        padding: 6px 0;
+    }
+
+    .benefit-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .benefit-card strong {
+        font-size: 0.84rem;
+        margin-bottom: 2px;
+    }
+
+    .benefit-card span {
+        font-size: 0.74rem;
+        line-height: 1.3;
+    }
+
+    .benefit-icon svg,
+    .loading-footer svg,
+    .auth-badge svg,
+    .info-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .loading-footer {
+        margin-top: 12px;
+        margin-bottom: 36px;
+        gap: 8px;
+        text-align: center;
+        font-size: 0.76rem;
+        line-height: 1.3;
+    }
+
+    .ambient-left,
+    .ambient-right,
+    .dot-grid {
+        opacity: 0.16;
+    }
+
+    .ambient-left {
+        left: -150px;
+        bottom: -180px;
+    }
+
+    .ambient-right {
+        right: -140px;
+        bottom: -140px;
+    }
+
+    .dot-grid {
+        top: 20px;
+        left: 14px;
+        grid-template-columns: repeat(5, 6px);
+        gap: 6px 8px;
+    }
+
+    .dot-grid span {
+        width: 3px;
+        height: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .loading-shell {
+        padding: 0;
+    }
+
+    .loading-card {
+        min-height: 100vh;
+        border-radius: 16px;
+    }
+
+    .layout-main {
+        padding: 52px 10px 8px;
+        gap: 12px;
+    }
+
+    .brand-header {
+        gap: 8px;
+    }
+
+    .brand-mark {
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+    }
+
+    .brand-mark__logo {
+        width: 36px;
+    }
+
+    .company-name {
+        font-size: clamp(1.16rem, 7vw, 1.48rem);
+    }
+
+    .portal-line {
+        gap: 8px;
+    }
+
+    .portal-line span {
+        width: 14px;
+    }
+
+    .portal-line p {
+        font-size: 0.64rem;
+        letter-spacing: 0.08em;
+    }
+
+    .loader-visual {
+        width: 164px;
+    }
+
+    .loader-ring--mid {
+        inset: 14px;
+    }
+
+    .loader-ring--inner {
+        inset: 24px;
+    }
+
+    .loader-center {
+        width: 78px;
+        height: 78px;
+    }
+
+    .hero-copy-block h2 {
+        font-size: 0.98rem;
+    }
+
+    .hero-copy-block p,
+    .progress-caption,
+    .info-copy p,
+    .benefit-card span,
+    .loading-footer {
+        font-size: 0.72rem;
+    }
+
+    .auth-badge {
+        padding: 10px 12px;
+        font-size: 0.66rem;
+    }
+
+    .info-card {
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 8px;
+        padding: 10px 12px 10px 10px;
+    }
+
+    .info-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .info-copy h3,
+    .benefit-card strong {
+        font-size: 0.8rem;
+    }
+
+    .benefit-card {
+        grid-template-columns: 36px 1fr;
+        gap: 8px;
+    }
+
+    .benefit-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .benefit-icon svg,
+    .loading-footer svg,
+    .auth-badge svg,
+    .info-icon svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    .skip-toast {
+        top: 8px;
+        right: 8px;
+        padding: 6px 8px;
+    }
+
+    .skip-toast__label,
+    .skip-toast__count {
+        font-size: 0.72rem;
     }
 }

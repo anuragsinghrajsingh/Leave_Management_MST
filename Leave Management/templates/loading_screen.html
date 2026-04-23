@@ -25,63 +25,259 @@
     <link rel="stylesheet" href="{% static 'css/loading_screen.css' %}">
 </head>
 <body class="loading-page {{ theme_class }}">
+    <svg width="0" height="0" aria-hidden="true" focusable="false" class="svg-defs">
+        <defs>
+            <linearGradient id="fallback-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--glow-a)" />
+                <stop offset="55%" stop-color="var(--glow-b)" />
+                <stop offset="100%" stop-color="var(--glow-c)" />
+            </linearGradient>
+        </defs>
+    </svg>
+
     <a href="{{ target_url }}" class="skip-toast">
         <span class="skip-toast__label">Skip</span>
         <span class="skip-toast__count"><span id="toast-countdown">{{ duration }}</span>s</span>
     </a>
+
     <main class="loading-shell">
         <section class="loading-card">
-            <div class="loading-topbar">
-                <h1 class="company-line">MS Technology</h1>
-                <span class="topbar-tag">{{ kicker }}</span>
+            <div class="ambient ambient-left" aria-hidden="true"></div>
+            <div class="ambient ambient-right" aria-hidden="true"></div>
+            <div class="dot-grid" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
             </div>
 
-            <div class="loading-brand">
-                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
-                <div>
-                    <h2 class="brand-product">{{ company_product }}</h2>
-                    <p class="brand-caption">{{ subtitle }}</p>
-                </div>
+            <div class="layout layout-main">
+                <section class="hero-panel">
+                    <div class="brand-copy">
+                        <div class="brand-header">
+                            <div class="brand-mark">
+                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-mark__logo">
+                            </div>
+                            <h1 class="company-name">MS TECHNOLOGY</h1>
+                        </div>
+                        <div class="portal-line">
+                            <span></span>
+                            <p>
+                                {% if theme_class == "theme-admin" %}
+                                    Admin Portal
+                                {% elif theme_class == "theme-hr" %}
+                                    HR Portal
+                                {% elif theme_class == "theme-employee" %}
+                                    Employee Portal
+                                {% else %}
+                                    Leave Management Portal
+                                {% endif %}
+                            </p>
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <div class="loader-visual" aria-hidden="true">
+                        <div class="loader-ring loader-ring--outer"></div>
+                        <div class="loader-ring loader-ring--mid"></div>
+                        <div class="loader-ring loader-ring--inner"></div>
+                        <div class="loader-node loader-node--one"></div>
+                        <div class="loader-node loader-node--two"></div>
+                        <div class="loader-center gradient-text">
+                            {% if theme_class == "theme-admin" %}
+                                <svg viewBox="0 0 24 24" focusable="false" class="gradient-icon">
+                                    <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 4.1 1.2 2.45 2.7.39-1.95 1.9.46 2.69L12 12.28 9.59 13.53l.46-2.69-1.95-1.9 2.7-.39Z"/>
+                                </svg>
+                            {% elif theme_class == "theme-hr" %}
+                                <svg viewBox="0 0 24 24" focusable="false" class="gradient-icon">
+                                    <path d="M12 12.25a3.25 3.25 0 1 0-3.25-3.25A3.25 3.25 0 0 0 12 12.25Zm-5.4 6.25a5.4 5.4 0 0 1 10.8 0v.5H6.6Zm10.3-7.15a2.55 2.55 0 1 0-2.06-4.05 4.8 4.8 0 0 1 1.13 3.08c0 .35-.04.66-.1.97a2.46 2.46 0 0 0 1.03 0Zm1.82 7.15a4.58 4.58 0 0 0-2.93-4.27 6.75 6.75 0 0 1 2.89 4.27Z"/>
+                                </svg>
+                            {% else %}
+                                <svg viewBox="0 0 24 24" focusable="false" class="gradient-icon">
+                                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                                </svg>
+                            {% endif %}
+                            <strong>{{ center_label }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="hero-copy-block">
+                        <h2>{{ headline }}</h2>
+                        <p>{{ description }}</p>
+                    </div>
+
+                    <div class="progress-block">
+                        <div class="progress-row">
+                            <div class="progress-track">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <strong class="progress-value" id="progress-value">0%</strong>
+                        </div>
+                        <p class="progress-caption">{{ subtitle }}</p>
+                    </div>
+                </section>
+
+                <aside class="side-panel">
+                    <div class="auth-badge">
+                        {% if theme_class == "theme-admin" %}
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 4.1 1.2 2.45 2.7.39-1.95 1.9.46 2.69L12 12.28 9.59 13.53l.46-2.69-1.95-1.9 2.7-.39Z"/>
+                            </svg>
+                        {% elif theme_class == "theme-hr" %}
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V6.8Z"/>
+                                <path d="M11 8h2v5h-2Zm0 6h2v2h-2Z"/>
+                            </svg>
+                        {% else %}
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3.2 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V7Zm0 3a2 2 0 0 1 2 2v3H10v-3a2 2 0 0 1 2-2Zm0 6.3a1.2 1.2 0 1 1-1.2 1.2A1.2 1.2 0 0 1 12 14.5Z"/>
+                            </svg>
+                        {% endif %}
+                        <span>{{ kicker }}</span>
+                    </div>
+
+                    <div class="info-stack">
+                        {% for item in info_items %}
+                            <article class="info-card">
+                                <div class="info-icon" aria-hidden="true">
+                                    {% if forloop.first %}
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M7 4h10l3 3v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7l3-3Zm5 3a3 3 0 1 0 3 3 3 3 0 0 0-3-3Zm-4 9a4 4 0 0 1 8 0Z"/>
+                                        </svg>
+                                    {% elif forloop.counter == 2 %}
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.63 2.63A8.96 8.96 0 0 0 12 3Z"/>
+                                        </svg>
+                                    {% else %}
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V6.8Z"/>
+                                            <path d="M11 10h2v4h-2Zm0 5h2v2h-2Z"/>
+                                        </svg>
+                                    {% endif %}
+                                </div>
+                                <div class="info-copy">
+                                    <h3>{{ item.title }}</h3>
+                                    <p>{{ item.text }}</p>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </aside>
             </div>
 
-            <div class="loading-visual" aria-hidden="true">
-                <div class="orbital orbital-one"></div>
-                <div class="orbital orbital-two"></div>
-                <div class="orbital orbital-three"></div>
-                <div class="loading-core">
-                    <span>{{ center_label }}</span>
-                </div>
-            </div>
-
-            <div class="loading-copy">
-                <h2>{{ headline }}</h2>
-                <p>{{ description }}</p>
-            </div>
-
-            <div class="progress-block progress-block--desktop">
-                <div class="progress-meta">
-                    <span>Preparing experience</span>
-                    <span id="countdown">{{ duration }}</span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="--duration: {{ duration }}s;"></div>
-                </div>
-                <p class="progress-note">You will be redirected automatically in {{ duration }} seconds.</p>
-            </div>
-
-            <div class="info-grid">
-                {% for item in info_items %}
-                    <article class="info-card">
-                        <strong>{{ item.title }}</strong>
-                        <span>{{ item.text }}</span>
+            <section class="benefit-strip">
+                {% if theme_class == "theme-admin" %}
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3.2 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V7Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Secure Access</strong>
+                            <span>Protected entry for elevated platform control.</span>
+                        </div>
                     </article>
-                {% endfor %}
-            </div>
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M4 5h16v12H4Zm3 3v6h2V8Zm4 2v4h2v-4Zm4-3v7h2V7ZM2 19h20v2H2Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Full Control</strong>
+                            <span>Manage roles, settings, and system behavior with confidence.</span>
+                        </div>
+                    </article>
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M13 2 4 14h6l-1 8 9-12h-6Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Powerful &amp; Efficient</strong>
+                            <span>Built for performance-heavy administrative workflows.</span>
+                        </div>
+                    </article>
+                {% elif theme_class == "theme-hr" %}
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V6.8Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Secure &amp; Trusted</strong>
+                            <span>HR data stays protected and role-aware at every step.</span>
+                        </div>
+                    </article>
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 4a8 8 0 1 0 8 8h-3l4-4 4 4h-3a10 10 0 1 1-2.93-7.07L17 7V1h2v4.17A9.96 9.96 0 0 0 12 4Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>HR Focused</strong>
+                            <span>Made for approvals, oversight, and employee workflow review.</span>
+                        </div>
+                    </article>
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M13 2 4 14h6l-1 8 9-12h-6Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Fast &amp; Efficient</strong>
+                            <span>Quick access to leave queues and approval actions.</span>
+                        </div>
+                    </article>
+                {% else %}
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.2 3.3 9.9 8 11 4.7-1.1 8-5.8 8-11V5Zm0 3 4.8 1.8v4c0 4-2.3 7.5-4.8 8.5-2.5-1-4.8-4.5-4.8-8.5V6.8Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Secure Access</strong>
+                            <span>Your personal leave workspace is protected.</span>
+                        </div>
+                    </article>
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M13 2 4 14h6l-1 8 9-12h-6Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Quick &amp; Easy</strong>
+                            <span>Check leave activity and move faster through routine tasks.</span>
+                        </div>
+                    </article>
+                    <article class="benefit-card">
+                        <div class="benefit-icon">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M4 6h10v8H4Zm12 2h4v10h-8v-2h6ZM2 16h10v2H2Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong>Anytime, Anywhere</strong>
+                            <span>Responsive access across desktop and mobile devices.</span>
+                        </div>
+                    </article>
+                {% endif %}
+            </section>
 
-            <div class="loading-footer">
-                <span>Secure role-based leave management</span>
-                <span>Powered by MST</span>
-            </div>
+            <footer class="loading-footer">
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M17 9h-1V7A4 4 0 0 0 8 7v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4Z"/>
+                </svg>
+                <p>Please wait while we set things up for you...</p>
+            </footer>
         </section>
     </main>
 
@@ -89,22 +285,39 @@
         (function() {
             const duration = {{ duration }};
             const targetUrl = "{{ target_url|escapejs }}";
-            const countdown = document.getElementById("countdown");
-            const toastCountdown = document.getElementById("toast-countdown");
+            const countdown = document.getElementById("toast-countdown");
+            const progressValue = document.getElementById("progress-value");
+            const progressFill = document.getElementById("progress-fill");
             let remaining = duration;
 
             if (window.history && window.history.replaceState) {
                 window.history.replaceState({ loader: true }, "", window.location.href);
             }
 
-            const interval = window.setInterval(function() {
-                remaining -= 1;
+            function updateProgress() {
+                const completed = Math.max(0, duration - remaining);
+                const rawPercent = duration > 0 ? Math.round((completed / duration) * 100) : 100;
+                const visiblePercent = Math.min(100, Math.max(8, rawPercent || 8));
+
+                if (progressValue) {
+                    progressValue.textContent = visiblePercent + "%";
+                }
+
+                if (progressFill) {
+                    progressFill.style.width = visiblePercent + "%";
+                }
+
                 if (countdown) {
                     countdown.textContent = remaining > 0 ? remaining : 0;
                 }
-                if (toastCountdown) {
-                    toastCountdown.textContent = remaining > 0 ? remaining : 0;
-                }
+            }
+
+            updateProgress();
+
+            const interval = window.setInterval(function() {
+                remaining -= 1;
+                updateProgress();
+
                 if (remaining <= 0) {
                     window.clearInterval(interval);
                 }

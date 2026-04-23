@@ -30,7 +30,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px 4px;
+            padding: 10px 4px;
             background:
                 radial-gradient(circle at 14% 16%, rgba(255, 153, 110, 0.14), transparent 20%),
                 radial-gradient(circle at 18% 16%, rgba(22, 126, 255, 0.2), transparent 24%),
@@ -42,9 +42,8 @@
 
         .admin-frame {
             position: relative;
-            width: min(1480px, 100%);
-            min-height: min(640px, calc(100vh - 16px));
-            padding: 10px;
+            width: min(96vw, 1680px);
+            padding: 8px;
             border-radius: 24px;
             border: 1px solid rgba(137, 84, 255, 0.48);
             background:
@@ -167,9 +166,12 @@
             width: 72px;
             height: 72px;
             padding: 0;
-            background: transparent;
-            border: none;
-            box-shadow: none;
+            border-radius: 20px;
+            border: 1px solid rgba(166, 233, 185, 0.42);
+            background: linear-gradient(180deg, rgba(21, 60, 50, 0.88), rgba(7, 33, 29, 0.88));
+            box-shadow:
+                inset 0 0 0 1px rgba(220, 246, 225, 0.08),
+                0 0 24px rgba(204, 224, 109, 0.18);
             position: relative;
         }
 
@@ -221,12 +223,12 @@
             align-items: center;
             justify-content: center;
             gap: 9px;
-            padding: 10px 16px;
+            padding: 10px 24px;
             border-radius: 999px;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
-            font-size: 0.9rem;
+            font-size: 1.16rem;
             font-weight: 1000 !important;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.045em;
             text-transform: uppercase;
             background:
                 linear-gradient(180deg, rgba(82, 90, 162, 0.42), rgba(72, 43, 136, 0.34));
@@ -246,7 +248,8 @@
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            -webkit-text-stroke: 0.35px rgba(243, 247, 255, 0.28);
+            font-weight: 1000 !important;
+            -webkit-text-stroke: 0.55px rgba(243, 247, 255, 0.32);
             text-shadow:
                 0 0 1px rgba(255, 255, 255, 0.18),
                 0 0 10px rgba(126, 170, 255, 0.12),
@@ -255,8 +258,8 @@
 
         .admin-portal-pill svg {
             display: block;
-            width: 15px;
-            height: 15px;
+            width: 18px;
+            height: 18px;
             fill: #d8d8ff;
             filter: drop-shadow(0 0 8px rgba(173, 150, 255, 0.22));
         }
@@ -677,22 +680,44 @@
         }
 
         .admin-form .password-field input {
-            padding-right: 52px;
+            padding-right: 94px;
         }
 
         .admin-form .password-toggle {
             right: 8px;
-            padding: 0;
-            width: 36px;
+            padding: 6px 12px;
+            min-width: 0;
+            width: auto;
             height: 36px;
-            border-radius: 10px;
+            line-height: 1;
+            border-radius: 999px;
             border: 1px solid rgba(123, 152, 232, 0.28);
             background: linear-gradient(180deg, rgba(13, 26, 76, 0.96), rgba(9, 21, 63, 0.98));
             color: rgba(216, 226, 255, 0.82);
             box-shadow: none;
+            gap: 6px;
+        }
+
+        .admin-form .password-toggle .password-toggle__icon,
+        .admin-form .password-toggle [data-password-toggle-label] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .admin-form .password-toggle .password-toggle__icon {
+            width: 16px;
+            height: 16px;
+            flex: 0 0 16px;
+        }
+
+        .admin-form .password-toggle .password-toggle__icon[hidden] {
+            display: none;
         }
 
         .admin-form .password-toggle svg {
+            display: block;
             width: 16px;
             height: 16px;
             fill: none;
@@ -821,10 +846,11 @@
                 linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(221, 231, 255, 0.1)),
                 linear-gradient(135deg, rgba(58, 71, 136, 0.94), rgba(31, 39, 89, 0.92));
             border: 1px solid rgba(149, 181, 255, 0.34);
-            color: #b8d9ff;
+            color: #f8fcff;
             text-shadow:
-                0 0 8px rgba(125, 239, 255, 0.16),
-                0 0 14px rgba(207, 158, 255, 0.12);
+                0 0 10px rgba(168, 243, 255, 0.52),
+                0 0 22px rgba(203, 172, 255, 0.42),
+                0 0 34px rgba(255, 255, 255, 0.24);
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.12),
                 0 10px 22px rgba(6, 12, 38, 0.24),
@@ -999,7 +1025,7 @@
 
             .admin-feature-list {
                 width: 100%;
-                margin-top: 28px;
+                margin-top: 20px;
             }
 
             .admin-feature-arrow {
@@ -1219,19 +1245,20 @@
                                     required
                                 >
                                 <button type="button" class="password-toggle" data-password-toggle aria-label="Show password">
-                                    <span data-eye-open aria-hidden="true">
+                                    <span class="password-toggle__icon" data-eye-open aria-hidden="true">
                                         <svg viewBox="0 0 24 24" focusable="false">
                                             <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
                                             <circle cx="12" cy="12" r="3"/>
                                         </svg>
                                     </span>
-                                    <span data-eye-closed hidden aria-hidden="true">
+                                    <span class="password-toggle__icon" data-eye-closed hidden aria-hidden="true">
                                         <svg viewBox="0 0 24 24" focusable="false">
                                             <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6Z"/>
                                             <circle cx="12" cy="12" r="3"/>
                                             <path d="M4 4 20 20"/>
                                         </svg>
                                     </span>
+                                    <span data-password-toggle-label>Show</span>
                                 </button>
                             </div>
 
@@ -1273,17 +1300,22 @@
     <script>
         document.querySelectorAll("[data-password-toggle]").forEach(function(toggleButton) {
             const input = toggleButton.parentElement.querySelector("input");
+            const label = toggleButton.querySelector("[data-password-toggle-label]");
             const openIcon = toggleButton.querySelector("[data-eye-open]");
             const closedIcon = toggleButton.querySelector("[data-eye-closed]");
 
             toggleButton.addEventListener("click", function() {
                 const isPassword = input.type === "password";
                 input.type = isPassword ? "text" : "password";
+                if (label) {
+                    label.textContent = isPassword ? "Hide" : "Show";
+                }
                 if (openIcon && closedIcon) {
                     openIcon.hidden = isPassword;
                     closedIcon.hidden = !isPassword;
                 }
                 toggleButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+                toggleButton.blur();
             });
         });
 
