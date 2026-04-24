@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="{% static 'css/employee_dashboard_loading.css' %}">
+</head>
+<body class="transition-page transition-page--employee">
+    <main class="transition-shell">
+        <div class="transition-orb transition-orb--left" aria-hidden="true"></div>
+        <div class="transition-orb transition-orb--right" aria-hidden="true"></div>
+        <div class="transition-side transition-side--left" aria-hidden="true"></div>
+        <div class="transition-side transition-side--right" aria-hidden="true"></div>
+        <div class="transition-dots transition-dots--right" aria-hidden="true">
+            {% for _ in "12345678901234567890" %}
+                <span></span>
+            {% endfor %}
+        </div>
+
+        <header class="brand-bar">
+            <div class="brand-lockup">
+                <div class="brand-logo">
+                    <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
+                </div>
+                <div>
+                    <h1><span>MS</span> Technology</h1>
+                    <p>Leave Management System</p>
+                </div>
+            </div>
+            <div class="portal-chip">
+                <span class="portal-chip__icon">&#128100;</span>
+                <span>Employee Portal</span>
+            </div>
+        </header>
+
+        <section class="dashboard-stage">
+            <div class="stage-side">
+                <article class="support-card">
+                    <div class="support-card__icon">&#128737;</div>
+                    <div><h3>Your Data, Our Priority</h3><p>We ensure your data is secure and private.</p></div>
+                </article>
+                <article class="support-card">
+                    <div class="support-card__icon">&#9889;</div>
+                    <div><h3>Quick and Easy</h3><p>Fast access to everything you need.</p></div>
+                </article>
+            </div>
+
+            <section class="hero-card">
+                <div class="status-pill">Login Successful</div>
+                <div class="hero-ring">
+                    <div class="hero-ring__inner">
+                        <div class="hero-ring__icon">&#10003;</div>
+                    </div>
+                </div>
+                <h2>Welcome Back!</h2>
+                <p class="hero-copy">You have successfully logged in.<br>Let us make today productive!</p>
+
+                <div class="feature-row">
+                    <article class="feature-tile">
+                        <div class="feature-icon feature-icon--blue">&#128197;</div>
+                        <h3>My Leaves</h3>
+                        <p>View your leave balance and history.</p>
+                    </article>
+                    <article class="feature-tile">
+                        <div class="feature-icon feature-icon--violet">&#9997;</div>
+                        <h3>Apply Leave</h3>
+                        <p>Submit leave requests easily.</p>
+                    </article>
+                    <article class="feature-tile">
+                        <div class="feature-icon feature-icon--amber">&#128340;</div>
+                        <h3>My Requests</h3>
+                        <p>Track the status of your requests.</p>
+                    </article>
+                    <article class="feature-tile">
+                        <div class="feature-icon feature-icon--teal">&#128100;</div>
+                        <h3>My Profile</h3>
+                        <p>Update your profile and preferences.</p>
+                    </article>
+                </div>
+
+                <div class="progress-meta">
+                    <strong>Loading your dashboard...</strong>
+                    <span id="progress-value">92%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+
+                <div class="redirect-note">
+                    <span class="spinner"></span>
+                    <span>Redirecting to your dashboard in <strong id="countdown">{{ duration }}</strong> seconds...</span>
+                </div>
+            </section>
+
+            <div class="stage-side">
+                <article class="support-card">
+                    <div class="support-card__icon">&#9786;</div>
+                    <div><h3>User Friendly</h3><p>Designed for a smooth and easy experience.</p></div>
+                </article>
+                <article class="support-card">
+                    <div class="support-card__icon">&#10084;</div>
+                    <div><h3>We Are Here for You</h3><p>Need help? Our support team is always ready.</p></div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const duration = {{ duration }};
+            const targetUrl = "{{ target_url|escapejs }}";
+            const targetPercent = 92;
+            const progressFill = document.getElementById("progress-fill");
+            const progressValue = document.getElementById("progress-value");
+            const countdown = document.getElementById("countdown");
+            let remaining = duration;
+
+            function render() {
+                const elapsed = Math.max(0, duration - remaining);
+                const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
+                progressFill.style.width = percent + "%";
+                progressValue.textContent = percent + "%";
+                countdown.textContent = Math.max(0, remaining);
+            }
+
+            function goNext() {
+                window.location.replace(targetUrl);
+            }
+
+            render();
+
+            const timer = window.setInterval(function () {
+                remaining -= 1;
+                render();
+                if (remaining <= 0) {
+                    window.clearInterval(timer);
+                }
+            }, 1000);
+
+            window.setTimeout(goNext, duration * 1000);
+        }());
+    </script>
+</body>
+</html>

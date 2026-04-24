@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="{% static 'css/employee_logout_loading.css' %}">
+</head>
+<body>
+    <main class="page">
+        <div class="shape shape--left" aria-hidden="true"></div>
+        <div class="shape shape--right" aria-hidden="true"></div>
+        <header class="topbar">
+            <div class="brand"><div class="logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div><div><h1><span>MS</span> Technology</h1><p>Leave Management System</p></div></div>
+            <div class="chip">&#128100; Employee Portal</div>
+        </header>
+        <section class="card">
+            <div class="pill">Logout Initiated</div>
+            <div class="ring"><div class="ring__inner">&#10140;</div></div>
+            <h2>Logging out, Employee!</h2>
+            <p class="lead">You are being securely logged out of the system.</p>
+            <div class="steps" id="logout-steps">
+                <article class="step-card step-card--active">
+                    <div class="step-card__status"><span class="step-card__icon">&#128100;</span><span class="step-card__check">&#10003;</span></div>
+                    <div class="step-card__line"></div>
+                    <h3>Closing Session</h3>
+                    <p>Ending your active session...</p>
+                </article>
+                <article class="step-card">
+                    <div class="step-card__status"><span class="step-card__icon">&#128737;</span><span class="step-card__check">&#10003;</span></div>
+                    <div class="step-card__line"></div>
+                    <h3>Securing Data</h3>
+                    <p>Safeguarding your information...</p>
+                </article>
+                <article class="step-card">
+                    <div class="step-card__status"><span class="step-card__icon">&#128451;</span><span class="step-card__check">&#10003;</span></div>
+                    <div class="step-card__line"></div>
+                    <h3>Clearing Cache</h3>
+                    <p>Clearing temporary data...</p>
+                </article>
+                <article class="step-card">
+                    <div class="step-card__status"><span class="step-card__icon">&#10003;</span><span class="step-card__check">&#10003;</span></div>
+                    <h3>Logout Complete</h3>
+                    <p>You will be logged out shortly...</p>
+                </article>
+            </div>
+            <div class="progress-meta"><strong>Processing logout...</strong><span id="progress-value">85%</span></div>
+            <div class="progress"><div class="progress__fill" id="progress-fill"></div></div>
+            <div class="secure-note">Your session is secure. Thank you!</div>
+        </section>
+        <section class="footer">
+            <article><i>&#9786;</i><div><h3>Thank You!</h3><p>We appreciate your contributions to the organization.</p></div></article>
+            <article><i>&#9734;</i><div><h3>See you soon!</h3><p>Have a productive and great day ahead!</p></div></article>
+            <article><i>&#128340;</i><div><h3>Logged out at</h3><p>{{ logged_out_at }}</p></div></article>
+        </section>
+    </main>
+    <script>
+        (function () {
+            const duration = {{ duration }};
+            const targetUrl = "{{ target_url|escapejs }}";
+            const targetPercent = 85;
+            const fill = document.getElementById("progress-fill");
+            const value = document.getElementById("progress-value");
+            const stepCards = Array.from(document.querySelectorAll(".step-card"));
+            let remaining = duration;
+
+            function setActiveStep(index) {
+                stepCards.forEach(function (card, cardIndex) {
+                    card.classList.toggle("step-card--active", cardIndex === index);
+                });
+            }
+
+            function render() {
+                const elapsed = Math.max(0, duration - remaining);
+                const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
+                const stepIndex = Math.min(stepCards.length - 1, Math.floor((elapsed / duration) * stepCards.length));
+                fill.style.width = percent + "%";
+                value.textContent = percent + "%";
+                setActiveStep(stepIndex);
+            }
+
+            render();
+            const timer = setInterval(function () {
+                remaining -= 1;
+                render();
+                if (remaining <= 0) { clearInterval(timer); }
+            }, 1000);
+            setTimeout(function () { window.location.replace(targetUrl); }, duration * 1000);
+        }());
+    </script>
+</body>
+</html>

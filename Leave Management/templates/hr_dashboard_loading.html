@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="{% static 'css/hr_dashboard_loading.css' %}">
+</head>
+<body class="transition-page transition-page--hr">
+    <main class="transition-shell">
+        <div class="glow glow--left" aria-hidden="true"></div>
+        <div class="glow glow--right" aria-hidden="true"></div>
+        <div class="wave wave--left" aria-hidden="true"></div>
+        <div class="wave wave--right" aria-hidden="true"></div>
+        <div class="dots" aria-hidden="true">
+            {% for _ in "12345678901234567890" %}
+                <span></span>
+            {% endfor %}
+        </div>
+
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand__logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div>
+                <div><h1><span>MS</span> Technology</h1><p>Leave Management System</p></div>
+            </div>
+            <div class="chip">&#128101; HR Portal</div>
+        </header>
+
+        <section class="dashboard-stage">
+            <div class="stage-side">
+                <article class="side-card"><i>&#128737;</i><div><h3>Secure Access</h3><p>Your data is safe and confidential.</p></div></article>
+                <article class="side-card"><i>&#128101;</i><div><h3>Role Based</h3><p>Access what matters, when it matters.</p></div></article>
+            </div>
+
+            <section class="card">
+                <div class="pill">HR Login Successful</div>
+                <div class="ring"><div class="ring__inner">&#128101;</div></div>
+                <h2>Welcome to HR Portal!</h2>
+                <p class="lead">You have successfully logged in.<br><span>Preparing your workspace...</span></p>
+
+                <div class="features">
+                    <article><i>&#128100;</i><h3>Employee Focused</h3><p>Manage employee leave and related requests.</p></article>
+                    <article><i>&#128203;</i><h3>Policy Driven</h3><p>Ensure policy visibility and compliance.</p></article>
+                    <article><i>&#128202;</i><h3>Smart Insights</h3><p>Monitor leave trends and team availability.</p></article>
+                </div>
+
+                <div class="progress-meta"><strong>Initializing HR dashboard...</strong><span id="progress-value">85%</span></div>
+                <div class="progress"><div class="progress__fill" id="progress-fill"></div></div>
+                <div class="note"><span class="spinner"></span>Redirecting to HR Dashboard in <strong id="countdown">{{ duration }}</strong> seconds...</div>
+            </section>
+
+            <div class="stage-side">
+                <article class="side-card"><i>&#128340;</i><div><h3>Time Saving</h3><p>Streamlined workflows that save time.</p></div></article>
+                <article class="side-card"><i>&#128276;</i><div><h3>Stay Updated</h3><p>Real-time alerts and notifications.</p></div></article>
+            </div>
+        </section>
+    </main>
+    <script>
+        (function () {
+            const duration = {{ duration }};
+            const targetUrl = "{{ target_url|escapejs }}";
+            const targetPercent = 85;
+            const fill = document.getElementById("progress-fill");
+            const value = document.getElementById("progress-value");
+            const countdown = document.getElementById("countdown");
+            let remaining = duration;
+            function render() {
+                const elapsed = Math.max(0, duration - remaining);
+                const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
+                fill.style.width = percent + "%";
+                value.textContent = percent + "%";
+                countdown.textContent = Math.max(0, remaining);
+            }
+            render();
+            const timer = setInterval(function () {
+                remaining -= 1;
+                render();
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                }
+            }, 1000);
+            setTimeout(function () { window.location.replace(targetUrl); }, duration * 1000);
+        }());
+    </script>
+</body>
+</html>

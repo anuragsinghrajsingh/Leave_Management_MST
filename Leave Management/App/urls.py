@@ -11,6 +11,8 @@ urlpatterns = [
     
     path('admin-login/', views.admin_login_loading, name='admin_login'),
     path('admin-login/form/', views.admin_login, name='admin_login_form'),
+    path('admin-login/dashboard-loading/', views.admin_dashboard_loading_page, name='admin_dashboard_loading_page'),
+    path('admin-logout/loading/', views.admin_logout_loading_page, name='admin_logout_loading_page'),
     path('admin-login/workspace/', views.admin_workspace_loading, name='admin_workspace_loading'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('logout/loading/', views.logout_loading, name='logout_loading'),
@@ -20,6 +22,8 @@ urlpatterns = [
 
     path('hr-login/', views.hr_login_loading, name='hr_login'),
     path('hr-login/form/', views.hr_login, name='hr_login_form'),
+    path('hr-login/dashboard-loading/', views.hr_dashboard_loading_page, name='hr_dashboard_loading_page'),
+    path('hr-logout/loading/', views.hr_logout_loading_page, name='hr_logout_loading_page'),
     path('hr-login/workspace/', views.hr_workspace_loading, name='hr_workspace_loading'),
     path('hr-dashboard/', views.hr_dashboard, name='hr_dashboard'),
     path('manage-all/', views.manage_all, name='manage_all'),
@@ -47,6 +51,8 @@ urlpatterns = [
 
     path('employee-login/', views.employee_login_loading, name='employee_login'),
     path('employee-login/form/', views.employee_login, name='employee_login_form'),
+    path('employee-login/dashboard-loading/', views.employee_dashboard_loading_page, name='employee_dashboard_loading_page'),
+    path('employee-logout/loading/', views.employee_logout_loading_page, name='employee_logout_loading_page'),
     path('employee-login/workspace/', views.employee_workspace_loading, name='employee_workspace_loading'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('apply_leave/', views.apply_leave, name='apply_leave'),

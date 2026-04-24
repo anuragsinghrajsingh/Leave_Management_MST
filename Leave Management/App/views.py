@@ -404,6 +404,104 @@ def employee_workspace_loading(request):
     )
 
 
+def _render_role_transition_page(request, template_name, page_title, target_url, duration, extra_context=None):
+    context = {
+        "page_title": page_title,
+        "target_url": target_url,
+        "duration": duration,
+    }
+    if extra_context:
+        context.update(extra_context)
+    return render(request, template_name, context)
+
+
+@never_cache
+def employee_dashboard_loading_page(request):
+    if not request.user.is_authenticated:
+        return redirect("employee_login")
+
+    if request.user.role != "EMPLOYEE":
+        return redirect("role_select")
+
+    return _render_role_transition_page(
+        request,
+        template_name="employee_dashboard_loading.html",
+        page_title="Employee Dashboard Loading | MS Technology",
+        duration=5,
+        target_url=reverse("dashboard"),
+    )
+
+
+@never_cache
+def hr_dashboard_loading_page(request):
+    if not request.user.is_authenticated:
+        return redirect("hr_login")
+
+    if request.user.role != "HR":
+        return redirect("role_select")
+
+    return _render_role_transition_page(
+        request,
+        template_name="hr_dashboard_loading.html",
+        page_title="HR Dashboard Loading | MS Technology",
+        duration=5,
+        target_url=reverse("hr_dashboard"),
+    )
+
+
+@never_cache
+def admin_dashboard_loading_page(request):
+    if not request.user.is_authenticated:
+        return redirect("admin_login")
+
+    if not request.user.is_superuser:
+        return redirect("role_select")
+
+    return _render_role_transition_page(
+        request,
+        template_name="admin_dashboard_loading.html",
+        page_title="Admin Dashboard Loading | MS Technology",
+        duration=5,
+        target_url=reverse("admin:index"),
+    )
+
+
+@never_cache
+def employee_logout_loading_page(request):
+    return _render_role_transition_page(
+        request,
+        template_name="employee_logout_loading.html",
+        page_title="Employee Logout | MS Technology",
+        duration=5,
+        target_url=reverse("employee_login_form"),
+        extra_context={"logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p")},
+    )
+
+
+@never_cache
+def hr_logout_loading_page(request):
+    return _render_role_transition_page(
+        request,
+        template_name="hr_logout_loading.html",
+        page_title="HR Logout | MS Technology",
+        duration=5,
+        target_url=reverse("hr_login_form"),
+        extra_context={"logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p")},
+    )
+
+
+@never_cache
+def admin_logout_loading_page(request):
+    return _render_role_transition_page(
+        request,
+        template_name="admin_logout_loading.html",
+        page_title="Admin Logout | MS Technology",
+        duration=5,
+        target_url=reverse("admin_login_form"),
+        extra_context={"logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p")},
+    )
+
+
 @never_cache
 def hr_workspace_loading(request):
     if not request.user.is_authenticated:
@@ -542,7 +640,7 @@ def hr_login(request):
         # 🔥 Security Hardening: Check if user exists, is HR, AND is active
         if user is not None and user.role == "HR" and user.is_active:
             login(request, user)
-            return redirect("hr_dashboard")
+            return redirect("hr_dashboard_loading_page")
         else:
             _show_login_failure_message(request, username, "HR", "HR")
             request.session["hr_login_username"] = username or ""
@@ -2170,7 +2268,7 @@ def admin_login(request):
             login(request, user)
 
             # 🔥 Redirect to Django Admin
-            return redirect("admin:index")
+            return redirect("admin_dashboard_loading_page")
 
         else:
             _show_login_failure_message(request, username, "ADMIN", "Admin")
@@ -2409,7 +2507,7 @@ def employee_login(request):
         # 🔥 Security Hardening: Check if user exists, is EMPLOYEE, AND is active
         if user is not None and user.role == "EMPLOYEE" and user.is_active:
             login(request, user)
-            return redirect("dashboard")
+            return redirect("employee_dashboard_loading_page")
         
         else:
             _show_login_failure_message(request, username, "EMPLOYEE", "Employee")
@@ -4184,13 +4282,13 @@ def logout_view(request):
     print(role, " - Logged out Successfully")
 
     if is_admin or role == "Admin":
-        return redirect("admin_login")
+        return redirect("admin_logout_loading_page")
     
     elif role == "HR":
-        return redirect("hr_login")
+        return redirect("hr_logout_loading_page")
 
     elif role == "EMPLOYEE":
-        return redirect("employee_login")
+        return redirect("employee_logout_loading_page")
   
     else:
         return redirect("role_select")
