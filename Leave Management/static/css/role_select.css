@@ -117,7 +117,7 @@ body {
     line-height: 1;
     font-weight: 900;
     letter-spacing: 0.02em;
-    background: linear-gradient(90deg, #ff5a5f 0%, #38bdf8 32%, #8b5cf6 68%, #22c55e 100%);
+    background: linear-gradient(90deg, #67d8ff 0%, #76adff 30%, #a486ff 62%, #ffbf74 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -297,23 +297,32 @@ body {
 }
 
 .employee .role-card__body h2 {
-    color: #7dd3fc;
+    background: linear-gradient(90deg, #6edcff 0%, #78b8ff 45%, #b892ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .hr .role-card__body h2 {
-    color: #86efac;
+    background: linear-gradient(90deg, #ffd16b 0%, #69f0c7 45%, #79b6ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .admin .role-card__body h2 {
-    color: #fda4af;
+    background: linear-gradient(90deg, #ff8f79 0%, #ff77b5 44%, #89a0ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .role-card__body p {
     margin: 14px auto 0;
-    max-width: 290px;
+    max-width: 420px;
     color: rgba(239, 242, 249, 0.82);
     font-size: clamp(0.94rem, 0.35vw + 0.86rem, 1.08rem);
-    line-height: 1.55;
+    line-height: 1.45;
     font-weight: 700;
 }
 

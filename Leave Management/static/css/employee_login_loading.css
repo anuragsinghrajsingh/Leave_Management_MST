@@ -27,6 +27,7 @@ body {
 body.portal-loading {
     margin: 0;
     font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    font-weight: 800;
     color: var(--portal-text);
     background:
         radial-gradient(circle at 14% 14%, rgba(255, 104, 28, 0.22), transparent 20%),
@@ -209,6 +210,7 @@ body.portal-loading {
 
 .portal-loading__brand {
     display: grid;
+    width: 100%;
     justify-items: center;
     text-align: center;
 }
@@ -217,13 +219,14 @@ body.portal-loading {
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 18px;
 }
 
 .portal-loading__brand-lockup {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 14px;
     min-width: 0;
 }
@@ -244,6 +247,13 @@ body.portal-loading {
     text-transform: uppercase;
     justify-self: end;
     flex: 0 0 auto;
+}
+
+.portal-loading__auth-chip {
+    position: absolute;
+    top: 48px;
+    right: 14px;
+    z-index: 3;
 }
 
 .portal-loading__badge svg {
@@ -280,17 +290,18 @@ body.portal-loading {
     line-height: 0.95;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-}
-
-.portal-loading__title .accent {
-    background: linear-gradient(90deg, var(--portal-accent-a) 0%, var(--portal-accent-b) 100%);
+    background: var(--portal-line);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
+.portal-loading__title .accent {
+    color: transparent;
+}
+
 .portal-loading__title .plain {
-    color: #ffffff;
+    color: transparent;
 }
 
 .portal-loading__subtitle {
@@ -390,7 +401,10 @@ body.portal-loading {
     font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
     font-size: clamp(1.6rem, 2.3vw, 2.35rem);
     line-height: 1.08;
-    color: #ffffff;
+    background: var(--portal-line);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .portal-loading__description {
@@ -495,7 +509,7 @@ body.portal-loading {
 }
 
 .portal-loading__wait {
-    margin-top: 14px;
+    margin-top: 36px;
     display: inline-flex;
     align-items: center;
     gap: 12px;
@@ -504,10 +518,29 @@ body.portal-loading {
     font-weight: 800;
 }
 
-.portal-loading__wait svg {
-    width: 18px;
-    height: 18px;
-    fill: color-mix(in srgb, var(--portal-accent-b) 76%, white 24%);
+.portal-loading__wait-loader {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 38px;
+}
+
+.portal-loading__wait-loader span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--portal-accent-b) 76%, white 24%);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--portal-accent-b) 28%, transparent);
+    animation: portal-wait-dot 1.2s ease-in-out infinite;
+}
+
+.portal-loading__wait-loader span:nth-child(2) {
+    animation-delay: 0.16s;
+}
+
+.portal-loading__wait-loader span:nth-child(3) {
+    animation-delay: 0.32s;
 }
 
 .portal-loading__sidebar {
@@ -575,113 +608,21 @@ body.portal-loading {
     color: var(--portal-muted);
 }
 
-.portal-loading--employee .portal-loading__shell {
-    padding: 0;
-}
-
-.portal-loading--employee .portal-loading__frame {
-    width: 100%;
-    min-height: 100vh;
-    border-radius: 0;
-    border: none;
-    background:
-        radial-gradient(circle at 26% 26%, rgba(45, 181, 255, 0.08), transparent 20%),
-        linear-gradient(180deg, #071235 0%, #08183d 48%, #071235 100%);
-    box-shadow: none;
-}
-
-.portal-loading--employee .portal-loading__frame::before,
-.portal-loading--employee .portal-loading__glow,
-.portal-loading--employee .portal-loading__dots,
-.portal-loading--employee .portal-loading__wave,
-.portal-loading--employee .portal-loading__badge,
-.portal-loading--employee .portal-loading__sidebar {
-    display: none;
-}
-
-.portal-loading--employee .portal-loading__layout {
-    min-height: 100vh;
-    padding: 24px 18px 20px;
-    grid-template-columns: 1fr;
-    place-items: center;
-    gap: 0;
-}
-
-.portal-loading--employee .portal-loading__brand {
-    max-width: 860px;
+.portal-loading--employee .portal-loading__brand-lockup {
+    transform: translateX(18px);
 }
 
 .portal-loading--employee .portal-loading__logo {
-    width: 82px;
-    height: 82px;
-    border-radius: 20px;
-    margin-top: 0;
-    background: transparent;
-    border-color: rgba(93, 183, 255, 0.36);
+    width: 74px;
+    height: 74px;
 }
 
 .portal-loading--employee .portal-loading__logo img {
-    width: 76px;
+    width: 68px;
 }
 
 .portal-loading--employee .portal-loading__title {
-    font-size: clamp(1.9rem, 4.3vw, 3.4rem);
-}
-
-.portal-loading--employee .portal-loading__subtitle {
-    margin-top: 6px;
-    color: rgba(233, 236, 255, 0.76);
-}
-
-.portal-loading--employee .portal-loading__ring {
-    width: 80px;
-    height: 80px;
-}
-
-.portal-loading--employee .portal-loading__ring::before {
-    inset: 6px;
-    border-width: 7px;
-}
-
-.portal-loading--employee .portal-loading__ring::after {
-    display: none;
-}
-
-.portal-loading--employee .portal-loading__hub {
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.portal-loading--employee .portal-loading__hub-icon,
-.portal-loading--employee .portal-loading__hub-label {
-    display: none;
-}
-
-.portal-loading--employee .portal-loading__headline {
-    margin-top: 12px;
-    font-size: clamp(1.45rem, 2.2vw, 2.1rem);
-}
-
-.portal-loading--employee .portal-loading__description {
-    max-width: 760px;
-    margin-top: 10px;
-    color: rgba(219, 225, 246, 0.7);
-}
-
-.portal-loading--employee .portal-loading__progress {
-    width: min(100%, 760px);
-    margin-top: 14px;
-}
-
-.portal-loading--employee .portal-loading__progress-track {
-    height: 11px;
-}
-
-.portal-loading--employee .portal-loading__footer-panels {
-    margin-top: 22px;
+    font-size: clamp(2rem, 3.6vw, 3.2rem);
 }
 
 @keyframes portal-spin {
@@ -694,6 +635,19 @@ body.portal-loading {
     }
 }
 
+@keyframes portal-wait-dot {
+    0%,
+    100% {
+        transform: scale(0.7);
+        opacity: 0.45;
+    }
+
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+}
+
 @media (max-width: 1180px) {
     .portal-loading__layout {
         grid-template-columns: 1fr;
@@ -702,7 +656,7 @@ body.portal-loading {
 
     .portal-loading__topbar {
         justify-content: center;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
 
     .portal-loading__sidebar {
@@ -727,29 +681,45 @@ body.portal-loading {
     }
 
     .portal-loading__topbar {
+        width: 100%;
+        margin-right: 0;
         gap: 12px;
     }
 
     .portal-loading__brand-lockup {
-        gap: 10px;
+        gap: 8px;
+        transform: translateX(14px);
+        flex-wrap: nowrap;
+    }
+
+    .portal-loading__auth-chip {
+        top: 8px;
+        right: 12px;
     }
 
     .portal-loading__badge {
-        padding: 10px 14px;
-        font-size: 0.8rem;
+        padding: 7px 10px;
+        font-size: 0.7rem;
+        gap: 6px;
+        border-radius: 14px;
+    }
+
+    .portal-loading__badge svg {
+        width: 15px;
+        height: 15px;
     }
 
     .portal-loading__logo {
-        width: 72px;
-        height: 72px;
+        width: 58px;
+        height: 58px;
     }
 
     .portal-loading__logo img {
-        width: 66px;
+        width: 52px;
     }
 
     .portal-loading__title {
-        font-size: clamp(1.7rem, 6vw, 2.7rem);
+        font-size: clamp(1.4rem, 5vw, 2.2rem);
     }
 
     .portal-loading__subtitle {
@@ -821,29 +791,70 @@ body.portal-loading {
 }
 
 @media (max-width: 520px) {
-    .portal-loading__skip {
+    .portal-loading--employee .portal-loading__skip {
         top: 10px;
-        right: 10px;
-        padding: 8px 12px;
+        right: 0;
+        gap: 4px;
+        padding: 5px 8px;
     }
 
-    .portal-loading__skip strong,
-    .portal-loading__skip span {
-        font-size: 0.76rem;
+    .portal-loading--employee .portal-loading__skip strong,
+    .portal-loading--employee .portal-loading__skip span {
+        font-size: 0.68rem;
+    }
+
+    .portal-loading--employee .portal-loading__skip span {
+        min-width: 34px;
+        padding: 3px 6px;
     }
 
     .portal-loading__layout {
         padding: 56px 12px 18px;
     }
 
-    .portal-loading__topbar {
+    .portal-loading--employee .portal-loading__topbar {
+        width: 100%;
+        margin-right: 0;
         flex-direction: column;
         align-items: center;
     }
 
-    .portal-loading__brand-lockup {
-        flex-direction: row;
+    .portal-loading--employee .portal-loading__brand-lockup {
+        flex-direction: column;
         justify-content: center;
+        align-items: center;
+        gap: 10px;
+        transform: translateY(-8px);
+        flex-wrap: nowrap;
+        margin-bottom: 12px;
+    }
+
+    .portal-loading--employee .portal-loading__auth-chip {
+        top: 6px;
+        right: 100px;
+        margin: 0;
+    }
+
+    .portal-loading--employee .portal-loading__badge {
+        padding: 6px 9px;
+        font-size: 0.58rem;
+        gap: 5px;
+        letter-spacing: 0.02em;
+    }
+
+    .portal-loading--employee .portal-loading__badge svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .portal-loading--employee .portal-loading__logo {
+        width: 62px;
+        height: 62px;
+        border-radius: 16px;
+    }
+
+    .portal-loading--employee .portal-loading__logo img {
+        width: 56px;
     }
 
     .portal-loading__dots {
@@ -880,6 +891,13 @@ body.portal-loading {
         font-size: 1.18rem;
     }
 
+    .portal-loading--employee .portal-loading__title {
+        font-size: 1.72rem;
+        line-height: 0.95;
+        white-space: nowrap;
+        text-align: center;
+    }
+
     .portal-loading__description {
         font-size: 0.82rem;
         line-height: 1.45;
@@ -904,7 +922,29 @@ body.portal-loading {
     }
 
     .portal-loading__wait {
+        margin-top: 28px;
         font-size: 0.8rem;
         text-align: center;
     }
+}
+.portal-loading__frame,
+.portal-loading__frame * {
+    font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+    font-weight: 1000 !important;
+}
+
+.portal-loading__subtitle,
+.portal-loading__subtitle::before,
+.portal-loading__subtitle::after,
+.portal-loading__headline,
+.portal-loading__description,
+.portal-loading__progress-value,
+.portal-loading__mini strong,
+.portal-loading__mini span,
+.portal-loading__wait,
+.portal-loading__wait span,
+.portal-loading__wait p,
+.portal-loading__feature h3,
+.portal-loading__feature p {
+    font-weight: 1000 !important;
 }
