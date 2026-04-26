@@ -1080,7 +1080,7 @@
             }
 
             .employee-theme .brand-name {
-                font-size: 1.68rem !important;
+                font-size: 1.34rem !important;
                 margin-bottom: 0 !important;
             }
 
@@ -1115,7 +1115,9 @@
             }
 
             .employee-theme .login-kicker {
-                font-size: 0.82rem !important;
+                font-size: 0.86rem !important;
+                padding: 9px 14px !important;
+                font-weight: 1000 !important;
                 transform: translateX(0) !important;
             }
 
@@ -1235,7 +1237,18 @@
             flex: 0 0 auto;
             fill: currentColor;
         }
-    </style>
+    
+        [data-password-toggle-label] {
+            font-weight: 800 !important;
+            letter-spacing: 0.02em;
+        }
+
+        .employee-theme .password-toggle {
+            transform: translateY(-50%) translateZ(0) !important;
+            backface-visibility: hidden !important;
+            -webkit-font-smoothing: antialiased !important;
+        }
+</style>
 </head>
 <body class="login-page employee-theme">
     <main class="login-shell">
@@ -1324,10 +1337,19 @@
 
                 <div class="login-card__header">
                     <div class="login-card__header-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M12 21a9 9 0 1 0-9-9 9 9 0 0 0 9 9Z"/>
-                            <path d="M12 11.1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Z"/>
-                            <path d="M7.8 16.2c1.1-1.4 2.6-2.1 4.2-2.1s3.1.7 4.2 2.1"/>
+                        <svg viewBox="0 0 48 48" style="width: 48px; height: 48px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">
+                            <defs>
+                                <linearGradient id="empGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#f472b6;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="empGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="24" cy="18" r="8" fill="url(#empGrad2)" />
+                            <path d="M10 40c0-8 6-12 14-12s14 4 14 12v2H10v-2z" fill="url(#empGrad1)" />
                         </svg>
                     </div>
                     <h2>Employee Login</h2>

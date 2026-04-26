@@ -44,7 +44,7 @@
 
         .hr-frame {
             position: relative;
-            width: min(calc(100vw - 8px), 1820px);
+            width: min(calc(100vw - 8px), 1500px);
             padding: clamp(12px, 1vw, 22px);
             border-radius: 28px;
             overflow: hidden;
@@ -253,7 +253,7 @@
             display: grid;
             gap: clamp(12px, 1vw, 20px);
             margin-top: clamp(34px, 3vw, 68px);
-            max-width: 860px;
+            max-width: 750px;
         }
 
         .hr-feature-card {
@@ -363,7 +363,7 @@
 
         .hr-login-card {
             position: relative;
-            width: min(100%, 680px);
+            width: min(100%, 560px);
             min-height: clamp(620px, 68vh, 820px);
             padding: clamp(4px, 0.6vw, 12px) clamp(16px, 1.4vw, 24px) clamp(14px, 1.1vw, 20px);
             border-radius: 30px;
@@ -784,9 +784,9 @@
         }
 
         .hr-password-toggle .password-toggle__icon {
-            width: 20px;
-            height: 20px;
-            flex: 0 0 20px;
+            width: 16px;
+            height: 16px;
+            flex: 0 0 16px;
         }
 
         .hr-password-toggle .password-toggle__icon[hidden] {
@@ -1311,7 +1311,13 @@
                 font-size: 0.95rem;
             }
         }
-    </style>
+    
+        [data-password-toggle-label] {
+            font-weight: 800 !important;
+            letter-spacing: 0.02em;
+            font-size: 0.92rem !important;
+        }
+</style>
 </head>
 <body class="login-page hr-theme">
     <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
@@ -1434,11 +1440,27 @@
 
                         <div class="hr-card-header">
                             <div class="hr-header-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" focusable="false">
-                                    <path d="M8.3 10.9a2.6 2.6 0 1 0-2.6-2.6 2.6 2.6 0 0 0 2.6 2.6Z"/>
-                                    <path d="M15.9 9.9a2.1 2.1 0 1 0-2.1-2.1 2.1 2.1 0 0 0 2.1 2.1Z"/>
-                                    <path d="M4.7 17.7c.9-1.9 2.6-3 4.8-3 1.9 0 3.6.8 4.6 2.4"/>
-                                    <path d="M14 14.8c.6-.4 1.4-.6 2.1-.6 1.5 0 2.9.8 3.7 2.2"/>
+                                 <svg viewBox="0 0 48 48" style="width: 48px; height: 48px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">
+                                    <defs>
+                                        <linearGradient id="hrGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#34d399;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                        </linearGradient>
+                                        <linearGradient id="hrGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+                                        </linearGradient>
+                                        <linearGradient id="hrGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="14" cy="18" r="7" fill="url(#hrGrad1)" />
+                                    <circle cx="34" cy="18" r="7" fill="url(#hrGrad2)" />
+                                    <circle cx="24" cy="30" r="9" fill="url(#hrGrad3)" />
+                                    <path d="M4 38c0-5 5-7 10-7s10 2 10 7v2H4v-2z" fill="#059669" opacity="0.6" />
+                                    <path d="M24 38c0-5 5-7 10-7s10 2 10 7v2H24v-2z" fill="#2563eb" opacity="0.6" />
+                                    <path d="M12 42c0-6 8-9 12-9s12 3 12 9v2H12v-2z" fill="#7c3aed" />
                                 </svg>
                             </div>
                             <h2>HR Login</h2>
