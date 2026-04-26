@@ -287,7 +287,8 @@ body.loading-page {
 .status-copy h2 {
     margin: 0;
     font-size: clamp(1.52rem, 2.35vw, 2.3rem);
-    line-height: 1.1;
+    line-height: 1.18;
+    padding-bottom: 0.08em;
     font-weight: 800;
     background: linear-gradient(90deg, #ff8aa0 0%, #c755ff 32%, #5f7bff 64%, #67e0da 100%);
     -webkit-background-clip: text;
@@ -631,6 +632,12 @@ body.loading-page {
     }
 }
 
+@media (min-width: 901px) {
+    .loading-footer {
+        margin-top: 56px;
+    }
+}
+
 @media (max-width: 900px) {
     .loading-shell {
         padding: 0;
@@ -727,29 +734,34 @@ body.loading-page {
     }
 
     .brand-top {
-        gap: 12px;
-        margin-top: 6px;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 18px;
     }
 
     .brand-logo-wrap {
-        width: 58px;
-        height: 58px;
+        width: 84px;
+        height: 84px;
     }
 
     .brand-logo {
-        width: 56px;
+        width: 78px;
     }
 
     .company-chip {
-        min-height: 44px;
-        padding: 5px 16px;
-        font-size: 1.72rem;
+        min-height: 58px;
+        padding: 10px 26px;
+        font-size: 2.04rem;
         letter-spacing: 0.09em;
         font-weight: 1000;
     }
 
     .loading-header {
         margin-top: 12px;
+    }
+
+    .loading-title {
+        font-size: 1.5rem;
     }
 
     .loading-tagline {
@@ -899,20 +911,25 @@ body.loading-page {
         padding: 0 10px 8px;
     }
 
+    .brand-top {
+        margin-top: 18px;
+        gap: 10px;
+    }
+
     .brand-logo-wrap {
-        width: 50px;
-        height: 50px;
+        width: 76px;
+        height: 76px;
     }
 
     .brand-logo {
-        width: 46px;
+        width: 70px;
     }
 
     .company-chip {
-        min-height: 36px;
-        padding: 4px 13px;
-        font-size: 1.32rem;
-        letter-spacing: 0.07em;
+        min-height: 54px;
+        padding: 8px 20px;
+        font-size: 1.76rem;
+        letter-spacing: 0.08em;
         font-weight: 1000;
     }
 
@@ -921,7 +938,7 @@ body.loading-page {
     }
 
     .loading-title {
-        font-size: clamp(1.58rem, 8vw, 1.85rem);
+        font-size: 1.34rem;
     }
 
     .loading-tagline {

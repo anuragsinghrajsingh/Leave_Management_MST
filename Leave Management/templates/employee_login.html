@@ -184,9 +184,11 @@
         }
 
         .employee-theme .login-panel--info h1 {
-            margin-top: 42px !important;
+            margin: 36px 0 10px !important;
             font-weight: 1000 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+            font-size: clamp(2.2rem, 3.4vw, 3.2rem) !important;
+            line-height: 1.02 !important;
             -webkit-text-stroke: 0.8px rgba(255, 255, 255, 0.18) !important;
         }
 
@@ -202,6 +204,10 @@
         }
 
         .employee-theme .login-panel--info > p {
+            margin: 12px 0 0 !important;
+            max-width: 100% !important;
+            font-size: clamp(0.98rem, 0.42vw + 0.88rem, 1.14rem) !important;
+            line-height: 1.45 !important;
             background: linear-gradient(90deg, #f8fbff 0%, #cfe0ff 36%, #cbc4ff 68%, #f2cbff 100%) !important;
             -webkit-background-clip: text !important;
             background-clip: text !important;
@@ -230,13 +236,56 @@
             text-shadow: 0 4px 16px rgba(145, 162, 255, 0.12) !important;
         }
 
+        .employee-theme .feature-list .feature-item {
+            --feature-title-gradient: linear-gradient(90deg, #ffffff 0%, #ffffff 100%);
+            --feature-copy-gradient: linear-gradient(90deg, #e7efff 0%, #e7efff 100%);
+        }
+
+        .employee-theme .feature-list .feature-item strong {
+            background: var(--feature-title-gradient) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            color: transparent !important;
+        }
+
+        .employee-theme .feature-list .feature-item > span:last-child {
+            background: var(--feature-copy-gradient) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            color: transparent !important;
+        }
+
+        .employee-theme .feature-list .feature-item:nth-child(1) {
+            --feature-title-gradient: linear-gradient(90deg, #fff4b3 0%, #ffd86b 52%, #ffb84d 100%);
+            --feature-copy-gradient: linear-gradient(90deg, #fff9d8 0%, #ffe8a2 56%, #ffd07a 100%);
+        }
+
+        .employee-theme .feature-list .feature-item:nth-child(2) {
+            --feature-title-gradient: linear-gradient(90deg, #e1f4ff 0%, #91d7ff 52%, #58b7ff 100%);
+            --feature-copy-gradient: linear-gradient(90deg, #f0faff 0%, #bde7ff 56%, #88ceff 100%);
+        }
+
+        .employee-theme .feature-list .feature-item:nth-child(3) {
+            --feature-title-gradient: linear-gradient(90deg, #f2e8ff 0%, #c9a9ff 52%, #9d7dff 100%);
+            --feature-copy-gradient: linear-gradient(90deg, #faf3ff 0%, #dfcbff 56%, #b8a0ff 100%);
+        }
+
 
         @media (min-width: 641px) {
             .employee-theme .feature-list {
+                margin-top: clamp(72px, 5.4vw, 112px) !important;
                 gap: clamp(18px, 1.4vw, 26px) !important;
                 width: min(100%, 94%) !important;
                 margin-left: 0 !important;
                 margin-right: auto !important;
+            }
+
+            .employee-theme .login-panel--info h1 {
+                margin-top: 62px !important;
+            }
+
+            .employee-theme .login-panel--info > p {
+                margin-top: 18px !important;
             }
 
             .employee-theme .feature-item {
@@ -329,10 +378,10 @@
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
-            gap: 10px !important;
+            text-align: center !important;
             padding-top: 0 !important;
             margin-top: 0 !important;
-            margin-bottom: 12px !important;
+            margin-bottom: 14px !important;
         }
 
         .employee-theme .login-card__header h2,
@@ -346,40 +395,32 @@
             font-weight: 1000 !important;
         }
 
-        .employee-theme .login-card__header p {
+        .employee-theme .login-card__header .login-card-subtitle {
             text-align: center !important;
-            margin: 0 auto !important;
-            max-width: 500px !important;
-            width: min(100%, 500px) !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 10px 18px !important;
-            border-radius: 18px !important;
+            margin: 10px auto 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
             font-weight: 1000 !important;
-            letter-spacing: 0.01em !important;
-            font-size: 0.89rem !important;
-            line-height: 1.35 !important;
-            background-image:
-                linear-gradient(90deg, #f9fbff 0%, #bfd6ff 38%, #c9baff 68%, #f0c4ff 100%),
-                linear-gradient(135deg, rgba(56, 64, 112, 0.78), rgba(35, 40, 80, 0.6)) !important;
-            -webkit-background-clip: text, padding-box !important;
-            background-clip: text, padding-box !important;
+            letter-spacing: 0 !important;
+            font-size: 0.94rem !important;
+            line-height: 1.45 !important;
+            background: linear-gradient(90deg, #f8fbff 0%, #9fe6ff 30%, #a7b8ff 62%, #f0c4ff 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
             color: transparent !important;
+            -webkit-text-stroke: 0.22px rgba(236, 242, 255, 0.12) !important;
+            text-shadow: 0 4px 14px rgba(145, 162, 255, 0.14) !important;
             white-space: normal !important;
-            border: 1px solid rgba(190, 203, 255, 0.28) !important;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.12),
-                0 10px 22px rgba(13, 18, 46, 0.26),
-                0 0 16px rgba(95, 128, 255, 0.1) !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         .employee-theme .login-card {
             width: min(100%, 680px) !important;
             min-height: clamp(640px, 70vh, 860px) !important;
             margin-top: 6px !important;
-            padding: clamp(10px, 1vw, 18px) clamp(16px, 1.3vw, 24px) clamp(14px, 1.1vw, 20px) !important;
+            padding: clamp(2px, 0.45vw, 8px) clamp(16px, 1.3vw, 24px) clamp(14px, 1.1vw, 20px) !important;
             border-radius: 30px !important;
             background:
                 radial-gradient(circle at top center, rgba(110, 120, 200, 0.16), transparent 34%),
@@ -416,15 +457,30 @@
             align-items: center !important;
             justify-content: center !important;
             width: 100% !important;
-            gap: 14px !important;
-            margin: 32px 0 0 0 !important;
+            gap: 10px !important;
+            margin: 28px 0 0 0 !important;
+            min-height: 36px !important;
+            color: transparent !important;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+            font-size: 0.88rem !important;
+            font-weight: 1000 !important;
+            line-height: 1.2 !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            -webkit-text-stroke: 0.45px rgba(236, 242, 255, 0.18) !important;
+            text-shadow:
+                0 0 10px rgba(130, 227, 255, 0.14),
+                0 0 18px rgba(168, 130, 255, 0.1) !important;
+            background: linear-gradient(90deg, #ffffff 0%, #82e3ff 26%, #7f97ff 58%, #f39bff 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
         }
 
         .employee-theme .login-divider::before,
         .employee-theme .login-divider::after {
             content: "" !important;
             flex: 1 1 auto !important;
-            height: 4px !important;
+            height: 5px !important;
             border-radius: 999px !important;
             background:
                 linear-gradient(90deg, rgba(255, 255, 255, 0.04), #66c7ff 24%, #7b7dff 50%, #d76cff 76%, rgba(255, 255, 255, 0.04)) !important;
@@ -437,67 +493,71 @@
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            flex: 0 0 auto !important;
-            min-width: 68px !important;
+            min-width: 72px !important;
             padding: 7px 18px !important;
             border-radius: 999px !important;
-            background:
-                linear-gradient(135deg, rgba(68, 78, 145, 0.96), rgba(42, 48, 102, 0.94), rgba(85, 92, 178, 0.92)) !important;
             border: 1px solid rgba(171, 196, 255, 0.42) !important;
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.14),
                 0 10px 26px rgba(95, 128, 255, 0.18),
                 0 0 28px rgba(120, 127, 255, 0.14),
                 0 0 0 1px rgba(255, 255, 255, 0.12) !important;
-            background-clip: padding-box !important;
             background:
                 linear-gradient(135deg, rgba(68, 78, 145, 0.96), rgba(42, 48, 102, 0.94), rgba(85, 92, 178, 0.92)) !important;
-            color: #dfe8ff !important;
+            color: transparent !important;
+            position: relative !important;
+            font-size: 0 !important;
+            line-height: 0 !important;
+            -webkit-text-stroke: 0 !important;
+            text-shadow: none !important;
+        }
+
+        .employee-theme .login-divider span::before {
+            content: "OR" !important;
+            display: inline-block !important;
+            font-size: 0.94rem !important;
+            line-height: 1.2 !important;
             font-weight: 1000 !important;
-            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+            -webkit-text-stroke: 0.38px rgba(236, 242, 255, 0.2) !important;
             letter-spacing: 0.08em !important;
-            font-size: 0.84rem !important;
-            text-shadow:
-                0 0 8px rgba(159, 230, 255, 0.2),
-                0 0 14px rgba(126, 170, 255, 0.18) !important;
+            background: linear-gradient(90deg, #ffffff 0%, #82e3ff 26%, #7f97ff 58%, #f39bff 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            color: transparent !important;
         }
 
         .employee-theme .login-card__header h2 {
+            margin: 0 !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            gap: 10px !important;
-            width: fit-content !important;
-            margin: 0 auto !important;
-            padding: 6px 22px !important;
+            padding: 8px 18px !important;
             border-radius: 999px !important;
-            background:
-                linear-gradient(180deg, rgba(58, 67, 118, 0.72), rgba(36, 42, 84, 0.58)) !important;
-            border: 1px solid rgba(178, 196, 255, 0.24) !important;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+            font-weight: 1000 !important;
+            font-size: 2rem !important;
+            background-image:
+                linear-gradient(90deg, #8fdfff 0%, #8ea3ff 52%, #f3b7ff 100%),
+                linear-gradient(145deg, rgba(38, 52, 108, 0.92), rgba(45, 50, 118, 0.9), rgba(77, 46, 116, 0.88)) !important;
+            border: 1px solid rgba(161, 191, 255, 0.28) !important;
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.12),
-                0 14px 30px rgba(12, 16, 44, 0.3),
-                0 0 22px rgba(110, 95, 220, 0.16) !important;
-            background-clip: padding-box !important;
-            background-image:
-                linear-gradient(90deg, #4d97ff 0%, #6e78ff 48%, #b650ff 100%),
-                linear-gradient(180deg, rgba(58, 67, 118, 0.72), rgba(36, 42, 84, 0.58)) !important;
-            color: transparent !important;
+                0 12px 26px rgba(73, 90, 180, 0.18),
+                0 0 18px rgba(118, 120, 255, 0.12) !important;
             -webkit-background-clip: text, padding-box !important;
             background-clip: text, padding-box !important;
-            -webkit-text-stroke: 0.4px rgba(255, 255, 255, 0.1) !important;
-            text-shadow: 0 6px 20px rgba(100, 110, 255, 0.18) !important;
-            line-height: 1 !important;
+            color: transparent !important;
+            text-shadow: none !important;
+            line-height: 1.08 !important;
         }
 
         .employee-theme .login-card__header-icon {
+            width: 44px !important;
+            height: 44px !important;
+            margin: 0 auto 4px !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            width: 26px !important;
-            height: 26px !important;
-            position: relative !important;
-            top: 1px !important;
             color: #9fcfff !important;
             filter: drop-shadow(0 0 12px rgba(156, 174, 255, 0.24)) !important;
         }
@@ -508,19 +568,49 @@
             height: 100% !important;
             fill: none !important;
             stroke: currentColor !important;
-            stroke-width: 2.4px !important;
+            stroke-width: 2px !important;
             stroke-linecap: round !important;
             stroke-linejoin: round !important;
+        }
+
+        .employee-theme .login-title-accent {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            margin: 8px auto 0 !important;
+        }
+
+        .employee-theme .login-title-accent span {
+            display: block !important;
+            height: 4px !important;
+            border-radius: 999px !important;
+            background: linear-gradient(90deg, rgba(88, 207, 255, 0.5), rgba(124, 131, 255, 1), rgba(222, 116, 255, 0.48)) !important;
+            box-shadow: 0 0 16px rgba(124, 131, 255, 0.18) !important;
+        }
+
+        .employee-theme .login-title-accent span:nth-child(1),
+        .employee-theme .login-title-accent span:nth-child(3) {
+            width: 8px !important;
+        }
+
+        .employee-theme .login-title-accent span:nth-child(2) {
+            width: 76px !important;
         }
 
         .employee-theme .field-label {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
+            gap: 8px !important;
             width: fit-content !important;
             margin-top: 8px !important;
             padding: 6px 12px !important;
             border-radius: 999px !important;
+            font-size: 0.92rem !important;
+            line-height: 1 !important;
+            font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
+            font-weight: 1000 !important;
             background:
                 linear-gradient(135deg, rgba(54, 61, 108, 0.7), rgba(34, 40, 82, 0.54)) !important;
             border: 1px solid rgba(187, 201, 255, 0.24) !important;
@@ -533,11 +623,29 @@
             -webkit-text-stroke: 0 !important;
         }
 
+        .employee-theme .field-label .label-icon {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 18px !important;
+            height: 18px !important;
+            line-height: 1 !important;
+            flex: 0 0 auto !important;
+        }
+
+        .employee-theme .field-label .label-icon svg {
+            display: block !important;
+            width: 18px !important;
+            height: 18px !important;
+        }
+
         .employee-theme label[for="employee-username"] span:last-child {
             background: linear-gradient(90deg, #7bc8ff 0%, #4fd7ff 100%) !important;
             -webkit-background-clip: text !important;
             background-clip: text !important;
             color: transparent !important;
+            font-weight: 1000 !important;
+            -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.12) !important;
         }
 
         .employee-theme label[for="employee-password"] span:last-child {
@@ -545,6 +653,8 @@
             -webkit-background-clip: text !important;
             background-clip: text !important;
             color: transparent !important;
+            font-weight: 1000 !important;
+            -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.12) !important;
         }
 
         .employee-theme .back-link span {
@@ -552,11 +662,15 @@
             -webkit-background-clip: text !important;
             background-clip: text !important;
             color: transparent !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
             font-size: 1rem !important;
+            line-height: 1.2 !important;
             font-weight: 1000 !important;
             letter-spacing: 0 !important;
             font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif !important;
-            -webkit-text-stroke: 0 !important;
+            -webkit-text-stroke: 0.25px rgba(255, 255, 255, 0.16) !important;
             text-shadow: 0 4px 14px rgba(145, 162, 255, 0.14) !important;
         }
 
@@ -617,6 +731,7 @@
         .employee-theme .back-link svg {
             width: 18px !important;
             height: 18px !important;
+            flex: 0 0 auto !important;
             stroke: currentColor !important;
             stroke-width: 1.8px !important;
             stroke-linecap: round !important;
@@ -656,11 +771,11 @@
         .employee-theme .login-button {
             position: relative !important;
             overflow: hidden !important;
-            width: auto !important;
-            min-width: 190px !important;
-            align-self: center !important;
+            width: 100% !important;
+            min-height: 52px !important;
+            align-self: stretch !important;
             border-radius: 18px !important;
-            padding: 11px 14px !important;
+            padding: 11px 18px !important;
             background:
                 linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 28%),
                 linear-gradient(135deg, rgba(56, 68, 132, 0.98) 0%, rgba(70, 68, 156, 0.96) 48%, rgba(106, 58, 170, 0.94) 100%) !important;
@@ -679,9 +794,10 @@
             position: relative !important;
             z-index: 1 !important;
             display: inline-flex !important;
+            width: 100% !important;
             align-items: center !important;
             justify-content: center !important;
-            gap: 10px !important;
+            gap: 12px !important;
         }
 
         .employee-theme .login-button__label {
@@ -691,6 +807,7 @@
             color: transparent !important;
             font-weight: 1000 !important;
             font-size: 1.08rem !important;
+            letter-spacing: 0.02em !important;
             -webkit-text-stroke: 0.6px rgba(255, 255, 255, 0.14) !important;
             text-shadow:
                 0 1px 1px rgba(255, 255, 255, 0.22),
@@ -740,7 +857,6 @@
             background:
                 linear-gradient(135deg, rgba(68, 78, 145, 0.96), rgba(42, 48, 102, 0.94), rgba(85, 92, 178, 0.92)) !important;
             border: 1px solid rgba(171, 196, 255, 0.42) !important;
-            color: #dfe8ff !important;
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.14),
                 0 10px 26px rgba(95, 128, 255, 0.18),
@@ -928,7 +1044,7 @@
             .employee-theme .login-card {
                 min-height: 0 !important;
                 margin-top: 0 !important;
-                padding: 14px 14px 12px !important;
+                padding: 6px 14px 12px !important;
                 background: transparent !important;
                 border: none !important;
                 box-shadow: none !important;
@@ -1033,8 +1149,12 @@
             }
 
             .employee-theme .login-card__header {
-                gap: 8px !important;
                 margin-bottom: 12px !important;
+            }
+
+            .employee-theme .login-card__header .login-card-subtitle {
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
             }
 
             .employee-theme .login-form input::placeholder {
@@ -1186,9 +1306,13 @@
                 <div class="panel-glow panel-glow--form" aria-hidden="true"></div>
                 <div class="portal-ring" aria-hidden="true"></div>
                 {% if messages %}
-                    <div class="login-toast-stack" aria-live="polite">
+                    <div class="login-toast-stack" data-login-feedback aria-live="polite">
                         {% for message in messages %}
-                            <div class="login-toast login-toast--{{ message.tags|default:'info' }}">
+                            <div
+                                class="login-toast login-toast--{{ message.tags|default:'info' }}"
+                                data-login-feedback-item
+                                data-clear-on="{% if 'clear-password' in message.tags %}password{% else %}username{% endif %}"
+                            >
                                 <div class="login-toast__copy">
                                     <strong>Try again</strong>
                                     <span>{{ message }}</span>
@@ -1199,16 +1323,20 @@
                 {% endif %}
 
                 <div class="login-card__header">
-                    <h2>
-                        <span class="login-card__header-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M12 3.5 5.5 6.5v5.2c0 4.1 2.8 7.8 6.5 8.8 3.7-1 6.5-4.7 6.5-8.8V6.5L12 3.5Z"/>
-                                <path d="M9.5 12.2 11.2 14l3.6-4"/>
-                            </svg>
-                        </span>
-                        <span>Employee Login</span>
-                    </h2>
-                    <p>Use your employee username &amp; password to continue.</p>
+                    <div class="login-card__header-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M12 21a9 9 0 1 0-9-9 9 9 0 0 0 9 9Z"/>
+                            <path d="M12 11.1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Z"/>
+                            <path d="M7.8 16.2c1.1-1.4 2.6-2.1 4.2-2.1s3.1.7 4.2 2.1"/>
+                        </svg>
+                    </div>
+                    <h2>Employee Login</h2>
+                    <div class="login-title-accent" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <p class="login-card-subtitle">Use your employee username &amp; password to continue.</p>
                 </div>
 
                 <form method="post" class="login-form">
@@ -1350,6 +1478,42 @@
 
             input.addEventListener("blur", function() {
                 warning.hidden = true;
+            });
+        });
+
+        document.querySelectorAll(".login-form").forEach(function(form) {
+            const card = form.closest(".login-card");
+            const feedback = card ? card.querySelector("[data-login-feedback]") : null;
+            if (!feedback) {
+                return;
+            }
+
+            function hideFeedback() {
+                const visibleItems = Array.from(feedback.querySelectorAll("[data-login-feedback-item]")).filter(function(item) {
+                    return item.style.display !== "none";
+                });
+
+                if (visibleItems.length === 0) {
+                    feedback.hidden = true;
+                    feedback.style.display = "none";
+                    feedback.setAttribute("aria-hidden", "true");
+                }
+            }
+
+            form.querySelectorAll("input[name='username'], input[name='password']").forEach(function(input) {
+                input.addEventListener("input", function() {
+                    const fieldName = input.name;
+
+                    feedback.querySelectorAll("[data-login-feedback-item]").forEach(function(item) {
+                        if (item.dataset.clearOn === fieldName) {
+                            item.hidden = true;
+                            item.style.display = "none";
+                            item.setAttribute("aria-hidden", "true");
+                        }
+                    });
+
+                    hideFeedback();
+                });
             });
         });
     </script>

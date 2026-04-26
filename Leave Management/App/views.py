@@ -252,31 +252,31 @@ def _show_login_failure_message(request, username, expected_role, portal_label):
     username = (username or "").strip()
 
     if not username:
-        messages.error(request, "Please enter your username.")
+        messages.error(request, "Please enter your username.", extra_tags="clear-username")
         return
 
     user = User.objects.filter(username=username).first()
 
     if user is None:
-        messages.error(request, f"No account found for username '{username}'.")
+        messages.error(request, f"No account found for username '{username}'.", extra_tags="clear-username")
         return
 
     if not user.is_active:
-        messages.warning(request, "This account is inactive. Please contact HR or the administrator.")
+        messages.warning(request, "This account is inactive. Please contact HR or the administrator.", extra_tags="clear-username")
         return
 
     if expected_role == "ADMIN":
         if not user.is_superuser:
-            messages.warning(request, "This account does not have admin access. Please use the correct portal.")
+            messages.warning(request, "This account does not have admin access. Please use the correct portal.", extra_tags="clear-username")
         else:
-            messages.error(request, "Incorrect admin password. Please try again.")
+            messages.error(request, "Incorrect admin password. Please try again.", extra_tags="clear-password")
         return
 
     if user.role != expected_role:
-        messages.warning(request, f"This account belongs to the {user.role.title()} portal. Please use the correct login page.")
+        messages.warning(request, f"This account belongs to the {user.role.title()} portal. Please use the correct login page.", extra_tags="clear-username")
         return
 
-    messages.error(request, f"Incorrect {portal_label.lower()} password. Please try again.")
+    messages.error(request, f"Incorrect {portal_label.lower()} password. Please try again.", extra_tags="clear-password")
 
 
 def _render_loading_screen(request, *, page_title, theme_class, company_product, subtitle, kicker,

@@ -608,8 +608,14 @@ body.portal-loading {
     color: var(--portal-muted);
 }
 
-.portal-loading--employee .portal-loading__brand-lockup {
-    transform: translateX(18px);
+@media (min-width: 821px) {
+    .portal-loading__brand-lockup {
+        transform: translateY(-18px);
+    }
+
+    .portal-loading--employee .portal-loading__brand-lockup {
+        transform: translate(18px, -18px);
+    }
 }
 
 .portal-loading--employee .portal-loading__logo {

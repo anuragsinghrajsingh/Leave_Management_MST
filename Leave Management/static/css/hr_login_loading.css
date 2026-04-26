@@ -720,6 +720,12 @@ body.portal-loading {
     margin-top: 22px;
 }
 
+@media (min-width: 821px) {
+    .portal-loading__brand-lockup {
+        transform: translateY(-18px);
+    }
+}
+
 @keyframes portal-spin {
     from {
         transform: rotate(0deg);
