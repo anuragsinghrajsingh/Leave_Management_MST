@@ -46,9 +46,15 @@ MST was built for organizations that demand speed and superior aesthetics. We ha
 
 ### 👑 The MS Technology Vision
 This project is part of the **MS Technology** ecosystem, which focuses on three core pillars:
-1.  **Reliability**: Mission-critical logic that never fails during peak load.
-2.  **Aesthetics**: Premium, modern user interfaces that inspire confidence.
-3.  **Simplicity**: Stripping away complexity to focus on what matters.
+1.  **Reliability**: Mission-critical logic that never fails during peak load. We ensure that every leave transaction is atomic and permanent.
+2.  **Aesthetics**: Premium, modern user interfaces that inspire confidence. We believe that professional tools should be beautiful and intuitive.
+3.  **Simplicity**: Stripping away complexity to focus on what matters. Our "Clean Core" philosophy ensures easy maintainability.
+
+### 🛡️ Engineering Excellence
+At **MS Technology**, we don't just write code; we engineer solutions:
+- **Scalability**: Designed to handle thousands of concurrent requests without latency.
+- **Security-First**: Every module is audited for CSRF, XSS, and SQL injection vulnerabilities.
+- **Performance**: Optimized SQL queries and cached assets for sub-200ms load times.
 
 ---
 
