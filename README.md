@@ -140,6 +140,65 @@ MST follows a **Service-Oriented Logic** pattern, where core business rules are 
 
 ---
 
+<a id="configuration"></a>
+## 🔧 10. Configuration & Env
+The MST edition is optimized for environment-driven configuration.
+
+### `.env` Setup
+```ini
+SECRET_KEY=mst_secure_key
+DEBUG=False
+ALLOWED_HOSTS=mst.yourdomain.com
+DATABASE_URL=postgres://mst_user:password@localhost/mst_db
+```
+
+---
+
+<a id="security-architecture"></a>
+## 🛡️ 11. Security Architecture
+The MST Security model uses a **Logic Interceptor** pattern.
+- **Role Isolation**: Strictly enforced at the view layer via MST-specific decorators.
+- **CSRF Tokenization**: Every AJAX request is signed with a unique CSRF token to prevent cross-site scripting.
+
+---
+
+<a id="contribution-guidelines"></a>
+## 🤝 12. Contribution Guidelines
+1.  Focus on "Clean Core" maintenance.
+2.  No redundant file additions.
+3.  Ensure all UI changes follow the Glass UI tokens.
+
+---
+
+<a id="faq"></a>
+## ❓ 13. FAQ
+**Q: Why was the codebase reduced by 30 files?**
+A: To eliminate "Legacy Debt" and ensure the application only carries what it needs for maximum speed.
+
+**Q: Can I use this on mobile?**
+A: Yes, the MST Glass UI is fully responsive and optimized for mobile touch-targets.
+
+---
+
+<a id="roadmap"></a>
+## 🔮 14. Roadmap
+- [ ] **AI Decision Support**: Predicting approval trends.
+- [ ] **Dark Mode Auto-Switch**: Based on system time.
+
+---
+
+<a id="license"></a>
+## 📜 15. License
+**Proprietary**. Part of the **MS Technology** suite.
+
+---
+
+<a id="acknowledgements"></a>
+## 🙏 16. Acknowledgements
+Thanks to the MS Technology engineering team for the refactoring effort.
+
+---
+
 <a id="author"></a>
 ## 👤 17. Author
 **Anurag Singh Raj Singh** - [anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com)
