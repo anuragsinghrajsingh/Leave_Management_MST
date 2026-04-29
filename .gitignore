@@ -1,9 +1,0 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-virtual_env/
-db.sqlite3
-media/
-staticfiles/
-*.log
