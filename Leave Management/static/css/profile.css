@@ -3395,42 +3395,14 @@ header .profile-dropdown,
 
 .masthead-completion {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
     min-width: unset;
     padding: 4px 4px 5px;
     border-radius: 18px;
-    background:
-        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16), transparent 42%),
-        linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.05));
-    border: 1px solid rgba(255,255,255,0.18);
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.14),
-        0 14px 28px rgba(10, 24, 48, 0.16);
-}
-
-.masthead-completion::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at top right, rgba(255,255,255,0.14), transparent 30%),
-        linear-gradient(135deg, rgba(255,255,255,0.05), transparent 55%);
-    pointer-events: none;
-}
-
-.masthead-completion::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: 4px;
-    width: 98px;
-    height: 18px;
-    transform: translateX(-50%);
-    border-radius: 999px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.10);
-    pointer-events: none;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
 }
 
 .masthead-completion .circular-chart {
@@ -4081,14 +4053,26 @@ header .profile-dropdown,
     width: 100%;
 }
 
+.chart-body.chart-body-empty {
+    justify-content: center;
+}
+
 .chart-visual {
     display: flex;
     flex: 1 1 auto;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: flex-start;
     align-self: start;
     min-width: 0;
     line-height: 0;
+}
+
+.chart-body.chart-body-empty .chart-visual {
+    flex: 0 1 100%;
+}
+
+.chart-body.chart-body-empty .chart-legend {
+    display: none !important;
 }
 
 .chart-card canvas {
@@ -4174,13 +4158,18 @@ header .profile-dropdown,
 }
 
 .chart-empty-state {
-    display: grid;
-    place-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     gap: 8px;
-    min-height: 210px;
+    width: min(100%, 280px);
+    min-height: 176px;
     margin-top: 8px;
-    padding: 16px 14px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 14px 14px;
     border-radius: 20px;
     background:
         radial-gradient(circle at top right, rgba(186, 230, 253, 0.18), transparent 28%),
@@ -4203,7 +4192,15 @@ header .profile-dropdown,
 
 .chart-empty-state h4 {
     margin: 0;
+    display: block;
+    width: 100%;
+    max-width: 180px;
     font-size: 1rem;
+    line-height: 1.3;
+    letter-spacing: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     color: #0f172a;
 }
 
@@ -5373,7 +5370,7 @@ header .profile-dropdown,
 }
 
 .profile-page-shell .leave-stats-grid {
-    row-gap: 12px !important;
+    row-gap: 8px !important;
 }
 
 @media (max-width: 760px) {
@@ -5582,7 +5579,7 @@ header .profile-dropdown,
 }
 
 .profile-page-shell .insight-banner {
-    margin-bottom: 8px !important;
+    margin-bottom: 4px !important;
 }
 
 /* =====================================================
@@ -5622,7 +5619,7 @@ header .profile-dropdown,
 .profile-page-shell .right-profile,
 .profile-page-shell .leave-stats-grid,
 .profile-page-shell .chart-grid {
-    gap: 10px !important;
+    gap: 6px !important;
 }
 
 .profile-page-shell .profile-card,
@@ -5832,6 +5829,8 @@ header .profile-dropdown,
 body.profile-page .profile-page-shell .chart-card {
     position: relative !important;
     overflow: hidden !important;
+    min-height: auto !important;
+    padding-bottom: 1px !important;
 }
 
 body.profile-page .profile-page-shell .chart-card::before {
@@ -5899,7 +5898,7 @@ body.profile-page .profile-page-shell .chart-visual {
     align-items: center !important;
     justify-content: center !important;
     margin-top: 0 !important;
-    margin-bottom: -8px !important;
+    margin-bottom: 0 !important;
 }
 
 body.profile-page .profile-page-shell .chart-card canvas {
@@ -6433,6 +6432,42 @@ body.profile-page .profile-page-shell .chart-headline .headline-dot {
         margin-top: -2px !important;
     }
 
+    body.profile-page .profile-page-shell .chart-visual .chart-empty-state {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        min-height: 178px !important;
+        margin: 0 !important;
+        padding: 18px 12px !important;
+        line-height: normal !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-visual .chart-empty-icon {
+        margin: 0 0 6px !important;
+        flex: 0 0 auto !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-visual .chart-empty-state h4,
+    body.profile-page .profile-page-shell .chart-visual .chart-empty-state p {
+        display: block !important;
+        width: 100% !important;
+        max-width: 180px !important;
+        margin: 0 !important;
+        line-height: 1.45 !important;
+        white-space: normal !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-visual .chart-empty-state h4 {
+        font-size: 0.9rem !important;
+        line-height: 1.3 !important;
+        letter-spacing: 0 !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+        margin-bottom: 6px !important;
+    }
+
     body.profile-page .profile-page-shell .chart-legend {
         width: 100% !important;
         min-width: 0 !important;
@@ -6555,7 +6590,118 @@ body.profile-page .profile-page-shell .chart-headline .headline-dot {
 @media (max-width: 420px) {
     body.profile-page .profile-page-shell .insight-stats,
     body.profile-page .profile-page-shell .leave-row {
-        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+    }
+
+    body.profile-page .profile-page-shell .insight-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div {
+        padding: 3px 3px 4px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+    body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child {
+        font-size: 9px !important;
+        padding-left: 0 !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div > span:last-child {
+        font-size: 0.9rem !important;
+    }
+}
+
+@media (max-width: 390px) {
+    body.profile-page .profile-page-shell {
+        padding: 3px !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 74px !important;
+        align-items: center !important;
+        column-gap: 6px !important;
+        padding: 12px 8px 8px !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead-main {
+        grid-template-columns: 72px minmax(0, 1fr) !important;
+        gap: 8px !important;
+        padding-top: 10px !important;
+        padding-right: 0 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-avatar,
+    body.profile-page .profile-page-shell .masthead-avatar:hover,
+    body.profile-page .profile-page-shell .profile-avatar-container.masthead-avatar:hover {
+        width: 72px !important;
+        height: 72px !important;
+        margin-top: 0 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-title {
+        position: absolute !important;
+        top: 2px !important;
+        left: 50% !important;
+        width: max-content !important;
+        max-width: calc(100% - 100px) !important;
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        text-align: center !important;
+        transform: translateX(-50%) !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead-copy h2 {
+        font-size: 0.86rem !important;
+        line-height: 1.15 !important;
+        margin-left: 0 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle {
+        margin-left: 0 !important;
+        font-size: 0.71rem !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion-card {
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        transform: none !important;
+        width: 74px !important;
+        max-width: 74px !important;
+        min-width: 74px !important;
+        height: 100px !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        align-self: center !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion {
+        width: 70px !important;
+        min-width: 70px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion .circular-chart {
+        width: 58px !important;
+        height: 58px !important;
+    }
+
+    #viewPhotoModal,
+    #editPhotoModal {
+        padding-top: 132px !important;
+    }
+
+    #viewPhotoModal .photo-view-modal,
+    #editPhotoModal .photo-edit-modal {
+        width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 20px) !important;
     }
 }
 
@@ -6613,6 +6759,10 @@ body.profile-page .profile-page-shell .chart-card .headline-with-badge > .sectio
 }
 
 @media (min-width: 761px) {
+    body.profile-page .profile-page-shell .chart-card .headline-with-badge > .section-badge {
+        margin-top: 3px !important;
+    }
+
     body.profile-page .profile-page-shell .masthead-completion-card {
         width: 112px !important;
         min-width: 112px !important;

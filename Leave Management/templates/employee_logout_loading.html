@@ -12,13 +12,13 @@
         <div class="shape shape--left" aria-hidden="true"></div>
         <div class="shape shape--right" aria-hidden="true"></div>
         <header class="topbar">
-            <div class="brand"><div class="logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div><div><h1><span>MS</span>Technology</h1></div><div class="system-chip">Leave Management System</div></div>
+            <div class="brand"><div class="logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div><div><h1><span>MS</span> Technology</h1></div><div class="system-chip">Leave Management System</div></div>
             <div class="chip">&#128100; Employee Portal</div>
         </header>
         <section class="card">
             <div class="pill">Logout Initiated</div>
             <div class="ring"><div class="ring__inner">&#10140;</div></div>
-            <h2>Logging out, Employee!</h2>
+            <h2>Logging out, {{ logout_name }}!</h2>
             <p class="lead">You are being securely logged out of the system.</p>
             <div class="steps" id="logout-steps">
                 <article class="step-card step-card--active">

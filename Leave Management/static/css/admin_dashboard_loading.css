@@ -28,7 +28,7 @@ body { margin: 0; min-height: 100vh; color: var(--text); background: radial-grad
 .brand { gap: 14px; }
 .brand__logo { width: 62px; height: 62px; padding: 6px; border-radius: 18px; border: 2px solid rgba(255, 77, 112, 0.82); display: grid; place-items: center; background: rgba(9, 8, 24, 0.92); }
 .brand__logo img { width: 46px; }
-.brand h1 { display: inline-flex; align-items: center; gap: 0; margin: 0; padding: 10px 20px; border-radius: 999px; border: 1px solid rgba(255, 76, 108, .3); background-color: rgba(24, 10, 34, .84); box-shadow: inset 0 0 18px rgba(239, 75, 186, .08); font-size: clamp(1.5rem, 2.8vw, 2.35rem); line-height: 1; letter-spacing: .01em; color: transparent; background-image: linear-gradient(90deg, #ff5068, #ef4bba, #8f57ff), linear-gradient(90deg, rgba(255, 72, 109, 0.18), rgba(239, 75, 186, 0.15), rgba(143, 87, 255, 0.18)); background-origin: border-box; background-clip: text, padding-box; -webkit-background-clip: text, padding-box; }
+.brand h1 { display: inline-flex; align-items: center; gap: .18em; margin: 0; padding: 10px 22px; border-radius: 999px; border: 1px solid rgba(255, 76, 108, .3); background-color: rgba(24, 10, 34, .84); box-shadow: inset 0 0 18px rgba(239, 75, 186, .08); font-size: clamp(1.5rem, 2.8vw, 2.35rem); line-height: 1; letter-spacing: .01em; color: transparent; background-image: linear-gradient(90deg, #ff5068, #ef4bba, #8f57ff), linear-gradient(90deg, rgba(255, 72, 109, 0.18), rgba(239, 75, 186, 0.15), rgba(143, 87, 255, 0.18)); background-origin: border-box; background-clip: text, padding-box; -webkit-background-clip: text, padding-box; }
 .brand h1 span { color: inherit; }
 .system-chip { position: absolute; left: 50%; top: 0; transform: translateX(-50%); display: inline-flex; align-items: center; justify-content: center; padding: 10px 22px; border-radius: 999px; border: 1px solid rgba(255, 76, 108, .34); background-color: rgba(24, 10, 34, .88); color: transparent; font-size: clamp(.92rem, 1.35vw, 1.12rem); font-weight: 900 !important; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; background-image: linear-gradient(90deg, #ff5068, #ef4bba, #8f57ff), linear-gradient(90deg, rgba(255, 72, 109, 0.18), rgba(239, 75, 186, 0.15), rgba(143, 87, 255, 0.18)); background-origin: border-box; background-clip: text, padding-box; -webkit-background-clip: text, padding-box; -webkit-text-stroke: 0.35px rgba(255, 248, 252, 0.26); box-shadow: inset 0 0 18px rgba(239, 75, 186, .08); }
 .chip { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 999px; border: 1px solid rgba(255, 76, 108, .24); background: rgba(18, 8, 26, .82); color: #ff4b69; font-size: .9rem; text-transform: uppercase; }
@@ -43,8 +43,8 @@ body { margin: 0; min-height: 100vh; color: var(--text); background: radial-grad
 
 .card { position: relative; width: 100%; min-height: 0; padding: 28px 74px 14px; border-radius: 22px; border: 1px solid var(--border); background: radial-gradient(circle at 50% 0, rgba(255, 72, 109, .08), transparent 30%), var(--card); box-shadow: 0 16px 38px rgba(0,0,0,.28); text-align: center; }
 .pill { display: inline-flex; padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255, 76, 108, .22); background: rgba(255, 76, 108, .08); color: #ff5872; text-transform: uppercase; }
-.ring { width: 142px; height: 142px; margin: 14px auto 12px; padding: 9px; border-radius: 50%; background: conic-gradient(from 160deg, #ff657e, #f150bd, #8f57ff, #ff657e); box-shadow: 0 0 24px rgba(241, 75, 186, .18); }
-.ring__inner { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: #110c24; font-size: .95rem; color: #f353ba; }
+.ring { width: 142px; height: 142px; margin: 14px auto 12px; padding: 9px; border-radius: 50%; background: conic-gradient(from 160deg, #ff657e, #f150bd, #8f57ff, #ff657e); box-shadow: 0 0 24px rgba(241, 75, 186, .18); animation: spin 2.8s linear infinite; }
+.ring__inner { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: #110c24; font-size: .95rem; color: #f353ba; animation: spin 2.8s linear infinite reverse; }
 .ring__inner svg { width: 64px; height: 64px; display: block; }
 .card h2 { margin: 4px 0 8px; display: inline-block; font-size: clamp(2.2rem, 4vw, 4rem); line-height: 1.12; padding-bottom: 0.06em; background: var(--line); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lead { margin: 0 0 20px; color: var(--muted); font-size: clamp(1rem, 1.35vw, 1.12rem); line-height: 1.35; white-space: nowrap; }
@@ -58,7 +58,7 @@ body { margin: 0; min-height: 100vh; color: var(--text); background: radial-grad
 .progress-meta span { color: #ff4f80; font-size: .95rem; }
 .progress { height: 12px; overflow: hidden; border-radius: 999px; background: rgba(199, 192, 219, .15); }
 .progress__fill { width: 0; height: 100%; border-radius: inherit; background: var(--line); box-shadow: 0 0 20px rgba(255, 76, 108, .24); transition: width .8s ease; }
-.note { margin-top: 14px; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 10px; color: rgba(241, 236, 255, .86); font-size: .88rem; line-height: 1; }
+.note { margin-top: 14px; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 10px; color: rgba(241, 236, 255, .86); font-size: .88rem; line-height: 1; transform: translateY(6px); }
 .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px dashed var(--red); animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (min-width: 761px) { .card { min-height: 535px; } .pill { margin-bottom: 14px; } }

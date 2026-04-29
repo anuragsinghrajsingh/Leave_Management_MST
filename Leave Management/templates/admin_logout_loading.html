@@ -12,13 +12,13 @@
         <div class="mesh mesh--left" aria-hidden="true"></div>
         <div class="mesh mesh--right" aria-hidden="true"></div>
         <header class="topbar">
-            <div class="brand"><div class="logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div><div><h1><span>MS</span>Technology</h1></div><div class="system-chip">Leave Management System</div></div>
+            <div class="brand"><div class="logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div><div><h1><span>MS</span> Technology</h1></div><div class="system-chip">Leave Management System</div></div>
             <div class="chip">&#128737; Admin Area</div>
         </header>
         <section class="card">
             <div class="pill">Logout Initiated</div>
             <div class="ring"><div class="ring__inner">&#10140;</div></div>
-            <h2>Logging out, Admin!</h2>
+            <h2>Logging out, {{ logout_name }}!</h2>
             <p class="lead">You are being securely logged out of the system.</p>
             <div class="steps" id="logout-steps">
                 <article class="step-card step-card--active">
@@ -48,6 +48,11 @@
             <div class="progress-meta"><strong>Processing logout...</strong><span id="progress-value">75%</span></div>
             <div class="progress"><div class="progress__fill" id="progress-fill"></div></div>
             <div class="secure-note">Your session is secure. Thank you!</div>
+        </section>
+        <section class="footer">
+            <article><i>&#10003;</i><div><h3>Thank You, Admin!</h3><p>Your oversight keeps the platform running smoothly.</p></div></article>
+            <article><i>&#9889;</i><div><h3>See you again!</h3><p>Administrative tools will be ready when you return.</p></div></article>
+            <article><i>&#128340;</i><div><h3>Logged out at</h3><p>{{ logged_out_at }}</p></div></article>
         </section>
     </main>
     <script>

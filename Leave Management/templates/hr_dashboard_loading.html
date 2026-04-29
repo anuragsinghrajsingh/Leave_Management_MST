@@ -22,10 +22,34 @@
         <header class="topbar">
             <div class="brand">
                 <div class="brand__logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div>
-                <div><h1><span>MS</span>Technology</h1></div>
+                <div><h1><span>MS</span> Technology</h1></div>
                 <div class="system-chip">Leave Management System</div>
             </div>
-            <div class="chip">&#128101; HR Portal</div>
+            <div class="chip">
+                <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                    <defs>
+                        <linearGradient id="hrDashboardChipGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#34d399" />
+                            <stop offset="100%" stop-color="#059669" />
+                        </linearGradient>
+                        <linearGradient id="hrDashboardChipGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#60a5fa" />
+                            <stop offset="100%" stop-color="#2563eb" />
+                        </linearGradient>
+                        <linearGradient id="hrDashboardChipGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#a78bfa" />
+                            <stop offset="100%" stop-color="#7c3aed" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="14" cy="18" r="7" fill="url(#hrDashboardChipGrad1)" />
+                    <circle cx="34" cy="18" r="7" fill="url(#hrDashboardChipGrad2)" />
+                    <circle cx="24" cy="30" r="9" fill="url(#hrDashboardChipGrad3)" />
+                    <path d="M4 38c0-5 5-7 10-7s10 2 10 7v2H4v-2z" fill="#059669" opacity="0.6" />
+                    <path d="M24 38c0-5 5-7 10-7s10 2 10 7v2H24v-2z" fill="#2563eb" opacity="0.6" />
+                    <path d="M12 42c0-6 8-9 12-9s12 3 12 9v2H12v-2z" fill="#7c3aed" />
+                </svg>
+                <span>HR Portal</span>
+            </div>
         </header>
 
         <section class="dashboard-stage">
@@ -35,8 +59,33 @@
                     <span><span id="toast-countdown">{{ duration }}</span>s</span>
                 </a>
                 <div class="pill">HR Login Successful</div>
-                <div class="ring"><div class="ring__inner">&#128101;</div></div>
-                <h2>Welcome to HR Portal!</h2>
+                <div class="ring">
+                    <div class="ring__inner">
+                        <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                            <defs>
+                                <linearGradient id="hrDashboardRingGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#34d399" />
+                                    <stop offset="100%" stop-color="#059669" />
+                                </linearGradient>
+                                <linearGradient id="hrDashboardRingGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#60a5fa" />
+                                    <stop offset="100%" stop-color="#2563eb" />
+                                </linearGradient>
+                                <linearGradient id="hrDashboardRingGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#a78bfa" />
+                                    <stop offset="100%" stop-color="#7c3aed" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="14" cy="18" r="7" fill="url(#hrDashboardRingGrad1)" />
+                            <circle cx="34" cy="18" r="7" fill="url(#hrDashboardRingGrad2)" />
+                            <circle cx="24" cy="30" r="9" fill="url(#hrDashboardRingGrad3)" />
+                            <path d="M4 38c0-5 5-7 10-7s10 2 10 7v2H4v-2z" fill="#059669" opacity="0.6" />
+                            <path d="M24 38c0-5 5-7 10-7s10 2 10 7v2H24v-2z" fill="#2563eb" opacity="0.6" />
+                            <path d="M12 42c0-6 8-9 12-9s12 3 12 9v2H12v-2z" fill="#7c3aed" />
+                        </svg>
+                    </div>
+                </div>
+                <h2>Welcome to HR Portal! {{ welcome_name }}</h2>
                 <p class="lead">You have successfully logged in. <span>Preparing your workspace...</span></p>
 
                 <div class="features">

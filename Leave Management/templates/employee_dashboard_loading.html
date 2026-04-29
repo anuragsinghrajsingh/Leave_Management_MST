@@ -25,12 +25,25 @@
                     <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
                 </div>
                 <div>
-                    <h1><span>MS</span>Technology</h1>
+                    <h1><span>MS</span> Technology</h1>
                 </div>
                 <div class="system-chip">Leave Management System</div>
             </div>
             <div class="portal-chip">
-                <span class="portal-chip__icon">&#128100;</span>
+                <svg class="portal-chip__icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                    <defs>
+                        <linearGradient id="employeeDashboardChipGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#f472b6" />
+                            <stop offset="100%" stop-color="#db2777" />
+                        </linearGradient>
+                        <linearGradient id="employeeDashboardChipGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#60a5fa" />
+                            <stop offset="100%" stop-color="#3b82f6" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="24" cy="18" r="8" fill="url(#employeeDashboardChipGrad2)" />
+                    <path d="M10 40c0-8 6-12 14-12s14 4 14 12v2H10v-2z" fill="url(#employeeDashboardChipGrad1)" />
+                </svg>
                 <span>Employee Portal</span>
             </div>
         </header>
@@ -44,10 +57,25 @@
                 <div class="status-pill">Login Successful</div>
                 <div class="hero-ring">
                     <div class="hero-ring__inner">
-                        <div class="hero-ring__icon">&#10003;</div>
+                        <div class="hero-ring__icon">
+                            <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <linearGradient id="employeeDashboardRingGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#f472b6" />
+                                        <stop offset="100%" stop-color="#db2777" />
+                                    </linearGradient>
+                                    <linearGradient id="employeeDashboardRingGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#60a5fa" />
+                                        <stop offset="100%" stop-color="#3b82f6" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="24" cy="18" r="8" fill="url(#employeeDashboardRingGrad2)" />
+                                <path d="M10 40c0-8 6-12 14-12s14 4 14 12v2H10v-2z" fill="url(#employeeDashboardRingGrad1)" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
-                <h2>Welcome Back!</h2>
+                <h2>Welcome Back! {{ welcome_name }}</h2>
                 <p class="hero-copy">You have successfully logged in. Let us make today productive!</p>
 
                 <div class="feature-row">

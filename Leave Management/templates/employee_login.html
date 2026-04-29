@@ -176,11 +176,7 @@
             display: block !important;
             width: 100% !important;
             height: 100% !important;
-            fill: none !important;
-            stroke: currentColor !important;
-            stroke-width: 1.9px !important;
-            stroke-linecap: round !important;
-            stroke-linejoin: round !important;
+            fill: currentColor !important;
         }
 
         .employee-theme .login-panel--info h1 {
@@ -1267,10 +1263,19 @@
                 <div class="brand-copy">
                     <span class="login-kicker">
                         <span class="login-kicker__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M7 4.5h10A2.5 2.5 0 0 1 19.5 7v10A2.5 2.5 0 0 1 17 19.5H7A2.5 2.5 0 0 1 4.5 17V7A2.5 2.5 0 0 1 7 4.5Z"/>
-                                <path d="M9.2 9.2a2.8 2.8 0 1 1 5.6 0 2.8 2.8 0 0 1-5.6 0Z"/>
-                                <path d="M8.3 15.8c.9-1.5 2.4-2.3 3.7-2.3s2.8.8 3.7 2.3"/>
+                            <svg viewBox="0 0 48 48" focusable="false">
+                                <defs>
+                                    <linearGradient id="employeeKickerGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#f472b6" />
+                                        <stop offset="100%" stop-color="#db2777" />
+                                    </linearGradient>
+                                    <linearGradient id="employeeKickerGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#60a5fa" />
+                                        <stop offset="100%" stop-color="#3b82f6" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="24" cy="18" r="8" fill="url(#employeeKickerGrad2)" />
+                                <path d="M10 40c0-8 6-12 14-12s14 4 14 12v2H10v-2z" fill="url(#employeeKickerGrad1)" />
                             </svg>
                         </span>
                         <span class="login-kicker__text">Employee Portal</span>

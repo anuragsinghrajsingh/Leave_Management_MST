@@ -21,6 +21,7 @@ from django.urls import reverse
 from django.utils.html import escape
 from django.template.loader import render_to_string
 import base64
+from urllib.parse import quote
 
 
 def _get_leave_day_display(leave):
@@ -415,6 +416,23 @@ def _render_role_transition_page(request, template_name, page_title, target_url,
     return render(request, template_name, context)
 
 
+def _get_logout_display_name(user, role=None):
+    first_name = (getattr(user, "first_name", "") or "").strip()
+    if first_name:
+        return first_name
+
+    full_name = (user.get_full_name() or "").strip()
+    if full_name:
+        return full_name.split()[0]
+
+    username = (getattr(user, "username", "") or "").strip()
+    if username:
+        return username
+
+    fallback_map = {"EMPLOYEE": "Employee", "HR": "HR", "Admin": "Admin"}
+    return fallback_map.get(role, "User")
+
+
 @never_cache
 def employee_dashboard_loading_page(request):
     if not request.user.is_authenticated:
@@ -429,6 +447,7 @@ def employee_dashboard_loading_page(request):
         page_title="Employee Dashboard Loading | MS Technology",
         duration=5,
         target_url=reverse("dashboard"),
+        extra_context={"welcome_name": _get_logout_display_name(request.user, request.user.role)},
     )
 
 
@@ -446,6 +465,7 @@ def hr_dashboard_loading_page(request):
         page_title="HR Dashboard Loading | MS Technology",
         duration=5,
         target_url=reverse("hr_dashboard"),
+        extra_context={"welcome_name": _get_logout_display_name(request.user, request.user.role)},
     )
 
 
@@ -463,6 +483,7 @@ def admin_dashboard_loading_page(request):
         page_title="Admin Dashboard Loading | MS Technology",
         duration=5,
         target_url=reverse("admin:index"),
+        extra_context={"welcome_name": _get_logout_display_name(request.user, "Admin")},
     )
 
 
@@ -474,7 +495,10 @@ def employee_logout_loading_page(request):
         page_title="Employee Logout | MS Technology",
         duration=5,
         target_url=reverse("employee_login_form"),
-        extra_context={"logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p")},
+        extra_context={
+            "logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p"),
+            "logout_name": (request.GET.get("name") or "Employee").strip() or "Employee",
+        },
     )
 
 
@@ -486,7 +510,10 @@ def hr_logout_loading_page(request):
         page_title="HR Logout | MS Technology",
         duration=5,
         target_url=reverse("hr_login_form"),
-        extra_context={"logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p")},
+        extra_context={
+            "logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p"),
+            "logout_name": (request.GET.get("name") or "HR").strip() or "HR",
+        },
     )
 
 
@@ -498,7 +525,10 @@ def admin_logout_loading_page(request):
         page_title="Admin Logout | MS Technology",
         duration=5,
         target_url=reverse("admin_login_form"),
-        extra_context={"logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p")},
+        extra_context={
+            "logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p"),
+            "logout_name": (request.GET.get("name") or "Admin").strip() or "Admin",
+        },
     )
 
 
@@ -4269,6 +4299,8 @@ def logout_view(request):
     # 🔹 Detect BEFORE logout
     is_admin = request.user.is_authenticated and request.user.is_superuser
     role = request.user.role if request.user.is_authenticated else None
+    logout_name = _get_logout_display_name(request.user, role)
+    logout_username = (getattr(request.user, "username", "") or "").strip()
 
     # 🔥 Logout user
     logout(request)
@@ -4282,13 +4314,16 @@ def logout_view(request):
     print(role, " - Logged out Successfully")
 
     if is_admin or role == "Admin":
-        return redirect("admin_logout_loading_page")
+        request.session["admin_login_username"] = logout_username
+        return redirect(f"{reverse('admin_logout_loading_page')}?name={quote(logout_name)}")
     
     elif role == "HR":
-        return redirect("hr_logout_loading_page")
+        request.session["hr_login_username"] = logout_username
+        return redirect(f"{reverse('hr_logout_loading_page')}?name={quote(logout_name)}")
 
     elif role == "EMPLOYEE":
-        return redirect("employee_logout_loading_page")
+        request.session["employee_login_username"] = logout_username
+        return redirect(f"{reverse('employee_logout_loading_page')}?name={quote(logout_name)}")
   
     else:
         return redirect("role_select")

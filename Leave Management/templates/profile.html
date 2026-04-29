@@ -965,6 +965,18 @@
 
             canvas.style.display = "none";
 
+            const chartBody = canvas.closest(".chart-body");
+            const chartLegend = chartBody ? chartBody.querySelector(".chart-legend") : null;
+
+            if (chartBody) {
+                chartBody.classList.add("chart-body-empty");
+            }
+
+            if (chartLegend) {
+                chartLegend.innerHTML = "";
+                chartLegend.hidden = true;
+            }
+
             const empty = document.createElement("div");
             empty.className = "chart-empty-state";
             empty.innerHTML = `

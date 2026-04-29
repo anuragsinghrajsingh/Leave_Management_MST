@@ -258,9 +258,8 @@
 
         .admin-portal-pill svg {
             display: block;
-            width: 18px;
-            height: 18px;
-            fill: #d8d8ff;
+            width: 22px;
+            height: 22px;
             filter: drop-shadow(0 0 8px rgba(173, 150, 255, 0.22));
             transform: translateY(1.5px);
         }
@@ -1223,8 +1222,20 @@
                             </div>
                         </div>
                         <div class="admin-portal-pill">
-                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="M12 2.5 4.5 6v5.3c0 4.7 3 8.7 7.5 10.2 4.5-1.5 7.5-5.5 7.5-10.2V6L12 2.5Zm0 3.1 4.8 2.2v3.5c0 3.4-2 6.4-4.8 7.7-2.8-1.3-4.8-4.3-4.8-7.7V7.8L12 5.6Zm-1 3.2h2v2h2v2h-2v2h-2v-2H9v-2h2v-2Z"/>
+                            <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <linearGradient id="adminPortalPillUserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1" />
+                                        <stop offset="100%" stop-color="#4f46e5" />
+                                    </linearGradient>
+                                    <linearGradient id="adminPortalPillGearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#fbbf24" />
+                                        <stop offset="100%" stop-color="#f59e0b" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="28" cy="22" r="10" fill="url(#adminPortalPillUserGrad)" />
+                                <path d="M8 50c0-7 7-11 20-11s20 4 20 11v3H8v-3z" fill="url(#adminPortalPillUserGrad)" />
+                                <path d="M58 38l-2.5-.4c-.3-.8-.7-1.6-1.2-2.3l1.7-1.9c.3-.4.3-1 0-1.4l-2.1-2.1c-.4-.4-1-.4-1.4 0l-1.9 1.7c-.7-.5-1.5-.9-2.3-1.2L48 28c-.1-.5-.6-1-1.1-1h-3c-.5 0-1 .4-1.1 1l-.4 2.5c-.8.3-1.6.7-2.3 1.2l-1.9-1.7c-.4-.3-1-.3-1.4 0l-2.1 2.1c-.3.4-.3 1 0 1.4l1.7 1.9c-.5.7-.9 1.5-1.2 2.3L32 38c-.5.1-1 .6-1 1.1v3c0 .5.4 1 1 1.1l2.5.4c.3.8.7 1.6 1.2 2.3l-1.7 1.9c-.3.4-.3 1 0 1.4l2.1 2.1c.4.4 1 .4 1.4 0l1.9-1.7c.7.5 1.5.9 2.3 1.2l.4 2.5c.1.5.6 1 1.1 1h3c.5 0 1-.4 1.1-1l.4-2.5c.8-.3 1.6-.7 2.3-1.2l1.9 1.7c.4.3 1 .3 1.4 0l2.1-2.1c.3-.4.3-1 0-1.4l-1.7-1.9c.5-.7.9-1.5 1.2-2.3l2.5-.4c.5-.1 1-.6 1-1.1v-3c0-.6-.4-1.1-1-1.2zm-11.5 6.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z" fill="url(#adminPortalPillGearGrad)" />
                             </svg>
                             <span>Admin Portal</span>
                         </div>
