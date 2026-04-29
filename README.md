@@ -1,6 +1,6 @@
 # <div align="center">🌿 Leave Management MST</div>
 <p align="center">
-  <sub>A Product of <b>ASRS_Empire™</b></sub>
+  <sub>A Product of <b>MS Technology</b></sub>
 </p>
 
 <p align="center">
@@ -44,8 +44,11 @@ The **Leave Management MST (Modern System Technologies)** Edition is a complete 
 ### Why MST?
 MST was built for organizations that demand speed and superior aesthetics. We have refactored the legacy core, removing over 30 redundant files to create a "Clean Core" system that is faster and easier to maintain.
 
-### 👑 The ASRS_Empire™ Vision
-Part of the **ASRS_Empire™** premium software line, MST adheres to the highest standards of code quality and visual design.
+### 👑 The MS Technology Vision
+This project is part of the **MS Technology** ecosystem, which focuses on three core pillars:
+1.  **Reliability**: Mission-critical logic that never fails during peak load.
+2.  **Aesthetics**: Premium, modern user interfaces that inspire confidence.
+3.  **Simplicity**: Stripping away complexity to focus on what matters.
 
 ---
 
@@ -137,5 +140,5 @@ MST follows a **Service-Oriented Logic** pattern, where core business rules are 
 
 ---
 <div align="center">
-  <sub>Engineering the Future of Work. Powered by <b>ASRS_Empire™</b>.</sub>
+  <sub>Engineering the Future of Work. Powered by <b>MS Technology</b>.</sub>
 </div>
