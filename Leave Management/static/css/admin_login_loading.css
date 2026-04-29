@@ -258,9 +258,9 @@ body.portal-loading {
 }
 
 .portal-loading__badge svg {
-    width: 19px;
-    height: 19px;
-    fill: currentColor;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
 }
 
 .portal-loading__logo {
@@ -384,9 +384,9 @@ body.portal-loading {
 }
 
 .portal-loading__hub-icon {
-    width: 34px;
-    height: 34px;
-    fill: url(#portalIconGradient);
+    width: 44px;
+    height: 44px;
+    display: block;
 }
 
 .portal-loading__hub-label {
@@ -401,9 +401,11 @@ body.portal-loading {
 
 .portal-loading__headline {
     margin: 10px 0 0;
+    display: inline-block;
     font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
     font-size: clamp(1.6rem, 2.3vw, 2.35rem);
-    line-height: 1.08;
+    line-height: 1.18;
+    padding-bottom: 0.08em;
     background: var(--portal-line);
     -webkit-background-clip: text;
     background-clip: text;
@@ -809,8 +811,8 @@ body.portal-loading {
     }
 
     .portal-loading__badge svg {
-        width: 15px;
-        height: 15px;
+        width: 18px;
+        height: 18px;
     }
 
     .portal-loading__logo {
@@ -948,8 +950,8 @@ body.portal-loading {
     }
 
     .portal-loading__badge svg {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
     }
 
     .portal-loading__logo {
@@ -990,8 +992,8 @@ body.portal-loading {
     }
 
     .portal-loading__hub-icon {
-        width: 24px;
-        height: 24px;
+        width: 30px;
+        height: 30px;
     }
 
     .portal-loading__hub-label {

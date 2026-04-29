@@ -17,20 +17,55 @@
         <header class="topbar">
             <div class="brand">
                 <div class="brand__logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div>
-                <div><h1><span>MS</span> Technology</h1><p>Leave Management System</p></div>
+                <div><h1><span>MS</span>Technology</h1></div>
+                <div class="system-chip">Leave Management System</div>
             </div>
-            <div class="chip">&#128737; Admin Area</div>
+            <div class="chip">
+                <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                    <defs>
+                        <linearGradient id="adminDashboardChipUserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#6366f1" />
+                            <stop offset="100%" stop-color="#4f46e5" />
+                        </linearGradient>
+                        <linearGradient id="adminDashboardChipGearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fbbf24" />
+                            <stop offset="100%" stop-color="#f59e0b" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="28" cy="22" r="10" fill="url(#adminDashboardChipUserGrad)" />
+                    <path d="M8 50c0-7 7-11 20-11s20 4 20 11v3H8v-3z" fill="url(#adminDashboardChipUserGrad)" />
+                    <path d="M58 38l-2.5-.4c-.3-.8-.7-1.6-1.2-2.3l1.7-1.9c.3-.4.3-1 0-1.4l-2.1-2.1c-.4-.4-1-.4-1.4 0l-1.9 1.7c-.7-.5-1.5-.9-2.3-1.2L48 28c-.1-.5-.6-1-1.1-1h-3c-.5 0-1 .4-1.1 1l-.4 2.5c-.8.3-1.6.7-2.3 1.2l-1.9-1.7c-.4-.3-1-.3-1.4 0l-2.1 2.1c-.3.4-.3 1 0 1.4l1.7 1.9c-.5.7-.9 1.5-1.2 2.3L32 38c-.5.1-1 .6-1 1.1v3c0 .5.4 1 1 1.1l2.5.4c.3.8.7 1.6 1.2 2.3l-1.7 1.9c-.3.4-.3 1 0 1.4l2.1 2.1c.4.4 1 .4 1.4 0l1.9-1.7c.7.5 1.5.9 2.3 1.2l.4 2.5c.1.5.6 1 1.1 1h3c.5 0 1-.4 1.1-1l.4-2.5c.8-.3 1.6-.7 2.3-1.2l1.9 1.7c.4.3 1 .3 1.4 0l2.1-2.1c.3-.4.3-1 0-1.4l-1.7-1.9c.5-.7.9-1.5 1.2-2.3l2.5-.4c.5-.1 1-.6 1-1.1v-3c0-.6-.4-1.1-1-1.2zm-11.5 6.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z" fill="url(#adminDashboardChipGearGrad)" />
+                </svg>
+                <span>Admin Area</span>
+            </div>
         </header>
 
         <section class="dashboard-stage">
-            <div class="stage-side">
-                <article class="footer-card"><i>&#128274;</i><div><h3>Enterprise Grade Security</h3><p>Advanced protection for critical data.</p></div></article>
-                <article class="footer-card"><i>&#9889;</i><div><h3>High Performance</h3><p>Optimized for speed and reliability.</p></div></article>
-            </div>
-
             <section class="card">
+                <a href="{{ target_url }}" class="dashboard-skip">
+                    <strong>Skip</strong>
+                    <span><span id="toast-countdown">{{ duration }}</span>s</span>
+                </a>
                 <div class="pill">Admin Verified</div>
-                <div class="ring"><div class="ring__inner">&#10003;</div></div>
+                <div class="ring">
+                    <div class="ring__inner">
+                        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                            <defs>
+                                <linearGradient id="adminDashboardRingUserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#6366f1" />
+                                    <stop offset="100%" stop-color="#4f46e5" />
+                                </linearGradient>
+                                <linearGradient id="adminDashboardRingGearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#fbbf24" />
+                                    <stop offset="100%" stop-color="#f59e0b" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="28" cy="22" r="10" fill="url(#adminDashboardRingUserGrad)" />
+                            <path d="M8 50c0-7 7-11 20-11s20 4 20 11v3H8v-3z" fill="url(#adminDashboardRingUserGrad)" />
+                            <path d="M58 38l-2.5-.4c-.3-.8-.7-1.6-1.2-2.3l1.7-1.9c.3-.4.3-1 0-1.4l-2.1-2.1c-.4-.4-1-.4-1.4 0l-1.9 1.7c-.7-.5-1.5-.9-2.3-1.2L48 28c-.1-.5-.6-1-1.1-1h-3c-.5 0-1 .4-1.1 1l-.4 2.5c-.8.3-1.6.7-2.3 1.2l-1.9-1.7c-.4-.3-1-.3-1.4 0l-2.1 2.1c-.3.4-.3 1 0 1.4l1.7 1.9c-.5.7-.9 1.5-1.2 2.3L32 38c-.5.1-1 .6-1 1.1v3c0 .5.4 1 1 1.1l2.5.4c.3.8.7 1.6 1.2 2.3l-1.7 1.9c-.3.4-.3 1 0 1.4l2.1 2.1c.4.4 1 .4 1.4 0l1.9-1.7c.7.5 1.5.9 2.3 1.2l.4 2.5c.1.5.6 1 1.1 1h3c.5 0 1-.4 1.1-1l.4-2.5c.8-.3 1.6-.7 2.3-1.2l1.9 1.7c.4.3 1 .3 1.4 0l2.1-2.1c.3-.4.3-1 0-1.4l-1.7-1.9c.5-.7.9-1.5 1.2-2.3l2.5-.4c.5-.1 1-.6 1-1.1v-3c0-.6-.4-1.1-1-1.2zm-11.5 6.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z" fill="url(#adminDashboardRingGearGrad)" />
+                        </svg>
+                    </div>
+                </div>
                 <h2>Welcome, Admin!</h2>
                 <p class="lead">Login successful. You are accessing the admin control panel.</p>
 
@@ -45,7 +80,9 @@
                 <div class="note"><span class="spinner"></span>Redirecting to Admin Dashboard in <strong id="countdown">{{ duration }}</strong> seconds...</div>
             </section>
 
-            <div class="stage-side">
+            <div class="support-grid">
+                <article class="footer-card"><i>&#128274;</i><div><h3>Enterprise Grade Security</h3><p>Advanced protection for critical data.</p></div></article>
+                <article class="footer-card"><i>&#9889;</i><div><h3>High Performance</h3><p>Optimized for speed and reliability.</p></div></article>
                 <article class="footer-card"><i>&#9729;</i><div><h3>Always Available</h3><p>99.9% uptime for seamless access.</p></div></article>
                 <article class="footer-card"><i>&#10004;</i><div><h3>Trusted and Reliable</h3><p>Built for organizations you can trust.</p></div></article>
             </div>
@@ -59,13 +96,18 @@
             const fill = document.getElementById("progress-fill");
             const value = document.getElementById("progress-value");
             const countdown = document.getElementById("countdown");
+            const toastCountdown = document.getElementById("toast-countdown");
             let remaining = duration;
             function render() {
                 const elapsed = Math.max(0, duration - remaining);
                 const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
                 fill.style.width = percent + "%";
                 value.textContent = percent + "%";
-                countdown.textContent = Math.max(0, remaining);
+                const seconds = Math.max(0, remaining);
+                countdown.textContent = seconds;
+                if (toastCountdown) {
+                    toastCountdown.textContent = seconds;
+                }
             }
             render();
             const timer = setInterval(function () {

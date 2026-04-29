@@ -22,27 +22,27 @@
         <header class="topbar">
             <div class="brand">
                 <div class="brand__logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div>
-                <div><h1><span>MS</span> Technology</h1><p>Leave Management System</p></div>
+                <div><h1><span>MS</span>Technology</h1></div>
+                <div class="system-chip">Leave Management System</div>
             </div>
             <div class="chip">&#128101; HR Portal</div>
         </header>
 
         <section class="dashboard-stage">
-            <div class="stage-side">
-                <article class="side-card"><i>&#128737;</i><div><h3>Secure Access</h3><p>Your data is safe and confidential.</p></div></article>
-                <article class="side-card"><i>&#128101;</i><div><h3>Role Based</h3><p>Access what matters, when it matters.</p></div></article>
-            </div>
-
             <section class="card">
+                <a href="{{ target_url }}" class="dashboard-skip">
+                    <strong>Skip</strong>
+                    <span><span id="toast-countdown">{{ duration }}</span>s</span>
+                </a>
                 <div class="pill">HR Login Successful</div>
                 <div class="ring"><div class="ring__inner">&#128101;</div></div>
                 <h2>Welcome to HR Portal!</h2>
-                <p class="lead">You have successfully logged in.<br><span>Preparing your workspace...</span></p>
+                <p class="lead">You have successfully logged in. <span>Preparing your workspace...</span></p>
 
                 <div class="features">
-                    <article><i>&#128100;</i><h3>Employee Focused</h3><p>Manage employee leave and related requests.</p></article>
-                    <article><i>&#128203;</i><h3>Policy Driven</h3><p>Ensure policy visibility and compliance.</p></article>
-                    <article><i>&#128202;</i><h3>Smart Insights</h3><p>Monitor leave trends and team availability.</p></article>
+                    <article><i>&#128100;</i><div><h3>Employee Focused</h3><p>Manage employee leave and related requests.</p></div></article>
+                    <article><i>&#128203;</i><div><h3>Policy Driven</h3><p>Ensure policy visibility and compliance.</p></div></article>
+                    <article><i>&#128202;</i><div><h3>Smart Insights</h3><p>Monitor leave trends and team availability.</p></div></article>
                 </div>
 
                 <div class="progress-meta"><strong>Initializing HR dashboard...</strong><span id="progress-value">85%</span></div>
@@ -50,7 +50,9 @@
                 <div class="note"><span class="spinner"></span>Redirecting to HR Dashboard in <strong id="countdown">{{ duration }}</strong> seconds...</div>
             </section>
 
-            <div class="stage-side">
+            <div class="support-grid">
+                <article class="side-card"><i>&#128737;</i><div><h3>Secure Access</h3><p>Your data is safe and confidential.</p></div></article>
+                <article class="side-card"><i>&#128101;</i><div><h3>Role Based</h3><p>Access what matters, when it matters.</p></div></article>
                 <article class="side-card"><i>&#128340;</i><div><h3>Time Saving</h3><p>Streamlined workflows that save time.</p></div></article>
                 <article class="side-card"><i>&#128276;</i><div><h3>Stay Updated</h3><p>Real-time alerts and notifications.</p></div></article>
             </div>
@@ -64,13 +66,18 @@
             const fill = document.getElementById("progress-fill");
             const value = document.getElementById("progress-value");
             const countdown = document.getElementById("countdown");
+            const toastCountdown = document.getElementById("toast-countdown");
             let remaining = duration;
             function render() {
                 const elapsed = Math.max(0, duration - remaining);
                 const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
                 fill.style.width = percent + "%";
                 value.textContent = percent + "%";
-                countdown.textContent = Math.max(0, remaining);
+                const seconds = Math.max(0, remaining);
+                countdown.textContent = seconds;
+                if (toastCountdown) {
+                    toastCountdown.textContent = seconds;
+                }
             }
             render();
             const timer = setInterval(function () {

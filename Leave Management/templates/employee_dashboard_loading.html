@@ -25,9 +25,9 @@
                     <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
                 </div>
                 <div>
-                    <h1><span>MS</span> Technology</h1>
-                    <p>Leave Management System</p>
+                    <h1><span>MS</span>Technology</h1>
                 </div>
+                <div class="system-chip">Leave Management System</div>
             </div>
             <div class="portal-chip">
                 <span class="portal-chip__icon">&#128100;</span>
@@ -36,18 +36,11 @@
         </header>
 
         <section class="dashboard-stage">
-            <div class="stage-side">
-                <article class="support-card">
-                    <div class="support-card__icon">&#128737;</div>
-                    <div><h3>Your Data, Our Priority</h3><p>We ensure your data is secure and private.</p></div>
-                </article>
-                <article class="support-card">
-                    <div class="support-card__icon">&#9889;</div>
-                    <div><h3>Quick and Easy</h3><p>Fast access to everything you need.</p></div>
-                </article>
-            </div>
-
             <section class="hero-card">
+                <a href="{{ target_url }}" class="dashboard-skip">
+                    <strong>Skip</strong>
+                    <span><span id="toast-countdown">{{ duration }}</span>s</span>
+                </a>
                 <div class="status-pill">Login Successful</div>
                 <div class="hero-ring">
                     <div class="hero-ring__inner">
@@ -55,28 +48,36 @@
                     </div>
                 </div>
                 <h2>Welcome Back!</h2>
-                <p class="hero-copy">You have successfully logged in.<br>Let us make today productive!</p>
+                <p class="hero-copy">You have successfully logged in. Let us make today productive!</p>
 
                 <div class="feature-row">
                     <article class="feature-tile">
                         <div class="feature-icon feature-icon--blue">&#128197;</div>
-                        <h3>My Leaves</h3>
-                        <p>View your leave balance and history.</p>
+                        <div class="feature-copy">
+                            <h3>My Leaves</h3>
+                            <p>View your leave balance and history.</p>
+                        </div>
                     </article>
                     <article class="feature-tile">
                         <div class="feature-icon feature-icon--violet">&#9997;</div>
-                        <h3>Apply Leave</h3>
-                        <p>Submit leave requests easily.</p>
+                        <div class="feature-copy">
+                            <h3>Apply Leave</h3>
+                            <p>Submit leave requests easily.</p>
+                        </div>
                     </article>
                     <article class="feature-tile">
                         <div class="feature-icon feature-icon--amber">&#128340;</div>
-                        <h3>My Requests</h3>
-                        <p>Track the status of your requests.</p>
+                        <div class="feature-copy">
+                            <h3>My Requests</h3>
+                            <p>Track the status of your requests.</p>
+                        </div>
                     </article>
                     <article class="feature-tile">
                         <div class="feature-icon feature-icon--teal">&#128100;</div>
-                        <h3>My Profile</h3>
-                        <p>Update your profile and preferences.</p>
+                        <div class="feature-copy">
+                            <h3>My Profile</h3>
+                            <p>Update your profile and preferences.</p>
+                        </div>
                     </article>
                 </div>
 
@@ -94,7 +95,15 @@
                 </div>
             </section>
 
-            <div class="stage-side">
+            <div class="support-grid">
+                <article class="support-card">
+                    <div class="support-card__icon">&#128737;</div>
+                    <div><h3>Your Data, Our Priority</h3><p>We ensure your data is secure and private.</p></div>
+                </article>
+                <article class="support-card">
+                    <div class="support-card__icon">&#9889;</div>
+                    <div><h3>Quick and Easy</h3><p>Fast access to everything you need.</p></div>
+                </article>
                 <article class="support-card">
                     <div class="support-card__icon">&#9786;</div>
                     <div><h3>User Friendly</h3><p>Designed for a smooth and easy experience.</p></div>
@@ -115,6 +124,7 @@
             const progressFill = document.getElementById("progress-fill");
             const progressValue = document.getElementById("progress-value");
             const countdown = document.getElementById("countdown");
+            const toastCountdown = document.getElementById("toast-countdown");
             let remaining = duration;
 
             function render() {
@@ -122,7 +132,11 @@
                 const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
                 progressFill.style.width = percent + "%";
                 progressValue.textContent = percent + "%";
-                countdown.textContent = Math.max(0, remaining);
+                const seconds = Math.max(0, remaining);
+                countdown.textContent = seconds;
+                if (toastCountdown) {
+                    toastCountdown.textContent = seconds;
+                }
             }
 
             function goNext() {

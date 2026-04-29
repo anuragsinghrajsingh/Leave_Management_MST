@@ -401,9 +401,11 @@ body.portal-loading {
 
 .portal-loading__headline {
     margin: 10px 0 0;
+    display: inline-block;
     font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
     font-size: clamp(1.6rem, 2.3vw, 2.35rem);
-    line-height: 1.08;
+    line-height: 1.18;
+    padding-bottom: 0.08em;
     background: var(--portal-line);
     -webkit-background-clip: text;
     background-clip: text;
