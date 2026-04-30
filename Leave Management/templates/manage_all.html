@@ -622,69 +622,103 @@
         <div class="reject-modal-overlay" onclick="closeReject()"></div>
         <div class="reject-modal-dialog reject-review-dialog">
             <div class="reject-modal-header reject-review-header">
-                <div class="reason-modal-heading reject-review-heading">
-                    <p class="reject-review-eyebrow">Decision note</p>
-                    <h3 id="rejectModalTitle">Reject leave request</h3>
-                    <span class="reason-modal-heading-divider" aria-hidden="true"></span>
+                <div class="reject-review-hero">
+                    <div class="reject-review-hero-icon" aria-hidden="true">
+                        <span class="reject-review-hero-icon-sheet"></span>
+                        <span class="reject-review-hero-icon-lines"></span>
+                        <span class="reject-review-hero-icon-cross">&times;</span>
+                    </div>
+                    <div class="reason-modal-heading reject-review-heading">
+                        <p class="reject-review-eyebrow">Leave Rejection Decision Notes</p>
+                        <p class="reject-review-subtitle">Please review the request details and provide a clear reason for rejection.</p>
+                        <span class="reject-review-subtitle-divider" aria-hidden="true"></span>
+                    </div>
                 </div>
                 <button type="button" class="close-modal-btn" onclick="closeReject()" aria-label="Close reject modal">&times;</button>
             </div>
             <div class="reject-modal-body reject-review-body">
-                <div class="reason-modal-top-row reject-review-top-row">
-                    <div class="reason-modal-top-spacer"></div>
-                    <div class="reject-review-chip-group">
-                        <span class="reason-modal-chip reason-modal-name-chip" id="rejectModalEmployeeChip">Employee</span>
-                        <span class="reason-modal-chip reason-modal-type-chip reason-modal-type-default" id="rejectModalTypeChip">Leave</span>
-                    </div>
-                    <div class="reason-modal-top-spacer"></div>
-                </div>
-
                 <div class="reason-modal-meta-grid reject-review-meta-grid">
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128197;</span><span>Schedule</span></span></span>
-                        <div class="reason-meta-value reason-meta-stack">
-                            <strong id="rejectModalScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128197;</span><span>-</span></strong>
-                            <span id="rejectModalScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                    <div class="reject-review-meta-top-row">
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128467;&#65038;</span><span>Schedule</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128197;</span><span>-</span></strong>
+                                    <span id="rejectModalScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9716;</span><span>-</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">#</span><span>Days</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalDays" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9681;</span><span>-</span></strong>
+                                    <span class="reason-meta-content-line reject-review-meta-placeholder" aria-hidden="true"><span class="reason-meta-content-icon">&#9681;</span><span>placeholder</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128278;&#65038;</span><span>Leave Type</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalTypeChip" class="reason-meta-content-line"><span id="rejectModalTypeIcon" class="reason-meta-content-icon" aria-hidden="true">&#128278;&#65038;</span><span>Leave</span></strong>
+                                    <span class="reason-meta-content-line reject-review-meta-placeholder" aria-hidden="true"><span class="reason-meta-content-icon">&#128278;&#65038;</span><span>placeholder</span></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9203;</span><span>Days</span></span></span>
-                        <strong id="rejectModalDays" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9203;</span><span>-</span></strong>
-                    </div>
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span></span>
-                        <div class="reason-meta-value reason-meta-stack">
-                            <strong id="rejectModalApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9201;</span><span>-</span></strong>
-                            <span id="rejectModalAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                    <div class="reason-meta-card reject-review-meta-card">
+                        <div class="reject-review-meta-copy">
+                            <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128336;&#65038;</span><span>Applied</span></span></span>
+                            <div class="reason-meta-value reason-meta-stack">
+                                <strong id="rejectModalApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11123;</span><span>-</span></strong>
+                                <span id="rejectModalAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9716;</span><span>-</span></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>Updates</span></span></span>
-                        <div class="reason-meta-value reason-meta-stack">
-                            <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128260;</span><span>-</span></strong>
-                            <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                    <div class="reason-meta-card reject-review-meta-card">
+                        <div class="reject-review-meta-copy">
+                            <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span>Updates</span></span></span>
+                            <div class="reason-meta-value reason-meta-stack">
+                                <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#10227;</span><span>-</span></strong>
+                                <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11014;</span><span>-</span></span>
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="reason-field-card reject-review-reason-card">
-                    <div class="reason-field-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Employee reason</span></span></div>
-                    <div class="reason-modal-content-shell">
-                        <div id="rejectModalReason">-</div>
                     </div>
                 </div>
 
                 <form method="POST" id="rejectForm" class="reject-form reject-review-form">
                     {% csrf_token %}
-                    <div class="reason-field-card reject-review-note-card">
-                        <label for="rejectionReason" class="reason-field-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10060;</span><span>Rejection note</span></span></label>
-                        <p class="reject-review-note-help">Share a clear, professional reason so the employee knows what needs attention.</p>
-                        <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." required></textarea>
+                    <div class="reject-review-section-toolbar">
+                        <p class="reject-review-section-toolbar-note"><span class="reject-review-section-toolbar-note-icon" aria-hidden="true">&#9432;</span><span>Use these notes to review the employee reason and write your rejection message.</span></p>
+                        <button type="button" class="reject-review-toggle-btn reject-review-toggle-all-btn" id="rejectReasonToggleAll" aria-expanded="false" aria-label="Show notes"><span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span></button>
+                    </div>
+                    <div class="reject-review-reason-grid" id="rejectReasonSectionGrid">
+                        <div class="reason-field-card reject-review-reason-card" id="rejectEmployeeReasonCard">
+                            <div class="reject-review-section-head">
+                                <div class="reason-field-label reject-review-section-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9998;&#65038;</span><span class="reject-review-section-label-text">Employee Reason</span></span></div>
+                            </div>
+                            <div class="reason-modal-content-shell reject-review-section-body">
+                                <textarea id="rejectModalReason" class="reject-review-readonly-field" readonly>-</textarea>
+                            </div>
+                        </div>
+
+                        <div class="reason-field-card reject-review-note-card" id="rejectNoteCard">
+                            <div class="reject-review-section-head">
+                                <label for="rejectionReason" class="reason-field-label reject-review-section-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10006;&#65038;</span><span class="reject-review-section-label-text">Rejection Notes</span></span></label>
+                            </div>
+                            <div class="reject-review-section-body">
+                                <div class="reject-review-textarea-wrap">
+                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="500" required></textarea>
+                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0 / 500</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="modal-actions reject-review-actions">
-                        <button type="button" class="cancel-btn" onclick="closeReject()">Cancel</button>
-                        <button type="submit" class="reject-btn">Review And Reject</button>
+                        <button type="button" class="cancel-btn reject-review-cancel-btn" onclick="closeReject()">Cancel</button>
+                        <button type="submit" class="reject-btn reject-review-submit-btn">Review And Reject</button>
                     </div>
                 </form>
             </div>
@@ -2681,6 +2715,13 @@
         return String(leave && leave.days_value_display ? leave.days_value_display : calculateLeaveDayCount(leave && leave.from_date, leave && leave.to_date, leave && leave.type));
     }
 
+    function getManageLeaveDaysValueText(leave)
+    {
+        const fullText = getManageLeaveDaysText(leave);
+        const matchedValue = String(fullText || "").match(/[\d.]+/);
+        return matchedValue ? matchedValue[0] : fullText;
+    }
+
     function setMetaLineValue(container, text)
     {
         if (!container)
@@ -2706,9 +2747,42 @@
             return;
         }
 
+        const typeIcon = document.getElementById("rejectModalTypeIcon");
         const typeClass = getManageLeaveThemeClass(leave && leave.type_class);
-        typeChip.className = "reason-modal-chip reason-modal-type-chip reason-modal-type-" + typeClass;
-        typeChip.textContent = leave && leave.type ? leave.type : "Leave";
+        const typeSymbolMap = {
+            sick: "&#10010;",
+            earned: "&#10022;",
+            unpaid: "&#9673;",
+            short: "&#9716;",
+            half: "&#9681;",
+            default: "&#128278;&#65038;"
+        };
+
+        if (typeIcon)
+        {
+            typeIcon.innerHTML = typeSymbolMap[typeClass] || typeSymbolMap.default;
+        }
+
+        typeChip.dataset.leaveTypeClass = typeClass;
+        setMetaLineValue(typeChip, leave && leave.type ? leave.type : "Leave");
+    }
+
+    function resetRejectSectionCards()
+    {
+        const grid = document.getElementById("rejectReasonSectionGrid");
+        const button = document.getElementById("rejectReasonToggleAll");
+
+        if (grid)
+        {
+            grid.classList.add("is-hidden");
+        }
+
+        if (button)
+        {
+            button.innerHTML = '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>';
+            button.setAttribute("aria-label", "Show notes");
+            button.setAttribute("aria-expanded", "false");
+        }
     }
 
     function populateRejectModal(leave)
@@ -2716,7 +2790,6 @@
         const modal = document.getElementById("rejectModal");
         const employeeChip = document.getElementById("rejectModalEmployeeChip");
         const typeChip = document.getElementById("rejectModalTypeChip");
-        const title = document.getElementById("rejectModalTitle");
         const scheduleDate = document.getElementById("rejectModalScheduleDate");
         const scheduleTime = document.getElementById("rejectModalScheduleTime");
         const days = document.getElementById("rejectModalDays");
@@ -2735,11 +2808,6 @@
         modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
         modal.classList.add("reason-theme-" + typeClass);
 
-        if (title)
-        {
-            title.textContent = leave && leave.type ? "Reject " + leave.type + " Request" : "Reject Leave Request";
-        }
-
         if (employeeChip)
         {
             employeeChip.textContent = currentEmployeeDetail && (currentEmployeeDetail.display_name || currentEmployeeDetail.username)
@@ -2750,7 +2818,7 @@
         setRejectTypeChip(typeChip, leave);
         setMetaLineValue(scheduleDate, getManageLeaveScheduleDateText(leave));
         setMetaLineValue(scheduleTime, getManageLeaveScheduleTimeText(leave));
-        setMetaLineValue(days, getManageLeaveDaysText(leave));
+        setMetaLineValue(days, getManageLeaveDaysValueText(leave));
         setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.applied_at_iso) || (leave && leave.applied_at) || "-");
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.applied_at_iso, leave && leave.applied_at));
 
@@ -2767,7 +2835,7 @@
 
         if (reason)
         {
-            reason.textContent = leave && leave.reason ? leave.reason : "No reason was added by the employee.";
+            reason.value = leave && leave.reason ? leave.reason : "No reason was added by the employee.";
         }
     }
 
@@ -5174,7 +5242,9 @@
         currentRejectLeaveSnapshot = leave;
         form.action = getLeaveActionUrl(rejectLeaveUrlTemplate, leaveId);
         populateRejectModal(leave);
+        resetRejectSectionCards();
         showManagedModal(modal);
+        syncRejectionReasonCount();
         textarea.focus();
     }
 
@@ -5188,6 +5258,7 @@
             currentRejectLeaveId = null;
             currentRejectLeaveSnapshot = null;
             textarea.value = "";
+            syncRejectionReasonCount();
         });
     }
 
@@ -5264,6 +5335,22 @@
     const rejectForm = document.getElementById("rejectForm");
     const decisionConfirmCancel = document.getElementById("decisionConfirmCancel");
     const decisionConfirmSubmit = document.getElementById("decisionConfirmSubmit");
+    const rejectionReasonTextarea = document.getElementById("rejectionReason");
+    const rejectionReasonCount = document.getElementById("rejectionReasonCount");
+    const rejectReasonToggleAllButton = document.getElementById("rejectReasonToggleAll");
+    const rejectReasonSectionGrid = document.getElementById("rejectReasonSectionGrid");
+
+    function syncRejectionReasonCount()
+    {
+        if (!rejectionReasonTextarea || !rejectionReasonCount)
+        {
+            return;
+        }
+
+        const currentLength = rejectionReasonTextarea.value ? rejectionReasonTextarea.value.length : 0;
+        const maxLength = Number(rejectionReasonTextarea.getAttribute("maxlength") || 500);
+        rejectionReasonCount.textContent = currentLength + " / " + maxLength;
+    }
 
     if (decisionConfirmCancel)
     {
@@ -5278,6 +5365,31 @@
         decisionConfirmSubmit.addEventListener("click", function ()
         {
             closeDecisionConfirm(true);
+        });
+    }
+
+    if (rejectionReasonTextarea)
+    {
+        rejectionReasonTextarea.addEventListener("input", syncRejectionReasonCount);
+        syncRejectionReasonCount();
+    }
+
+    if (rejectReasonToggleAllButton)
+    {
+        rejectReasonToggleAllButton.addEventListener("click", function ()
+        {
+            if (!rejectReasonSectionGrid)
+            {
+                return;
+            }
+
+            const shouldHide = !rejectReasonSectionGrid.classList.contains("is-hidden");
+            rejectReasonSectionGrid.classList.toggle("is-hidden", shouldHide);
+            rejectReasonToggleAllButton.innerHTML = shouldHide
+                ? '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>'
+                : '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9652;</span><span class="reject-review-toggle-btn-text">Hide Notes</span>';
+            rejectReasonToggleAllButton.setAttribute("aria-label", shouldHide ? "Show notes" : "Hide notes");
+            rejectReasonToggleAllButton.setAttribute("aria-expanded", shouldHide ? "false" : "true");
         });
     }
 
