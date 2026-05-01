@@ -667,21 +667,23 @@
                             </div>
                         </div>
                     </div>
-                    <div class="reason-meta-card reject-review-meta-card">
-                        <div class="reject-review-meta-copy">
-                            <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128336;&#65038;</span><span>Applied</span></span></span>
-                            <div class="reason-meta-value reason-meta-stack">
-                                <strong id="rejectModalApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11123;</span><span>-</span></strong>
-                                <span id="rejectModalAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9716;</span><span>-</span></span>
+                    <div class="reject-review-meta-bottom-row">
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128336;&#65038;</span><span>Applied At</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11123;</span><span>-</span></strong>
+                                    <span id="rejectModalAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9716;</span><span>-</span></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="reason-meta-card reject-review-meta-card">
-                        <div class="reject-review-meta-copy">
-                            <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span>Updates</span></span></span>
-                            <div class="reason-meta-value reason-meta-stack">
-                                <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#10227;</span><span>-</span></strong>
-                                <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11014;</span><span>-</span></span>
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span>Updated At</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#10227;</span><span>-</span></strong>
+                                    <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11014;</span><span>-</span></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -709,16 +711,16 @@
                             </div>
                             <div class="reject-review-section-body">
                                 <div class="reject-review-textarea-wrap">
-                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="500" required></textarea>
-                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0 / 500</span>
+                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="100" required></textarea>
+                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0/100</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="modal-actions reject-review-actions">
-                        <button type="button" class="cancel-btn reject-review-cancel-btn" onclick="closeReject()">Cancel</button>
-                        <button type="submit" class="reject-btn reject-review-submit-btn">Review And Reject</button>
+                        <button type="button" class="cancel-btn reject-review-cancel-btn" onclick="closeReject()"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                        <button type="submit" class="reject-btn reject-review-submit-btn"><span aria-hidden="true">&#9940;</span><span>Review And Reject</span></button>
                     </div>
                 </form>
             </div>
@@ -729,10 +731,16 @@
         <div class="reject-modal-overlay" onclick="closeDecisionConfirm(false)"></div>
         <div class="reject-modal-dialog decision-confirm-dialog">
             <div class="reject-modal-header decision-confirm-header">
-                <div class="reason-modal-heading decision-confirm-heading">
-                    <p class="reject-review-eyebrow" id="decisionConfirmEyebrow">Confirm action</p>
-                    <h3 id="decisionConfirmTitle">Confirm leave action</h3>
-                    <span class="reason-modal-heading-divider" aria-hidden="true"></span>
+                <div class="decision-confirm-shell">
+                    <div class="decision-confirm-badge" aria-hidden="true">
+                        <span class="decision-confirm-badge-ring"></span>
+                        <span class="decision-confirm-badge-icon" id="decisionConfirmBadgeIcon">&#10022;</span>
+                    </div>
+                    <div class="reason-modal-heading decision-confirm-heading">
+                        <p class="reject-review-eyebrow" id="decisionConfirmEyebrow">Confirm action</p>
+                        <h3 id="decisionConfirmTitle">Confirm leave action</h3>
+                        <p class="decision-confirm-intro" id="decisionConfirmIntro">Please confirm you want to continue.</p>
+                    </div>
                 </div>
                 <button type="button" class="close-modal-btn" onclick="closeDecisionConfirm(false)" aria-label="Close confirmation dialog">&times;</button>
             </div>
@@ -746,32 +754,46 @@
                 </div>
 
                 <div class="reason-modal-meta-grid decision-confirm-grid">
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>Employee</span></span></span>
-                        <strong id="decisionConfirmEmployee" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128100;</span><span>-</span></strong>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-employee-head" aria-hidden="true">&#10022;</span><span>Employee</span></span></span>
+                        <strong id="decisionConfirmEmployee" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-employee-value" aria-hidden="true">&#128100;</span><span>-</span></strong>
                     </div>
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128204;</span><span>Leave Type</span></span></span>
-                        <strong id="decisionConfirmType" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128204;</span><span>-</span></strong>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-type-head" aria-hidden="true">&#11041;</span><span>Leave Type</span></span></span>
+                        <strong id="decisionConfirmType" class="reason-meta-value reason-meta-content-line"><span id="decisionConfirmTypeIcon" class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-type-value" aria-hidden="true" data-leave-type="default">&#9670;</span><span>-</span></strong>
                     </div>
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128197;</span><span>Schedule</span></span></span>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-days-head" aria-hidden="true">&#10038;</span><span>Days</span></span></span>
+                        <strong id="decisionConfirmDays" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-days-value" aria-hidden="true">&#9203;</span><span>-</span></strong>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-schedule-head" aria-hidden="true">&#9635;</span><span>Schedule</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
-                            <strong id="decisionConfirmScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128197;</span><span>-</span></strong>
-                            <span id="decisionConfirmScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                            <strong id="decisionConfirmScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-schedule-date" aria-hidden="true">&#128197;</span><span>-</span></strong>
+                            <span id="decisionConfirmScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-schedule-time" aria-hidden="true">&#9200;</span><span>-</span></span>
                         </div>
                     </div>
-                    <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9203;</span><span>Days</span></span></span>
-                        <strong id="decisionConfirmDays" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9203;</span><span>-</span></strong>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-applied-head" aria-hidden="true">&#8595;</span><span>Applied At</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="decisionConfirmApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-applied-value" aria-hidden="true">&#9202;</span><span>-</span></strong>
+                            <span id="decisionConfirmAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-applied-time" aria-hidden="true">&#8595;</span><span>-</span></span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-updated-head" aria-hidden="true">&#8635;</span><span>Updated At</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="decisionConfirmUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-value" aria-hidden="true">&#9200;</span><span>-</span></strong>
+                            <span id="decisionConfirmUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-time" aria-hidden="true">&#8593;</span><span>-</span></span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="decision-confirm-note" id="decisionConfirmNote" hidden></div>
 
                 <div class="modal-actions decision-confirm-actions">
-                    <button type="button" class="cancel-btn" id="decisionConfirmCancel">Cancel</button>
-                    <button type="button" class="reject-btn" id="decisionConfirmSubmit">Confirm</button>
+                    <button type="button" class="cancel-btn decision-confirm-cancel-btn" id="decisionConfirmCancel"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                    <button type="button" class="reject-btn decision-confirm-submit-btn" id="decisionConfirmSubmit"><span aria-hidden="true">&#10003;</span><span>Confirm</span></button>
                 </div>
             </div>
         </div>
@@ -2740,6 +2762,27 @@
         container.textContent = text || "-";
     }
 
+    function setDecisionConfirmTypeIcon(icon, typeClass)
+    {
+        if (!icon)
+        {
+            return;
+        }
+
+        const resolvedType = getManageLeaveThemeClass(typeClass);
+        const iconMap = {
+            sick: "\u271A",
+            earned: "\u2605",
+            unpaid: "\u25CE",
+            short: "\u25F7",
+            half: "\u25D0",
+            default: "\u25C6"
+        };
+
+        icon.setAttribute("data-leave-type", resolvedType);
+        icon.textContent = iconMap[resolvedType] || iconMap.default;
+    }
+
     function setRejectTypeChip(typeChip, leave)
     {
         if (!typeChip)
@@ -2844,20 +2887,33 @@
         const modal = document.getElementById("decisionConfirmModal");
         const title = document.getElementById("decisionConfirmTitle");
         const eyebrow = document.getElementById("decisionConfirmEyebrow");
+        const intro = document.getElementById("decisionConfirmIntro");
         const icon = document.getElementById("decisionConfirmIcon");
+        const badgeIcon = document.getElementById("decisionConfirmBadgeIcon");
         const message = document.getElementById("decisionConfirmMessage");
         const subtext = document.getElementById("decisionConfirmSubtext");
         const employee = document.getElementById("decisionConfirmEmployee");
         const type = document.getElementById("decisionConfirmType");
+        const typeIcon = document.getElementById("decisionConfirmTypeIcon");
         const scheduleDate = document.getElementById("decisionConfirmScheduleDate");
         const scheduleTime = document.getElementById("decisionConfirmScheduleTime");
         const days = document.getElementById("decisionConfirmDays");
+        const applied = document.getElementById("decisionConfirmApplied");
+        const appliedTime = document.getElementById("decisionConfirmAppliedTime");
+        const updated = document.getElementById("decisionConfirmUpdated");
+        const updatedTime = document.getElementById("decisionConfirmUpdatedTime");
         const note = document.getElementById("decisionConfirmNote");
         const submit = document.getElementById("decisionConfirmSubmit");
         const cancel = document.getElementById("decisionConfirmCancel");
         const leave = config && config.leave ? config.leave : null;
         const variant = config && config.variant === "reject" ? "reject" : "approve";
         const typeClass = getManageLeaveThemeClass(leave && leave.type_class);
+        const resolvedUpdatedIso = leave && (leave.updated_at_iso || leave.approved_at_iso || leave.rejected_at_iso)
+            ? (leave.updated_at_iso || leave.approved_at_iso || leave.rejected_at_iso)
+            : "";
+        const resolvedUpdatedText = leave && (leave.updated_at || leave.approved_at || leave.rejected_at)
+            ? (leave.updated_at || leave.approved_at || leave.rejected_at)
+            : "-";
 
         if (!modal || !submit || !cancel)
         {
@@ -2870,17 +2926,29 @@
 
         if (eyebrow)
         {
-            eyebrow.textContent = variant === "reject" ? "Reject request" : "Approve request";
+            eyebrow.textContent = variant === "reject" ? "Reject request" : "Approve Request";
         }
 
         if (title)
         {
-            title.textContent = variant === "reject" ? "Confirm rejection" : "Confirm approval";
+            title.textContent = variant === "reject" ? "Confirm rejection" : "";
+        }
+
+        if (intro)
+        {
+            intro.textContent = variant === "reject"
+                ? "Please review the request details before confirming this decision."
+                : "";
         }
 
         if (icon)
         {
             icon.innerHTML = variant === "reject" ? "&#9940;" : "&#10003;";
+        }
+
+        if (badgeIcon)
+        {
+            badgeIcon.innerHTML = variant === "reject" ? "&#9940;" : "&#10022;";
         }
 
         if (message)
@@ -2899,9 +2967,14 @@
 
         setMetaLineValue(employee, currentEmployeeDetail && (currentEmployeeDetail.display_name || currentEmployeeDetail.username) ? (currentEmployeeDetail.display_name || currentEmployeeDetail.username) : "Employee");
         setMetaLineValue(type, leave && leave.type ? leave.type : "Leave");
+        setDecisionConfirmTypeIcon(typeIcon, leave && leave.type_class);
         setMetaLineValue(scheduleDate, getManageLeaveScheduleDateText(leave));
         setMetaLineValue(scheduleTime, getManageLeaveScheduleTimeText(leave));
         setMetaLineValue(days, getManageLeaveDaysText(leave));
+        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.applied_at_iso) || (leave && leave.applied_at) || "-");
+        setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.applied_at_iso, leave && leave.applied_at));
+        setMetaLineValue(updated, formatRelativeLeaveAge(resolvedUpdatedIso) || resolvedUpdatedText);
+        setMetaLineValue(updatedTime, formatPopupClockTime(resolvedUpdatedIso, resolvedUpdatedText));
 
         if (note)
         {
@@ -2910,8 +2983,10 @@
             note.textContent = noteText ? "Rejection note: " + noteText : "";
         }
 
-        submit.textContent = variant === "reject" ? "Confirm Reject" : "Confirm Approve";
-        submit.className = variant === "reject" ? "reject-btn" : "approve-btn";
+        submit.className = variant === "reject" ? "reject-btn decision-confirm-submit-btn" : "approve-btn decision-confirm-submit-btn";
+        submit.innerHTML = variant === "reject"
+            ? '<span aria-hidden="true">&#9940;</span><span>Confirm Reject</span>'
+            : '<span aria-hidden="true">&#10003;</span><span>Confirm Approve</span>';
 
         return new Promise(function (resolve)
         {
@@ -5348,8 +5423,8 @@
         }
 
         const currentLength = rejectionReasonTextarea.value ? rejectionReasonTextarea.value.length : 0;
-        const maxLength = Number(rejectionReasonTextarea.getAttribute("maxlength") || 500);
-        rejectionReasonCount.textContent = currentLength + " / " + maxLength;
+        const maxLength = Number(rejectionReasonTextarea.getAttribute("maxlength") || 100);
+        rejectionReasonCount.textContent = currentLength + "/" + maxLength;
     }
 
     if (decisionConfirmCancel)
@@ -5807,10 +5882,33 @@
 
         if (event.key === "Escape")
         {
-            closeEmployeeModal();
-            closeReasonModal();
-            closeReject();
-            closeDecisionConfirm(false);
+            const decisionConfirmModal = document.getElementById("decisionConfirmModal");
+            const rejectModal = document.getElementById("rejectModal");
+            const reasonModal = document.getElementById("reasonModal");
+            const employeeModal = document.getElementById("employeeModal");
+
+            if (decisionConfirmModal && decisionConfirmModal.getAttribute("aria-hidden") === "false")
+            {
+                closeDecisionConfirm(false);
+                return;
+            }
+
+            if (rejectModal && rejectModal.getAttribute("aria-hidden") === "false")
+            {
+                closeReject();
+                return;
+            }
+
+            if (reasonModal && reasonModal.getAttribute("aria-hidden") === "false")
+            {
+                closeReasonModal();
+                return;
+            }
+
+            if (employeeModal && employeeModal.getAttribute("aria-hidden") === "false")
+            {
+                closeEmployeeModal();
+            }
         }
     });
 </script>
