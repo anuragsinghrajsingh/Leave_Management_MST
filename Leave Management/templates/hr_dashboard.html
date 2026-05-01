@@ -604,25 +604,202 @@
 
     <div id="rejectModal" class="reject-modal" aria-hidden="true">
         <div class="reject-modal-overlay" onclick="closeReject()"></div>
-        <div class="reject-modal-dialog">
-            <div class="reject-modal-header">
-                <div>
-                    <p class="eyebrow">Decision note</p>
-                    <h3>Reject leave request</h3>
+        <div class="reject-modal-dialog reject-review-dialog">
+            <div class="reject-modal-header reject-review-header">
+                <div class="reject-review-hero">
+                    <div class="reject-review-hero-icon" aria-hidden="true">
+                        <span class="reject-review-hero-icon-sheet"></span>
+                        <span class="reject-review-hero-icon-lines"></span>
+                        <span class="reject-review-hero-icon-cross">&times;</span>
+                    </div>
+                    <div class="reason-modal-heading reject-review-heading">
+                        <p class="reject-review-eyebrow">Leave Rejection Decision Notes</p>
+                        <p class="reject-review-subtitle">Please review the request details and provide a clear reason for rejection.</p>
+                        <span class="reject-review-subtitle-divider" aria-hidden="true"></span>
+                    </div>
                 </div>
                 <button type="button" class="close-modal-btn" onclick="closeReject()" aria-label="Close reject modal">&times;</button>
             </div>
-
-            <form method="POST" id="rejectForm" class="reject-form" data-leave-action-form>
-                {% csrf_token %}
-                <label for="rejectionReason">Reason for rejection</label>
-                <textarea id="rejectionReason" name="rejection_reason" placeholder="Add a clear explanation for the employee..." required></textarea>
-
-                <div class="modal-actions">
-                    <button type="button" class="cancel-btn" onclick="closeReject()">Cancel</button>
-                    <button type="submit" class="reject-btn">Confirm Reject</button>
+            <div class="reject-modal-body reject-review-body">
+                <div class="reason-modal-meta-grid reject-review-meta-grid">
+                    <div class="reject-review-meta-top-row">
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128467;&#65038;</span><span>Schedule</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128197;</span><span>-</span></strong>
+                                    <span id="rejectModalScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9716;</span><span>-</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">#</span><span>Days</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalDays" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9681;</span><span>-</span></strong>
+                                    <span class="reason-meta-content-line reject-review-meta-placeholder" aria-hidden="true"><span class="reason-meta-content-icon">&#9681;</span><span>placeholder</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128278;&#65038;</span><span>Leave Type</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalTypeChip" class="reason-meta-content-line"><span id="rejectModalTypeIcon" class="reason-meta-content-icon" aria-hidden="true">&#128278;&#65038;</span><span>Leave</span></strong>
+                                    <span class="reason-meta-content-line reject-review-meta-placeholder" aria-hidden="true"><span class="reason-meta-content-icon">&#128278;&#65038;</span><span>placeholder</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="reject-review-meta-bottom-row">
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128336;&#65038;</span><span>Applied At</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11123;</span><span>-</span></strong>
+                                    <span id="rejectModalAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9716;</span><span>-</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reason-meta-card reject-review-meta-card">
+                            <div class="reject-review-meta-copy">
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span>Updated At</span></span></span>
+                                <div class="reason-meta-value reason-meta-stack">
+                                    <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#10227;</span><span>-</span></strong>
+                                    <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11014;</span><span>-</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </form>
+
+                <form method="POST" id="rejectForm" class="reject-form reject-review-form" data-leave-action-form>
+                    {% csrf_token %}
+                    <div class="reject-review-section-toolbar">
+                        <p class="reject-review-section-toolbar-note"><span class="reject-review-section-toolbar-note-icon" aria-hidden="true">&#9432;</span><span>Use these notes to review the employee reason and write your rejection message.</span></p>
+                        <button type="button" class="reject-review-toggle-btn reject-review-toggle-all-btn" id="rejectReasonToggleAll" aria-expanded="false" aria-label="Show notes"><span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span></button>
+                    </div>
+                    <div class="reject-review-reason-grid" id="rejectReasonSectionGrid">
+                        <div class="reason-field-card reject-review-reason-card" id="rejectEmployeeReasonCard">
+                            <div class="reject-review-section-head">
+                                <div class="reason-field-label reject-review-section-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9998;&#65038;</span><span class="reject-review-section-label-text">Employee Reason</span></span></div>
+                            </div>
+                            <div class="reason-modal-content-shell reject-review-section-body">
+                                <textarea id="rejectModalReason" class="reject-review-readonly-field" readonly>-</textarea>
+                            </div>
+                        </div>
+
+                        <div class="reason-field-card reject-review-note-card" id="rejectNoteCard">
+                            <div class="reject-review-section-head">
+                                <label for="rejectionReason" class="reason-field-label reject-review-section-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10006;&#65038;</span><span class="reject-review-section-label-text">Rejection Notes</span></span></label>
+                            </div>
+                            <div class="reject-review-section-body">
+                                <div class="reject-review-textarea-wrap">
+                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="100" required></textarea>
+                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0/100</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions reject-review-actions">
+                        <button type="button" class="cancel-btn reject-review-cancel-btn" onclick="closeReject()"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                        <button type="submit" class="reject-btn reject-review-submit-btn"><span aria-hidden="true">&#9940;</span><span>Review And Reject</span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="decisionConfirmModal" class="reject-modal decision-confirm-modal" aria-hidden="true">
+        <div class="reject-modal-overlay" onclick="closeDecisionConfirm(false)"></div>
+        <div class="reject-modal-dialog decision-confirm-dialog">
+            <div class="reject-modal-header decision-confirm-header">
+                <div class="decision-confirm-shell">
+                    <div class="decision-confirm-badge" aria-hidden="true">
+                        <span class="decision-confirm-badge-ring"></span>
+                        <span class="decision-confirm-badge-icon" id="decisionConfirmBadgeIcon">&#10022;</span>
+                    </div>
+                    <div class="reason-modal-heading decision-confirm-heading">
+                        <p class="reject-review-eyebrow" id="decisionConfirmEyebrow">Confirm action</p>
+                        <h3 id="decisionConfirmTitle">Confirm leave action</h3>
+                        <p class="decision-confirm-intro" id="decisionConfirmIntro">Please confirm you want to continue.</p>
+                    </div>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="closeDecisionConfirm(false)" aria-label="Close confirmation dialog">&times;</button>
+            </div>
+            <div class="reject-modal-body decision-confirm-body">
+                <div class="decision-confirm-hero">
+                    <span class="decision-confirm-icon" id="decisionConfirmIcon" aria-hidden="true">&#10003;</span>
+                    <div class="decision-confirm-copy">
+                        <p class="decision-confirm-message" id="decisionConfirmMessage">You are about to update this leave request.</p>
+                        <p class="decision-confirm-subtext" id="decisionConfirmSubtext">Please confirm you want to continue.</p>
+                    </div>
+                </div>
+
+                <div class="reason-modal-meta-grid decision-confirm-grid">
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-employee-head" aria-hidden="true">&#10022;</span><span>Employee</span></span></span>
+                        <strong id="decisionConfirmEmployee" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-employee-value" aria-hidden="true">&#128100;</span><span>-</span></strong>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-type-head" aria-hidden="true">&#11041;</span><span>Leave Type</span></span></span>
+                        <strong id="decisionConfirmType" class="reason-meta-value reason-meta-content-line"><span id="decisionConfirmTypeIcon" class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-type-value" aria-hidden="true" data-leave-type="default">&#9670;</span><span>-</span></strong>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-days-head" aria-hidden="true">&#10038;</span><span>Days</span></span></span>
+                        <strong id="decisionConfirmDays" class="reason-meta-value reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-days-value" aria-hidden="true">&#9203;</span><span>-</span></strong>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-schedule-head" aria-hidden="true">&#9635;</span><span>Schedule</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="decisionConfirmScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-schedule-date" aria-hidden="true">&#128197;</span><span>-</span></strong>
+                            <span id="decisionConfirmScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-schedule-time" aria-hidden="true">&#9200;</span><span>-</span></span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-applied-head" aria-hidden="true">&#8595;</span><span>Applied At</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="decisionConfirmApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-applied-value" aria-hidden="true">&#9202;</span><span>-</span></strong>
+                            <span id="decisionConfirmAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-applied-time" aria-hidden="true">&#8595;</span><span>-</span></span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card decision-confirm-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-updated-head" aria-hidden="true">&#8635;</span><span>Updated At</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="decisionConfirmUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-value" aria-hidden="true">&#9200;</span><span>-</span></strong>
+                            <span id="decisionConfirmUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-time" aria-hidden="true">&#8593;</span><span>-</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="decision-confirm-note-row" id="decisionConfirmNoteRow" hidden>
+                    <div class="decision-confirm-note decision-confirm-note-reason" id="decisionConfirmReasonNote" hidden>
+                        <div class="reason-field-label decision-confirm-note-label">
+                            <span class="reason-meta-label-content">
+                                <span class="reason-meta-label-icon" aria-hidden="true">&#9998;&#65038;</span>
+                                <span id="decisionConfirmReasonHeading">Employee Reason</span>
+                            </span>
+                        </div>
+                        <div class="decision-confirm-note-content" id="decisionConfirmReasonContent">-</div>
+                    </div>
+
+                    <div class="decision-confirm-note decision-confirm-note-action" id="decisionConfirmNote" hidden>
+                        <div class="reason-field-label decision-confirm-note-label">
+                            <span class="reason-meta-label-content">
+                                <span class="reason-meta-label-icon" aria-hidden="true">&#10006;&#65038;</span>
+                                <span id="decisionConfirmNoteHeading">Rejection Notes</span>
+                            </span>
+                        </div>
+                        <div class="decision-confirm-note-content" id="decisionConfirmNoteContent">-</div>
+                    </div>
+                </div>
+
+                <div class="modal-actions decision-confirm-actions">
+                    <button type="button" class="cancel-btn decision-confirm-cancel-btn" id="decisionConfirmCancel"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                    <button type="button" class="reject-btn decision-confirm-submit-btn" id="decisionConfirmSubmit"><span aria-hidden="true">&#10003;</span><span>Confirm</span></button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -687,6 +864,9 @@
     let dashboardLiveRefreshRequest = null;
     let dashboardKnownNotificationSignature = null;
     let activeReasonAnchor = null;
+    let currentRejectLeaveId = null;
+    let currentRejectLeaveSnapshot = null;
+    let decisionConfirmState = null;
 
     const heroQuotes = [
         {
@@ -1363,11 +1543,406 @@
         }, dashboardModalAnimationMs);
     }
 
+    function getDashboardLeaveThemeClass(leaveType)
+    {
+        const normalized = String(leaveType || "").trim().toLowerCase();
+
+        if (normalized === "sick")
+        {
+            return "sick";
+        }
+
+        if (normalized === "earned")
+        {
+            return "earned";
+        }
+
+        if (normalized === "unpaid")
+        {
+            return "unpaid";
+        }
+
+        if (normalized === "short")
+        {
+            return "short";
+        }
+
+        if (normalized === "half")
+        {
+            return "half";
+        }
+
+        return "default";
+    }
+
+    function setMetaLineValue(node, text)
+    {
+        if (!node)
+        {
+            return;
+        }
+
+        const valueNode = node.querySelector("span:last-child");
+
+        if (valueNode)
+        {
+            valueNode.textContent = text || "-";
+            return;
+        }
+
+        node.textContent = text || "-";
+    }
+
+    function setDecisionConfirmTypeIcon(icon, leaveType)
+    {
+        if (!icon)
+        {
+            return;
+        }
+
+        const resolvedType = getDashboardLeaveThemeClass(leaveType);
+        const iconMap = {
+            sick: "✚",
+            earned: "✦",
+            unpaid: "○",
+            short: "◴",
+            half: "◐",
+            default: "◆"
+        };
+
+        icon.setAttribute("data-leave-type", resolvedType);
+        icon.textContent = iconMap[resolvedType] || iconMap.default;
+    }
+
+    function setRejectTypeChip(typeChip, leave)
+    {
+        if (!typeChip)
+        {
+            return;
+        }
+
+        const typeIcon = document.getElementById("rejectModalTypeIcon");
+        const typeClass = getDashboardLeaveThemeClass(leave && leave.leaveType);
+        const typeSymbolMap = {
+            sick: "✚",
+            earned: "✦",
+            unpaid: "○",
+            short: "◴",
+            half: "◐",
+            default: "📖"
+        };
+
+        if (typeIcon)
+        {
+            typeIcon.textContent = typeSymbolMap[typeClass] || typeSymbolMap.default;
+        }
+
+        typeChip.dataset.leaveTypeClass = typeClass;
+        setMetaLineValue(typeChip, leave && leave.leaveType ? leave.leaveType : "Leave");
+    }
+
+    function getDashboardLeaveDetails(leaveId)
+    {
+        const leaveRow = document.querySelector(`[data-leave-row][data-leave-id="${leaveId}"]`);
+        const reasonText = leaveRow ? leaveRow.querySelector(".reason-text") : null;
+
+        if (!leaveRow || !reasonText)
+        {
+            return null;
+        }
+
+        const daysBlock = leaveRow.querySelector(".days-block");
+
+        return {
+            id: String(leaveId),
+            employee: reasonText.dataset.employee || "-",
+            leaveType: reasonText.dataset.leaveType || "Leave",
+            typeClass: reasonText.dataset.leaveTypeClass || "default",
+            scheduleDate: reasonText.dataset.scheduleDate || "-",
+            scheduleTime: reasonText.dataset.scheduleTime || "-",
+            daysText: daysBlock && daysBlock.dataset.display
+                ? `${daysBlock.dataset.display} ${daysBlock.querySelector(".days-label") ? daysBlock.querySelector(".days-label").textContent.trim() : ""}`.trim()
+                : "-",
+            applied: reasonText.dataset.applied || "-",
+            appliedIso: reasonText.dataset.appliedIso || "",
+            updated: reasonText.dataset.updated || "-",
+            updatedIso: reasonText.dataset.updatedIso || "",
+            updatedCount: Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0,
+            reason: reasonText.dataset.full || reasonText.textContent.trim() || ""
+        };
+    }
+
+    function resetRejectSectionCards()
+    {
+        const grid = document.getElementById("rejectReasonSectionGrid");
+        const button = document.getElementById("rejectReasonToggleAll");
+
+        if (grid)
+        {
+            grid.classList.add("is-hidden");
+        }
+
+        if (button)
+        {
+            button.innerHTML = '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>';
+            button.setAttribute("aria-label", "Show notes");
+            button.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    function populateRejectModal(leave)
+    {
+        const modal = document.getElementById("rejectModal");
+        const typeChip = document.getElementById("rejectModalTypeChip");
+        const scheduleDate = document.getElementById("rejectModalScheduleDate");
+        const scheduleTime = document.getElementById("rejectModalScheduleTime");
+        const days = document.getElementById("rejectModalDays");
+        const applied = document.getElementById("rejectModalApplied");
+        const appliedTime = document.getElementById("rejectModalAppliedTime");
+        const updated = document.getElementById("rejectModalUpdated");
+        const updatedTime = document.getElementById("rejectModalUpdatedTime");
+        const reason = document.getElementById("rejectModalReason");
+        const typeClass = getDashboardLeaveThemeClass(leave && leave.typeClass);
+
+        if (!modal)
+        {
+            return;
+        }
+
+        modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
+        modal.classList.add("reason-theme-" + typeClass);
+
+        setRejectTypeChip(typeChip, leave);
+        setMetaLineValue(scheduleDate, leave && leave.scheduleDate ? leave.scheduleDate.replace(/\s*->\s*/g, " ⟶ ") : "-");
+        setMetaLineValue(scheduleTime, leave && leave.scheduleTime ? leave.scheduleTime.replace(/\s*->\s*/g, " ⟶ ") : "-");
+        setMetaLineValue(days, leave && leave.daysText ? leave.daysText : "-");
+        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.appliedIso) || (leave && leave.applied) || "-");
+        setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.appliedIso, leave && leave.applied));
+
+        if (leave && leave.updatedIso)
+        {
+            setMetaLineValue(updated, formatRelativeLeaveAge(leave.updatedIso) || leave.updated || "-");
+            setMetaLineValue(updatedTime, formatPopupClockTime(leave.updatedIso, leave.updated));
+        }
+        else
+        {
+            setMetaLineValue(updated, "Not updated");
+            setMetaLineValue(updatedTime, "-");
+        }
+
+        if (reason)
+        {
+            reason.value = leave && leave.reason ? leave.reason : "No reason was added by the employee.";
+        }
+    }
+
+    function openDecisionConfirm(config)
+    {
+        const modal = document.getElementById("decisionConfirmModal");
+        const title = document.getElementById("decisionConfirmTitle");
+        const eyebrow = document.getElementById("decisionConfirmEyebrow");
+        const intro = document.getElementById("decisionConfirmIntro");
+        const icon = document.getElementById("decisionConfirmIcon");
+        const badgeIcon = document.getElementById("decisionConfirmBadgeIcon");
+        const message = document.getElementById("decisionConfirmMessage");
+        const subtext = document.getElementById("decisionConfirmSubtext");
+        const employee = document.getElementById("decisionConfirmEmployee");
+        const type = document.getElementById("decisionConfirmType");
+        const typeIcon = document.getElementById("decisionConfirmTypeIcon");
+        const scheduleDate = document.getElementById("decisionConfirmScheduleDate");
+        const scheduleTime = document.getElementById("decisionConfirmScheduleTime");
+        const days = document.getElementById("decisionConfirmDays");
+        const applied = document.getElementById("decisionConfirmApplied");
+        const appliedTime = document.getElementById("decisionConfirmAppliedTime");
+        const updated = document.getElementById("decisionConfirmUpdated");
+        const updatedTime = document.getElementById("decisionConfirmUpdatedTime");
+        const noteRow = document.getElementById("decisionConfirmNoteRow");
+        const reasonNote = document.getElementById("decisionConfirmReasonNote");
+        const note = document.getElementById("decisionConfirmNote");
+        const reasonHeading = document.getElementById("decisionConfirmReasonHeading");
+        const reasonContent = document.getElementById("decisionConfirmReasonContent");
+        const noteHeading = document.getElementById("decisionConfirmNoteHeading");
+        const noteContent = document.getElementById("decisionConfirmNoteContent");
+        const submit = document.getElementById("decisionConfirmSubmit");
+        const cancel = document.getElementById("decisionConfirmCancel");
+        const leave = config && config.leave ? config.leave : null;
+        const variant = config && config.variant === "reject" ? "reject" : "approve";
+        const typeClass = getDashboardLeaveThemeClass(leave && leave.typeClass);
+
+        if (!modal || !submit || !cancel)
+        {
+            return Promise.resolve(false);
+        }
+
+        modal.dataset.variant = variant;
+        modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
+        modal.classList.add("reason-theme-" + typeClass);
+
+        if (eyebrow)
+        {
+            eyebrow.textContent = variant === "reject" ? "Reject request" : "Approve Request";
+        }
+
+        if (title)
+        {
+            title.textContent = variant === "reject" ? "Confirm rejection" : "";
+        }
+
+        if (intro)
+        {
+            intro.textContent = variant === "reject"
+                ? "Please review the request details before confirming this decision."
+                : "";
+        }
+
+        if (icon)
+        {
+            icon.innerHTML = variant === "reject" ? "&#9940;" : "&#10003;";
+        }
+
+        if (badgeIcon)
+        {
+            badgeIcon.innerHTML = variant === "reject" ? "&#9940;" : "&#10022;";
+        }
+
+        if (message)
+        {
+            message.textContent = variant === "reject"
+                ? "You are about to reject this leave request."
+                : "You are about to approve this leave request.";
+        }
+
+        if (subtext)
+        {
+            subtext.textContent = variant === "reject"
+                ? "This will update the employee record and save the rejection note."
+                : "This will immediately move the request into approved history.";
+        }
+
+        setMetaLineValue(employee, leave && leave.employee ? leave.employee : "Employee");
+        setMetaLineValue(type, leave && leave.leaveType ? leave.leaveType : "Leave");
+        setDecisionConfirmTypeIcon(typeIcon, leave && leave.typeClass);
+        setMetaLineValue(scheduleDate, leave && leave.scheduleDate ? leave.scheduleDate.replace(/\s*->\s*/g, " ⟶ ") : "-");
+        setMetaLineValue(scheduleTime, leave && leave.scheduleTime ? leave.scheduleTime.replace(/\s*->\s*/g, " ⟶ ") : "-");
+        setMetaLineValue(days, leave && leave.daysText ? leave.daysText : "-");
+        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.appliedIso) || (leave && leave.applied) || "-");
+        setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.appliedIso, leave && leave.applied));
+        setMetaLineValue(updated, leave && leave.updatedIso ? (formatRelativeLeaveAge(leave.updatedIso) || leave.updated || "-") : "Not updated");
+        setMetaLineValue(updatedTime, leave && leave.updatedIso ? formatPopupClockTime(leave.updatedIso, leave.updated) : "-");
+
+        if (noteRow)
+        {
+            const noteText = config && config.note ? String(config.note).trim() : "";
+            const reasonText = leave && leave.reason ? String(leave.reason).trim() : "";
+
+            if (variant === "reject")
+            {
+                noteRow.hidden = false;
+                if (reasonNote)
+                {
+                    reasonNote.hidden = false;
+                }
+                if (note)
+                {
+                    note.hidden = !noteText;
+                }
+                if (reasonHeading)
+                {
+                    reasonHeading.textContent = "Employee Reason";
+                }
+                if (reasonContent)
+                {
+                    reasonContent.textContent = reasonText || "No reason was added by the employee.";
+                }
+                if (noteHeading)
+                {
+                    noteHeading.textContent = "Rejection Notes";
+                }
+                if (noteContent)
+                {
+                    noteContent.textContent = noteText || "-";
+                }
+            }
+            else
+            {
+                noteRow.hidden = false;
+                if (reasonNote)
+                {
+                    reasonNote.hidden = false;
+                }
+                if (note)
+                {
+                    note.hidden = true;
+                }
+                if (reasonHeading)
+                {
+                    reasonHeading.textContent = "Employee Reason";
+                }
+                if (reasonContent)
+                {
+                    reasonContent.textContent = reasonText || "No reason was added by the employee.";
+                }
+            }
+        }
+
+        submit.className = variant === "reject" ? "reject-btn decision-confirm-submit-btn" : "approve-btn decision-confirm-submit-btn";
+        submit.innerHTML = variant === "reject"
+            ? '<span aria-hidden="true">&#9940;</span><span>Confirm Reject</span>'
+            : '<span aria-hidden="true">&#10003;</span><span>Confirm Approve</span>';
+
+        modal.classList.remove("is-closing");
+        modal.style.display = "flex";
+        requestAnimationFrame(function ()
+        {
+            modal.classList.add("is-open");
+        });
+        modal.setAttribute("aria-hidden", "false");
+
+        return new Promise(function (resolve)
+        {
+            decisionConfirmState = { resolve: resolve };
+        });
+    }
+
+    function closeDecisionConfirm(confirmed)
+    {
+        const modal = document.getElementById("decisionConfirmModal");
+        const state = decisionConfirmState;
+
+        if (!modal || (modal.style.display === "none" && !state))
+        {
+            return;
+        }
+
+        decisionConfirmState = null;
+        modal.classList.remove("is-open");
+        modal.classList.add("is-closing");
+        modal.setAttribute("aria-hidden", "true");
+
+        window.setTimeout(function ()
+        {
+            modal.style.display = "none";
+            modal.classList.remove("is-closing");
+
+            if (state && typeof state.resolve === "function")
+            {
+                state.resolve(!!confirmed);
+            }
+        }, dashboardModalAnimationMs);
+    }
+
     function openReject(leaveId)
     {
         const modal = document.getElementById("rejectModal");
         const form = document.getElementById("rejectForm");
         const textarea = document.getElementById("rejectionReason");
+        const leave = getDashboardLeaveDetails(leaveId);
+
+        if (!leave)
+        {
+            window.alert("Unable to load this leave request.");
+            return;
+        }
 
         if (rejectModalCloseTimer)
         {
@@ -1375,12 +1950,20 @@
             rejectModalCloseTimer = null;
         }
 
+        currentRejectLeaveId = String(leaveId);
+        currentRejectLeaveSnapshot = leave;
         form.action = "/reject-leave/" + leaveId + "/";
         form.dataset.leaveId = String(leaveId);
+        populateRejectModal(leave);
+        resetRejectSectionCards();
         modal.classList.remove("is-closing");
         modal.style.display = "flex";
-        requestAnimationFrame(() => modal.classList.add("is-open"));
+        requestAnimationFrame(function ()
+        {
+            modal.classList.add("is-open");
+        });
         modal.setAttribute("aria-hidden", "false");
+        syncRejectionReasonCount();
 
         textarea.focus();
     }
@@ -1408,6 +1991,9 @@
             {
                 form.removeAttribute("data-leave-id");
             }
+            currentRejectLeaveId = null;
+            currentRejectLeaveSnapshot = null;
+            syncRejectionReasonCount();
             rejectModalCloseTimer = null;
         }, dashboardModalAnimationMs);
     }
@@ -1484,12 +2070,117 @@
             });
     }
 
+    const rejectForm = document.getElementById("rejectForm");
+    const decisionConfirmCancel = document.getElementById("decisionConfirmCancel");
+    const decisionConfirmSubmit = document.getElementById("decisionConfirmSubmit");
+    const rejectionReasonTextarea = document.getElementById("rejectionReason");
+    const rejectionReasonCount = document.getElementById("rejectionReasonCount");
+    const rejectReasonToggleAllButton = document.getElementById("rejectReasonToggleAll");
+    const rejectReasonSectionGrid = document.getElementById("rejectReasonSectionGrid");
+
+    function syncRejectionReasonCount()
+    {
+        if (!rejectionReasonTextarea || !rejectionReasonCount)
+        {
+            return;
+        }
+
+        const currentLength = rejectionReasonTextarea.value ? rejectionReasonTextarea.value.length : 0;
+        const maxLength = Number(rejectionReasonTextarea.getAttribute("maxlength") || 100);
+        rejectionReasonCount.textContent = currentLength + "/" + maxLength;
+    }
+
+    if (decisionConfirmCancel)
+    {
+        decisionConfirmCancel.addEventListener("click", function ()
+        {
+            closeDecisionConfirm(false);
+        });
+    }
+
+    if (decisionConfirmSubmit)
+    {
+        decisionConfirmSubmit.addEventListener("click", function ()
+        {
+            closeDecisionConfirm(true);
+        });
+    }
+
+    if (rejectionReasonTextarea)
+    {
+        rejectionReasonTextarea.addEventListener("input", syncRejectionReasonCount);
+        syncRejectionReasonCount();
+    }
+
+    if (rejectReasonToggleAllButton)
+    {
+        rejectReasonToggleAllButton.addEventListener("click", function ()
+        {
+            if (!rejectReasonSectionGrid)
+            {
+                return;
+            }
+
+            const shouldHide = !rejectReasonSectionGrid.classList.contains("is-hidden");
+            rejectReasonSectionGrid.classList.toggle("is-hidden", shouldHide);
+            rejectReasonToggleAllButton.innerHTML = shouldHide
+                ? '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>'
+                : '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9652;</span><span class="reject-review-toggle-btn-text">Hide Notes</span>';
+            rejectReasonToggleAllButton.setAttribute("aria-label", shouldHide ? "Show notes" : "Hide notes");
+            rejectReasonToggleAllButton.setAttribute("aria-expanded", shouldHide ? "false" : "true");
+        });
+    }
+
+    if (rejectForm)
+    {
+        rejectForm.addEventListener("submit", function (event)
+        {
+            event.preventDefault();
+
+            const rejectionReason = rejectionReasonTextarea ? rejectionReasonTextarea.value.trim() : "";
+
+            if (!currentRejectLeaveId)
+            {
+                window.alert("No leave request selected for rejection.");
+                return;
+            }
+
+            if (!rejectionReason)
+            {
+                if (rejectionReasonTextarea)
+                {
+                    rejectionReasonTextarea.focus();
+                }
+                return;
+            }
+
+            openDecisionConfirm({
+                variant: "reject",
+                leave: currentRejectLeaveSnapshot || getDashboardLeaveDetails(currentRejectLeaveId),
+                note: rejectionReason
+            }).then(function (confirmed)
+            {
+                if (!confirmed)
+                {
+                    if (rejectionReasonTextarea)
+                    {
+                        rejectionReasonTextarea.focus();
+                    }
+                    return;
+                }
+
+                submitLeaveActionForm(rejectForm);
+            });
+        });
+    }
+
     document.addEventListener("keydown", function (event)
     {
         if (event.key === "Escape")
         {
             closeReasonModal();
             closeReject();
+            closeDecisionConfirm(false);
         }
     });
 
@@ -1540,6 +2231,11 @@
 
         event.preventDefault();
 
+        if (leaveActionForm.id === "rejectForm")
+        {
+            return;
+        }
+
         if (!leaveActionForm.dataset.leaveId)
         {
             const leaveIdMatch = String(leaveActionForm.action || "").match(/\/(\d+)\/?$/);
@@ -1550,7 +2246,21 @@
             }
         }
 
-        submitLeaveActionForm(leaveActionForm);
+        const leaveId = leaveActionForm.dataset.leaveId || "";
+        const leave = getDashboardLeaveDetails(leaveId);
+
+        openDecisionConfirm({
+            variant: "approve",
+            leave: leave
+        }).then(function (confirmed)
+        {
+            if (!confirmed)
+            {
+                return;
+            }
+
+            submitLeaveActionForm(leaveActionForm);
+        });
     });
 
     window.addEventListener("hr-notification-state-sync", function (event)

@@ -12698,7 +12698,7 @@ button {
 
 .decision-confirm-modal[data-variant="approve"] .decision-confirm-cancel-btn,
 .decision-confirm-modal[data-variant="approve"] .decision-confirm-submit-btn {
-    min-height: 48px;
+    min-height: 44px;
     border-radius: 14px;
     display: inline-flex;
     align-items: center;
