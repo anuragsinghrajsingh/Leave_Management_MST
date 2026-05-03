@@ -3418,6 +3418,10 @@ def leave_calendar_data(request):
             "type": l.leave_type,
             "status": l.status,
             "reason": l.reason,
+            "created_at": l.created_at.isoformat() if l.created_at else "",
+            "updated_at": l.updated_at.isoformat() if l.updated_at else "",
+            "approved_at": l.approved_at.isoformat() if l.approved_at else "",
+            "rejected_at": l.rejected_at.isoformat() if l.rejected_at else "",
         }
         for l in leaves
     ]
@@ -3594,6 +3598,10 @@ def _build_my_leave_context(request):
         from_date__month=current_date.month,
         from_date__year=current_date.year,
     ).count()
+    calendar_blocking_leaves = Leave.objects.filter(
+        user=request.user,
+        status__in=["Pending", "Approved"],
+    ).order_by("from_date")
 
     sick_remaining = balance.sick_total - balance.sick_used
     earned_remaining = balance.earned_total - balance.earned_used
@@ -3622,6 +3630,24 @@ def _build_my_leave_context(request):
         # ✅ For JavaScript (modal)
         "filters_json": json.dumps(filters),
         "upcoming_company_holiday": _get_upcoming_company_holiday(),
+        "company_holidays_json": json.dumps([
+            {
+                "date": holiday.date.strftime("%Y-%m-%d"),
+                "name": holiday.name,
+                "is_optional": holiday.is_optional,
+            }
+            for holiday in CompanyHoliday.objects.all().order_by("date")
+        ]),
+        "existing_leaves_json": json.dumps([
+            {
+                "id": leave.id,
+                "from": leave.from_date.strftime("%Y-%m-%d"),
+                "to": leave.to_date.strftime("%Y-%m-%d"),
+                "type": leave.leave_type,
+                "status": leave.status,
+            }
+            for leave in calendar_blocking_leaves
+        ]),
     }
     context.update(get_employee_notification_context(request.user))
     context.update(get_communication_context(request.user))

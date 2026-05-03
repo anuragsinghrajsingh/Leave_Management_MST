@@ -3,6 +3,7 @@
 {% block title %}My Leaves{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/my_leave.css' %}">
+    <link rel="stylesheet" href="{% static 'css/my_leave_calendar.css' %}">
 {% endblock %}
 {% block page_skeleton %}
     <div class="page-skeleton-overlay" data-page-skeleton>
@@ -514,7 +515,6 @@
     <div id="form-home" style="display:none;">
         <div id="edit-leave-template" class="edit-leave-modal-content popup-filter-modal-content">
             <div class="edit-template-title">
-                <span class="edit-template-title-icon" aria-hidden="true">&#9998;</span>
                 <div class="edit-template-title-copy">
                     <h3>Edit Leave</h3>
                     <p>Update your leave details below.</p>
@@ -523,7 +523,7 @@
             <form method="POST" id="edit-leave-form">
                 {% csrf_token %}
                 <!-- Leave Type -->
-                <label class="edit-field-label" for="edit-leave-type"><span class="edit-field-label-index">01</span><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">Leave Type</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
+                <label class="edit-field-label" for="edit-leave-type"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">Leave Type</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                 <div class="popup-filter-shell popup-filter-leave-shell custom-select select-shell edit-select-shell">
                     <input type="hidden" name="edit_leave_type" id="edit-leave-type" required>
                     <div class="custom-select-display">
@@ -540,10 +540,11 @@
                         <button type="button" class="popup-filter-leave-option custom-option" data-value="Earned" data-display-label="<span class=&quot;popup-filter-leave-value-symbol&quot; aria-hidden=&quot;true&quot;>E</span><span class=&quot;popup-filter-leave-value-text&quot;>Earned</span>"><span class="popup-filter-leave-option-symbol" aria-hidden="true">E</span><span class="option-title">Earned</span><span class="popup-filter-leave-option-check" aria-hidden="true">&#10003;</span></button>
                     </div>
                 </div>
+                <div class="edit-form-section-divider edit-form-section-divider-type" aria-hidden="true"></div>
                 <!-- FROM ROW -->
                 <div class="row">
                     <div id="edit_from_date_field" class="field">
-                        <label class="edit-field-label" for="edit-from"><span class="edit-field-label-index">02</span><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">From Date</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
+                        <label class="edit-field-label" for="edit-from"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">From Date</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                         <div class="popup-filter-shell popup-filter-date-shell custom-date-picker edit-date-shell">
                             <input type="hidden" name="from_date" id="edit-from" required>
                             <div class="date-display"><div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false"><span class="date-value">dd-mm-yyyy</span><span class="date-icon" aria-hidden="true"></span></div></div>
@@ -552,29 +553,44 @@
                     </div>
                     <!-- TIME (only for Short/Half) -->
                     <div id="edit_from_time_field" class="field" style="display:none;">
-                        <label class="edit-field-label" for="edit-hour"><span class="edit-field-label-index">03</span><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">From Time</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
+                        <label class="edit-field-label" for="edit-hour"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">From Time</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                         <input type="hidden" name="from_datetime" id="edit_from_datetime">
                         
                         <div id="edit-existing-time" style="display:none; margin-top:5px; color:#555; font-size:14px;"> </div>
                         <input type="hidden" id="edit-existing-datetime">
                         <div class="time-wrapper">
-                            <div class="edit-time-select-shell" data-time-select-shell>
-                                <select id="edit-hour" data-time-select>
+                            <div class="custom-select select-shell time-select-shell edit-time-select-shell" data-time-select-shell data-menu-label="Hour">
+                                <select id="edit-hour" class="native-select" aria-hidden="true" tabindex="-1" data-time-select>
                                     <option value="">Hour</option>
                                 </select>
-                                <button type="button" class="edit-time-trigger" aria-haspopup="listbox" aria-expanded="false"><span>Hour</span><i aria-hidden="true"></i></button>
-                                <div class="edit-time-menu" role="listbox"></div>
+                                <div class="custom-select-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="custom-select-value">Hour</span>
+                                    <span class="custom-select-icon" aria-hidden="true"></span>
+                                </div>
+                                <div class="custom-select-menu" role="listbox"></div>
                             </div>
                             <span><b>:</b></span>
-                            <div class="edit-time-select-shell" data-time-select-shell>
-                                <select id="edit-minute" data-time-select>
+                            <div class="custom-select select-shell time-select-shell edit-time-select-shell" data-time-select-shell data-menu-label="Minute">
+                                <select id="edit-minute" class="native-select" aria-hidden="true" tabindex="-1" data-time-select>
                                     <option value="">Minute</option>
                                 </select>
-                                <button type="button" class="edit-time-trigger" aria-haspopup="listbox" aria-expanded="false"><span>Minute</span><i aria-hidden="true"></i></button>
-                                <div class="edit-time-menu" role="listbox"></div>
+                                <div class="custom-select-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="custom-select-value">Minute</span>
+                                    <span class="custom-select-icon" aria-hidden="true"></span>
+                                </div>
+                                <div class="custom-select-menu" role="listbox"></div>
                             </div>
-                            <div class="edit-time-ampm-shell">
-                                <input type="text" id="edit-ampm" value="AM/PM" readonly>
+                            <div class="custom-select select-shell time-select-shell edit-time-select-shell" data-time-select-shell data-menu-label="Period">
+                                <select id="edit-ampm" class="native-select" aria-hidden="true" tabindex="-1">
+                                    <option value="">AM/PM</option>
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                                <div class="custom-select-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="custom-select-value">AM/PM</span>
+                                    <span class="custom-select-icon" aria-hidden="true"></span>
+                                </div>
+                                <div class="custom-select-menu" role="listbox"></div>
                             </div>
                         </div>
                     </div>
@@ -582,7 +598,7 @@
                 <!-- TO ROW -->
                 <div class="row">
                     <div id="edit_to_date_field" class="field">
-                        <label class="edit-field-label" for="edit-to"><span class="edit-field-label-index">04</span><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">To Date</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
+                        <label class="edit-field-label" for="edit-to"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">To Date</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                         <div class="popup-filter-shell popup-filter-date-shell custom-date-picker edit-date-shell">
                             <input type="hidden" name="to_date" id="edit-to" required>
                             <div class="date-display"><div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false"><span class="date-value">dd-mm-yyyy</span><span class="date-icon" aria-hidden="true"></span></div></div>
@@ -590,7 +606,7 @@
                         </div>
                     </div>
                     <div class="field" id="edit_to_time_field" style="display:none;">
-                        <label class="edit-field-label" for="edit-to-time"><span class="edit-field-label-index">05</span><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">To Time</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
+                        <label class="edit-field-label" for="edit-to-time"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">To Time</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                         <div class="edit-time-output-shell">
                             <input type="text" id="edit-to-time" value="Auto Calculated" readonly>
                         </div>
@@ -605,8 +621,9 @@
                 <div id="edit-time-warning-container">
                     <small id="edit-time-warning"></small>
                 </div>
+                <div class="edit-form-section-divider edit-form-section-divider-reason" aria-hidden="true"></div>
                 <!-- Reason -->
-                <label class="edit-field-label" for="edit-reason"><span class="edit-field-label-index">06</span><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">Reason</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
+                <label class="edit-field-label" for="edit-reason"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">Reason</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                 <textarea name="reason" id="edit-reason" required></textarea>
                 <div class="edit-modal-actions">
                     <button type="button" class="edit-cancel-btn" onclick="closeModal()"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
@@ -617,6 +634,8 @@
     </div>
     <input type="hidden" id="csrf-token" value="{{ csrf_token }}" >
     <input type="hidden" id="my-leave-filters-json" value="{{ filters_json|escapejs }}">
+    <input type="hidden" id="my-leave-company-holidays-json" value="{{ company_holidays_json }}">
+    <input type="hidden" id="my-leave-existing-leaves-json" value="{{ existing_leaves_json }}">
 </main>
 <div id="reasonModal" class="reason-modal reason-theme-default" aria-hidden="true">
     <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
@@ -1009,7 +1028,9 @@
         valueElement.dataset.symbol = selectedMeta.symbol || "";
         valueElement.textContent = selectedMeta.label || "";
         options.forEach((option) => {
-            option.classList.toggle("selected", option.dataset.value === nativeSelect.value);
+            const isSelected = option.dataset.value === nativeSelect.value;
+            option.classList.toggle("selected", isSelected);
+            option.setAttribute("aria-selected", isSelected ? "true" : "false");
         });
     }
     function getCalendarSelectMeta(selectKind, value, text) {
@@ -1143,6 +1164,16 @@
                 shell.classList.toggle("open-up", !forceDown && (forceUp || (spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow)));
                 shell.classList.add("open");
                 trigger.setAttribute("aria-expanded", "true");
+                requestAnimationFrame(() => {
+                    const selectedOption = shell.querySelector(".calendar-select-option.selected");
+                    const currentMonthOption = shell.dataset.selectKind === "month"
+                        ? shell.querySelector(`.calendar-select-option[data-value="${new Date().getMonth()}"]`)
+                        : null;
+                    const targetOption = shell.dataset.selectKind === "month" && !/^\d+$/.test(nativeSelect.value)
+                        ? (currentMonthOption || selectedOption)
+                        : (selectedOption || currentMonthOption);
+                    targetOption?.scrollIntoView({ block: "center" });
+                });
             }
         };
         trigger.addEventListener("click", openMenu);
@@ -1179,8 +1210,10 @@
                 const companyHolidays = data.company_holidays || [];
                 /* ========================================= CLEAR PREVIOUS CONTENT ========================================= */
                 const modalContent = document.getElementById("modal-content");
+                const sharedModal = document.getElementById("modal");
                 const modalBox = document.querySelector(".modal-box");
                 modalContent.innerHTML = "";
+                sharedModal?.classList.remove("popup-filter-modal-host", "popup-edit-modal-host");
                 if (modalBox) {
                     modalBox.classList.remove("popup-edit-modal-box", "popup-filter-modal-box", "reason-modal", "expanded-calendar", "compact-calendar");
                 }
@@ -1188,15 +1221,39 @@
                 const title = document.createElement("h3");
                 title.textContent = "My Leave Calendar";
                 title.classList.add("calendar-title");
+                title.dataset.compactSubtitle = "Track and manage your leaves with ease";
+                title.dataset.expandedSubtitle = "Visualize and manage your leaves across months";
                 /* ========================================= LEGEND ================================================= */
+                const formatLegendCount = (value) => String(value || 0).padStart(2, "0");
+                const countLeavesByStatus = (status) => {
+                    const normalizedStatus = String(status || "").toLowerCase();
+                    const uniqueLeaves = new Set();
+                    leaves.forEach((leave, index) => {
+                        if (String(leave.status || "").toLowerCase() !== normalizedStatus) return;
+                        uniqueLeaves.add(leave.id || `${leave.from}|${leave.to}|${leave.type}|${leave.status}|${index}`);
+                    });
+                    return uniqueLeaves.size;
+                };
+                const countUniqueHolidayDates = (items) => new Set(
+                    (items || [])
+                        .map((item) => item.date)
+                        .filter(Boolean)
+                ).size;
+                const legendCounts = {
+                    pending: countLeavesByStatus("Pending"),
+                    approved: countLeavesByStatus("Approved"),
+                    rejected: countLeavesByStatus("Rejected"),
+                    public: countUniqueHolidayDates(holidays),
+                    company: countUniqueHolidayDates(companyHolidays)
+                };
                 const legend = document.createElement("div");
                 legend.className = "calendar-legend";
                 legend.innerHTML = `
-                    <span class="legend-item pending">Pending</span>
-                    <span class="legend-item approved">Approved</span>
-                    <span class="legend-item rejected">Rejected</span>
-                    <span class="legend-item public">National Holiday</span>
-                    <span class="legend-item company">Company Closed</span>
+                    <span class="legend-item pending" data-count="${formatLegendCount(legendCounts.pending)}">Pending</span>
+                    <span class="legend-item approved" data-count="${formatLegendCount(legendCounts.approved)}">Approved</span>
+                    <span class="legend-item rejected" data-count="${formatLegendCount(legendCounts.rejected)}">Rejected</span>
+                    <span class="legend-item public" data-count="${formatLegendCount(legendCounts.public)}"><span class="legend-label-compact">Holiday</span><span class="legend-label-expanded">National Holiday</span></span>
+                    <span class="legend-item company" data-count="${formatLegendCount(legendCounts.company)}">Company Closed</span>
                 `;
                 /* ====================================== Export Calendar ======================================== */
                 const info = {
@@ -1212,7 +1269,7 @@
                 exportWrapper.className = "export-wrapper";
                 exportWrapper.innerHTML = `
                     <select id="export-format">
-                        <option value="">Select format</option>
+                        <option value="">Select Format</option>
                         <option value="csv">CSV</option>
                         <option value="excel">Excel (.xlsx)</option>
                         <option value="pdf">PDF</option>
@@ -1228,7 +1285,7 @@
                             <option value="${i}"> ${new Date(0,i).toLocaleString("default",{month:"long"})} </option>
                         `).join("")}
                     </select>
-                    <button id="export-btn" class="export-btn" disabled>&#11015; Export</button>
+                    <button id="export-btn" class="export-btn" disabled>Export Calendar</button>
                     <span id="export-spinner" class="spinner hidden"></span>
                 `;
                 const exportFormat = exportWrapper.querySelector("#export-format");
@@ -1278,6 +1335,21 @@
                 const currentMonthIndex = new Date().getMonth();
                 monthSelect.value = currentMonthIndex;
                 const monthSelectShell = buildCalendarSelect(monthSelect);
+                const monthNav = document.createElement("div");
+                monthNav.className = "calendar-month-nav";
+                const prevMonthBtn = document.createElement("button");
+                prevMonthBtn.type = "button";
+                prevMonthBtn.className = "calendar-month-step calendar-month-prev";
+                prevMonthBtn.setAttribute("aria-label", "Previous month");
+                prevMonthBtn.innerHTML = "&#8249;";
+                const nextMonthBtn = document.createElement("button");
+                nextMonthBtn.type = "button";
+                nextMonthBtn.className = "calendar-month-step calendar-month-next";
+                nextMonthBtn.setAttribute("aria-label", "Next month");
+                nextMonthBtn.innerHTML = "&#8250;";
+                monthNav.appendChild(prevMonthBtn);
+                monthNav.appendChild(monthSelectShell);
+                monthNav.appendChild(nextMonthBtn);
                 // Auto select current month in export (compact default)
                 // This is a bit tricky because monthSelect and exportMonth are different dropdowns, but we want them to be in sync for better UX.
                 exportMonth.value = currentMonthIndex;
@@ -1335,6 +1407,15 @@
                         }
                     }
                 };
+                function stepCalendarMonth(direction)
+                {
+                    const current = parseInt(monthSelect.value || currentMonthIndex, 10);
+                    monthSelect.value = (current + direction + 12) % 12;
+                    monthSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                    syncCalendarSelect(monthSelectShell);
+                }
+                prevMonthBtn.onclick = () => stepCalendarMonth(-1);
+                nextMonthBtn.onclick = () => stepCalendarMonth(1);
                 
                 /* ====================================== YEAR CONTAINER ====================================== */
                 const yearContainer = document.createElement("div");
@@ -1377,7 +1458,7 @@
                 /* =========================================== APPEND ALL ===================================== */
                 modalContent.appendChild(title);
                 modalContent.appendChild(legend);
-                modalContent.appendChild(monthSelectShell);
+                modalContent.appendChild(monthNav);
                 modalContent.appendChild(yearContainer);
                 modalContent.appendChild(detailOverlay);
                 modalContent.appendChild(exportWrapper);
@@ -1508,9 +1589,23 @@
     }
     function buildMonthCalendar(year, month, leaves, holidays, companyHolidays)
     {
+        const getLeaveSortTime = (leave) => {
+            const rawValue = leave?.created_at || leave?.updated_at || leave?.approved_at || leave?.rejected_at || "";
+            const timeValue = rawValue ? Date.parse(rawValue) : NaN;
+            return Number.isFinite(timeValue) ? timeValue : Number(leave?.id || 0);
+        };
+        const getLatestLeaveForDate = (dateStr) => {
+            return leaves
+                .filter((leave) => dateStr >= leave.from && dateStr <= leave.to)
+                .sort((a, b) => {
+                    const timeDiff = getLeaveSortTime(b) - getLeaveSortTime(a);
+                    if (timeDiff) return timeDiff;
+                    return Number(b.id || 0) - Number(a.id || 0);
+                })[0] || null;
+        };
         const monthContainer = document.createElement("div");
         monthContainer.id = `month-${month}`;
-        monthContainer.className = "month-container";
+        monthContainer.className = `month-container month-theme-${month}`;
         const monthName = new Date(year, month).toLocaleString("default", { month: "long" });
         const header = document.createElement("h4");
         header.textContent = monthName + " " + year;
@@ -1535,7 +1630,10 @@
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         for (let i = 0; i < firstDay; i++) 
         {
-            grid.appendChild(document.createElement("div"));
+            const emptyCell = document.createElement("div");
+            emptyCell.className = "calendar-cell empty";
+            emptyCell.setAttribute("aria-hidden", "true");
+            grid.appendChild(emptyCell);
         }
         for (let day = 1; day <= daysInMonth; day++) 
         {
@@ -1557,7 +1655,7 @@
             }
             const holiday = holidays.find(h => h.date === dateStr);
             const companyDay = companyHolidays.find(h => h.date === dateStr);
-            const leave = leaves.find(l => dateStr >= l.from && dateStr <= l.to);
+            const leave = getLatestLeaveForDate(dateStr);
             const tooltipParts = [];
             /* ===============================
             4ï¸âƒ£ TOOLTIP PREVIEW (HOVER)
@@ -1619,6 +1717,13 @@
                 cell.onclick = () => openCalendarDetail(leave);
             }
             grid.appendChild(cell);
+        }
+        const visibleDateCells = 42;
+        for (let i = firstDay + daysInMonth; i < visibleDateCells; i++) {
+            const emptyCell = document.createElement("div");
+            emptyCell.className = "calendar-cell empty";
+            emptyCell.setAttribute("aria-hidden", "true");
+            grid.appendChild(emptyCell);
         }
         monthContainer.appendChild(header);
         monthContainer.appendChild(grid);
@@ -2397,6 +2502,21 @@
         {
             return;
         }
+        const readMyLeaveJson = (id, fallback) =>
+        {
+            const node = document.getElementById(id);
+            if (!node) return fallback;
+            try
+            {
+                return JSON.parse(node.value || "[]");
+            }
+            catch (error)
+            {
+                return fallback;
+            }
+        };
+        const companyHolidays = readMyLeaveJson("my-leave-company-holidays-json", []);
+        const existingLeaves = readMyLeaveJson("my-leave-existing-leaves-json", []);
         const parseDate = (value) =>
         {
             const parts = String(value || "").split("-");
@@ -2405,6 +2525,55 @@
             return Number.isNaN(date.getTime()) ? null : date;
         };
         const formatDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        const getCurrentEditLeaveId = () => String(document.getElementById("edit-leave-form")?.dataset.editLeaveId || "");
+        const getCompanyHoliday = (dateStr) => companyHolidays.find((holiday) => holiday.date === dateStr);
+        const getAppliedLeave = (dateStr) =>
+        {
+            const currentId = getCurrentEditLeaveId();
+            return existingLeaves.find((leave) =>
+                String(leave.id || "") !== currentId
+                && (leave.status === "Pending" || leave.status === "Approved")
+                && leave.from <= dateStr
+                && leave.to >= dateStr
+            );
+        };
+        const getDateBlockMeta = (date, minimum) =>
+        {
+            const dateStr = formatDate(date);
+            const companyHoliday = getCompanyHoliday(dateStr);
+            const appliedLeave = getAppliedLeave(dateStr);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const beforeMinimum = !!minimum && date < minimum;
+            const reasons = [];
+            if (beforeMinimum) reasons.push("Past date");
+            if (isWeekend) reasons.push("Weekend");
+            if (companyHoliday) reasons.push(`${companyHoliday.is_optional ? "Optional" : "Company"} holiday: ${companyHoliday.name}`);
+            if (appliedLeave) reasons.push(`${appliedLeave.status} leave: ${appliedLeave.type}`);
+            return {
+                dateStr,
+                companyHoliday,
+                appliedLeave,
+                isWeekend,
+                beforeMinimum,
+                disabled: beforeMinimum || isWeekend || !!companyHoliday || !!appliedLeave,
+                tooltip: reasons.join(" | "),
+            };
+        };
+        const getNextSelectableDate = (startDate, minimum) =>
+        {
+            const candidate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            const floor = minimum && candidate < minimum ? minimum : candidate;
+            candidate.setFullYear(floor.getFullYear(), floor.getMonth(), floor.getDate());
+            for (let offset = 0; offset < 370; offset += 1)
+            {
+                if (!getDateBlockMeta(candidate, minimum).disabled)
+                {
+                    return new Date(candidate.getFullYear(), candidate.getMonth(), candidate.getDate());
+                }
+                candidate.setDate(candidate.getDate() + 1);
+            }
+            return floor;
+        };
         const today = () =>
         {
             const browserToday = new Date();
@@ -2423,6 +2592,10 @@
         const getMinimum = () =>
         {
             const form = hiddenInput.form || shell.closest("form");
+            if (hiddenInput.name === "from_date")
+            {
+                return today();
+            }
             if (hiddenInput.name === "to_date" && form)
             {
                 const fromDate = parseDate(form.querySelector('input[name="from_date"]')?.value || "");
@@ -2434,6 +2607,11 @@
         {
             const todayDate = today();
             const minimumDate = getMinimum();
+            const selectedDate = parseDate(hiddenInput.value);
+            if (selectedDate && (!minimumDate || selectedDate >= minimumDate))
+            {
+                return selectedDate;
+            }
             if (hiddenInput.name === "from_date")
             {
                 return todayDate;
@@ -2503,17 +2681,32 @@
             for (let day = 1; day <= daysInMonth; day += 1)
             {
                 const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+                const dateMeta = getDateBlockMeta(date, minimum);
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "date-day";
                 button.textContent = String(day);
-                const beforeMinimum = minimum && date < minimum;
                 button.classList.toggle("today", date.getTime() === currentToday.getTime());
-                button.classList.toggle("weekend", date.getDay() === 0 || date.getDay() === 6);
+                button.classList.toggle("weekend", dateMeta.isWeekend);
+                button.classList.toggle("company-holiday", !!dateMeta.companyHoliday);
+                button.classList.toggle("optional-company-holiday", !!dateMeta.companyHoliday?.is_optional);
+                button.classList.toggle("pending-leave-date", dateMeta.appliedLeave?.status === "Pending");
+                button.classList.toggle("approved-leave-date", dateMeta.appliedLeave?.status === "Approved");
+                button.classList.toggle("past-disabled", dateMeta.beforeMinimum);
+                button.classList.toggle("blocked-date", dateMeta.disabled);
                 button.classList.toggle("selected", !!effectiveSelected && date.getFullYear() === effectiveSelected.getFullYear() && date.getMonth() === effectiveSelected.getMonth() && date.getDate() === effectiveSelected.getDate());
-                button.classList.toggle("muted", !!beforeMinimum);
-                button.disabled = !!beforeMinimum;
-                if (!beforeMinimum)
+                button.classList.toggle("muted", !!dateMeta.beforeMinimum);
+                button.disabled = !!dateMeta.beforeMinimum;
+                if (dateMeta.disabled)
+                {
+                    button.setAttribute("aria-disabled", "true");
+                }
+                if (dateMeta.tooltip)
+                {
+                    button.title = dateMeta.tooltip;
+                    button.setAttribute("aria-label", `${day}: ${dateMeta.tooltip}`);
+                }
+                if (!dateMeta.disabled)
                 {
                     button.addEventListener("click", () =>
                     {
@@ -2585,7 +2778,9 @@
         todayButton?.addEventListener("click", (event) =>
         {
             event.stopPropagation();
-            const nextDate = today();
+            const minimum = getMinimum();
+            const todayDate = today();
+            const nextDate = getNextSelectableDate(minimum && todayDate < minimum ? minimum : todayDate, minimum);
             hiddenInput.value = formatDate(nextDate);
             shell._viewDate = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
             sync();
@@ -2606,20 +2801,14 @@
         hiddenInput.addEventListener("input", () =>
         {
             sync();
-            if (shell.classList.contains("open"))
-            {
-                shell._viewDate = getViewDate();
-                render();
-            }
+            shell._viewDate = getViewDate();
+            render();
         });
         hiddenInput.addEventListener("change", () =>
         {
             sync();
-            if (shell.classList.contains("open"))
-            {
-                shell._viewDate = getViewDate();
-                render();
-            }
+            shell._viewDate = getViewDate();
+            render();
         });
         document.addEventListener("click", (event) =>
         {
@@ -2629,6 +2818,8 @@
             }
         });
         shell.dataset.bound = "true";
+        shell._renderDatePicker = render;
+        shell._syncDatePicker = sync;
         shell._viewDate = getViewDate();
         sync();
         render();
@@ -3443,6 +3634,71 @@
         Short: { hour: "", minute: "" },
         Half: { hour: "", minute: "" }
     };
+    function rememberEditTimeForType(type)
+    {
+        if (type !== "Short" && type !== "Half") return;
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+        editStoredTime[type] =
+        {
+            hour: hourSelect?.value || "",
+            minute: minuteSelect?.value || ""
+        };
+    }
+    function restoreEditTimeForType(type, fallbackHour = "", fallbackMinute = "")
+    {
+        if (type !== "Short" && type !== "Half") return;
+        const hourSelect = document.getElementById("edit-hour");
+        const minuteSelect = document.getElementById("edit-minute");
+        const toTime = document.getElementById("edit-to-time");
+        const ampm = document.getElementById("edit-ampm");
+        if (!hourSelect || !minuteSelect) return;
+        const stored = editStoredTime[type] || { hour: "", minute: "" };
+        const restoreHour = stored.hour !== "" ? stored.hour : fallbackHour;
+        const restoreMinute = stored.minute !== "" ? stored.minute : fallbackMinute;
+        const hourValid = Array.from(hourSelect.options).some((option) => option.value === String(restoreHour));
+        if (!hourValid)
+        {
+            hourSelect.value = "";
+            minuteSelect.value = "";
+            if (toTime) toTime.value = "";
+            if (ampm) ampm.value = "";
+            refreshEditTimeDropdowns();
+            return;
+        }
+        hourSelect.value = restoreHour;
+        hourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        window.setTimeout(() =>
+        {
+            const minuteValid = Array.from(minuteSelect.options).some((option) => option.value === String(restoreMinute));
+            if (minuteValid)
+            {
+                minuteSelect.value = restoreMinute;
+                calculate_end_time();
+            }
+            else
+            {
+                minuteSelect.value = "";
+                if (toTime) toTime.value = "";
+            }
+            refreshEditTimeDropdowns();
+        }, 0);
+    }
+    function setEditTimeLayout(form, isTimeBased)
+    {
+        if (!form) return;
+        form.classList.toggle("is-time-based", !!isTimeBased);
+        form.classList.toggle("is-date-only", !isTimeBased);
+    }
+    function getEditTimeMenuLabel(shell)
+    {
+        const fullLabel = shell?.dataset.menuLabel || "Select";
+        const isMobile = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+        if (!isMobile) return fullLabel;
+        if (fullLabel === "Hour") return "Hr";
+        if (fullLabel === "Minute") return "Min";
+        return fullLabel;
+    }
     function updateEditDurationSummary()
     {
         const leaveType = document.getElementById("edit-leave-type");
@@ -3478,42 +3734,95 @@
         const dayCount = Math.floor((end - start) / (24 * 60 * 60 * 1000)) + 1;
         value.textContent = `${dayCount} ${dayCount === 1 ? "Day" : "Days"}`;
     }
+    function refreshEditDatePickers()
+    {
+        const form = document.getElementById("edit-leave-form");
+        form?.querySelectorAll(".popup-filter-date-shell").forEach((shell) =>
+        {
+            if (typeof shell._syncDatePicker === "function") shell._syncDatePicker();
+            if (typeof shell._renderDatePicker === "function") shell._renderDatePicker();
+        });
+    }
+    function applyEditLeaveDateRules()
+    {
+        const leaveType = document.getElementById("edit-leave-type");
+        const fromDate = document.getElementById("edit-from");
+        const toDate = document.getElementById("edit-to");
+        if (!leaveType || !fromDate || !toDate) return;
+        const isTimeBased = leaveType.value === "Short" || leaveType.value === "Half";
+        const toDateShell = toDate.closest(".popup-filter-date-shell");
+        fromDate.min = today;
+        toDate.min = fromDate.value || today;
+        if (isTimeBased)
+        {
+            toDateShell?.classList.add("is-disabled");
+            if (fromDate.value && toDate.value !== fromDate.value)
+            {
+                toDate.value = fromDate.value;
+                toDate.dispatchEvent(new Event("input", { bubbles: true }));
+                toDate.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        }
+        else
+        {
+            toDateShell?.classList.remove("is-disabled");
+            if (fromDate.value && toDate.value && toDate.value < fromDate.value)
+            {
+                toDate.value = "";
+                toDate.dispatchEvent(new Event("input", { bubbles: true }));
+                toDate.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        }
+        refreshEditDatePickers();
+        updateEditDurationSummary();
+    }
     function closeEditTimeDropdowns(exceptShell = null)
     {
-        document.querySelectorAll("[data-time-select-shell].is-open").forEach((shell) =>
+        document.querySelectorAll("[data-time-select-shell].open").forEach((shell) =>
         {
             if (shell === exceptShell) return;
-            shell.classList.remove("is-open");
-            shell.querySelector(".edit-time-trigger")?.setAttribute("aria-expanded", "false");
+            shell.classList.remove("open");
+            shell.querySelector(".custom-select-trigger")?.setAttribute("aria-expanded", "false");
         });
     }
     function syncEditTimeDropdown(select)
     {
         const shell = select?.closest("[data-time-select-shell]");
         if (!shell) return;
-        const triggerText = shell.querySelector(".edit-time-trigger span");
-        const menu = shell.querySelector(".edit-time-menu");
+        const triggerText = shell.querySelector(".custom-select-value");
+        const menu = shell.querySelector(".custom-select-menu");
         const selectedOption = select.options[select.selectedIndex] || select.options[0];
+        const menuLabel = shell.dataset.menuLabel || "Select";
+        const displayMenuLabel = getEditTimeMenuLabel(shell);
         if (triggerText)
         {
-            triggerText.textContent = selectedOption?.textContent || "Select";
+            triggerText.textContent = selectedOption?.value ? selectedOption.textContent : displayMenuLabel;
         }
         if (!menu) return;
         menu.innerHTML = "";
-        Array.from(select.options).forEach((option) =>
+        menu.setAttribute("data-menu-label", displayMenuLabel);
+        Array.from(select.options).forEach((option, index) =>
         {
+            const isResetOption = !option.value && index === 0 && (menuLabel === "Hour" || menuLabel === "Minute");
+            if (!option.value && index === 0 && !isResetOption)
+            {
+                return;
+            }
             const item = document.createElement("button");
             item.type = "button";
-            item.className = "edit-time-option";
-            item.textContent = option.textContent;
+            item.className = "custom-option";
             item.dataset.value = option.value;
-            item.classList.toggle("is-selected", option.value === select.value);
+            const title = document.createElement("span");
+            title.className = "option-title";
+            title.textContent = isResetOption ? displayMenuLabel : option.textContent;
+            item.appendChild(title);
+            item.classList.toggle("selected", option.value === select.value);
             item.addEventListener("click", () =>
             {
                 select.value = option.value;
-                select.dispatchEvent(new Event("change", { bubbles: true }));
                 syncEditTimeDropdown(select);
                 closeEditTimeDropdowns();
+                select.dispatchEvent(new Event("change", { bubbles: true }));
             });
             menu.appendChild(item);
         });
@@ -3521,14 +3830,14 @@
     function bindEditTimeDropdown(select)
     {
         const shell = select?.closest("[data-time-select-shell]");
-        const trigger = shell?.querySelector(".edit-time-trigger");
+        const trigger = shell?.querySelector(".custom-select-trigger");
         if (!select || !shell || !trigger || shell.dataset.bound === "true") return;
         trigger.addEventListener("click", (event) =>
         {
             event.stopPropagation();
-            const shouldOpen = !shell.classList.contains("is-open");
+            const shouldOpen = !shell.classList.contains("open");
             closeEditTimeDropdowns(shell);
-            shell.classList.toggle("is-open", shouldOpen);
+            shell.classList.toggle("open", shouldOpen);
             trigger.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
         });
         trigger.addEventListener("keydown", (event) =>
@@ -3540,12 +3849,21 @@
             }
         });
         select.addEventListener("change", () => syncEditTimeDropdown(select));
+        if (select.id === "edit-ampm")
+        {
+            select.addEventListener("change", () =>
+            {
+                const hour = parseInt(document.getElementById("edit-hour")?.value, 10);
+                select.value = Number.isNaN(hour) ? "" : (hour >= 12 ? "PM" : "AM");
+                syncEditTimeDropdown(select);
+            });
+        }
         shell.dataset.bound = "true";
         syncEditTimeDropdown(select);
     }
     function refreshEditTimeDropdowns()
     {
-        ["edit-hour", "edit-minute"].forEach((id) =>
+        ["edit-hour", "edit-minute", "edit-ampm"].forEach((id) =>
         {
             const select = document.getElementById(id);
             bindEditTimeDropdown(select);
@@ -3559,13 +3877,24 @@
             closeEditTimeDropdowns();
         }
     });
+    window.addEventListener("resize", () =>
+    {
+        const form = document.getElementById("edit-leave-form");
+        if (form && form.closest("#modal-content"))
+        {
+            refreshEditTimeDropdowns();
+        }
+    });
     // =======================================
     // OPEN EDIT LEAVE
     // =======================================
     function openEditLeave(btn)
     {
         const formTemplate = document.getElementById("edit-leave-template");
+        const sharedModal = document.getElementById("modal");
         const modalBox = document.querySelector(".modal-box");
+        sharedModal?.classList.remove("popup-filter-modal-host");
+        sharedModal?.classList.add("popup-edit-modal-host");
         if (modalBox) {
             modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-filter-modal-box", "popup-edit-modal-box");
             modalBox.classList.add("popup-edit-modal-box");
@@ -3585,6 +3914,8 @@
         {
             window.bindPendingLeaveEditAjax(form);
         }
+        form.dataset.editLeaveId = btn.dataset.id || "";
+        form.dataset.originalLeaveType = btn.dataset.type || "";
         const leaveType = document.getElementById("edit-leave-type");
         const fromDate = document.getElementById("edit-from");
         const toDate = document.getElementById("edit-to");
@@ -3594,9 +3925,11 @@
         const toDateShell = toDate.closest(".popup-filter-date-shell");
         leaveType.value = btn.dataset.type;
         leaveType.dataset.prevType = btn.dataset.type;
+        setEditTimeLayout(form, btn.dataset.type === "Short" || btn.dataset.type === "Half");
         fromDate.value = btn.dataset.from;
         toDate.value = btn.dataset.to;
         reason.value = btn.dataset.reason;
+        applyEditLeaveDateRules();
         [leaveType, fromDate, toDate].forEach((input) =>
         {
             input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -3635,17 +3968,12 @@
                     {
                         minuteSelect.value = start.getMinutes();
                         calculate_end_time();
+                        rememberEditTimeForType(btn.dataset.type);
                         refreshEditTimeDropdowns();
                     }
                 }, 0);
                 
                 ampm.value = start.getHours() >= 12 ? "PM" : "AM";
-                // FIXED STORAGE
-                editStoredTime[btn.dataset.type] =
-                {
-                    hour: hourSelect.value,
-                    minute: minuteSelect.value
-                };
                 calculate_end_time();
             }
         }
@@ -3670,61 +3998,31 @@
             const newType = this.value;
             const previousType = leaveType.dataset.prevType || btn.dataset.type;
             // ðŸ”¥ If previous type was Short or Half â†’ store its time
-            if (previousType === "Short" || previousType === "Half") 
-            {
-                editStoredTime[previousType] = 
-                {
-                    hour: hourSelect.value,
-                    minute: minuteSelect.value
-                };
-            }
+            rememberEditTimeForType(previousType);
             // Update tracker
             leaveType.dataset.prevType = newType;
             // ðŸ”¥ If new type is Short or Half
             if (newType === "Short" || newType === "Half")
             {
+                setEditTimeLayout(form, true);
                 fromTimeField.style.display = "block";
                 toTimeField.style.display = "block";
                 toDateShell?.classList.add("is-disabled");
                 toDate.value = fromDate.value;
                 toDate.dispatchEvent(new Event("input", { bubbles: true }));
                 toDate.dispatchEvent(new Event("change", { bubbles: true }));
+                applyEditLeaveDateRules();
                 // Remember current selection before regenerating
                 const previousHour = hourSelect.value;
                 const previousMinute = minuteSelect.value;
                 // Regenerate dropdowns
                 generate_edit_time_fields(newType);
-                const stored = editStoredTime[newType];
-                let restoreHour = stored.hour !== "" ? stored.hour : previousHour;
-                let restoreMinute = stored.minute !== "" ? stored.minute : previousMinute;
-                // Check if hour exists in new dropdown
-                const hourValid = [...hourSelect.options].some(o => o.value === restoreHour);
-                if (hourValid)
-                {
-                    hourSelect.value = restoreHour;
-                    // generate minutes
-                    hourSelect.dispatchEvent(new Event("change"));
-                    setTimeout(() =>
-                    {
-                        const minuteValid = [...minuteSelect.options].some(o => o.value == restoreMinute);
-                        if (minuteValid)
-                        {
-                            minuteSelect.value = restoreMinute;
-                            calculate_end_time();
-                        }
-                    }, 0);
-                }
-                else
-                {
-                    hourSelect.value = "";
-                    minuteSelect.value = "";
-                    toTime.value = "";
-                    const ampm = document.getElementById("edit-ampm");
-                    ampm.value = "AM/PM";
-                }
+                restoreEditTimeForType(newType, previousHour, previousMinute);
             }
             else 
             {
+                rememberEditTimeForType(previousType);
+                setEditTimeLayout(form, false);
                 fromTimeField.style.display = "none";
                 toTimeField.style.display = "none";
                 toTime.value = ""; // ðŸ”¥ Also clear when hiding
@@ -3733,6 +4031,7 @@
                 if (warning) warning.innerText = "";
                 const existingTimeBox = document.getElementById("edit-existing-time");
                 if (existingTimeBox) existingTimeBox.style.display = "none";
+                applyEditLeaveDateRules();
             }
             updateEditDurationSummary();
         };
@@ -3747,53 +4046,16 @@
             toDate.value = this.value;
             toDate.dispatchEvent(new Event("input", { bubbles: true }));
             toDate.dispatchEvent(new Event("change", { bubbles: true }));
+            applyEditLeaveDateRules();
             updateEditDurationSummary();
             const hourSelect = document.getElementById("edit-hour");
             const minuteSelect = document.getElementById("edit-minute");
             const toTime = document.getElementById("edit-to-time");
             // store current selection
-            if (hourSelect.value !== "" && minuteSelect.value !== "")
-            {
-                editStoredTime[type] =
-                {
-                    hour: hourSelect.value,
-                    minute: minuteSelect.value
-                };
-            }
+            rememberEditTimeForType(type);
             // regenerate dropdowns with strict rules
             generate_strict_edit_time(type);
-            const stored = editStoredTime[type];
-            if (stored.hour === "") return;
-            // check if stored hour exists in new dropdown
-            const hourValid = [...hourSelect.options].some(o => o.value === stored.hour);
-            if (!hourValid)
-            {
-                // reset if invalid
-                hourSelect.value = "";
-                minuteSelect.value = "";
-                toTime.value = "";
-                const ampm = document.getElementById("edit-ampm");
-                ampm.value = "AM/PM";
-                return;
-            }
-            // restore hour
-            hourSelect.value = stored.hour;
-            // generate minutes
-            hourSelect.dispatchEvent(new Event("change"));
-            setTimeout(() =>
-            {
-                const minuteValid = [...minuteSelect.options].some(o => o.value == stored.minute);
-                if (minuteValid)
-                {
-                    minuteSelect.value = stored.minute;
-                    calculate_end_time();
-                }
-                else
-                {
-                    minuteSelect.value = "";
-                    toTime.value = "";
-                }
-            }, 0);
+            restoreEditTimeForType(type);
         };
         toDate.onchange = updateEditDurationSummary;
         openModal();
@@ -3843,13 +4105,13 @@
         // Reset minute when hour changes
         const ampm = document.getElementById("edit-ampm");
         const toTime = document.getElementById("edit-to-time");
-        hourSelect.addEventListener("change", function () 
+        hourSelect.onchange = function () 
         {
             const selectedHour = parseInt(this.value);
             if (this.value === "") 
             {
                 // ðŸ”¥ Reset to default
-                ampm.value = "AM/PM";
+                ampm.value = "";
                 minuteSelect.value = "";
                 toTime.value = "";
                 refreshEditTimeDropdowns();
@@ -3861,8 +4123,8 @@
             minuteSelect.value = "";
             toTime.value = "";
             refreshEditTimeDropdowns();
-        });
-        minuteSelect.addEventListener("change", calculate_end_time);
+        };
+        minuteSelect.onchange = calculate_end_time;
         refreshEditTimeDropdowns();
     }
     let TEST_TIME = "14:30";  // Example: TEST_TIME = "14:30";
@@ -3875,6 +4137,9 @@
         const minuteSelect = document.getElementById("edit-minute");
         const fromDate = document.getElementById("edit-from");
         const warning = document.getElementById("edit-time-warning");
+        const form = document.getElementById("edit-leave-form");
+        const originalType = form?.dataset.originalLeaveType || "";
+        const originalIsTimeBased = originalType === "Short" || originalType === "Half";
         hourSelect.innerHTML = '<option value="">Hour</option>';
         minuteSelect.innerHTML = '<option value="">Minute</option>';
         warning.innerText = "";
@@ -3902,7 +4167,7 @@
         {
             warning.innerText = "Cannot change time for past leave.";
             const existingDatetime = document.getElementById("edit-existing-datetime").value;
-            if (existingDatetime)
+            if (originalIsTimeBased && existingDatetime)
             {
                 const start = new Date(existingDatetime);
                 const hour = start.getHours();
@@ -3927,6 +4192,20 @@
                 calculate_end_time();
                 refreshEditTimeDropdowns();
             }
+            else
+            {
+                const ampm = document.getElementById("edit-ampm");
+                hourSelect.innerHTML = '<option value="">Hour</option>';
+                minuteSelect.innerHTML = '<option value="">Minute</option>';
+                hourSelect.value = "";
+                minuteSelect.value = "";
+                if (ampm) ampm.value = "";
+                const toTime = document.getElementById("edit-to-time");
+                if (toTime) toTime.value = "";
+                hourSelect.onchange = null;
+                minuteSelect.onchange = null;
+                refreshEditTimeDropdowns();
+            }
             return;
         }
         // Handle Today's Date and Time
@@ -3947,7 +4226,7 @@
                 warning.innerText = "No valid time available for today.";
                 
                 const existingDatetime = document.getElementById("edit-existing-datetime").value;
-                if (existingDatetime)
+                if (originalIsTimeBased && existingDatetime)
                 {
                     const start = new Date(existingDatetime);
                     const hour = start.getHours();
@@ -3972,6 +4251,16 @@
                     calculate_end_time();
                     refreshEditTimeDropdowns();
                 }
+                else
+                {
+                    const ampm = document.getElementById("edit-ampm");
+                    hourSelect.value = "";
+                    minuteSelect.value = "";
+                    if (ampm) ampm.value = "";
+                    const toTime = document.getElementById("edit-to-time");
+                    if (toTime) toTime.value = "";
+                    refreshEditTimeDropdowns();
+                }
                 return;
             }
         }
@@ -3993,7 +4282,7 @@
             const toTime = document.getElementById("edit-to-time");
             if (this.value === "")
             {
-                ampm.value = "AM/PM";
+                ampm.value = "";
                 toTime.value = "";
                 refreshEditTimeDropdowns();
                 return;
@@ -4370,7 +4659,10 @@
     function openFilterModal(status)
     {
         const modalContent = document.getElementById("modal-content");
+        const sharedModal = document.getElementById("modal");
         const modalBox = document.querySelector(".modal-box");
+        sharedModal?.classList.remove("popup-edit-modal-host");
+        sharedModal?.classList.add("popup-filter-modal-host");
         if (modalBox)
         {
             modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-edit-modal-box");
