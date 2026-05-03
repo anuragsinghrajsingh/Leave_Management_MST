@@ -2025,6 +2025,7 @@ def reports(request):
             "user": report_user,
             "employee_id": getattr(report_profile, "employee_id", "Not assigned"),
             "department": getattr(report_profile, "department", "Not assigned"),
+            "phone": getattr(report_profile, "phone", "Not added"),
             "photo_url": report_profile.profile_photo.url if report_profile and report_profile.profile_photo else None,
             "total": item["total"],
             "approved": item["approved"],

@@ -195,7 +195,6 @@
             <section class="reports-hero">
                 <div class="hero-copy">
                     <p class="eyebrow">HR analytics workspace</p>
-                    <h2>Clear leave reporting for faster HR decisions.</h2>
                     <p class="hero-text">
                         Review employee leave volume, approval flow, and pending workload in one clean reporting view.
                         <span class="hero-focus" id="focusMessage">
@@ -341,10 +340,9 @@
             <section class="panel-card report-table-panel async-surface-host" id="reportTablePanel">
                 <div class="panel-heading report-table-heading">
                     <div>
-                        <p class="eyebrow">Employee overview</p>
-                        <h3><span class="section-title-icon" aria-hidden="true">&#9636;</span><span class="section-title-text">Leave summary by employee</span></h3>
+                        <h3 class="report-table-title-chip"><span class="section-title-icon" aria-hidden="true">&#9636;</span><span class="section-title-text">Leave Summary By Employee</span></h3>
                     </div>
-                    <span class="panel-count" id="visibleReportCount" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" visible">{{ report_employee_count }} visible</span>
+                    <span class="panel-count" id="visibleReportCount" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" employee{{ report_employee_count|pluralize:'s' }}">{{ report_employee_count }} employee{{ report_employee_count|pluralize:"s" }}</span>
                 </div>
 
                 <div class="table-toolbar">
@@ -362,9 +360,10 @@
                                 <path d="M16.5 16.5L21 21" stroke="url(#searchGradient)" stroke-width="3" stroke-linecap="round"/>
                             </svg>
                         </div>
-                        <input type="text" id="reportSearch" placeholder="Search employees by name or ID...">
+                        <input type="text" id="reportSearch" placeholder="Search by name, ID, mobile no., or department...">
                     </div>
-                    <span class="panel-count table-toolbar-count" id="visibleReportCountMobile" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" visible">{{ report_employee_count }} visible</span>
+                    <span class="panel-count table-toolbar-count table-toolbar-count-desktop" id="visibleReportCountToolbar" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" employee{{ report_employee_count|pluralize:'s' }}">{{ report_employee_count }} employee{{ report_employee_count|pluralize:"s" }}</span>
+                    <span class="panel-count table-toolbar-count table-toolbar-count-mobile" id="visibleReportCountMobile" data-countup data-countup-target="{{ report_employee_count }}">{{ report_employee_count }}</span>
                 </div>
 
                 <div class="report-table-wrapper">
@@ -414,6 +413,7 @@
     const reportTableBody = document.getElementById("reportTableBody");
     const reportSearchEmpty = document.getElementById("reportSearchEmpty");
     const visibleReportCount = document.getElementById("visibleReportCount");
+    const visibleReportCountToolbar = document.getElementById("visibleReportCountToolbar");
     const visibleReportCountMobile = document.getElementById("visibleReportCountMobile");
     const employeesShownCount = document.getElementById("employeesShownCount");
     const reportTotalRequests = document.getElementById("reportTotalRequests");
@@ -487,7 +487,8 @@
 
         const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
         const config = Object.assign({ duration: 280 }, options || {});
-        const suffix = config.suffix || "";
+        const suffix = typeof config.suffix === "function" ? config.suffix(safeValue) : (config.suffix || "");
+        config.suffix = suffix;
         element.dataset.countupTarget = String(safeValue);
         element.textContent = String(safeValue) + suffix;
         if (typeof window.animateCountUp === "function")
@@ -498,6 +499,11 @@
         {
             element.textContent = String(safeValue) + suffix;
         }
+    }
+
+    function getReportEmployeeSuffix(value)
+    {
+        return Number(value) === 1 ? " employee" : " employees";
     }
 
     function filterReportRows(searchValue)
@@ -547,6 +553,7 @@
             const haystack = [
                 row.dataset.employeeName || "",
                 row.dataset.employeeId || "",
+                row.dataset.phone || "",
                 row.dataset.department || ""
             ].join(" ");
             const isMatch = !query || haystack.includes(query);
@@ -562,8 +569,9 @@
             }
         });
 
-        animateMetric(visibleReportCount, visibleRows, { suffix: " visible" });
-        animateMetric(visibleReportCountMobile, visibleRows, { suffix: " visible" });
+        animateMetric(visibleReportCount, visibleRows, { suffix: getReportEmployeeSuffix });
+        animateMetric(visibleReportCountToolbar, visibleRows, { suffix: getReportEmployeeSuffix });
+        animateMetric(visibleReportCountMobile, visibleRows);
         animateMetric(employeesShownCount, visibleRows);
         animateMetric(reportTotalRequests, totalRequests);
         animateMetric(reportApprovedTotal, approvedTotal);

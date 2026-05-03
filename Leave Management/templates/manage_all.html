@@ -250,7 +250,7 @@
                             type="search"
                             id="employeeSearchInput"
                             class="employee-search-input"
-                            placeholder="Search by name, employee ID, joining date, or department"
+                            placeholder="Search by name, employee ID, mobile no., or department"
                             autocomplete="off"
                         >
                     </div>
@@ -267,7 +267,7 @@
                             data-search-name="{{ employee.display_name|lower }}"
                             data-search-username="{{ employee.username|lower }}"
                             data-search-employee-id="{{ employee.employee_id|lower }}"
-                            data-search-joining="{{ employee.date_of_joining|lower }}"
+                            data-search-phone="{{ employee.phone|lower }}"
                             data-search-department="{{ employee.department|lower }}"
                         >
                             <span class="employee-card-serial">{{ forloop.counter }}</span>
@@ -417,7 +417,7 @@
                         </div>
                         <div class="empty-state-copy">
                             <strong>No matching employees</strong>
-                            <p>Try another name, employee ID, joining date, or department.</p>
+                            <p>Try another name, employee ID, mobile no., or department.</p>
                         </div>
                     </div>
                 </div>
@@ -679,7 +679,7 @@
                         </div>
                         <div class="reason-meta-card reject-review-meta-card">
                             <div class="reject-review-meta-copy">
-                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span>Updated At</span></span></span>
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span id="rejectModalUpdatedHeading">Updated At</span></span></span>
                                 <div class="reason-meta-value reason-meta-stack">
                                     <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#10227;</span><span>-</span></strong>
                                     <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11014;</span><span>-</span></span>
@@ -689,7 +689,7 @@
                     </div>
                 </div>
 
-                <form method="POST" id="rejectForm" class="reject-form reject-review-form">
+                <form method="POST" id="rejectForm" class="reject-form reject-review-form" data-leave-action-form>
                     {% csrf_token %}
                     <div class="reject-review-section-toolbar">
                         <p class="reject-review-section-toolbar-note"><span class="reject-review-section-toolbar-note-icon" aria-hidden="true">&#9432;</span><span>Use these notes to review the employee reason and write your rejection message.</span></p>
@@ -711,8 +711,8 @@
                             </div>
                             <div class="reject-review-section-body">
                                 <div class="reject-review-textarea-wrap">
-                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="100" required></textarea>
-                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0/100</span>
+                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="500" required></textarea>
+                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0/500</span>
                                 </div>
                             </div>
                         </div>
@@ -781,7 +781,7 @@
                         </div>
                     </div>
                     <div class="reason-meta-card decision-confirm-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-updated-head" aria-hidden="true">&#8635;</span><span>Updated At</span></span></span>
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-updated-head" aria-hidden="true">&#8635;</span><span id="decisionConfirmUpdatedHeading">Updated At</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
                             <strong id="decisionConfirmUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-value" aria-hidden="true">&#9200;</span><span>-</span></strong>
                             <span id="decisionConfirmUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-time" aria-hidden="true">&#8593;</span><span>-</span></span>
@@ -789,7 +789,27 @@
                     </div>
                 </div>
 
-                <div class="decision-confirm-note" id="decisionConfirmNote" hidden></div>
+                <div class="decision-confirm-note-row" id="decisionConfirmNoteRow" hidden>
+                    <div class="decision-confirm-note decision-confirm-note-reason" id="decisionConfirmReasonNote" hidden>
+                        <div class="reason-field-label decision-confirm-note-label">
+                            <span class="reason-meta-label-content">
+                                <span class="reason-meta-label-icon" aria-hidden="true">&#9998;&#65038;</span>
+                                <span id="decisionConfirmReasonHeading">Employee Reason</span>
+                            </span>
+                        </div>
+                        <div class="decision-confirm-note-content" id="decisionConfirmReasonContent">-</div>
+                    </div>
+
+                    <div class="decision-confirm-note decision-confirm-note-action" id="decisionConfirmNote" hidden>
+                        <div class="reason-field-label decision-confirm-note-label">
+                            <span class="reason-meta-label-content">
+                                <span class="reason-meta-label-icon" aria-hidden="true">&#10006;&#65038;</span>
+                                <span id="decisionConfirmNoteHeading">Rejection Notes</span>
+                            </span>
+                        </div>
+                        <div class="decision-confirm-note-content" id="decisionConfirmNoteContent">-</div>
+                    </div>
+                </div>
 
                 <div class="modal-actions decision-confirm-actions">
                     <button type="button" class="cancel-btn decision-confirm-cancel-btn" id="decisionConfirmCancel"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
@@ -810,38 +830,48 @@
                 <button type="button" class="close-modal-btn" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
             </div>
             <div class="reason-modal-body">
-                <div class="reason-modal-meta-grid">
+                <div class="reason-modal-top-row">
+                    <span class="reason-modal-chip reason-modal-name-chip" id="reasonModalEmployee">Employee</span>
+                    <span class="reason-modal-chip reason-modal-type-chip reason-modal-type-default" id="reasonModalLeaveType">Leave type</span>
+                    <span class="reason-modal-top-spacer" aria-hidden="true"></span>
+                </div>
+                <div class="reason-modal-meta-grid" id="reasonModalMetaGrid">
                     <div class="reason-meta-card">
                         <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128197;</span><span>Schedule</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
-                            <strong id="reasonModalScheduleDate" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128197;</span><span>-</span></strong>
-                            <span id="reasonModalScheduleTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                            <strong id="reasonModalScheduleDate">-</strong>
+                            <span id="reasonModalScheduleTime">-</span>
                         </div>
                     </div>
                     <div class="reason-meta-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9203;</span><span>Days</span></span></span>
-                        <strong class="reason-meta-value reason-meta-content-line" id="reasonModalDays"><span class="reason-meta-content-icon" aria-hidden="true">&#9203;</span><span>-</span></strong>
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9203;</span><span>No. of days</span></span></span>
+                        <strong class="reason-meta-value" id="reasonModalDays">-</strong>
                     </div>
                     <div class="reason-meta-card">
                         <span class="reason-meta-label" id="reasonModalAppliedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
-                            <strong id="reasonModalApplied" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#9201;</span><span>-</span></strong>
-                            <span id="reasonModalAppliedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                            <strong id="reasonModalApplied">-</strong>
+                            <span id="reasonModalAppliedTime">-</span>
                         </div>
                     </div>
                     <div class="reason-meta-card">
                         <span class="reason-meta-label" id="reasonModalUpdatedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>0 updates</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
-                            <strong id="reasonModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128260;</span><span>-</span></strong>
-                            <span id="reasonModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#128339;</span><span>-</span></span>
+                            <strong id="reasonModalUpdated">-</strong>
+                            <span id="reasonModalUpdatedTime">-</span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card reason-modal-decision-card" id="reasonModalDecisionCard" hidden>
+                        <span class="reason-meta-label" id="reasonModalDecisionLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10003;</span><span>Approved At</span></span></span>
+                        <div class="reason-meta-value reason-meta-stack">
+                            <strong id="reasonModalDecision">-</strong>
+                            <span id="reasonModalDecisionTime">-</span>
                         </div>
                     </div>
                 </div>
                 <div class="reason-field-card">
-                    <div class="reason-field-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Reason</span></span></div>
-                    <div class="reason-modal-content-shell">
-                        <div id="reasonModalContent"></div>
-                    </div>
+                    <div class="reason-field-label" id="reasonModalFieldLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Reason</span></span></div>
+                    <div id="reasonModalContent"></div>
                 </div>
             </div>
         </div>
@@ -2290,25 +2320,51 @@
         return "-";
     }
 
+    function formatManagePopupDateText(isoValue, fallbackValue)
+    {
+        if (isoValue)
+        {
+            const target = new Date(isoValue);
+
+            if (!Number.isNaN(target.getTime()))
+            {
+                return target.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                    year: "numeric"
+                });
+            }
+        }
+
+        if (fallbackValue)
+        {
+            const fallbackText = String(fallbackValue).trim().replace(/\s+/g, " ");
+            const withoutTime = fallbackText.replace(/\s+\d{1,2}:\d{2}\s?[AP]M$/i, "");
+            return withoutTime || fallbackText || "-";
+        }
+
+        return "-";
+    }
+
     function renderPopupDecisionBlock(options)
     {
         const iso = String(options.iso || "").trim();
         const fallback = String(options.fallback || "").trim();
-        const relative = formatManageRelativeLeaveAge(iso);
-        const count = Number(options.count || 0);
-        const primaryText = iso
-            ? (relative ? (count > 0 ? `${relative} (${count})` : relative) : (fallback || "-"))
-            : "-";
-        const secondaryText = iso ? formatManagePopupClockTime(iso, fallback) : "-";
+        const relativeText = formatRelativeLeaveAge(iso);
+        const primaryText = relativeText || formatManagePopupDateText(iso, fallback);
+        const secondaryText = formatManagePopupClockTime(iso, fallback);
         const extraClass = options.extraClass ? ` ${options.extraClass}` : "";
         const dateIconClass = options.dateIconClass ? ` ${options.dateIconClass}` : "";
         const timeIconClass = options.timeIconClass ? ` ${options.timeIconClass}` : "";
+        const absoluteText = formatManagePopupDateText(iso, fallback);
+        const updateCount = Number.parseInt(options.count || "0", 10);
+        const countText = updateCount > 0 ? ` (${updateCount})` : "";
 
         return `
             <div class="applied-block decision-block${extraClass}">
                 <div class="applied-line">
                     <span class="meta-icon${dateIconClass}">${options.dateIcon || "&#128197;"}</span>
-                    <strong>${escapeHtml(primaryText)}</strong>
+                    <strong title="${escapeHtml(absoluteText)}">${escapeHtml(primaryText)}${escapeHtml(countText)}</strong>
                 </div>
                 <div class="applied-line">
                     <span class="meta-icon${timeIconClass}">${options.timeIcon || "&#128339;"}</span>
@@ -2762,6 +2818,19 @@
         container.textContent = text || "-";
     }
 
+    function getLeaveUpdateCount(leave)
+    {
+        const rawCount = leave && leave.no_of_times_updated != null ? leave.no_of_times_updated : 0;
+        const count = Number.parseInt(rawCount, 10);
+        return Number.isFinite(count) && count > 0 ? count : 0;
+    }
+
+    function formatUpdatedAtHeading(leave)
+    {
+        const count = getLeaveUpdateCount(leave);
+        return count > 0 ? `Updated At (${count})` : "Updated At";
+    }
+
     function setDecisionConfirmTypeIcon(icon, typeClass)
     {
         if (!icon)
@@ -2817,6 +2886,13 @@
 
         if (grid)
         {
+            if (grid._motionTimer)
+            {
+                clearTimeout(grid._motionTimer);
+                grid._motionTimer = null;
+            }
+
+            grid.classList.remove("is-revealing", "is-hiding");
             grid.classList.add("is-hidden");
         }
 
@@ -2825,6 +2901,63 @@
             button.innerHTML = '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>';
             button.setAttribute("aria-label", "Show notes");
             button.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    function setRejectReasonSectionsVisible(shouldShow, animate)
+    {
+        const grid = document.getElementById("rejectReasonSectionGrid");
+        const button = document.getElementById("rejectReasonToggleAll");
+
+        if (!grid)
+        {
+            return;
+        }
+
+        if (grid._motionTimer)
+        {
+            clearTimeout(grid._motionTimer);
+            grid._motionTimer = null;
+        }
+
+        grid.classList.remove("is-revealing", "is-hiding");
+
+        if (shouldShow)
+        {
+            grid.classList.remove("is-hidden");
+
+            if (animate)
+            {
+                grid.classList.add("is-revealing");
+                grid._motionTimer = window.setTimeout(function ()
+                {
+                    grid.classList.remove("is-revealing");
+                    grid._motionTimer = null;
+                }, 320);
+            }
+        }
+        else if (animate && !grid.classList.contains("is-hidden"))
+        {
+            grid.classList.add("is-hiding");
+            grid._motionTimer = window.setTimeout(function ()
+            {
+                grid.classList.remove("is-hiding");
+                grid.classList.add("is-hidden");
+                grid._motionTimer = null;
+            }, 320);
+        }
+        else
+        {
+            grid.classList.add("is-hidden");
+        }
+
+        if (button)
+        {
+            button.innerHTML = shouldShow
+                ? '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9652;</span><span class="reject-review-toggle-btn-text">Hide Notes</span>'
+                : '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>';
+            button.setAttribute("aria-label", shouldShow ? "Hide notes" : "Show notes");
+            button.setAttribute("aria-expanded", shouldShow ? "true" : "false");
         }
     }
 
@@ -2838,6 +2971,7 @@
         const days = document.getElementById("rejectModalDays");
         const applied = document.getElementById("rejectModalApplied");
         const appliedTime = document.getElementById("rejectModalAppliedTime");
+        const updatedHeading = document.getElementById("rejectModalUpdatedHeading");
         const updated = document.getElementById("rejectModalUpdated");
         const updatedTime = document.getElementById("rejectModalUpdatedTime");
         const reason = document.getElementById("rejectModalReason");
@@ -2862,12 +2996,17 @@
         setMetaLineValue(scheduleDate, getManageLeaveScheduleDateText(leave));
         setMetaLineValue(scheduleTime, getManageLeaveScheduleTimeText(leave));
         setMetaLineValue(days, getManageLeaveDaysValueText(leave));
-        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.applied_at_iso) || (leave && leave.applied_at) || "-");
+        setMetaLineValue(applied, formatManagePopupDateText(leave && leave.applied_at_iso, leave && leave.applied_at));
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.applied_at_iso, leave && leave.applied_at));
+
+        if (updatedHeading)
+        {
+            updatedHeading.textContent = formatUpdatedAtHeading(leave);
+        }
 
         if (leave && leave.updated_at_iso)
         {
-            setMetaLineValue(updated, formatRelativeLeaveAge(leave.updated_at_iso) || leave.updated_at || "-");
+            setMetaLineValue(updated, formatManagePopupDateText(leave.updated_at_iso, leave.updated_at));
             setMetaLineValue(updatedTime, formatPopupClockTime(leave.updated_at_iso, leave.updated_at));
         }
         else
@@ -2900,9 +3039,16 @@
         const days = document.getElementById("decisionConfirmDays");
         const applied = document.getElementById("decisionConfirmApplied");
         const appliedTime = document.getElementById("decisionConfirmAppliedTime");
+        const updatedHeading = document.getElementById("decisionConfirmUpdatedHeading");
         const updated = document.getElementById("decisionConfirmUpdated");
         const updatedTime = document.getElementById("decisionConfirmUpdatedTime");
+        const noteRow = document.getElementById("decisionConfirmNoteRow");
+        const reasonNote = document.getElementById("decisionConfirmReasonNote");
         const note = document.getElementById("decisionConfirmNote");
+        const reasonHeading = document.getElementById("decisionConfirmReasonHeading");
+        const reasonContent = document.getElementById("decisionConfirmReasonContent");
+        const noteHeading = document.getElementById("decisionConfirmNoteHeading");
+        const noteContent = document.getElementById("decisionConfirmNoteContent");
         const submit = document.getElementById("decisionConfirmSubmit");
         const cancel = document.getElementById("decisionConfirmCancel");
         const leave = config && config.leave ? config.leave : null;
@@ -2914,7 +3060,6 @@
         const resolvedUpdatedText = leave && (leave.updated_at || leave.approved_at || leave.rejected_at)
             ? (leave.updated_at || leave.approved_at || leave.rejected_at)
             : "-";
-
         if (!modal || !submit || !cancel)
         {
             return Promise.resolve(false);
@@ -2971,16 +3116,77 @@
         setMetaLineValue(scheduleDate, getManageLeaveScheduleDateText(leave));
         setMetaLineValue(scheduleTime, getManageLeaveScheduleTimeText(leave));
         setMetaLineValue(days, getManageLeaveDaysText(leave));
-        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.applied_at_iso) || (leave && leave.applied_at) || "-");
+        setMetaLineValue(applied, formatManagePopupDateText(leave && leave.applied_at_iso, leave && leave.applied_at));
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.applied_at_iso, leave && leave.applied_at));
-        setMetaLineValue(updated, formatRelativeLeaveAge(resolvedUpdatedIso) || resolvedUpdatedText);
+        if (updatedHeading)
+        {
+            updatedHeading.textContent = formatUpdatedAtHeading(leave);
+        }
+        setMetaLineValue(updated, formatManagePopupDateText(resolvedUpdatedIso, resolvedUpdatedText));
         setMetaLineValue(updatedTime, formatPopupClockTime(resolvedUpdatedIso, resolvedUpdatedText));
-
-        if (note)
+        if (noteRow)
         {
             const noteText = config && config.note ? String(config.note).trim() : "";
-            note.hidden = !noteText;
-            note.textContent = noteText ? "Rejection note: " + noteText : "";
+            const reasonText = leave && leave.reason ? String(leave.reason).trim() : "";
+
+            if (variant === "reject")
+            {
+                noteRow.hidden = false;
+
+                if (reasonNote)
+                {
+                    reasonNote.hidden = false;
+                }
+
+                if (note)
+                {
+                    note.hidden = !noteText;
+                }
+
+                if (reasonHeading)
+                {
+                    reasonHeading.textContent = "Employee Reason";
+                }
+
+                if (reasonContent)
+                {
+                    reasonContent.textContent = reasonText || "No reason was added by the employee.";
+                }
+
+                if (noteHeading)
+                {
+                    noteHeading.textContent = "Rejection Notes";
+                }
+
+                if (noteContent)
+                {
+                    noteContent.textContent = noteText || "-";
+                }
+            }
+            else
+            {
+                noteRow.hidden = false;
+
+                if (reasonNote)
+                {
+                    reasonNote.hidden = false;
+                }
+
+                if (note)
+                {
+                    note.hidden = true;
+                }
+
+                if (reasonHeading)
+                {
+                    reasonHeading.textContent = "Employee Reason";
+                }
+
+                if (reasonContent)
+                {
+                    reasonContent.textContent = reasonText || "No reason was added by the employee.";
+                }
+            }
         }
 
         submit.className = variant === "reject" ? "reject-btn decision-confirm-submit-btn" : "approve-btn decision-confirm-submit-btn";
@@ -3722,7 +3928,7 @@
                 card.dataset.searchName || "",
                 card.dataset.searchUsername || "",
                 card.dataset.searchEmployeeId || "",
-                card.dataset.searchJoining || "",
+                card.dataset.searchPhone || "",
                 card.dataset.searchDepartment || ""
             ].join(" ");
 
@@ -4118,10 +4324,14 @@
         const scheduleTimeModalText = leave.from_time && leave.to_time
             ? `${leave.from_time} -> ${leave.to_time}`
             : "Full day";
+        const reasonEmployeeName = currentEmployeeDetail && (currentEmployeeDetail.display_name || currentEmployeeDetail.name || currentEmployeeDetail.username)
+            ? (currentEmployeeDetail.display_name || currentEmployeeDetail.name || currentEmployeeDetail.username)
+            : (leave.employee_name || "Employee");
         const reasonMetaAttributes = [
-            `data-employee="${escapeHtml(currentEmployeeDetail && currentEmployeeDetail.name ? currentEmployeeDetail.name : leave.employee_name || leave.type || "Employee")}"`,
+            `data-employee="${escapeHtml(reasonEmployeeName)}"`,
             `data-leave-type="${escapeHtml(leave.type || "Leave")}"`,
             `data-leave-type-class="${escapeHtml(leave.type_class || "default")}"`,
+            `data-history-status="${escapeHtml(status || "pending")}"`,
             `data-schedule-date="${escapeHtml(scheduleDateModalText)}"`,
             `data-schedule-time="${escapeHtml(scheduleTimeModalText)}"`,
             `data-days-display="${escapeHtml(leaveDayCount)}"`,
@@ -4200,7 +4410,7 @@
                     </td>
                     <td>
                         <div class="reason-box">
-                            <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes}>${escapeHtml(leave.reason)}</p>
+                            <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="pending">${escapeHtml(leave.reason)}</p>
                         </div>
                     </td>
                     <td>
@@ -4229,7 +4439,7 @@
                     </td>
                     <td>
                         <div class="reason-box">
-                            <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-updated="${escapeHtml(leave.approved_at || "-")}" data-updated-iso="${escapeHtml(leave.approved_at_iso || "")}" data-updated-count="1" data-updated-label="Approved At">${escapeHtml(leave.reason)}</p>
+                            <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="approved" data-decision="${escapeHtml(leave.approved_at || "-")}" data-decision-iso="${escapeHtml(leave.approved_at_iso || "")}" data-decision-label="Approved At">${escapeHtml(leave.reason)}</p>
                         </div>
                     </td>
                 </tr>
@@ -4252,12 +4462,12 @@
                 </td>
                 <td>
                     <div class="reason-box">
-                        <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-updated="${escapeHtml(leave.rejected_at || "-")}" data-updated-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-updated-count="1" data-updated-label="Rejected At">${escapeHtml(leave.reason)}</p>
+                        <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="rejected-employee" data-decision="${escapeHtml(leave.rejected_at || "-")}" data-decision-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-decision-label="Rejected At">${escapeHtml(leave.reason)}</p>
                     </div>
                 </td>
                 <td>
                     <div class="reason-box rejection-box">
-                        <p class="reason-text action-reason-text" data-full="${escapeHtml(rejectionReason)}" ${reasonMetaAttributes} data-modal-title="${escapeHtml(leave.type)} Rejection Reason" data-updated="${escapeHtml(leave.rejected_at || "-")}" data-updated-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-updated-count="1" data-updated-label="Rejected At">${escapeHtml(rejectionReason)}</p>
+                        <p class="reason-text action-reason-text" data-full="${escapeHtml(rejectionReason)}" ${reasonMetaAttributes} data-reason-context="rejected-note" data-modal-title="${escapeHtml(leave.type)} Rejection Reason" data-decision="${escapeHtml(leave.rejected_at || "-")}" data-decision-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-decision-label="Rejected At">${escapeHtml(rejectionReason)}</p>
                     </div>
                 </td>
             </tr>
@@ -4408,12 +4618,27 @@
             popupTableSection._toggleSkeletonTimer = null;
         }
 
-        popupTableSection.classList.add("table-toggle-loading");
         popupTableSection._toggleSkeletonTimer = window.setTimeout(function ()
         {
-            popupTableSection.classList.remove("table-toggle-loading");
+            popupTableSection.classList.add("table-toggle-loading");
             popupTableSection._toggleSkeletonTimer = null;
-        }, 220);
+        }, 180);
+    }
+
+    function clearPopupTableToggleSkeleton()
+    {
+        if (!popupTableSection)
+        {
+            return;
+        }
+
+        if (popupTableSection._toggleSkeletonTimer)
+        {
+            clearTimeout(popupTableSection._toggleSkeletonTimer);
+            popupTableSection._toggleSkeletonTimer = null;
+        }
+
+        popupTableSection.classList.remove("table-toggle-loading");
     }
 
     function calculateLeaveDayCount(fromDate, toDate, leaveType)
@@ -4464,6 +4689,11 @@
         }
 
         const diffMinutes = Math.floor(diffMs / 60000);
+
+        if (diffMinutes < 1)
+        {
+            return "Just now";
+        }
 
         if (diffMinutes < 60)
         {
@@ -4660,6 +4890,8 @@
         syncPopupTabFilterIndicators();
         const tableBody = document.getElementById("detailTableBody");
         const detailTableCount = document.getElementById("detailTableCount");
+        const detailHistoryTable = document.getElementById("detailHistoryTable");
+        const popupTableWrapper = document.getElementById("popupTableWrapper");
         const definition = popupHistoryDefinitions[activePopupHistoryStatus] || popupHistoryDefinitions.pending;
         const formattedName = selected.display_name
             ? selected.display_name
@@ -4675,7 +4907,6 @@
 
         setPopupHistoryPage(activePopupHistoryStatus, currentPage);
 
-        renderPopupTableHead(activePopupHistoryStatus);
         updatePopupHistoryTabs(selected);
         renderPopupFilterBadges(activePopupHistoryStatus);
         document.getElementById("detailTableTitle").innerHTML = `<span class="title-name-chip">${escapeHtml(formattedName)}</span><span class="title-separator">-</span><span class="title-label-chip">${escapeHtml(definition.heading)}</span>`;
@@ -4701,6 +4932,25 @@
                 return renderLeaveRow(leave, startIndex + index, activePopupHistoryStatus);
             }).join("")
             : renderEmptyRow(activePopupHistoryStatus);
+
+        if (detailTableHead)
+        {
+            if (pagedLeaves.length)
+            {
+                renderPopupTableHead(activePopupHistoryStatus);
+                detailTableHead.hidden = false;
+            }
+            else
+            {
+                detailTableHead.innerHTML = "";
+                detailTableHead.hidden = true;
+            }
+        }
+
+        if (popupTableWrapper)
+        {
+            popupTableWrapper.classList.toggle("is-empty", pagedLeaves.length === 0);
+        }
 
         if (popupTablePagination)
         {
@@ -4851,6 +5101,8 @@
 
         requestAnimationFrame(function ()
         {
+            clearPopupTableToggleSkeleton();
+
             if (typeof window.finishAsyncSurfaceSkeleton === "function")
             {
                 window.finishAsyncSurfaceSkeleton(popupTableSection);
@@ -4971,6 +5223,8 @@
             window.startAsyncSurfaceSkeleton(popupTableSection);
         }
 
+        pulsePopupTableToggleSkeleton();
+
         if (tableBody)
         {
             tableBody.innerHTML = renderPopupTableSkeletonRows(5);
@@ -4998,6 +5252,8 @@
                     renderEmployeeModal(selected);
                     return;
                 }
+
+                clearPopupTableToggleSkeleton();
 
                 if (typeof window.finishAsyncSurfaceSkeleton === "function")
                 {
@@ -5169,8 +5425,13 @@
         const modal = document.getElementById("reasonModal");
         const title = document.getElementById("reasonModalTitle");
         const content = document.getElementById("reasonModalContent");
+        const employee = document.getElementById("reasonModalEmployee");
+        const leaveType = document.getElementById("reasonModalLeaveType");
+        const metaGrid = document.getElementById("reasonModalMetaGrid");
         const appliedLabel = document.getElementById("reasonModalAppliedLabel");
         const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
+        const decisionCard = document.getElementById("reasonModalDecisionCard");
+        const decisionLabel = document.getElementById("reasonModalDecisionLabel");
         const scheduleDate = document.getElementById("reasonModalScheduleDate");
         const scheduleTime = document.getElementById("reasonModalScheduleTime");
         const days = document.getElementById("reasonModalDays");
@@ -5178,13 +5439,9 @@
         const appliedTime = document.getElementById("reasonModalAppliedTime");
         const updated = document.getElementById("reasonModalUpdated");
         const updatedTime = document.getElementById("reasonModalUpdatedTime");
-        const scheduleDateTextNode = scheduleDate.querySelector("span:last-child");
-        const scheduleTimeTextNode = scheduleTime.querySelector("span:last-child");
-        const daysTextNode = days.querySelector("span:last-child");
-        const appliedTextNode = applied.querySelector("span:last-child");
-        const appliedTimeTextNode = appliedTime.querySelector("span:last-child");
-        const updatedTextNode = updated.querySelector("span:last-child");
-        const updatedTimeTextNode = updatedTime.querySelector("span:last-child");
+        const decision = document.getElementById("reasonModalDecision");
+        const decisionTime = document.getElementById("reasonModalDecisionTime");
+        const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
         if (reasonModalCloseTimer)
         {
@@ -5209,42 +5466,76 @@
         let dayText = reasonText.dataset.daysDisplay || "-";
         const appliedIso = reasonText.dataset.appliedIso || "";
         const updatedIso = reasonText.dataset.updatedIso || "";
+        const decisionIso = reasonText.dataset.decisionIso || "";
+        const decisionLabelText = reasonText.dataset.decisionLabel || "";
         const updatedCount = Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0;
         const scheduleDateText = (reasonText.dataset.scheduleDate || "-").replace(/\s*->\s*/g, " \u27F6 ");
         const scheduleTimeText = (reasonText.dataset.scheduleTime || "-").replace(/\s*->\s*/g, " \u27F6 ");
         const leaveTypeClass = reasonText.dataset.leaveTypeClass || "default";
         const leaveTypeLabel = reasonText.dataset.leaveType || "Leave type";
-        const updatedHeading = reasonText.dataset.updatedLabel || "Updates";
+        const reasonContext = reasonText.dataset.reasonContext || reasonText.dataset.historyStatus || "pending";
         const showScheduleTime = leaveTypeClass === "short" || leaveTypeClass === "half";
-        const modalLabel = reasonText.dataset.modalTitle || (leaveTypeLabel + " Leave");
+        const contextLabels = {
+            pending: { title: "Pending Reason", label: "Pending Reason", icon: "&#9203;" },
+            approved: { title: "Approved Reason", label: "Approved Reason", icon: "&#10003;" },
+            "rejected-employee": { title: "Rejected Leave Reason", label: "Employee Reason", icon: "&#128221;" },
+            "rejected-note": { title: "Rejection Reason", label: "Rejection Reason", icon: "&#10006;" }
+        };
+        const contextCopy = contextLabels[reasonContext] || contextLabels.pending;
 
-        title.textContent = modalLabel;
-        modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
+        title.textContent = reasonText.dataset.modalTitle || contextCopy.title;
+        modal.classList.remove(
+            "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default",
+            "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
+        );
         modal.classList.add("reason-theme-" + leaveTypeClass);
-        scheduleDateTextNode.textContent = scheduleDateText;
-        scheduleTimeTextNode.textContent = showScheduleTime ? scheduleTimeText : "";
+        modal.classList.add("reason-context-" + reasonContext);
+        employee.textContent = reasonText.dataset.employee || "Employee";
+        leaveType.textContent = leaveTypeLabel + " Leave";
+        leaveType.className = "reason-modal-chip reason-modal-type-chip reason-modal-type-" + leaveTypeClass;
+        scheduleDate.textContent = scheduleDateText;
+        scheduleTime.textContent = showScheduleTime ? scheduleTimeText : "";
         scheduleTime.hidden = !showScheduleTime;
         scheduleTime.classList.toggle("reason-modal-schedule-time-accent", showScheduleTime);
-        daysTextNode.textContent = dayText;
+        days.textContent = dayText;
         appliedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span>';
 
         const relativeApplied = formatRelativeLeaveAge(appliedIso);
         const relativeUpdated = formatRelativeLeaveAge(updatedIso);
-        appliedTextNode.textContent = relativeApplied || (reasonText.dataset.applied || "-");
-        appliedTimeTextNode.textContent = formatPopupClockTime(appliedIso, reasonText.dataset.applied || "");
-
-        if (updatedHeading === "Approved At" || updatedHeading === "Rejected At" || updatedHeading === "Approved" || updatedHeading === "Rejected")
+        const relativeDecision = formatRelativeLeaveAge(decisionIso);
+        const hasDecision = Boolean(decisionIso || (reasonText.dataset.decision && reasonText.dataset.decision !== "-"));
+        applied.textContent = relativeApplied || (reasonText.dataset.applied || "-");
+        appliedTime.textContent = formatPopupClockTime(appliedIso, reasonText.dataset.applied || "");
+        updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>${updatedCount === 1 ? "1 update" : `${updatedCount} updates`}</span></span>`;
+        updated.textContent = updatedIso ? (relativeUpdated || (reasonText.dataset.updated || "-")) : "Not updated";
+        updatedTime.textContent = updatedIso ? formatPopupClockTime(updatedIso, reasonText.dataset.updated || "") : "-";
+        if (metaGrid)
         {
-            const resolvedUpdatedHeading = updatedHeading === "Approved" ? "Approved At" : updatedHeading === "Rejected" ? "Rejected At" : updatedHeading;
-            updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${resolvedUpdatedHeading === "Approved At" ? "&#10003;" : "&#9940;"}</span><span>${resolvedUpdatedHeading}</span></span>`;
-        }
-        else
-        {
-            updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>Updates</span><span class="reason-meta-badge">${updatedCount}</span></span>`;
+            metaGrid.classList.toggle("has-decision", hasDecision);
         }
 
-        updatedTextNode.textContent = updatedIso ? (relativeUpdated || (reasonText.dataset.updated || "-")) : "Not updated";
-        updatedTimeTextNode.textContent = updatedIso ? formatPopupClockTime(updatedIso, reasonText.dataset.updated || "") : "-";
+        if (decisionCard)
+        {
+            decisionCard.hidden = !hasDecision;
+        }
+
+        if (decisionLabel)
+        {
+            const isRejectedDecision = decisionLabelText.toLowerCase().includes("reject");
+            decisionLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${isRejectedDecision ? "&#9940;" : "&#10003;"}</span><span>${decisionLabelText || "Decision At"}</span></span>`;
+        }
+
+        if (decision)
+        {
+            decision.textContent = hasDecision ? (relativeDecision || (reasonText.dataset.decision || "-")) : "-";
+        }
+
+        if (decisionTime)
+        {
+            decisionTime.textContent = hasDecision ? formatPopupClockTime(decisionIso, reasonText.dataset.decision || "") : "-";
+        }
+
+        fieldLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${contextCopy.icon}</span><span>${contextCopy.label}</span></span>`;
         content.textContent = reasonText.dataset.full || reasonText.textContent || "";
         modal.classList.remove("is-closing");
         showManagedModal(modal);
@@ -5259,8 +5550,13 @@
         const modal = document.getElementById("reasonModal");
         const title = document.getElementById("reasonModalTitle");
         const content = document.getElementById("reasonModalContent");
+        const employee = document.getElementById("reasonModalEmployee");
+        const leaveType = document.getElementById("reasonModalLeaveType");
+        const metaGrid = document.getElementById("reasonModalMetaGrid");
         const appliedLabel = document.getElementById("reasonModalAppliedLabel");
         const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
+        const decisionCard = document.getElementById("reasonModalDecisionCard");
+        const decisionLabel = document.getElementById("reasonModalDecisionLabel");
         const scheduleDate = document.getElementById("reasonModalScheduleDate");
         const scheduleTime = document.getElementById("reasonModalScheduleTime");
         const days = document.getElementById("reasonModalDays");
@@ -5268,32 +5564,55 @@
         const appliedTime = document.getElementById("reasonModalAppliedTime");
         const updated = document.getElementById("reasonModalUpdated");
         const updatedTime = document.getElementById("reasonModalUpdatedTime");
-        const scheduleDateTextNode = scheduleDate.querySelector("span:last-child");
-        const scheduleTimeTextNode = scheduleTime.querySelector("span:last-child");
-        const daysTextNode = days.querySelector("span:last-child");
-        const appliedTextNode = applied.querySelector("span:last-child");
-        const appliedTimeTextNode = appliedTime.querySelector("span:last-child");
-        const updatedTextNode = updated.querySelector("span:last-child");
-        const updatedTimeTextNode = updatedTime.querySelector("span:last-child");
+        const decision = document.getElementById("reasonModalDecision");
+        const decisionTime = document.getElementById("reasonModalDecisionTime");
+        const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
         modal.classList.remove("is-open");
 
         hideManagedModal(modal, function ()
         {
-            title.textContent = "Leave";
+            title.textContent = "Reason detail";
             content.textContent = "";
+            employee.textContent = "Employee";
+            leaveType.textContent = "Leave type";
+            leaveType.className = "reason-modal-chip reason-modal-type-chip reason-modal-type-default";
+            if (metaGrid)
+            {
+                metaGrid.classList.remove("has-decision");
+            }
             appliedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span>';
             updatedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>0 updates</span></span>';
-            scheduleDateTextNode.textContent = "-";
-            scheduleTimeTextNode.textContent = "-";
+            if (decisionLabel)
+            {
+                decisionLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10003;</span><span>Approved At</span></span>';
+            }
+            if (decisionCard)
+            {
+                decisionCard.hidden = true;
+            }
+            fieldLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Reason</span></span>';
+            scheduleDate.textContent = "-";
+            scheduleTime.textContent = "-";
             scheduleTime.hidden = false;
             scheduleTime.classList.remove("reason-modal-schedule-time-accent");
-            daysTextNode.textContent = "-";
-            appliedTextNode.textContent = "-";
-            appliedTimeTextNode.textContent = "-";
-            updatedTextNode.textContent = "-";
-            updatedTimeTextNode.textContent = "-";
-            modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half");
+            days.textContent = "-";
+            applied.textContent = "-";
+            appliedTime.textContent = "-";
+            updated.textContent = "-";
+            updatedTime.textContent = "-";
+            if (decision)
+            {
+                decision.textContent = "-";
+            }
+            if (decisionTime)
+            {
+                decisionTime.textContent = "-";
+            }
+            modal.classList.remove(
+                "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half",
+                "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
+            );
             modal.classList.add("reason-theme-default");
             activeReasonAnchor = null;
             reasonModalCloseTimer = null;
@@ -5396,7 +5715,7 @@
             {
                 onClosed();
             }
-        }, 110);
+        }, 260);
     }
 
     document.querySelectorAll(".employee-profile-card").forEach(function (card)
@@ -5458,13 +5777,8 @@
                 return;
             }
 
-            const shouldHide = !rejectReasonSectionGrid.classList.contains("is-hidden");
-            rejectReasonSectionGrid.classList.toggle("is-hidden", shouldHide);
-            rejectReasonToggleAllButton.innerHTML = shouldHide
-                ? '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9662;</span><span class="reject-review-toggle-btn-text">Show Notes</span>'
-                : '<span class="reject-review-toggle-btn-icon" aria-hidden="true">&#9652;</span><span class="reject-review-toggle-btn-text">Hide Notes</span>';
-            rejectReasonToggleAllButton.setAttribute("aria-label", shouldHide ? "Show notes" : "Hide notes");
-            rejectReasonToggleAllButton.setAttribute("aria-expanded", shouldHide ? "false" : "true");
+            const shouldShow = rejectReasonSectionGrid.classList.contains("is-hidden") || rejectReasonSectionGrid.classList.contains("is-hiding");
+            setRejectReasonSectionsVisible(shouldShow, true);
         });
     }
 
@@ -5696,7 +6010,6 @@
     {
         popupTableToggle.addEventListener("click", function ()
         {
-            pulsePopupTableToggleSkeleton();
             const isCollapsed = popupTableSection && popupTableSection.classList.contains("is-collapsed");
             setPopupTableCollapsed(!isCollapsed);
         });

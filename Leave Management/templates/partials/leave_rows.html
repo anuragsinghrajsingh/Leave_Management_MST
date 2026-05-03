@@ -1,0 +1,51 @@
+{% for leave in pending_leaves %}
+                    <tr>
+                        <td>{{ leave.created_at }}</td>
+                        <td>{{ leave.leave_type }}</td>
+                        <td>{{ leave.from_date }}</td>
+                        <td>{{ leave.to_date }}</td>
+                        <td>
+                            <!-- <button class="reason-btn"
+                            onclick="openModal('<h3><center>Reason</center></h3><p><textarea readonly>{{ leave.reason|escapejs }}</textarea></p>')"> My Reason
+                            </button> -->
+
+                            <button class="reason-btn" 
+                                onclick="openReasonModal(this)" 
+                                data-reason="{{ leave.reason|escape }}"> 
+                                My Reason
+                            </button>
+
+                        </td>
+
+                        <td class="{{ leave.status|lower }}">{{ leave.status }}</td>
+
+                        <td class="action-cell">
+                            <div class="action-buttons">
+                                <button class="edit-btn"
+                                    data-id="{{ leave.id }}"
+                                    data-type="{{ leave.leave_type }}"
+                                    data-from="{{ leave.from_date|date:'Y-m-d' }}"
+                                    data-to="{{ leave.to_date|date:'Y-m-d' }}"
+                                    data-reason="{{ leave.reason }}"
+                                    onclick="openEditLeave(this)">
+                                    Edit
+                                </button>
+                                
+                                <form method="POST" action="{% url 'delete_leave' leave.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="delete-btn"
+                                        onclick="return confirm('Delete this leave?');">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+                
+                        <tr>
+                            <td colspan="5">No pending leaves</td>
+                        </tr>
+                    
+                    {% endfor %}

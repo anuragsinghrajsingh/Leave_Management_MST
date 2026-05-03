@@ -663,7 +663,7 @@
                         </div>
                         <div class="reason-meta-card reject-review-meta-card">
                             <div class="reject-review-meta-copy">
-                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span>Updated At</span></span></span>
+                                <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10227;</span><span id="rejectModalUpdatedHeading">Updated At</span></span></span>
                                 <div class="reason-meta-value reason-meta-stack">
                                     <strong id="rejectModalUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#10227;</span><span>-</span></strong>
                                     <span id="rejectModalUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon" aria-hidden="true">&#11014;</span><span>-</span></span>
@@ -765,7 +765,7 @@
                         </div>
                     </div>
                     <div class="reason-meta-card decision-confirm-card">
-                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-updated-head" aria-hidden="true">&#8635;</span><span>Updated At</span></span></span>
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon decision-confirm-symbol decision-confirm-symbol-updated-head" aria-hidden="true">&#8635;</span><span id="decisionConfirmUpdatedHeading">Updated At</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
                             <strong id="decisionConfirmUpdated" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-value" aria-hidden="true">&#9200;</span><span>-</span></strong>
                             <span id="decisionConfirmUpdatedTime" class="reason-meta-content-line"><span class="reason-meta-content-icon decision-confirm-symbol decision-confirm-symbol-updated-time" aria-hidden="true">&#8593;</span><span>-</span></span>
@@ -1593,6 +1593,18 @@
         node.textContent = text || "-";
     }
 
+    function getLeaveUpdateCount(leave)
+    {
+        const count = Number.parseInt(leave && leave.updatedCount != null ? leave.updatedCount : 0, 10);
+        return Number.isFinite(count) && count > 0 ? count : 0;
+    }
+
+    function formatUpdatedAtHeading(leave)
+    {
+        const count = getLeaveUpdateCount(leave);
+        return count > 0 ? `Updated At (${count})` : "Updated At";
+    }
+
     function setDecisionConfirmTypeIcon(icon, leaveType)
     {
         if (!icon)
@@ -1699,6 +1711,7 @@
         const days = document.getElementById("rejectModalDays");
         const applied = document.getElementById("rejectModalApplied");
         const appliedTime = document.getElementById("rejectModalAppliedTime");
+        const updatedHeading = document.getElementById("rejectModalUpdatedHeading");
         const updated = document.getElementById("rejectModalUpdated");
         const updatedTime = document.getElementById("rejectModalUpdatedTime");
         const reason = document.getElementById("rejectModalReason");
@@ -1718,6 +1731,11 @@
         setMetaLineValue(days, leave && leave.daysText ? leave.daysText : "-");
         setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.appliedIso) || (leave && leave.applied) || "-");
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.appliedIso, leave && leave.applied));
+
+        if (updatedHeading)
+        {
+            updatedHeading.textContent = formatUpdatedAtHeading(leave);
+        }
 
         if (leave && leave.updatedIso)
         {
@@ -1754,6 +1772,7 @@
         const days = document.getElementById("decisionConfirmDays");
         const applied = document.getElementById("decisionConfirmApplied");
         const appliedTime = document.getElementById("decisionConfirmAppliedTime");
+        const updatedHeading = document.getElementById("decisionConfirmUpdatedHeading");
         const updated = document.getElementById("decisionConfirmUpdated");
         const updatedTime = document.getElementById("decisionConfirmUpdatedTime");
         const noteRow = document.getElementById("decisionConfirmNoteRow");
@@ -1827,6 +1846,10 @@
         setMetaLineValue(days, leave && leave.daysText ? leave.daysText : "-");
         setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.appliedIso) || (leave && leave.applied) || "-");
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.appliedIso, leave && leave.applied));
+        if (updatedHeading)
+        {
+            updatedHeading.textContent = formatUpdatedAtHeading(leave);
+        }
         setMetaLineValue(updated, leave && leave.updatedIso ? (formatRelativeLeaveAge(leave.updatedIso) || leave.updated || "-") : "Not updated");
         setMetaLineValue(updatedTime, leave && leave.updatedIso ? formatPopupClockTime(leave.updatedIso, leave.updated) : "-");
 
