@@ -231,21 +231,21 @@
                 <span class="status-tab-label">Pending</span>
                 <span class="status-tab-meta">
                     <span class="status-tab-filter-indicator{% if not filters.Pending.leave_type and not filters.Pending.month and not filters.Pending.from_date and not filters.Pending.to_date %} hidden{% endif %}" data-tab-filter-indicator="Pending" aria-hidden="true"></span>
-                    <span class="status-tab-count" data-countup data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</span>
+                    <span class="status-tab-count" data-live-count data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</span>
                 </span>
             </button>
             <button type="button" class="status-tab" data-target="approved-panel" role="tab" aria-selected="false">
                 <span class="status-tab-label">Approved</span>
                 <span class="status-tab-meta">
                     <span class="status-tab-filter-indicator{% if not filters.Approved.leave_type and not filters.Approved.month and not filters.Approved.from_date and not filters.Approved.to_date %} hidden{% endif %}" data-tab-filter-indicator="Approved" aria-hidden="true"></span>
-                    <span class="status-tab-count" data-countup data-countup-target="{{ approved_leaves|length }}">{{ approved_leaves|length }}</span>
+                    <span class="status-tab-count" data-live-count data-countup-target="{{ approved_leaves|length }}">{{ approved_leaves|length }}</span>
                 </span>
             </button>
             <button type="button" class="status-tab" data-target="rejected-panel" role="tab" aria-selected="false">
                 <span class="status-tab-label">Rejected</span>
                 <span class="status-tab-meta">
                     <span class="status-tab-filter-indicator{% if not filters.Rejected.leave_type and not filters.Rejected.month and not filters.Rejected.from_date and not filters.Rejected.to_date %} hidden{% endif %}" data-tab-filter-indicator="Rejected" aria-hidden="true"></span>
-                    <span class="status-tab-count" data-countup data-countup-target="{{ rejected_leaves|length }}">{{ rejected_leaves|length }}</span>
+                    <span class="status-tab-count" data-live-count data-countup-target="{{ rejected_leaves|length }}">{{ rejected_leaves|length }}</span>
                 </span>
             </button>
         </div>
@@ -1198,8 +1198,43 @@
             closeCalendarSelectMenus();
         }
     });
+    function showLeaveCalendarSkeleton()
+    {
+        const modalContent = document.getElementById("modal-content");
+        const sharedModal = document.getElementById("modal");
+        const modalBox = document.querySelector(".modal-box");
+        if (!modalContent || !modalBox) return;
+        sharedModal?.classList.remove("popup-filter-modal-host", "popup-edit-modal-host");
+        modalBox.classList.remove("popup-edit-modal-box", "popup-filter-modal-box", "reason-modal", "expanded-calendar", "compact-calendar");
+        modalBox.classList.add("compact-calendar", "calendar-loading");
+        modalContent.innerHTML = `
+            <div class="calendar-skeleton" role="status" aria-live="polite" aria-label="Loading leave calendar">
+                <div class="calendar-skeleton-title">
+                    <span class="calendar-skeleton-icon"></span>
+                    <span class="calendar-skeleton-copy">
+                        <span class="calendar-skeleton-line calendar-skeleton-line-title"></span>
+                        <span class="calendar-skeleton-line calendar-skeleton-line-subtitle"></span>
+                    </span>
+                </div>
+                <div class="calendar-skeleton-legend">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="calendar-skeleton-nav">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="calendar-skeleton-grid">
+                    ${Array.from({ length: 42 }, () => "<span></span>").join("")}
+                </div>
+                <div class="calendar-skeleton-actions">
+                    <span></span><span></span>
+                </div>
+            </div>
+        `;
+        openModal();
+    }
     function openLeaveCalendar() 
     {
+        showLeaveCalendarSkeleton();
         fetch("{% url 'leave_calendar_data' %}")
             .then(res => res.json())
             .then(data => 
@@ -1215,7 +1250,7 @@
                 modalContent.innerHTML = "";
                 sharedModal?.classList.remove("popup-filter-modal-host", "popup-edit-modal-host");
                 if (modalBox) {
-                    modalBox.classList.remove("popup-edit-modal-box", "popup-filter-modal-box", "reason-modal", "expanded-calendar", "compact-calendar");
+                    modalBox.classList.remove("popup-edit-modal-box", "popup-filter-modal-box", "reason-modal", "expanded-calendar", "compact-calendar", "calendar-loading");
                 }
                 /* ========================================= TITLE ================================================= */
                 const title = document.createElement("h3");
@@ -1585,6 +1620,20 @@
                     currentMonthDiv.classList.add("month-shadow-active");
                 });
                 openModal();
+            })
+            .catch(() =>
+            {
+                const modalContent = document.getElementById("modal-content");
+                const modalBox = document.querySelector(".modal-box");
+                modalBox?.classList.remove("calendar-loading");
+                if (modalContent) {
+                    modalContent.innerHTML = `
+                        <div class="calendar-load-error">
+                            <strong>Calendar could not load</strong>
+                            <span>Please try opening it again.</span>
+                        </div>
+                    `;
+                }
             });
     }
     function buildMonthCalendar(year, month, leaves, holidays, companyHolidays)
@@ -3192,6 +3241,18 @@
             window.animateCountUp(element, safeValue, { duration: 260 });
         }
     }
+    function setMyLeaveSectionCountElement(element, value)
+    {
+        if (!element)
+        {
+            return;
+        }
+        const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+        element.dataset.countupTarget = String(safeValue);
+        element.dataset.countupLastTarget = String(safeValue);
+        element.dataset.countupPlayed = "true";
+        element.textContent = String(safeValue);
+    }
     function updateMyLeavePanelCounts(counts)
     {
         if (!counts || typeof counts !== "object")
@@ -3210,6 +3271,49 @@
             const panelCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
             updateMyLeaveCountElement(tabCount, count);
             updateMyLeaveCountElement(panelCount, count);
+        });
+    }
+    function getVisibleMyLeaveRowCount(panelId)
+    {
+        const panel = document.getElementById(panelId);
+        if (!panel)
+        {
+            return 0;
+        }
+        return Array.from(panel.querySelectorAll("tbody tr.leave-row"))
+            .filter((row) => !row.classList.contains("filter-hidden"))
+            .length;
+    }
+    function syncMyLeavePanelCountsFromRows()
+    {
+        const panelMap = {
+            pending: "pending-panel",
+            approved: "approved-panel",
+            rejected: "rejected-panel"
+        };
+        Object.entries(panelMap).forEach(([key, panelId]) =>
+        {
+            const count = getVisibleMyLeaveRowCount(panelId);
+            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
+            const panelCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
+            setMyLeaveSectionCountElement(tabCount, count);
+            setMyLeaveSectionCountElement(panelCount, count);
+        });
+    }
+    function syncMyLeaveTopBarCounts(counts = {})
+    {
+        const panelMap = {
+            pending: "pending-panel",
+            approved: "approved-panel",
+            rejected: "rejected-panel"
+        };
+        Object.entries(panelMap).forEach(([key, panelId]) =>
+        {
+            const fallback = getVisibleMyLeaveRowCount(panelId);
+            const rawCount = Number(counts[key]);
+            const count = Number.isFinite(rawCount) ? rawCount : fallback;
+            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
+            setMyLeaveSectionCountElement(tabCount, count);
         });
     }
     function updatePendingRowFromPayload(leave)
@@ -3328,6 +3432,8 @@
             renumberPendingRows();
             updateMyLeavePanelCounts(payload.counts);
             applyAllMyLeaveFilters();
+            syncMyLeavePanelCountsFromRows();
+            syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
             document.dispatchEvent(new CustomEvent("countup:refresh", {
                 detail: {
                     root: document,
@@ -3335,6 +3441,15 @@
                     force: true
                 }
             }));
+            syncMyLeavePanelCountsFromRows();
+            syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
+            requestAnimationFrame(syncMyLeavePanelCountsFromRows);
+            requestAnimationFrame(() => syncMyLeaveTopBarCounts(payload.live_counts || payload.counts));
+            window.setTimeout(() =>
+            {
+                syncMyLeavePanelCountsFromRows();
+                syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
+            }, 280);
             if (typeof window.myLeaveActivatePanel === "function")
             {
                 window.myLeaveActivatePanel(activePanelId);

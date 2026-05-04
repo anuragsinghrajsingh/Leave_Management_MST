@@ -641,6 +641,9 @@
             Short: { hour: "", minute: "" },
             Half: { hour: "", minute: "" }
         };
+        const todayValue = formatValueDate(new Date());
+        fromDate.min = todayValue;
+        toDate.min = fromDate.value || todayValue;
 
         function setInlineWarning(block, warningEl, message = "") {
             if (!block || !warningEl) {
@@ -1039,7 +1042,18 @@
 
         function getExistingLeave(date) {
             const target = formatValueDate(date);
-            return existingLeaveRanges.find((leave) => target >= leave.from && target <= leave.to) || null;
+            return existingLeaveRanges
+                .filter((leave) => target >= leave.from && target <= leave.to)
+                .sort((first, second) => {
+                    const firstCreated = Date.parse(first.created_at || "") || 0;
+                    const secondCreated = Date.parse(second.created_at || "") || 0;
+
+                    if (firstCreated !== secondCreated) {
+                        return secondCreated - firstCreated;
+                    }
+
+                    return (Number(second.id) || 0) - (Number(first.id) || 0);
+                })[0] || null;
         }
 
         function parseValueDate(value) {
@@ -1059,6 +1073,20 @@
             datePickers.forEach((picker) => {
                 picker.classList.remove("open");
                 picker.classList.remove("open-up");
+                const menu = getDatePickerMenu(picker);
+                if (menu) {
+                    menu.classList.remove("is-open", "open-up");
+                    menu.style.removeProperty("--date-menu-top");
+                    menu.style.removeProperty("--date-menu-left");
+                    menu.style.removeProperty("--date-pointer-left");
+                    menu.style.removeProperty("--calendar-month-gradient");
+                    picker._dateMenuTop = null;
+                    picker._dateMenuLeft = null;
+                    picker._dateMenuOpenUp = false;
+                    if (menu.parentElement !== picker) {
+                        picker.appendChild(menu);
+                    }
+                }
                 picker.querySelector(".date-trigger")?.setAttribute("aria-expanded", "false");
             });
             document.querySelectorAll(".field-block.has-open-date-menu, .field-row.has-open-date-menu, .form-panel.has-open-date-menu").forEach((element) => {
@@ -1076,6 +1104,14 @@
         function getInputMinDate(input) {
             const minValue = input.min;
             return minValue ? parseValueDate(minValue) : null;
+        }
+
+        function getMonthStart(date) {
+            return new Date(date.getFullYear(), date.getMonth(), 1);
+        }
+
+        function getMinimumViewDate(input) {
+            return getMonthStart(getInputMinDate(input) || new Date());
         }
 
         function handleDateChange(changedInput) {
@@ -1120,6 +1156,7 @@
             datePickers.forEach(syncDatePicker);
             datePickers.forEach(renderDatePicker);
             syncToDateLockState();
+            repositionOpenDatePickers();
         }
 
         function updateToTime() {
@@ -1185,17 +1222,42 @@
 
         function renderDatePicker(picker) {
             const hiddenInput = picker.querySelector("input[type='hidden']");
-            const currentLabel = picker.querySelector(".date-current");
-            const grid = picker.querySelector(".date-grid");
+            const menu = getDatePickerMenu(picker);
+            const currentLabel = menu?.querySelector(".date-current");
+            const prevButton = menu?.querySelector(".prev-month");
+            const grid = menu?.querySelector(".date-grid");
+
+            if (!hiddenInput || !currentLabel || !grid) {
+                return;
+            }
+
             const selectedDate = parseValueDate(hiddenInput.value);
-            const viewDate = picker._viewDate || selectedDate || new Date();
+            const minimumViewDate = getMinimumViewDate(hiddenInput);
+            let viewDate = picker._viewDate || selectedDate || new Date();
+
+            if (getMonthStart(viewDate) < minimumViewDate) {
+                viewDate = minimumViewDate;
+                picker._viewDate = new Date(minimumViewDate);
+            }
+
             const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
             const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
             const firstDayIndex = (monthStart.getDay() + 6) % 7;
             const daysInMonth = monthEnd.getDate();
             const today = new Date();
 
+            picker.dataset.calendarMonth = String(monthStart.getMonth() + 1);
+            const openMenu = getDatePickerMenu(picker);
+            if (openMenu?.classList.contains("is-open")) {
+                openMenu.style.setProperty(
+                    "--calendar-month-gradient",
+                    getComputedStyle(picker).getPropertyValue("--calendar-month-gradient")
+                );
+            }
             currentLabel.textContent = monthStart.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+            if (prevButton) {
+                prevButton.disabled = monthStart <= minimumViewDate;
+            }
             grid.innerHTML = "";
 
             for (let i = 0; i < firstDayIndex; i += 1) {
@@ -1212,7 +1274,10 @@
                 const dayButton = document.createElement("button");
                 dayButton.type = "button";
                 dayButton.className = "date-day";
-                dayButton.textContent = String(day);
+                const dayNumber = document.createElement("span");
+                dayNumber.className = "date-day-number";
+                dayNumber.textContent = String(day);
+                dayButton.appendChild(dayNumber);
                 const companyHoliday = getCompanyHoliday(date);
                 const existingLeave = getExistingLeave(date);
 
@@ -1223,7 +1288,8 @@
                     date.getDate() === today.getDate();
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                 const isCompanyHolidayBlocked = !!companyHoliday;
-                const isDisabled = (minDate && date < minDate) || !!existingLeave || isWeekend || isCompanyHolidayBlocked;
+                const existingLeaveBlocksSelection = existingLeave && existingLeave.status !== "Rejected";
+                const isDisabled = (minDate && date < minDate) || existingLeaveBlocksSelection || isWeekend || isCompanyHolidayBlocked;
 
                 const isSelected =
                     selectedDate &&
@@ -1251,8 +1317,12 @@
 
                 if (existingLeave) {
                     const statusClass = (existingLeave.status || "").toLowerCase();
+                    const leaveTypeLabel = document.createElement("span");
+                    leaveTypeLabel.className = "date-day-leave-type";
+                    leaveTypeLabel.textContent = existingLeave.type || "Leave";
                     dayButton.classList.add("existing-leave", `existing-leave-${statusClass}`);
-                    dayButton.title = `${existingLeave.type} leave already applied (${existingLeave.status})`;
+                    dayButton.appendChild(leaveTypeLabel);
+                    dayButton.title = `${existingLeave.type} leave ${statusClass || "applied"} on this date`;
                 }
 
                 if (isWeekend && !existingLeave && !companyHoliday) {
@@ -1264,7 +1334,9 @@
                 }
 
                 if (isDisabled) {
-                    dayButton.classList.add("muted");
+                    if (!existingLeave) {
+                        dayButton.classList.add("muted");
+                    }
                     dayButton.disabled = true;
                 }
 
@@ -1291,6 +1363,86 @@
             }
         }
 
+        function positionDatePickerMenu(picker, keepVerticalPosition = false) {
+            const menu = getDatePickerMenu(picker);
+            const trigger = picker.querySelector(".date-trigger");
+
+            if (!menu || !trigger || !picker.classList.contains("open")) {
+                return;
+            }
+
+            const gap = 8;
+            const viewportWidth = window.visualViewport?.width || window.innerWidth;
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            const viewportTop = window.visualViewport?.offsetTop || 0;
+            const viewportLeft = window.visualViewport?.offsetLeft || 0;
+            const margin = 8;
+            const triggerRect = trigger.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const menuWidth = Math.ceil(menuRect.width || 258);
+            const menuHeight = Math.ceil(menuRect.height || 282);
+            const triggerCenter = triggerRect.left + (triggerRect.width / 2);
+            const spaceBelow = viewportTop + viewportHeight - triggerRect.bottom;
+            const spaceAbove = triggerRect.top - viewportTop;
+            const openUp = spaceBelow < menuHeight + gap + margin && spaceAbove > spaceBelow;
+            let top = openUp ? triggerRect.top - menuHeight - gap : triggerRect.bottom + gap;
+            let left = triggerRect.left;
+
+            if (keepVerticalPosition && picker._dateMenuTop !== null && picker._dateMenuTop !== undefined) {
+                top = picker._dateMenuTop;
+            } else {
+                top = Math.max(viewportTop + margin, Math.min(top, viewportTop + viewportHeight - menuHeight - margin));
+                picker._dateMenuTop = top;
+                picker._dateMenuOpenUp = openUp;
+            }
+
+            left = Math.max(viewportLeft + margin, Math.min(left, viewportLeft + viewportWidth - menuWidth - margin));
+            picker._dateMenuLeft = left;
+            const pointerLeft = Math.max(18, Math.min(triggerCenter - left, menuWidth - 18));
+
+            picker.classList.toggle("open-up", keepVerticalPosition ? !!picker._dateMenuOpenUp : openUp);
+            menu.classList.toggle("open-up", keepVerticalPosition ? !!picker._dateMenuOpenUp : openUp);
+            menu.style.setProperty("--date-menu-top", `${Math.round(top)}px`);
+            menu.style.setProperty("--date-menu-left", `${Math.round(left)}px`);
+            menu.style.setProperty("--date-pointer-left", `${Math.round(pointerLeft)}px`);
+        }
+
+        function getDatePickerMenu(picker) {
+            return picker._dateMenu || picker.querySelector(".date-menu");
+        }
+
+        function openDatePicker(picker) {
+            const trigger = picker.querySelector(".date-trigger");
+            const menu = getDatePickerMenu(picker);
+
+            picker.classList.add("open");
+            trigger?.setAttribute("aria-expanded", "true");
+            const block = picker.closest(".field-block");
+            const row = picker.closest(".field-row");
+            const panel = picker.closest(".form-panel");
+            block?.classList.add("has-open-date-menu");
+            row?.classList.add("has-open-date-menu");
+            panel?.classList.add("has-open-date-menu");
+            renderDatePicker(picker);
+            if (menu) {
+                const gradient = getComputedStyle(picker).getPropertyValue("--calendar-month-gradient");
+                menu.style.setProperty("--calendar-month-gradient", gradient);
+                menu.classList.add("is-open");
+                if (menu.parentElement !== document.body) {
+                    document.body.appendChild(menu);
+                }
+            }
+            positionDatePickerMenu(picker);
+        }
+
+        function repositionOpenDatePickers() {
+            datePickers.forEach((picker) => {
+                if (picker.classList.contains("open")) {
+                    positionDatePickerMenu(picker);
+                }
+            });
+        }
+
         function buildDatePicker(picker) {
             const trigger = picker.querySelector(".date-trigger");
             const prevButton = picker.querySelector(".prev-month");
@@ -1298,6 +1450,7 @@
             const todayButton = picker.querySelector(".today-action");
             const clearButton = picker.querySelector(".clear-action");
             const hiddenInput = picker.querySelector("input[type='hidden']");
+            picker._dateMenu = picker.querySelector(".date-menu");
 
             picker._viewDate = parseValueDate(hiddenInput.value) || new Date();
             syncDatePicker(picker);
@@ -1310,24 +1463,7 @@
                 const isOpen = picker.classList.contains("open");
                 closeDatePickers();
                 if (!isOpen) {
-                    const menu = picker.querySelector(".date-menu");
-                    const pickerRect = picker.getBoundingClientRect();
-                    const estimatedMenuHeight = menu ? Math.ceil(menu.getBoundingClientRect().height || 332) : 332;
-                    const spaceBelow = window.innerHeight - pickerRect.bottom;
-                    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom || 0;
-                    const spaceAbove = pickerRect.top - headerBottom;
-                    const forceOpenDown = window.innerWidth <= 700 && picker.id === "fromDatePicker";
-                    const shouldOpenUp = !forceOpenDown && spaceBelow < estimatedMenuHeight + 16 && spaceAbove > spaceBelow;
-                    picker.classList.toggle("open-up", shouldOpenUp);
-                    picker.classList.add("open");
-                    trigger.setAttribute("aria-expanded", "true");
-                    const block = picker.closest(".field-block");
-                    const row = picker.closest(".field-row");
-                    const panel = picker.closest(".form-panel");
-                    block?.classList.add("has-open-date-menu");
-                    row?.classList.add("has-open-date-menu");
-                    panel?.classList.add("has-open-date-menu");
-                    renderDatePicker(picker);
+                    openDatePicker(picker);
                 }
             });
 
@@ -1340,36 +1476,31 @@
                     const isOpen = picker.classList.contains("open");
                     closeDatePickers();
                     if (!isOpen) {
-                        const menu = picker.querySelector(".date-menu");
-                        const pickerRect = picker.getBoundingClientRect();
-                        const estimatedMenuHeight = menu ? Math.ceil(menu.getBoundingClientRect().height || 332) : 332;
-                        const spaceBelow = window.innerHeight - pickerRect.bottom;
-                        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom || 0;
-                        const spaceAbove = pickerRect.top - headerBottom;
-                        const forceOpenDown = window.innerWidth <= 700 && picker.id === "fromDatePicker";
-                        const shouldOpenUp = !forceOpenDown && spaceBelow < estimatedMenuHeight + 16 && spaceAbove > spaceBelow;
-                        picker.classList.toggle("open-up", shouldOpenUp);
-                        picker.classList.add("open");
-                        trigger.setAttribute("aria-expanded", "true");
-                        const block = picker.closest(".field-block");
-                        const row = picker.closest(".field-row");
-                        const panel = picker.closest(".form-panel");
-                        block?.classList.add("has-open-date-menu");
-                        row?.classList.add("has-open-date-menu");
-                        panel?.classList.add("has-open-date-menu");
-                        renderDatePicker(picker);
+                        openDatePicker(picker);
                     }
                 }
             });
 
             prevButton.addEventListener("click", () => {
-                picker._viewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() - 1, 1);
+                const minimumViewDate = getMinimumViewDate(hiddenInput);
+                const previousViewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() - 1, 1);
+
+                if (previousViewDate < minimumViewDate) {
+                    picker._viewDate = new Date(minimumViewDate);
+                    renderDatePicker(picker);
+                    positionDatePickerMenu(picker, true);
+                    return;
+                }
+
+                picker._viewDate = previousViewDate;
                 renderDatePicker(picker);
+                positionDatePickerMenu(picker, true);
             });
 
             nextButton.addEventListener("click", () => {
                 picker._viewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() + 1, 1);
                 renderDatePicker(picker);
+                positionDatePickerMenu(picker, true);
             });
 
             todayButton.addEventListener("click", () => {
@@ -1619,9 +1750,14 @@
             }
 
             if (!datePickers.some((picker) => picker.contains(event.target))) {
-                closeDatePickers();
+                const clickedDateMenu = datePickers.some((picker) => getDatePickerMenu(picker)?.contains(event.target));
+                if (!clickedDateMenu) {
+                    closeDatePickers();
+                }
             }
         });
+        window.addEventListener("resize", repositionOpenDatePickers);
+        window.addEventListener("scroll", repositionOpenDatePickers, true);
 
         fromDate.addEventListener("change", () => handleDateChange(fromDate));
         toDate.addEventListener("change", () => handleDateChange(toDate));

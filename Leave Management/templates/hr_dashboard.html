@@ -1445,6 +1445,7 @@
         const appliedIso = reasonText.dataset.appliedIso || "";
         const updatedIso = reasonText.dataset.updatedIso || "";
         const updatedCount = Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0;
+        const useMobileReasonLabels = window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
         const scheduleDateText = (reasonText.dataset.scheduleDate || "-").replace(/\s*->\s*/g, " \u27F6 ");
         const scheduleTimeText = (reasonText.dataset.scheduleTime || "-").replace(/\s*->\s*/g, " \u27F6 ");
         const leaveTypeClass = reasonText.dataset.leaveTypeClass || "default";
@@ -1473,12 +1474,12 @@
         scheduleTime.hidden = !showScheduleTime;
         scheduleTime.classList.toggle("reason-modal-schedule-time-accent", showScheduleTime);
         days.textContent = dayText;
-        appliedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🕒</span><span>Applied</span></span>';
+        appliedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🕒</span><span>${useMobileReasonLabels ? "Applied At" : "Applied"}</span></span>`;
         const relativeApplied = formatRelativeLeaveAge(appliedIso);
         const relativeUpdated = formatRelativeLeaveAge(updatedIso);
         applied.textContent = relativeApplied || (reasonText.dataset.applied || "-");
         appliedTime.textContent = formatPopupClockTime(appliedIso, reasonText.dataset.applied || "");
-        updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🔄</span><span>${updatedCount === 1 ? "1 update" : `${updatedCount} updates`}</span></span>`;
+        updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">🔄</span><span>${useMobileReasonLabels ? "Updated At" : (updatedCount === 1 ? "1 update" : `${updatedCount} updates`)}</span></span>`;
         updated.textContent = updatedIso ? (relativeUpdated || (reasonText.dataset.updated || "-")) : "Not updated";
         updatedTime.textContent = updatedIso ? formatPopupClockTime(updatedIso, reasonText.dataset.updated || "") : "-";
         content.textContent = reasonText.dataset.full;

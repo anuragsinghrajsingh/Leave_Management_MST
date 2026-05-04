@@ -3381,15 +3381,17 @@ def apply_leave(request):
         ]),
         "existing_leaves_json": json.dumps([
             {
+                "id": leave.id,
                 "from": leave.from_date.strftime("%Y-%m-%d"),
                 "to": leave.to_date.strftime("%Y-%m-%d"),
                 "type": leave.leave_type,
                 "status": leave.status,
+                "created_at": leave.created_at.isoformat() if leave.created_at else "",
             }
             for leave in Leave.objects.filter(
                 user=request.user,
-                status__in=["Pending", "Approved"],
-            ).order_by("from_date")
+                status__in=["Pending", "Approved", "Rejected"],
+            ).order_by("from_date", "created_at", "id")
         ]),
     }
     context.update(get_employee_notification_context(request.user))
@@ -3661,6 +3663,11 @@ def my_leave(request):
     context = _build_my_leave_context(request)
 
     if _is_ajax_request(request) and request.GET.get("section") == "live_data":
+        live_counts = {
+            "pending": Leave.objects.filter(user=request.user, status="Pending").count(),
+            "approved": Leave.objects.filter(user=request.user, status="Approved").count(),
+            "rejected": Leave.objects.filter(user=request.user, status="Rejected").count(),
+        }
         return JsonResponse({
             "summary_html": render_to_string(
                 "includes/my_leave_summary_panels.html",
@@ -3692,6 +3699,7 @@ def my_leave(request):
                 "approved": context["approved_leaves"].count(),
                 "rejected": context["rejected_leaves"].count(),
             },
+            "live_counts": live_counts,
         })
 
     messages.success(request, "Updated latest leave information.")

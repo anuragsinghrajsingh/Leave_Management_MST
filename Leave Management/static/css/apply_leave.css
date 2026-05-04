@@ -995,7 +995,7 @@ label {
         0 0 0 5px rgba(47, 115, 217, 0.24),
         0 16px 28px rgba(47, 115, 217, 0.2);
     background: linear-gradient(135deg, rgba(255, 244, 232, 1), rgba(232, 245, 255, 1));
-    transform: translateY(-2px);
+    transform: none;
 }
 
 .date-shell.open::before,
@@ -1004,16 +1004,70 @@ label {
     content: none;
 }
 
+.date-shell {
+    --calendar-month-gradient: linear-gradient(135deg, #38bdf8, #a78bfa, #f472b6);
+}
+
+.date-shell[data-calendar-month="1"] {
+    --calendar-month-gradient: linear-gradient(135deg, #38bdf8, #818cf8, #f472b6);
+}
+
+.date-shell[data-calendar-month="2"] {
+    --calendar-month-gradient: linear-gradient(135deg, #fb7185, #f9a8d4, #c084fc);
+}
+
+.date-shell[data-calendar-month="3"] {
+    --calendar-month-gradient: linear-gradient(135deg, #22c55e, #84cc16, #facc15);
+}
+
+.date-shell[data-calendar-month="4"] {
+    --calendar-month-gradient: linear-gradient(135deg, #f97316, #facc15, #22c55e);
+}
+
+.date-shell[data-calendar-month="5"] {
+    --calendar-month-gradient: linear-gradient(135deg, #14b8a6, #22c55e, #eab308);
+}
+
+.date-shell[data-calendar-month="6"] {
+    --calendar-month-gradient: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+}
+
+.date-shell[data-calendar-month="7"] {
+    --calendar-month-gradient: linear-gradient(135deg, #ef4444, #f97316, #f59e0b);
+}
+
+.date-shell[data-calendar-month="8"] {
+    --calendar-month-gradient: linear-gradient(135deg, #0ea5e9, #10b981, #a3e635);
+}
+
+.date-shell[data-calendar-month="9"] {
+    --calendar-month-gradient: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+}
+
+.date-shell[data-calendar-month="10"] {
+    --calendar-month-gradient: linear-gradient(135deg, #f43f5e, #fb923c, #fbbf24);
+}
+
+.date-shell[data-calendar-month="11"] {
+    --calendar-month-gradient: linear-gradient(135deg, #0f766e, #2563eb, #7c3aed);
+}
+
+.date-shell[data-calendar-month="12"] {
+    --calendar-month-gradient: linear-gradient(135deg, #0891b2, #4f46e5, #e11d48);
+}
+
 .date-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 230;
-    width: 258px;
-    padding: 8px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(255, 236, 224, 0.98), rgba(235, 243, 255, 0.99) 52%, rgba(225, 244, 248, 0.98));
-    border: 1.5px solid rgba(47, 115, 217, 0.24);
+    position: fixed;
+    top: var(--date-menu-top, 0);
+    left: var(--date-menu-left, 0);
+    z-index: 9999;
+    width: 265px;
+    padding: 6px;
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.99)) padding-box,
+        var(--calendar-month-gradient) border-box;
+    border: 1.5px solid transparent;
     box-shadow:
         0 18px 32px rgba(25, 54, 88, 0.14),
         0 6px 14px rgba(47, 115, 217, 0.06);
@@ -1023,19 +1077,58 @@ label {
     transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
-.date-shell.open .date-menu {
+.date-menu::before {
+    content: "";
+    position: absolute;
+    left: var(--date-pointer-left, 28px);
+    top: -7px;
+    width: 14px;
+    height: 14px;
+    transform: translateX(-50%) rotate(45deg);
+    background: var(--calendar-month-gradient);
+    pointer-events: none;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.date-menu::after {
+    content: "";
+    position: absolute;
+    left: var(--date-pointer-left, 28px);
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    transform: translateX(-50%) rotate(45deg);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.99));
+    pointer-events: none;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.date-menu.open-up::before {
+    top: auto;
+    bottom: -7px;
+    transform: translateX(-50%) rotate(225deg);
+}
+
+.date-menu.open-up::after {
+    top: auto;
+    bottom: -4px;
+    transform: translateX(-50%) rotate(225deg);
+}
+
+.date-shell.open .date-menu,
+.date-menu.is-open {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0) scale(1);
 }
 
-.date-shell.open-up .date-menu {
-    top: auto;
-    bottom: calc(100% + 8px);
+.date-shell.open-up .date-menu,
+.date-menu.open-up {
     transform: translateY(8px) scale(0.98);
 }
 
-.date-shell.open-up.open .date-menu {
+.date-shell.open-up.open .date-menu,
+.date-menu.is-open.open-up {
     transform: translateY(0) scale(1);
 }
 
@@ -1043,32 +1136,34 @@ label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 6px;
+    margin-bottom: 6px;
 }
 
 .date-current {
-    padding: 5px 10px;
+    padding: 4px 9px;
     border-radius: 999px;
     background:
-        linear-gradient(90deg, rgba(126, 134, 216, 0.12), transparent 45%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(239, 246, 255, 0.95));
-    border: 1px solid rgba(47, 115, 217, 0.16);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.96)) padding-box,
+        var(--calendar-month-gradient) border-box;
+    border: 1px solid transparent;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.85),
         0 6px 12px rgba(47, 115, 217, 0.06);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.01em;
     color: var(--text);
 }
 
 .date-nav {
-    width: 26px;
-    height: 26px;
-    border: 1px solid rgba(47, 115, 217, 0.16);
+    width: 24px;
+    height: 24px;
+    border: 1px solid transparent;
     border-radius: 9px;
-    background: rgba(255, 255, 255, 0.78);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 251, 255, 0.86)) padding-box,
+        var(--calendar-month-gradient) border-box;
     color: var(--brand);
     font-size: 16px;
     font-weight: 800;
@@ -1079,14 +1174,26 @@ label {
 
 .date-nav:hover {
     transform: translateY(-1px);
-    border-color: rgba(47, 115, 217, 0.34);
+    border-color: transparent;
     background:
-        linear-gradient(90deg, rgba(126, 134, 216, 0.12), transparent 44%),
-        linear-gradient(180deg, #ffffff, #eef6ff);
+        linear-gradient(180deg, #ffffff, #eef6ff) padding-box,
+        var(--calendar-month-gradient) border-box;
     box-shadow:
         0 10px 16px rgba(47, 115, 217, 0.10),
         0 0 0 2px rgba(47, 115, 217, 0.10);
     color: #225fbc;
+}
+
+.date-nav:disabled,
+.date-nav:disabled:hover {
+    cursor: not-allowed;
+    transform: none;
+    color: rgba(97, 120, 143, 0.42);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(248, 250, 252, 0.62)) padding-box,
+        var(--calendar-month-gradient) border-box;
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .date-weekdays,
@@ -1096,26 +1203,40 @@ label {
 }
 
 .date-weekdays {
-    margin-bottom: 4px;
+    gap: 3px;
+    margin-bottom: 3px;
 }
 
 .date-weekdays span {
+    min-height: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 251, 255, 0.86)) padding-box,
+        var(--calendar-month-gradient) border-box;
     text-align: center;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 900;
     color: var(--muted);
     text-transform: uppercase;
 }
 
 .date-grid {
-    gap: 4px;
+    gap: 3px;
 }
 
 .date-day {
     position: relative;
-    height: 30px;
-    border: 1px solid rgba(47, 115, 217, 0.18);
-    border-radius: 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 27px;
+    border: 1px solid transparent;
+    border-radius: 8px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 248, 255, 0.96));
     color: var(--text);
@@ -1126,6 +1247,54 @@ label {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.82),
         0 4px 8px rgba(47, 115, 217, 0.05);
+}
+
+.date-day-number,
+.date-day-leave-type {
+    position: relative;
+    z-index: 1;
+    display: block;
+    line-height: 1;
+}
+
+.date-day-number {
+    font-size: 11.5px;
+}
+
+.date-day-leave-type {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    bottom: -1px;
+    max-width: 100%;
+    padding: 0 2px 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 5.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    line-height: 1;
+    border-radius: 0 0 6px 6px;
+}
+
+.date-day::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    background: var(--calendar-month-gradient) border-box;
+    pointer-events: none;
+    -webkit-mask:
+        linear-gradient(#fff 0 0) padding-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#fff 0 0) padding-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
 }
 
 .date-day:disabled {
@@ -1315,20 +1484,74 @@ label {
     color: #15803d;
 }
 
+.date-day.existing-leave-pending,
+.date-day.existing-leave-pending:disabled,
+.date-day.existing-leave-pending:hover,
+.date-day.existing-leave-pending:disabled:hover {
+    cursor: not-allowed;
+    color: #9a3412;
+    background:
+        linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(254, 240, 138, 0.94) 48%, rgba(253, 186, 116, 0.96));
+    border-color: rgba(245, 158, 11, 0.42);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-approved,
+.date-day.existing-leave-approved:disabled,
+.date-day.existing-leave-approved:hover,
+.date-day.existing-leave-approved:disabled:hover {
+    cursor: not-allowed;
+    color: #166534;
+    background:
+        linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(187, 247, 208, 0.96));
+    border-color: rgba(34, 197, 94, 0.3);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-rejected,
+.date-day.existing-leave-rejected:disabled,
+.date-day.existing-leave-rejected:hover,
+.date-day.existing-leave-rejected:disabled:hover {
+    color: #991b1b;
+    background:
+        linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(254, 202, 202, 0.96));
+    border-color: rgba(239, 68, 68, 0.36);
+    box-shadow: none;
+}
+
+.date-day.existing-leave-rejected:not(:disabled) {
+    cursor: pointer;
+}
+
+.date-day.existing-leave-rejected:not(:disabled):hover {
+    transform: translateY(-1px);
+    border-color: rgba(220, 38, 38, 0.48);
+    box-shadow:
+        0 12px 18px rgba(220, 38, 38, 0.12),
+        0 0 0 2px rgba(220, 38, 38, 0.10);
+}
+
+.date-day.existing-leave-rejected.selected {
+    border-color: rgba(220, 38, 38, 0.58);
+    box-shadow:
+        0 10px 18px rgba(220, 38, 38, 0.14),
+        0 0 0 2px rgba(220, 38, 38, 0.14);
+}
+
 .date-actions {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 6px;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 5px;
     border-top: 1px solid rgba(47, 115, 217, 0.12);
 }
 
 .date-action {
     flex: 1;
-    min-height: 30px;
+    min-height: 26px;
     border: 1px solid rgba(47, 115, 217, 0.14);
-    border-radius: 9px;
+    border-radius: 8px;
     background:
         linear-gradient(90deg, rgba(126, 134, 216, 0.08), transparent 44%),
         rgba(255, 255, 255, 0.82);
@@ -1768,6 +1991,7 @@ select {
 
 .form-panel.has-open-date-menu {
     z-index: 200;
+    transform: none;
 }
 
 .time-select-shell .custom-select-menu::before {
@@ -2132,7 +2356,7 @@ textarea {
 .instruction-subtitle {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 13px;
     margin: 2px 0 0;
     padding: 5px 9px;
     color: #31537c;
@@ -2227,7 +2451,7 @@ textarea {
     background: #ffffff;
     border: 1px solid rgba(47, 115, 217, 0.14);
     color: var(--brand);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;

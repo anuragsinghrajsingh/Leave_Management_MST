@@ -836,32 +836,32 @@
                     <span class="reason-modal-top-spacer" aria-hidden="true"></span>
                 </div>
                 <div class="reason-modal-meta-grid" id="reasonModalMetaGrid">
-                    <div class="reason-meta-card">
+                    <div class="reason-meta-card reason-meta-card-schedule">
                         <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128197;</span><span>Schedule</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
                             <strong id="reasonModalScheduleDate">-</strong>
                             <span id="reasonModalScheduleTime">-</span>
                         </div>
                     </div>
-                    <div class="reason-meta-card">
+                    <div class="reason-meta-card reason-meta-card-days">
                         <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9203;</span><span>No. of days</span></span></span>
                         <strong class="reason-meta-value" id="reasonModalDays">-</strong>
                     </div>
-                    <div class="reason-meta-card">
+                    <div class="reason-meta-card reason-meta-card-applied">
                         <span class="reason-meta-label" id="reasonModalAppliedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
                             <strong id="reasonModalApplied">-</strong>
                             <span id="reasonModalAppliedTime">-</span>
                         </div>
                     </div>
-                    <div class="reason-meta-card">
+                    <div class="reason-meta-card reason-meta-card-updated">
                         <span class="reason-meta-label" id="reasonModalUpdatedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>0 updates</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
                             <strong id="reasonModalUpdated">-</strong>
                             <span id="reasonModalUpdatedTime">-</span>
                         </div>
                     </div>
-                    <div class="reason-meta-card reason-modal-decision-card" id="reasonModalDecisionCard" hidden>
+                    <div class="reason-meta-card reason-meta-card-decision reason-modal-decision-card" id="reasonModalDecisionCard" hidden>
                         <span class="reason-meta-label" id="reasonModalDecisionLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10003;</span><span>Approved At</span></span></span>
                         <div class="reason-meta-value reason-meta-stack">
                             <strong id="reasonModalDecision">-</strong>
@@ -954,6 +954,14 @@
         rejected: 1
     };
     const POPUP_HISTORY_PAGE_SIZE = 5;
+    const POPUP_HISTORY_MOBILE_PAGE_SIZE = 4;
+
+    function getPopupHistoryPageSize()
+    {
+        return window.matchMedia && window.matchMedia("(max-width: 640px)").matches
+            ? POPUP_HISTORY_MOBILE_PAGE_SIZE
+            : POPUP_HISTORY_PAGE_SIZE;
+    }
 
     function syncPopupTabFilterIndicators()
     {
@@ -4900,10 +4908,11 @@
                 : "Employee";
         const statusLeaves = getPopupStatusLeaves(selected, activePopupHistoryStatus);
         const filteredLeaves = applyPopupHistoryFilters(statusLeaves, activePopupHistoryStatus);
-        const totalPages = Math.max(1, Math.ceil(filteredLeaves.length / POPUP_HISTORY_PAGE_SIZE));
+        const popupHistoryPageSize = getPopupHistoryPageSize();
+        const totalPages = Math.max(1, Math.ceil(filteredLeaves.length / popupHistoryPageSize));
         const currentPage = Math.min(getPopupHistoryPage(activePopupHistoryStatus), totalPages);
-        const startIndex = (currentPage - 1) * POPUP_HISTORY_PAGE_SIZE;
-        const pagedLeaves = filteredLeaves.slice(startIndex, startIndex + POPUP_HISTORY_PAGE_SIZE);
+        const startIndex = (currentPage - 1) * popupHistoryPageSize;
+        const pagedLeaves = filteredLeaves.slice(startIndex, startIndex + popupHistoryPageSize);
 
         setPopupHistoryPage(activePopupHistoryStatus, currentPage);
 
@@ -4954,7 +4963,7 @@
 
         if (popupTablePagination)
         {
-            if (filteredLeaves.length <= POPUP_HISTORY_PAGE_SIZE)
+            if (filteredLeaves.length <= popupHistoryPageSize)
             {
                 popupTablePagination.hidden = true;
                 popupTablePagination.innerHTML = "";
@@ -5469,6 +5478,7 @@
         const decisionIso = reasonText.dataset.decisionIso || "";
         const decisionLabelText = reasonText.dataset.decisionLabel || "";
         const updatedCount = Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0;
+        const useMobileReasonLabels = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
         const scheduleDateText = (reasonText.dataset.scheduleDate || "-").replace(/\s*->\s*/g, " \u27F6 ");
         const scheduleTimeText = (reasonText.dataset.scheduleTime || "-").replace(/\s*->\s*/g, " \u27F6 ");
         const leaveTypeClass = reasonText.dataset.leaveTypeClass || "default";
@@ -5498,15 +5508,15 @@
         scheduleTime.hidden = !showScheduleTime;
         scheduleTime.classList.toggle("reason-modal-schedule-time-accent", showScheduleTime);
         days.textContent = dayText;
-        appliedLabel.innerHTML = '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span>';
+        appliedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>${useMobileReasonLabels ? "Applied At" : "Applied"}</span></span>`;
 
         const relativeApplied = formatRelativeLeaveAge(appliedIso);
         const relativeUpdated = formatRelativeLeaveAge(updatedIso);
         const relativeDecision = formatRelativeLeaveAge(decisionIso);
-        const hasDecision = Boolean(decisionIso || (reasonText.dataset.decision && reasonText.dataset.decision !== "-"));
+        const hasDecision = reasonContext !== "pending" && Boolean(decisionIso || (reasonText.dataset.decision && reasonText.dataset.decision !== "-"));
         applied.textContent = relativeApplied || (reasonText.dataset.applied || "-");
         appliedTime.textContent = formatPopupClockTime(appliedIso, reasonText.dataset.applied || "");
-        updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>${updatedCount === 1 ? "1 update" : `${updatedCount} updates`}</span></span>`;
+        updatedLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>${useMobileReasonLabels ? "Updated At" : (updatedCount === 1 ? "1 update" : `${updatedCount} updates`)}</span></span>`;
         updated.textContent = updatedIso ? (relativeUpdated || (reasonText.dataset.updated || "-")) : "Not updated";
         updatedTime.textContent = updatedIso ? formatPopupClockTime(updatedIso, reasonText.dataset.updated || "") : "-";
         if (metaGrid)
@@ -5518,6 +5528,8 @@
         {
             decisionCard.hidden = !hasDecision;
         }
+
+        modal.classList.toggle("reason-has-decision", hasDecision);
 
         if (decisionLabel)
         {
@@ -5534,7 +5546,6 @@
         {
             decisionTime.textContent = hasDecision ? formatPopupClockTime(decisionIso, reasonText.dataset.decision || "") : "-";
         }
-
         fieldLabel.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${contextCopy.icon}</span><span>${contextCopy.label}</span></span>`;
         content.textContent = reasonText.dataset.full || reasonText.textContent || "";
         modal.classList.remove("is-closing");
@@ -5614,6 +5625,7 @@
                 "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
             );
             modal.classList.add("reason-theme-default");
+            modal.classList.remove("reason-has-decision");
             activeReasonAnchor = null;
             reasonModalCloseTimer = null;
         });

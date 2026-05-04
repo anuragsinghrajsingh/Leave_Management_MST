@@ -16539,6 +16539,155 @@ button {
 }
 
 @media (max-width: 640px) {
+    #reasonModal.reason-modal {
+        padding: 4px;
+    }
+
+    #reasonModal .reason-modal-dialog {
+        width: calc(100vw - 8px);
+        max-width: none;
+        box-sizing: border-box;
+        padding: 6px 8px 10px;
+    }
+
+    #reasonModal .reason-modal-meta-grid,
+    #reasonModal .reason-modal-meta-grid.has-decision {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 5px;
+    }
+
+    #reasonModal .reason-meta-card {
+        display: flex;
+        min-width: 0;
+        min-height: 72px;
+        margin: 0;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 5px 6px;
+    }
+
+    #reasonModal .reason-meta-card-schedule {
+        grid-column: 1 / span 6 !important;
+    }
+
+    #reasonModal .reason-meta-card-days {
+        grid-column: 7 / span 4 !important;
+    }
+
+    #reasonModal .reason-meta-card-applied {
+        grid-column: 1 / span 5 !important;
+    }
+
+    #reasonModal .reason-meta-card-updated {
+        grid-column: 6 / span 5 !important;
+    }
+
+    #reasonModal .reason-meta-card-decision {
+        grid-column: 1 / -1 !important;
+        min-height: 62px;
+    }
+
+    #reasonModal .reason-modal-meta-grid.has-decision .reason-meta-card-schedule {
+        grid-column: 1 / span 6 !important;
+    }
+
+    #reasonModal .reason-modal-meta-grid.has-decision .reason-meta-card-days {
+        grid-column: 7 / span 4 !important;
+    }
+
+    #reasonModal .reason-modal-meta-grid.has-decision .reason-meta-card-applied {
+        grid-column: 1 / span 5 !important;
+    }
+
+    #reasonModal .reason-modal-meta-grid.has-decision .reason-meta-card-updated {
+        grid-column: 6 / span 5 !important;
+    }
+
+    #reasonModal .reason-modal-meta-grid.has-decision .reason-meta-card-decision {
+        grid-column: 1 / -1 !important;
+    }
+
+    #reasonModal .reason-meta-label {
+        width: 100%;
+        margin-bottom: 0;
+        padding-bottom: 3px;
+        text-align: center;
+        white-space: nowrap;
+        letter-spacing: 0.08em;
+    }
+
+    #reasonModal .reason-meta-label::after {
+        width: 100%;
+        max-width: 100%;
+        margin: 2px 0;
+    }
+
+    #reasonModal .reason-meta-label-content {
+        width: 100%;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    #reasonModal .reason-meta-value {
+        width: 100%;
+        margin-top: 0;
+        text-align: center;
+    }
+
+    #reasonModal .reason-meta-card-schedule .reason-meta-label,
+    #reasonModal .reason-meta-card-schedule .reason-meta-label::after,
+    #reasonModal .reason-meta-card-schedule .reason-meta-value {
+        text-align: left;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    #reasonModal .reason-meta-card-schedule .reason-meta-label-content {
+        justify-content: flex-start;
+    }
+
+    #reasonModal .reason-meta-card-schedule .reason-meta-stack {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 3px;
+    }
+
+    #reasonModalScheduleDate,
+    #reasonModalScheduleTime {
+        display: inline-flex;
+        align-items: center;
+        width: 100%;
+        justify-content: flex-start;
+        white-space: nowrap;
+        word-break: normal;
+        overflow-wrap: normal;
+        text-align: left;
+    }
+
+    #reasonModalScheduleDate {
+        font-size: 0.66rem;
+    }
+
+    #reasonModalScheduleTime {
+        font-size: 0.68rem;
+    }
+
+    #reasonModalDays,
+    #reasonModalApplied,
+    #reasonModalAppliedTime,
+    #reasonModalUpdated,
+    #reasonModalUpdatedTime,
+    #reasonModalDecision,
+    #reasonModalDecisionTime {
+        justify-content: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 640px) {
     #popupTableWrapper .compact-action-group,
     .detail-table .compact-action-group {
         width: 100% !important;
@@ -16563,6 +16712,33 @@ button {
         width: 100% !important;
         min-width: 0 !important;
         white-space: nowrap !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #employeeModal .employee-modal-dialog {
+        max-height: calc(100vh - 20px) !important;
+        margin: 10px 0 !important;
+    }
+
+    #employeeModal .popup-table-section:not(.is-collapsed) #popupTableWrapper.compact-table-wrapper {
+        max-height: 330px !important;
+        padding-bottom: 8px !important;
+    }
+
+    #employeeModal #popupTableWrapper .compact-table-inner {
+        max-height: 222px !important;
+    }
+
+    #employeeModal .popup-table-pagination {
+        min-height: 36px !important;
+        padding: 4px 4px 6px !important;
+        margin-top: 4px !important;
+        overflow: visible !important;
+    }
+
+    #reasonModal.reason-context-pending .reason-meta-card-decision {
+        display: none !important;
     }
 }
 
