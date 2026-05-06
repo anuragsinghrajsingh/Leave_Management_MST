@@ -88,12 +88,12 @@ function getCSRFToken()
             if (!container) return;
 
             container.innerHTML = items.map((item, index) => `
-                <button type="button" class="legend-item" data-index="${index}">
-                    <span class="legend-dot" style="--legend-color:${item.color}"></span>
-                    <span class="legend-copy">
-                        <strong>${item.label}</strong>
-                        <small data-target="${item.target}" data-suffix="${item.suffix || ''}">0${item.suffix || ''}</small>
-                    </span>
+                <button type="button" class="legend-item stacked" data-index="${index}" style="--legend-color: ${item.color}">
+                    <span class="legend-dot"></span>
+                    <div class="legend-info">
+                        <strong class="legend-label">${item.label}</strong>
+                        <small class="legend-value" data-target="${item.target}" data-suffix="${item.suffix || ''}">0${item.suffix || ''}</small>
+                    </div>
                 </button>
             `).join("");
 
@@ -130,7 +130,8 @@ function getCSRFToken()
                 {
                     const progress = Math.min((now - start) / duration, 1);
                     const eased = 1 - Math.pow(1 - progress, 3);
-                    const value = Math.round(target * eased);
+                    const rawValue = target * eased;
+                    const value = rawValue % 1 === 0 ? rawValue.toFixed(0) : rawValue.toFixed(2);
                     node.textContent = `${value}${suffix}`;
 
                     if (progress < 1) requestAnimationFrame(tick);
@@ -186,10 +187,10 @@ function getCSRFToken()
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = pluginOptions.color || "#0f172a";
-                ctx.font = `800 ${pluginOptions.valueSize || 22}px "Plus Jakarta Sans", sans-serif`;
+                ctx.font = `800 ${pluginOptions.valueSize || 22}px "Manrope", sans-serif`;
                 ctx.fillText(pluginOptions.text, x, y - 6);
                 ctx.fillStyle = pluginOptions.subColor || "#64748b";
-                ctx.font = `700 ${pluginOptions.labelSize || 10}px "Plus Jakarta Sans", sans-serif`;
+                ctx.font = `700 ${pluginOptions.labelSize || 10}px "Manrope", sans-serif`;
                 ctx.fillText(pluginOptions.subtext || "", x, y + 16);
                 ctx.restore();
             }
@@ -220,15 +221,17 @@ function getCSRFToken()
                     borderWidth: 2,
                     borderColor: "#ffffff",
                     hoverOffset: 14,
-                    radius: "96%"
+                    radius: "100%"
                 }]
             },
 
             options: 
             {
+                responsive: true,
+                maintainAspectRatio: false,
                 layout:
                 {
-                    padding: 10
+                    padding: 2
                 },
 
                 animation:
@@ -348,7 +351,7 @@ function getCSRFToken()
                 },
                 centerLabelPlugin:
                 {
-                    text: "profileTotalUsed",
+                    text: profileTotalUsed,
                     subtext: "used",
                     color: "#0f172a",
                     subColor: "#64748b"
@@ -535,10 +538,12 @@ function getCSRFToken()
 
                 options:
                 {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     cutout: "65%",
                     layout:
                     {
-                        padding: 10
+                        padding: 2
                     },
 
                     animation:
