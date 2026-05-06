@@ -197,7 +197,7 @@
                         <small>Employee workspace</small>
                     </div>
                 </div>
-                <a href="javascript:void(0)" id="profilePasswordTrigger" onclick="openPasswordModal()" class="dropdown-item pass">Change Password</a>
+                <a href="#" id="profilePasswordTrigger" data-action="open-password-modal" class="dropdown-item pass">Change Password</a>
                 <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
             </div>
         </div>
@@ -217,7 +217,7 @@
                         <img src="{% static 'images/user.jpg' %}" id="profileViewPhotoTrigger" class="avatar">
                         {% endif %}
 
-                        <div id="profileEditPhotoTrigger" class="avatar-edit-overlay" role="button" tabindex="0" onkeydown="handleEditPhotoKey(event)">
+                        <div id="profileEditPhotoTrigger" class="avatar-edit-overlay" role="button" tabindex="0" data-action="edit-photo-key">
                             Change
                         </div>
                     </div>
@@ -293,7 +293,7 @@
                             <div class="detail-item full-width">
                                 <div class="detail-label">
                                     <span class="detail-symbol" aria-hidden="true">&#8962;</span>Address
-                                    <span class="edit-icon" onclick="editField('address')">✎</span>
+                                    <span class="edit-icon" data-action="edit-profile-field" data-field="address">✎</span>
                                     <span id="addressDirty" class="unsaved-dot hidden">●</span>
                                 </div>
 
@@ -316,7 +316,7 @@
                             <div class="detail-item full-width">
                                 <div class="detail-label">
                                     <span class="detail-symbol" aria-hidden="true">&#10022;</span>About Me
-                                    <span class="edit-icon" onclick="editField('bio')">✎</span>
+                                    <span class="edit-icon" data-action="edit-profile-field" data-field="bio">✎</span>
                                     <span id="bioDirty" class="unsaved-dot hidden">●</span>
                                 </div>
 
@@ -328,7 +328,7 @@
                                     class="edit-input hidden"
                                     maxlength="250"
                                     data-field="bio"
-                                    oninput="countWords()">{{ profile.bio }}</textarea>
+                                    data-action="count-words">{{ profile.bio }}</textarea>
 
                                 <div id="bioCounter" class="bio-counter hidden">0 / 50 words</div>
                                 <div id="bioSaved" class="save-indicator hidden">✔ Saved</div>
@@ -498,7 +498,7 @@
 
         <div id="viewPhotoModal" class="modal">
             <div class="modal-content photo-view-modal">
-                <span class="modal-close" id="viewPhotoModalClose" onclick="closeViewPhoto()">&times;</span>
+                <span class="modal-close" id="viewPhotoModalClose" data-action="close-view-photo">&times;</span>
 
                 {% if request.user.profile.profile_photo %}
                     <img src="{{ request.user.profile.profile_photo.url }}" id="viewProfileImg" class="photo-view-img">
@@ -513,7 +513,7 @@
 
         <div id="editPhotoModal" class="modal">
             <div class="modal-content photo-edit-modal">
-                <span class="modal-close" id="editPhotoModalClose" onclick="closeEditPhoto()">&times;</span>
+                <span class="modal-close" id="editPhotoModalClose" data-action="close-edit-photo">&times;</span>
                 <center><h3>Update Profile Photo</h3></center>
 
                 <form id="photoForm">
@@ -531,14 +531,14 @@
 
                     <!-- EDIT CONTROLS -->
                     <div id="editorLayer" class="editor-layer hidden">
-                        <span class="editor-close" onclick="resetEditor()">✕</span>
+                        <span class="editor-close" data-action="reset-editor">✕</span>
 
                         <div id="editorControls" class="editor-controls hidden">
-                            <button type="button" onclick="zoomOut()">−</button>
+                            <button type="button" data-action="zoom-out">−</button>
                             <input type="range" id="zoomSlider" min="0" max="100" value="0">
-                            <button type="button" onclick="zoomIn()">+</button>
-                            <button type="button" onclick="resetZoom()" title="Reset">&#10226;</button>
-                            <button type="button" onclick="rotateImage()" title="Rotate">&#8635;</button>
+                            <button type="button" data-action="zoom-in">+</button>
+                            <button type="button" data-action="reset-zoom" title="Reset">&#10226;</button>
+                            <button type="button" data-action="rotate-image" title="Rotate">&#8635;</button>
                         </div>
 
                         <img id="cropImage" crossorigin="anonymous">
@@ -551,7 +551,7 @@
                         </div>
                     </div>
 
-                    <button type="button" id="uploadPhotoBtn" class="upload-btn hidden" onclick="saveCroppedImage()">
+                    <button type="button" id="uploadPhotoBtn" class="upload-btn hidden" data-action="save-cropped-image">
                         <span id="uploadText">Upload Photo</span>
                         <span id="uploadLoader" class="btn-loader hidden"></span>
                     </button>
@@ -567,7 +567,7 @@
             <div class="modal-content">
 
                 <!-- CLOSE BUTTON -->
-                <span class="modal-close" id="passwordModalClose" onclick="closePasswordModal()" title="Close">&times;</span>
+                <span class="modal-close" id="passwordModalClose" data-action="close-password-modal" title="Close">&times;</span>
 
                 <center><h2>Change Password</h2></center>
 
@@ -583,8 +583,8 @@
 
                         <div class="password-wrapper {% if password_form.old_password.errors %}input-error{% endif %}">
                             {{ password_form.old_password }}
-                            <span class="toggle-pass" onclick="togglePassword(this)" title="Show / Hide Password"> 👁️ </span>
-                            <span class="clear-pass" onclick="clearPassword(this)" title="Clear this field"> &times; </span>
+                            <span class="toggle-pass" data-action="toggle-password" title="Show / Hide Password"> 👁️ </span>
+                            <span class="clear-pass" data-action="clear-password" title="Clear this field"> &times; </span>
                         </div>
 
                         {% for error in password_form.old_password.errors %}
@@ -606,8 +606,8 @@
 
                         <div class="password-wrapper {% if password_form.new_password1.errors %}input-error{% endif %}">
                             {{ password_form.new_password1 }}
-                            <span class="toggle-pass" onclick="togglePassword(this)">👁️</span>
-                            <span class="clear-pass" onclick="clearPassword(this)" title="Clear this field"> &times; </span>
+                            <span class="toggle-pass" data-action="toggle-password">👁️</span>
+                            <span class="clear-pass" data-action="clear-password" title="Clear this field"> &times; </span>
                         </div>
 
                         {% for error in password_form.new_password1.errors %}
@@ -637,8 +637,8 @@
 
                         <div class="password-wrapper {% if password_form.new_password2.errors %}input-error{% endif %}">
                             {{ password_form.new_password2 }}
-                            <span class="toggle-pass" onclick="togglePassword(this)">👁️</span>
-                            <span class="clear-pass" onclick="clearPassword(this)" title="Clear this field"> &times; </span>
+                            <span class="toggle-pass" data-action="toggle-password">👁️</span>
+                            <span class="clear-pass" data-action="clear-password" title="Clear this field"> &times; </span>
                         </div>
 
                         
@@ -651,7 +651,7 @@
 
                     <div class="modal-buttons">
                         <button type="submit" id="updatePasswordBtn" class="update-btn" disabled> Update Password </button>
-                        <button type="button" onclick="closePasswordModal()" class="cancel-btn"> Cancel </button>
+                        <button type="button" data-action="close-password-modal" class="cancel-btn"> Cancel </button>
                     </div>
                 </form>
             </div>
@@ -840,8 +840,8 @@
             const logoutLink = document.querySelector(".dropdown-content .logout-btn");
             const editorClose = document.querySelector(".editor-close");
             const editorButtons = document.querySelectorAll(".editor-controls button");
-            const resetZoomBtn = document.querySelector('.editor-controls button[onclick="resetZoom()"]');
-            const rotateImageBtn = document.querySelector('.editor-controls button[onclick="rotateImage()"]');
+            const resetZoomBtn = document.querySelector('.editor-controls button[data-action="reset-zoom"]');
+            const rotateImageBtn = document.querySelector('.editor-controls button[data-action="rotate-image"]');
             const editIcons = document.querySelectorAll(".edit-icon");
             const dirtyDots = document.querySelectorAll(".unsaved-dot");
             const savedLabels = document.querySelectorAll(".save-indicator");

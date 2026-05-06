@@ -734,7 +734,7 @@
             // 1. Update Table
             if (reportTableBody) 
             {
-                reportTableBody.innerHTML = data.table_html;
+                window.setSafeHTML(reportTableBody, data.table_html);
             }
 
             // 2. Update Hero Focus

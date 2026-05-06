@@ -5,12 +5,8 @@
                         <td>{{ leave.from_date }}</td>
                         <td>{{ leave.to_date }}</td>
                         <td>
-                            <!-- <button class="reason-btn"
-                            onclick="openModal('<h3><center>Reason</center></h3><p><textarea readonly>{{ leave.reason|escapejs }}</textarea></p>')"> My Reason
-                            </button> -->
-
                             <button class="reason-btn" 
-                                onclick="openReasonModal(this)" 
+                                data-action="open-reason-modal" 
                                 data-reason="{{ leave.reason|escape }}"> 
                                 My Reason
                             </button>
@@ -27,14 +23,14 @@
                                     data-from="{{ leave.from_date|date:'Y-m-d' }}"
                                     data-to="{{ leave.to_date|date:'Y-m-d' }}"
                                     data-reason="{{ leave.reason }}"
-                                    onclick="openEditLeave(this)">
+                                    data-action="open-edit-leave">
                                     Edit
                                 </button>
                                 
                                 <form method="POST" action="{% url 'delete_leave' leave.id %}">
                                     {% csrf_token %}
                                     <button type="submit" class="delete-btn"
-                                        onclick="return confirm('Delete this leave?');">
+                                        data-confirm-click="Delete this leave?">
                                         Delete
                                     </button>
                                 </form>

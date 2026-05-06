@@ -428,7 +428,7 @@
     </section>
 
     <div id="employeeModal" class="employee-modal" aria-hidden="true">
-        <div class="employee-modal-overlay" onclick="closeEmployeeModal()"></div>
+        <div class="employee-modal-overlay" data-action="close-employee-modal"></div>
         <div class="employee-modal-dialog">
             <div class="employee-modal-header">
                 <div class="employee-modal-profile">
@@ -457,7 +457,7 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn compact-close-btn" onclick="closeEmployeeModal()" aria-label="Close employee popup">&times;</button>
+                <button type="button" class="close-modal-btn compact-close-btn" data-action="close-employee-modal" aria-label="Close employee popup">&times;</button>
             </div>
 
             <section class="employee-summary-panel" id="employeeSummaryPanel" data-mobile-set="overview">
@@ -619,7 +619,7 @@
     </div>
 
     <div id="rejectModal" class="reject-modal" aria-hidden="true">
-        <div class="reject-modal-overlay" onclick="closeReject()"></div>
+        <div class="reject-modal-overlay" data-action="close-reject"></div>
         <div class="reject-modal-dialog reject-review-dialog">
             <div class="reject-modal-header reject-review-header">
                 <div class="reject-review-hero">
@@ -634,7 +634,7 @@
                         <span class="reject-review-subtitle-divider" aria-hidden="true"></span>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn" onclick="closeReject()" aria-label="Close reject modal">&times;</button>
+                <button type="button" class="close-modal-btn" data-action="close-reject" aria-label="Close reject modal">&times;</button>
             </div>
             <div class="reject-modal-body reject-review-body">
                 <div class="reason-modal-meta-grid reject-review-meta-grid">
@@ -719,7 +719,7 @@
                     </div>
 
                     <div class="modal-actions reject-review-actions">
-                        <button type="button" class="cancel-btn reject-review-cancel-btn" onclick="closeReject()"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                        <button type="button" class="cancel-btn reject-review-cancel-btn" data-action="close-reject"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
                         <button type="submit" class="reject-btn reject-review-submit-btn"><span aria-hidden="true">&#9940;</span><span>Review And Reject</span></button>
                     </div>
                 </form>
@@ -728,7 +728,7 @@
     </div>
 
     <div id="decisionConfirmModal" class="reject-modal decision-confirm-modal" aria-hidden="true">
-        <div class="reject-modal-overlay" onclick="closeDecisionConfirm(false)"></div>
+        <div class="reject-modal-overlay" data-action="close-decision-confirm" data-refresh="false"></div>
         <div class="reject-modal-dialog decision-confirm-dialog">
             <div class="reject-modal-header decision-confirm-header">
                 <div class="decision-confirm-shell">
@@ -742,7 +742,7 @@
                         <p class="decision-confirm-intro" id="decisionConfirmIntro">Please confirm you want to continue.</p>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn" onclick="closeDecisionConfirm(false)" aria-label="Close confirmation dialog">&times;</button>
+                <button type="button" class="close-modal-btn" data-action="close-decision-confirm" data-refresh="false" aria-label="Close confirmation dialog">&times;</button>
             </div>
             <div class="reject-modal-body decision-confirm-body">
                 <div class="decision-confirm-hero">
@@ -820,14 +820,14 @@
     </div>
 
     <div id="reasonModal" class="reason-modal reason-theme-default" aria-hidden="true">
-        <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
+        <div class="reason-modal-overlay" data-action="close-reason-modal"></div>
         <div class="reason-modal-dialog">
             <div class="reason-modal-header">
                 <div class="reason-modal-heading">
                     <h3 id="reasonModalTitle">Leave</h3>
                     <span class="reason-modal-heading-divider" aria-hidden="true"></span>
                 </div>
-                <button type="button" class="close-modal-btn" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
+                <button type="button" class="close-modal-btn" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>
             </div>
             <div class="reason-modal-body">
                 <div class="reason-modal-top-row">
@@ -2407,7 +2407,7 @@
             badges.push(`<button type="button" class="popup-filter-badge" data-popup-filter-clear="date_range"><span class="popup-filter-badge-icon">&#128467;</span><span class="popup-filter-badge-text"><span class="popup-filter-badge-label">Date Range</span><span class="popup-filter-badge-value">${escapeHtml(state.from_date || "...")} &rarr; ${escapeHtml(state.to_date || "...")}</span></span><span class="popup-filter-badge-clear">&times;</span></button>`);
         }
 
-        popupFilterBadges.innerHTML = badges.join("");
+        window.setSafeHTML(popupFilterBadges, badges.join(""));
         popupFilterBadges.hidden = badges.length === 0;
 
         if (popupFilterButton)
@@ -2434,7 +2434,7 @@
         const leaveTypeOptions = getPopupFilterLeaveTypeOptions(status);
         const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
 
-        sharedModalContent.innerHTML = `
+        window.setSafeHTML(sharedModalContent, `
             <div class="popup-filter-modal-content">
                 <div class="popup-filter-modal-head">
                     <p class="popup-filter-modal-eyebrow">History Filter</p>
@@ -2589,7 +2589,7 @@
                     </div>
                 </form>
             </div>
-        `;
+        `);
 
         openModal();
 
@@ -3973,7 +3973,7 @@
         });
 
         manageDirectoryPagination.hidden = false;
-        manageDirectoryPagination.innerHTML = `
+        window.setSafeHTML(manageDirectoryPagination, `
             <button
                 type="button"
                 class="directory-page-btn directory-page-nav"
@@ -4003,7 +4003,7 @@
                 ${manageDirectoryCurrentPage === totalPages ? "disabled" : ""}
                 aria-label="Last page"
             >&raquo;</button>
-        `;
+        `);
     }
 
     function renderManageDirectory(searchValue, options)
@@ -4249,7 +4249,7 @@
         }
 
         detailHistoryTable.dataset.view = status;
-        detailTableHead.innerHTML = `
+        window.setSafeHTML(detailTableHead, `
             <tr>
                 ${definition.columns.map(function (column)
                 {
@@ -4263,7 +4263,7 @@
                     `;
                 }).join("")}
             </tr>
-        `;
+        `);
     }
     function renderEmptyRow(status)
     {
@@ -4423,8 +4423,8 @@
                     </td>
                     <td>
                         <div class="action-group compact-action-group">
-                            <button type="button" class="approve-btn" onclick="approveLeaveFromPopup(${leave.id})">Approve</button>
-                            <button type="button" class="reject-btn" onclick="openReject(${leave.id})">Reject</button>
+                            <button type="button" class="approve-btn" data-action="approve-leave-popup" data-leave-id="${escapeHtml(leave.id)}">Approve</button>
+                            <button type="button" class="reject-btn" data-action="open-reject" data-leave-id="${escapeHtml(leave.id)}">Reject</button>
                         </div>
                     </td>
                 </tr>
@@ -4918,7 +4918,7 @@
 
         updatePopupHistoryTabs(selected);
         renderPopupFilterBadges(activePopupHistoryStatus);
-        document.getElementById("detailTableTitle").innerHTML = `<span class="title-name-chip">${escapeHtml(formattedName)}</span><span class="title-separator">-</span><span class="title-label-chip">${escapeHtml(definition.heading)}</span>`;
+        window.setSafeHTML(document.getElementById("detailTableTitle"), `<span class="title-name-chip">${escapeHtml(formattedName)}</span><span class="title-separator">-</span><span class="title-label-chip">${escapeHtml(definition.heading)}</span>`);
 
         if (detailTableCount)
         {
@@ -4979,7 +4979,7 @@
                 buttons.push(`<button type="button" class="popup-page-btn popup-page-nav"${currentPage === totalPages ? " disabled" : ""} data-popup-page="${currentPage + 1}"><span>Next</span><span aria-hidden="true">&#8250;</span></button>`);
                 buttons.push(`<button type="button" class="popup-page-btn popup-page-nav"${currentPage === totalPages ? " disabled" : ""} data-popup-page="${totalPages}"><span>Last</span><span aria-hidden="true">&raquo;</span></button>`);
 
-                popupTablePagination.innerHTML = buttons.join("");
+                window.setSafeHTML(popupTablePagination, buttons.join(""));
                 popupTablePagination.hidden = false;
             }
         }

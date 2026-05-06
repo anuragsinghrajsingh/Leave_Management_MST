@@ -596,10 +596,32 @@
         </section>
     </section>
 
+    {{ company_holidays_json|json_script:"company-holidays-data" }}
+    {{ existing_leaves_json|json_script:"existing-leaves-data" }}
     <script>
-        const companyHolidayDates = {{ company_holidays_json|safe }};
+        function parseJsonScriptData(elementId, fallback)
+        {
+            const node = document.getElementById(elementId);
+            if (!node) return fallback;
+
+            try
+            {
+                const parsed = JSON.parse(node.textContent || "null");
+                if (typeof parsed === "string")
+                {
+                    return JSON.parse(parsed || "null") || fallback;
+                }
+                return parsed || fallback;
+            }
+            catch (error)
+            {
+                return fallback;
+            }
+        }
+
+        const companyHolidayDates = parseJsonScriptData("company-holidays-data", []);
         const companyHolidayMap = new Map(companyHolidayDates.map((holiday) => [holiday.date, holiday]));
-        const existingLeaveRanges = {{ existing_leaves_json|safe }};
+        const existingLeaveRanges = parseJsonScriptData("existing-leaves-data", []);
         const leaveType = document.getElementById("leaveType");
         const form = document.querySelector(".leave-form");
         const fromTimeBlock = document.getElementById("fromTimeBlock");

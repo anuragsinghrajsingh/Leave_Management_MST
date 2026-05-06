@@ -101,7 +101,7 @@
     <button type="button" class="hamburger" aria-label="Open navigation menu">&#9776;</button>
     
     <nav class="nav-links">
-        <button class="calendar-btn" onclick="openLeaveCalendar()">
+        <button class="calendar-btn" data-action="open-leave-calendar">
             <span>Calendar</span>
             <span class="calendar-btn-glyph" aria-hidden="true"></span>
         </button>
@@ -259,7 +259,7 @@
                     <strong data-countup data-countup-target="{{ pending_leaves|length }}">{{ pending_leaves|length }}</strong>
                     <span>in review</span>
                 </div>
-                <button class="filter-btn" onclick="openFilterModal('Pending')">
+                <button class="filter-btn" data-action="open-filter-modal" data-status="Pending">
                     <span class="filter-btn-icon" aria-hidden="true"></span>
                     <span>Filter</span>
                 </button>
@@ -347,7 +347,7 @@
                     <strong data-countup data-countup-target="{{ approved_leaves|length }}">{{ approved_leaves|length }}</strong>
                     <span>approved entries</span>
                 </div>
-                <button class="filter-btn" onclick="openFilterModal('Approved')">
+                <button class="filter-btn" data-action="open-filter-modal" data-status="Approved">
                     <span class="filter-btn-icon" aria-hidden="true"></span>
                     <span>Filter</span>
                 </button>
@@ -432,7 +432,7 @@
                     <strong data-countup data-countup-target="{{ rejected_leaves|length }}">{{ rejected_leaves|length }}</strong>
                     <span>declined entries</span>
                 </div>
-                <button class="filter-btn" onclick="openFilterModal('Rejected')">
+                <button class="filter-btn" data-action="open-filter-modal" data-status="Rejected">
                     <span class="filter-btn-icon" aria-hidden="true"></span>
                     <span>Filter</span>
                 </button>
@@ -626,7 +626,7 @@
                 <label class="edit-field-label" for="edit-reason"><span class="edit-field-label-icon" aria-hidden="true"></span><span class="edit-field-label-text">Reason</span><span class="edit-field-label-line" aria-hidden="true"></span></label>
                 <textarea name="reason" id="edit-reason" required></textarea>
                 <div class="edit-modal-actions">
-                    <button type="button" class="edit-cancel-btn" onclick="closeModal()"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                    <button type="button" class="edit-cancel-btn" data-action="close-modal"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
                     <button type="submit" class="apply-btn"><span aria-hidden="true">&#10003;</span><span>Update</span><span aria-hidden="true">&rarr;</span></button>
                 </div>
             </form>
@@ -638,14 +638,14 @@
     <input type="hidden" id="my-leave-existing-leaves-json" value="{{ existing_leaves_json }}">
 </main>
 <div id="reasonModal" class="reason-modal reason-theme-default" aria-hidden="true">
-    <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
+    <div class="reason-modal-overlay" data-action="close-reason-modal"></div>
     <div class="reason-modal-dialog">
         <div class="reason-modal-header">
             <div class="reason-modal-heading">
                 <h3 id="reasonModalTitle">Leave</h3>
                 <span class="reason-modal-heading-divider" aria-hidden="true"></span>
             </div>
-            <button type="button" class="close-modal-btn" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
+            <button type="button" class="close-modal-btn" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>
         </div>
         <div class="reason-modal-body">
             <div class="reason-modal-top-row">
@@ -1474,8 +1474,7 @@
                 detailOverlay.style.display = "none";
                 detailOverlay.innerHTML = `
                     <div class="detail-box">
-                        <!-- <span class="close" onclick="closeCalendarDetail()">Ã—</span> -->
-                        <span class="close" role="button" tabindex="0" aria-label="Close modal" onclick="closeCalendarDetail()">&times;</span>
+                        <span class="close" role="button" tabindex="0" aria-label="Close modal" data-action="close-calendar-detail">&times;</span>
                         <div id="calendar-detail-content"></div>
                     </div>
                 `;
@@ -1917,20 +1916,22 @@
     function printCalendar(leaves, info) 
     {
         let w = window.open("", "_blank");
+        const safeCompanyName = escapeHtml(info.companyName);
+        const safeUserDisplayName = escapeHtml(info.userDisplayName);
         w.document.write(`
-            <h2>${info.companyName}</h2>
-            <p>User: ${info.userDisplayName}</p>
+            <h2>${safeCompanyName}</h2>
+            <p>User: ${safeUserDisplayName}</p>
             <table border="1" cellspacing="0" cellpadding="6">
                 <tr>
                     <th>Type</th><th>From</th><th>To</th><th>Status</th><th>Reason</th>
                 </tr>
                 ${leaves.map(l=>`
                     <tr>
-                        <td>${l.type}</td>
-                        <td>${l.from}</td>
-                        <td>${l.to}</td>
-                        <td>${l.status}</td>
-                        <td>${l.reason||""}</td>
+                        <td>${escapeHtml(l.type)}</td>
+                        <td>${escapeHtml(l.from)}</td>
+                        <td>${escapeHtml(l.to)}</td>
+                        <td>${escapeHtml(l.status)}</td>
+                        <td>${escapeHtml(l.reason || "")}</td>
                     </tr>
                 `).join("")}
             </table>
@@ -1956,6 +1957,12 @@
     {
         const overlay = document.getElementById("calendar-detail-overlay");
         const content = document.getElementById("calendar-detail-content");
+        const safeLeaveId = encodeURIComponent(String(leave.id ?? ""));
+        const safeLeaveType = escapeHtml(leave.type);
+        const safeLeaveFrom = escapeHtml(leave.from);
+        const safeLeaveTo = escapeHtml(leave.to);
+        const safeLeaveReason = escapeHtml(leave.reason || "-");
+        const safeLeaveStatus = escapeHtml(leave.status);
         content.innerHTML = `
             <h4 style="text-align:center; margin-bottom:12px;">Leave Details</h4>
             <table class="leave-table">
@@ -1969,39 +1976,44 @@
                 
                 <tr>
                     <th>Type</th>
-                    <td>${leave.type}</td>
+                    <td>${safeLeaveType}</td>
                 </tr>
                 <tr>
                     <th>From</th>
-                    <td>${leave.from}</td>
+                    <td>${safeLeaveFrom}</td>
                 </tr>
                 <tr>
                     <th>To</th>
-                    <td>${leave.to}</td>
+                    <td>${safeLeaveTo}</td>
                 </tr>
                 <tr>
                     <th>Reason</th>
-                    <td><textarea readonly >${leave.reason || '-'}</textarea></td>
+                    <td><textarea readonly>${safeLeaveReason}</textarea></td>
                 </tr>
                 <tr>
                     <th>Status</th>
-                    <td>${leave.status}</td>
+                    <td>${safeLeaveStatus}</td>
                 </tr>
             </table>
             
             ${leave.status === "Pending" ? `
                 <div class="detail-actions">
                     
-                    <button class="edit-btn" onclick='openInlineEdit(${JSON.stringify(leave)})'> &#9998; Edit </button>
+                    <button class="edit-btn" type="button" data-calendar-edit-leave> &#9998; Edit </button>
                     
-                    <form method="post" action="/delete-leave/${leave.id}/"
-                        onsubmit="return confirm('Delete this leave?');">
-                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                    <form method="post" action="/delete-leave/${safeLeaveId}/"
+                        data-confirm-submit="Delete this leave?">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrfToken)}">
                         <button type="submit" class="delete-btn">&#128465; Delete</button>
                     </form>
                 </div>
             ` : ""}
         `;
+        const editButton = content.querySelector("[data-calendar-edit-leave]");
+        if (editButton)
+        {
+            editButton.addEventListener("click", () => openInlineEdit(leave));
+        }
         overlay.style.display = "flex";
         requestAnimationFrame(() => overlay.classList.add("show"));
     }
@@ -2015,29 +2027,34 @@
     function openInlineEdit(leave)
     {
         const content = document.getElementById("calendar-detail-content");
+        const safeLeaveId = encodeURIComponent(String(leave.id ?? ""));
+        const safeLeaveType = String(leave.type ?? "");
+        const safeLeaveFrom = escapeHtml(leave.from);
+        const safeLeaveTo = escapeHtml(leave.to);
+        const safeLeaveReason = escapeHtml(leave.reason || "");
         content.innerHTML = `
             <center> <h4>Edit Leave</h4> </center>
-            <form method="post" action="/edit-leave/${leave.id}/" class="modal-form">
+            <form method="post" action="/edit-leave/${safeLeaveId}/" class="modal-form">
                 
-                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrfToken)}">
                 <label>Type</label>
                 <select name="leave_type" required>
                     <option value="">Select type</option>
-                    <option ${leave.type==="Short"?"selected":""}>Short</option>
-                    <option ${leave.type==="Half Day"?"selected":""}>Half Day</option>
-                    <option ${leave.type==="Sick"?"selected":""}>Sick</option>
-                    <option ${leave.type==="Earned"?"selected":""}>Earned</option>
-                    <option ${leave.type==="Unpaid"?"selected":""}>Unpaid</option>
+                    <option ${safeLeaveType==="Short"?"selected":""}>Short</option>
+                    <option ${safeLeaveType==="Half Day"?"selected":""}>Half Day</option>
+                    <option ${safeLeaveType==="Sick"?"selected":""}>Sick</option>
+                    <option ${safeLeaveType==="Earned"?"selected":""}>Earned</option>
+                    <option ${safeLeaveType==="Unpaid"?"selected":""}>Unpaid</option>
                 </select>
                 <label>From</label>
-                <input type="date" name="from_date" id="from_date" value="${leave.from}" required>
+                <input type="date" name="from_date" id="from_date" value="${safeLeaveFrom}" required>
                 <label>To</label>
-                <input type="date" name="to_date" id="to_date" value="${leave.to}" required>
+                <input type="date" name="to_date" id="to_date" value="${safeLeaveTo}" required>
                 <label>Reason</label>
-                <textarea name="reason" required>${leave.reason || ""}</textarea>
+                <textarea name="reason" required>${safeLeaveReason}</textarea>
                 <div class="detail-actions">
                     <button type="submit" class="apply-btn">&#10004; Update</button>
-                    <button type="button" class="cancel-btn" onclick="closeCalendarDetail()">&#10006; Cancel</button>
+                    <button type="button" class="cancel-btn" data-action="close-calendar-detail">&#10006; Cancel</button>
                 </div>
             </form>
         `;
@@ -3407,23 +3424,23 @@
             const rejectedBody = document.querySelector('[data-my-leave-table-body="rejected"]');
             if (summaryHost && typeof payload.summary_html === "string")
             {
-                summaryHost.innerHTML = payload.summary_html;
+                window.setSafeHTML(summaryHost, payload.summary_html);
             }
             if (statsHost && typeof payload.stats_html === "string")
             {
-                statsHost.innerHTML = payload.stats_html;
+                window.setSafeHTML(statsHost, payload.stats_html);
             }
             if (pendingBody && typeof payload.pending_rows_html === "string")
             {
-                pendingBody.innerHTML = payload.pending_rows_html;
+                window.setSafeHTML(pendingBody, payload.pending_rows_html);
             }
             if (approvedBody && typeof payload.approved_rows_html === "string")
             {
-                approvedBody.innerHTML = payload.approved_rows_html;
+                window.setSafeHTML(approvedBody, payload.approved_rows_html);
             }
             if (rejectedBody && typeof payload.rejected_rows_html === "string")
             {
-                rejectedBody.innerHTML = payload.rejected_rows_html;
+                window.setSafeHTML(rejectedBody, payload.rejected_rows_html);
             }
             hydrateRelativeDates();
             hydrateDayBlocks();

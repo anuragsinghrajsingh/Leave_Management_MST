@@ -92,7 +92,7 @@
                     data-reason="{{ leave.reason }}"
                     data-fromdatetime="{{ leave.from_datetime|date:'c' }}"
                     data-todatetime="{{ leave.to_datetime|date:'c' }}"
-                    onclick="openEditLeave(this)">
+                    data-action="open-edit-leave">
                     <span class="action-btn-icon">&#9998;</span>
                     <span>Edit</span>
                 </button>

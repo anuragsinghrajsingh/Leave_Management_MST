@@ -330,7 +330,7 @@
                         <div class="main-divider"></div>
 
                         <div class="inner-leave-container">
-                            <div class="inner-leave-card short" onmouseenter="activateLine(this)">
+                            <div class="inner-leave-card short" data-action="activate-line">
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-clock">&#9719;</div>
@@ -376,7 +376,7 @@
                                 </div>
                             </div>
 
-                            <div class="inner-leave-card full" onmouseenter="activateLine(this)">
+                            <div class="inner-leave-card full" data-action="activate-line">
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-flag">&#9873;</div>
@@ -418,7 +418,7 @@
                         <div class="main-divider"></div>
 
                         <div class="inner-leave-container">
-                            <div class="inner-leave-card short" onmouseenter="activateLine(this)">
+                            <div class="inner-leave-card short" data-action="activate-line">
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-clock">&#9719;</div>
@@ -451,7 +451,7 @@
                                 </div>
                             </div>
 
-                            <div class="inner-leave-card full" onmouseenter="activateLine(this)">
+                            <div class="inner-leave-card full" data-action="activate-line">
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-flag">&#9873;</div>
@@ -489,7 +489,7 @@
                     </div>
                     <div class="main-divider"></div>
 
-                    <div id="activityContainer" onmouseenter="activateLine(this)" class="activity-grid">
+                    <div id="activityContainer" data-action="activate-line" class="activity-grid">
                         {% for leave in recent_leaves|slice:":3" %}
                             <div class="activity-card {{ leave.status|lower }} {% if leave.leave_type == 'Short' %}activity-short{% elif leave.leave_type == 'Half' %}activity-half{% endif %}">
                                 <div class="activity-header">
@@ -546,9 +546,9 @@
                     </div>
 
                     <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
-                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} onclick="prevPage()">Prev</button>
+                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-prev-page">Prev</button>
                         <span id="pageNumber">Page {{ context_current_page }} of {{ context_total_pages }}</span>
-                        <button class="next-btn" {% if not has_next %}disabled{% endif %} onclick="nextPage()">Next</button>
+                        <button class="next-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-next-page">Next</button>
                     </div>
                 </article>
             </section>
@@ -558,7 +558,7 @@
     </section>
 
     <div id="reasonModal" class="reason-modal" aria-hidden="true">
-        <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
+        <div class="reason-modal-overlay" data-action="close-reason-modal"></div>
         <div class="reason-modal-box" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
             <div class="reason-modal-header">
                 <div class="reason-modal-heading-group">
@@ -568,7 +568,7 @@
                         <p class="reason-modal-subtitle">Request details and submitted note</p>
                     </div>
                 </div>
-                <button type="button" class="reason-modal-close" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
+                <button type="button" class="reason-modal-close" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>
             </div>
             <div class="reason-modal-content" id="reasonModalContent"></div>
         </div>

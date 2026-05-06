@@ -65,10 +65,10 @@
 
         <!-- ===== REUSABLE MODAL (GLOBAL) ===== -->
         <div id="modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="display: none;">
-            <div class="modal-overlay" onclick="closeModal()"></div>
+            <div class="modal-overlay" data-action="close-modal"></div>
             <div class="modal-box">
                 <div class="modal-header">
-                    <span class="close" role="button" tabindex="0" aria-label="Close modal" onclick="closeModal()">&times;</span>
+                    <span class="close" role="button" tabindex="0" aria-label="Close modal" data-action="close-modal">&times;</span>
                 </div>    
                 <div id="modal-content"></div>
             </div>
@@ -1297,6 +1297,8 @@
         {% block scripts %}
 
         {% endblock %}
+
+        <script src="{% static 'js/template_events.js' %}?v=20260506"></script>
 
     </body>
 </html>

@@ -473,7 +473,7 @@
                                                 </button>
                                             </form>
 
-                                            <button type="button" class="reject-btn" onclick="openReject({{ leave.id }})">
+                                            <button type="button" class="reject-btn" data-action="open-reject" data-leave-id="{{ leave.id }}">
                                                 <span class="action-btn-icon">×</span>
                                                 <span>Reject</span>
                                             </button>
@@ -603,7 +603,7 @@
     </section>
 
     <div id="rejectModal" class="reject-modal" aria-hidden="true">
-        <div class="reject-modal-overlay" onclick="closeReject()"></div>
+        <div class="reject-modal-overlay" data-action="close-reject"></div>
         <div class="reject-modal-dialog reject-review-dialog">
             <div class="reject-modal-header reject-review-header">
                 <div class="reject-review-hero">
@@ -618,7 +618,7 @@
                         <span class="reject-review-subtitle-divider" aria-hidden="true"></span>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn" onclick="closeReject()" aria-label="Close reject modal">&times;</button>
+                <button type="button" class="close-modal-btn" data-action="close-reject" aria-label="Close reject modal">&times;</button>
             </div>
             <div class="reject-modal-body reject-review-body">
                 <div class="reason-modal-meta-grid reject-review-meta-grid">
@@ -703,7 +703,7 @@
                     </div>
 
                     <div class="modal-actions reject-review-actions">
-                        <button type="button" class="cancel-btn reject-review-cancel-btn" onclick="closeReject()"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
+                        <button type="button" class="cancel-btn reject-review-cancel-btn" data-action="close-reject"><span aria-hidden="true">&times;</span><span>Cancel</span></button>
                         <button type="submit" class="reject-btn reject-review-submit-btn"><span aria-hidden="true">&#9940;</span><span>Review And Reject</span></button>
                     </div>
                 </form>
@@ -712,7 +712,7 @@
     </div>
 
     <div id="decisionConfirmModal" class="reject-modal decision-confirm-modal" aria-hidden="true">
-        <div class="reject-modal-overlay" onclick="closeDecisionConfirm(false)"></div>
+        <div class="reject-modal-overlay" data-action="close-decision-confirm" data-refresh="false"></div>
         <div class="reject-modal-dialog decision-confirm-dialog">
             <div class="reject-modal-header decision-confirm-header">
                 <div class="decision-confirm-shell">
@@ -726,7 +726,7 @@
                         <p class="decision-confirm-intro" id="decisionConfirmIntro">Please confirm you want to continue.</p>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn" onclick="closeDecisionConfirm(false)" aria-label="Close confirmation dialog">&times;</button>
+                <button type="button" class="close-modal-btn" data-action="close-decision-confirm" data-refresh="false" aria-label="Close confirmation dialog">&times;</button>
             </div>
             <div class="reject-modal-body decision-confirm-body">
                 <div class="decision-confirm-hero">
@@ -804,14 +804,14 @@
     </div>
 
     <div id="reasonModal" class="reason-modal reason-theme-default" aria-hidden="true">
-        <div class="reason-modal-overlay" onclick="closeReasonModal()"></div>
+        <div class="reason-modal-overlay" data-action="close-reason-modal"></div>
         <div class="reason-modal-dialog">
             <div class="reason-modal-header">
                 <div class="reason-modal-heading">
                     <h3 id="reasonModalTitle">Reason detail</h3>
                     <span class="reason-modal-heading-divider" aria-hidden="true"></span>
                 </div>
-                <button type="button" class="close-modal-btn" onclick="closeReasonModal()" aria-label="Close reason modal">&times;</button>
+                <button type="button" class="close-modal-btn" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>
             </div>
             <div class="reason-modal-body">
                 <div class="reason-modal-top-row">
@@ -1244,8 +1244,8 @@
                     throw new Error("Dashboard sections not found.");
                 }
 
-                heroHighlights.innerHTML = nextHeroHighlights.innerHTML;
-                queueCard.innerHTML = nextQueueCard.innerHTML;
+                window.setSafeHTML(heroHighlights, nextHeroHighlights.innerHTML);
+                window.setSafeHTML(queueCard, nextQueueCard.innerHTML);
                 refreshDashboardQueueSectionState();
             })
             .catch(function (error)
@@ -1342,7 +1342,7 @@
                     throw new Error("Queue section not found.");
                 }
 
-                queueCard.innerHTML = nextQueueCard.innerHTML;
+                window.setSafeHTML(queueCard, nextQueueCard.innerHTML);
                 window.history.replaceState({}, "", nextUrl.toString());
                 refreshDashboardQueueSectionState();
             })
