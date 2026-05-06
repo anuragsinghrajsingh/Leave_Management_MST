@@ -5,26 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
-    <script>
-        (function() {
-            const targetUrl = "{{ target_url|escapejs }}";
-            const navigationEntry = window.performance && window.performance.getEntriesByType
-                ? window.performance.getEntriesByType("navigation")[0]
-                : null;
-            const legacyNavigation = window.performance && window.performance.navigation
-                ? window.performance.navigation.type
-                : null;
-            const isHistoryNavigation = (navigationEntry && navigationEntry.type === "back_forward")
-                || legacyNavigation === 2;
-
-            if (isHistoryNavigation) {
-                window.location.replace(targetUrl);
-            }
-        })();
-    </script>
+    <script src="{% static 'js/history_navigation_redirect.js' %}?v=20260506" data-target-url="{{ target_url }}"></script>
     <link rel="stylesheet" href="{% static 'css/employee_login_loading.css' %}">
 </head>
-<body class="portal-loading portal-loading--employee">
+<body class="portal-loading portal-loading--employee" data-duration="{{ duration }}" data-target-url="{{ target_url }}">
     <a href="{{ target_url }}" class="portal-loading__skip">
         <strong>Skip</strong>
         <span><span id="toast-countdown">{{ duration }}</span>s</span>
@@ -203,60 +187,6 @@
         </section>
     </main>
 
-    <script>
-        (function() {
-            const duration = {{ duration }};
-            const targetUrl = "{{ target_url|escapejs }}";
-            const countdown = document.getElementById("toast-countdown");
-            const progressValue = document.getElementById("progress-value");
-            const progressFill = document.getElementById("progress-fill");
-            let remaining = duration;
-
-            function updateProgress() {
-                const completed = Math.max(0, duration - remaining);
-                const rawPercent = duration > 0 ? Math.round((completed / duration) * 100) : 100;
-                const visiblePercent = Math.min(100, Math.max(8, rawPercent || 8));
-
-                if (progressValue) {
-                    progressValue.textContent = visiblePercent + "%";
-                }
-
-                if (progressFill) {
-                    progressFill.style.width = visiblePercent + "%";
-                }
-
-                if (countdown) {
-                    countdown.textContent = remaining > 0 ? remaining : 0;
-                }
-            }
-
-            function goNext() {
-                window.location.replace(targetUrl);
-            }
-
-            if (window.history && window.history.replaceState) {
-                window.history.replaceState({ loader: true }, "", window.location.href);
-            }
-
-            updateProgress();
-
-            const interval = window.setInterval(function() {
-                remaining -= 1;
-                updateProgress();
-
-                if (remaining <= 0) {
-                    window.clearInterval(interval);
-                }
-            }, 1000);
-
-            window.setTimeout(goNext, duration * 1000);
-
-            window.addEventListener("pageshow", function(event) {
-                if (event.persisted) {
-                    goNext();
-                }
-            });
-        })();
-    </script>
+    <script src="{% static 'js/portal_loading_transition.js' %}?v=20260506"></script>
 </body>
 </html>

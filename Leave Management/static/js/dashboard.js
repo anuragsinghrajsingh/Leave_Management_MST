@@ -8,6 +8,7 @@ const quotes = [
 
 let qIndex = 0;
 let currentPage = 1;
+let totalPages = 1;
 let direction = "next";
 let isPageLoaded = false;
 const INDIA_TIMEZONE = "Asia/Kolkata";
@@ -277,7 +278,18 @@ function renderLeaveCard(leave, isNew) {
                 <p class="applied-time" data-created-time="${escapeHtml(leave.created)}" data-updated-time="${escapeHtml(leave.updated || "")}"></p>
                 <p class="activity-duration ${leaveTypeClass}">${durationHTML}</p>
 
-                <div class="${reasonBoxClass}">
+                <div class="${reasonBoxClass}"
+                    data-status="${escapeHtml(leave.status || "")}"
+                    data-leave-type="${escapeHtml(leave.type || "")}"
+                    data-from-date="${escapeHtml(fromDateLabel || "")}"
+                    data-to-date="${escapeHtml(toDateLabel || "")}"
+                    data-from-time="${escapeHtml(leave.from_time || "")}"
+                    data-to-time="${escapeHtml(leave.to_time || "")}"
+                    data-duration="${escapeHtml(String(leave.duration || ""))}"
+                    data-created="${escapeHtml(leave.created || "")}"
+                    data-updated="${escapeHtml(leave.updated || "")}"
+                    data-approved="${escapeHtml(leave.approved || "")}"
+                    data-rejected="${escapeHtml(leave.rejected || "")}">
                     <div class="reason-label">Reason</div>
                     <div class="reason-divider"></div>
                     <div class="reason-content">
@@ -357,9 +369,17 @@ function loadLeaves(page) {
         });
 
         currentPage = data.current_page;
+        totalPages = data.total_pages || 1;
         document.getElementById("pageNumber").innerText = `Page ${data.current_page} of ${data.total_pages}`;
-        document.querySelector(".prev-btn").disabled = !data.has_prev;
-        document.querySelector(".next-btn").disabled = !data.has_next;
+        const firstBtn = document.querySelector(".first-btn");
+        const prevBtn = document.querySelector(".prev-btn");
+        const nextBtn = document.querySelector(".next-btn");
+        const lastBtn = document.querySelector(".last-btn");
+        if (firstBtn) firstBtn.disabled = !data.has_prev;
+        if (prevBtn) prevBtn.disabled = !data.has_prev;
+        if (nextBtn) nextBtn.disabled = !data.has_next;
+        if (lastBtn) lastBtn.disabled = !data.has_next;
+        if (lastBtn) lastBtn.dataset.totalPages = totalPages;
 
         const nav = document.querySelector(".pagination");
         if (!data.has_next && !data.has_prev) {
@@ -735,6 +755,7 @@ function refreshDashboardCards() {
 }
 
 function nextPage() {
+    if (currentPage >= totalPages) return;
     direction = "next";
     loadLeaves(currentPage + 1);
 }
@@ -746,15 +767,152 @@ function prevPage() {
     }
 }
 
-function openReasonModal(reason) {
+function firstPage() {
+    if (currentPage <= 1) return;
+    direction = "prev";
+    loadLeaves(1);
+}
+
+function lastPage() {
+    if (currentPage >= totalPages) return;
+    direction = "next";
+    loadLeaves(totalPages);
+}
+
+function getReasonModalTypeClass(leaveType) {
+    const key = String(leaveType || "").toLowerCase();
+    return ["sick", "unpaid", "earned", "short", "half"].includes(key) ? key : "default";
+}
+
+function getReasonModalContext(status) {
+    const key = String(status || "").toLowerCase();
+    if (key === "approved") return "approved";
+    if (key === "rejected") return "rejected-employee";
+    return "pending";
+}
+
+function formatReasonModalRelativeAge(isoValue) {
+    if (!isoValue) return "";
+    const target = new Date(isoValue);
+    if (Number.isNaN(target.getTime())) return "";
+    const now = new Date();
+    const diffMs = Math.max(0, now.getTime() - target.getTime());
+    const diffMinutes = Math.floor(diffMs / (60 * 1000));
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const minuteRemainder = String(diffMinutes % 60).padStart(2, "0");
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    const diffDays = Math.max(0, Math.floor((startOfToday - startOfTarget) / (24 * 60 * 60 * 1000)));
+
+    if (diffMinutes <= 0) return "just now";
+    if (diffMinutes === 1) return "1 min ago";
+    if (diffMinutes <= 59) return `${diffMinutes} min ago`;
+    if (diffHours === 1) return `1 hour, ${minuteRemainder} min ago`;
+    if (diffHours <= 23) return `${diffHours} hour, ${minuteRemainder} min ago`;
+    if (diffDays <= 6) return `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
+    return target.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
+
+function formatReasonModalClockTime(isoValue) {
+    if (!isoValue) return "-";
+    const target = new Date(isoValue);
+    if (Number.isNaN(target.getTime())) return "-";
+    return target.toLocaleTimeString("en-IN", {
+        timeZone: INDIA_TIMEZONE,
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+}
+
+function setReasonModalLabel(element, icon, label) {
+    if (!element) return;
+    element.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${icon}</span><span>${label}</span></span>`;
+}
+
+function openReasonModal(sourceElement) {
     const modalreason = document.getElementById("reasonModal");
+    const title = document.getElementById("reasonModalTitle");
     const content = document.getElementById("reasonModalContent");
+    const employee = document.getElementById("reasonModalEmployee");
+    const leaveType = document.getElementById("reasonModalLeaveType");
+    const metaGrid = document.getElementById("reasonModalMetaGrid");
+    const scheduleDate = document.getElementById("reasonModalScheduleDate");
+    const scheduleTime = document.getElementById("reasonModalScheduleTime");
+    const days = document.getElementById("reasonModalDays");
+    const applied = document.getElementById("reasonModalApplied");
+    const appliedTime = document.getElementById("reasonModalAppliedTime");
+    const updated = document.getElementById("reasonModalUpdated");
+    const updatedTime = document.getElementById("reasonModalUpdatedTime");
+    const decisionCard = document.getElementById("reasonModalDecisionCard");
+    const decisionLabel = document.getElementById("reasonModalDecisionLabel");
+    const decision = document.getElementById("reasonModalDecision");
+    const decisionTime = document.getElementById("reasonModalDecisionTime");
+    const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
     if (!modalreason || !content) return;
 
-    content.innerText = reason || "No reason provided";
+    const reasonBox = sourceElement?.closest?.(".reason-box");
+    const reasonContent = reasonBox?.querySelector(".reason-content");
+    const status = reasonBox?.dataset.status || "";
+    const type = reasonBox?.dataset.leaveType || "Leave";
+    const typeClass = getReasonModalTypeClass(type);
+    const context = getReasonModalContext(status);
+    const contextLabels = {
+        pending: { title: "Pending Reason", label: "Pending Reason", icon: "&#9203;" },
+        approved: { title: "Approved Reason", label: "Approved Reason", icon: "&#10003;" },
+        "rejected-employee": { title: "Rejected Leave Reason", label: "Employee Reason", icon: "&#128221;" }
+    };
+    const contextCopy = contextLabels[context] || contextLabels.pending;
+    const decisionIso = context === "approved" ? reasonBox?.dataset.approved : context === "rejected-employee" ? reasonBox?.dataset.rejected : "";
+    const hasDecision = Boolean(decisionIso);
+    const showScheduleTime = typeClass === "short" || typeClass === "half";
+    const durationValue = Number.parseInt(reasonBox?.dataset.duration || "0", 10);
+    const daysDisplay = typeClass === "short"
+        ? "2 hours"
+        : typeClass === "half"
+            ? "4 hours"
+            : `${durationValue || "-"} ${durationValue === 1 ? "day" : "days"}`;
+
+    if (sourceElement && typeof sourceElement.getBoundingClientRect === "function") {
+        const anchorRect = sourceElement.getBoundingClientRect();
+        modalreason.style.setProperty("--reason-origin-x", (anchorRect.left + anchorRect.width / 2 - window.innerWidth / 2) + "px");
+        modalreason.style.setProperty("--reason-origin-y", (anchorRect.top + anchorRect.height / 2 - window.innerHeight / 2) + "px");
+    }
+
+    modalreason.classList.remove(
+        "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default",
+        "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note",
+        "is-closing"
+    );
+    modalreason.classList.add("reason-theme-" + typeClass, "reason-context-" + context);
+
+    if (title) title.textContent = contextCopy.title;
+    if (employee) employee.textContent = "My Leave";
+    if (leaveType) {
+        leaveType.textContent = `${type} Leave`;
+        leaveType.className = "reason-modal-chip reason-modal-type-chip reason-modal-type-" + typeClass;
+    }
+    if (scheduleDate) scheduleDate.textContent = `${reasonBox?.dataset.fromDate || "-"} \u27F6 ${reasonBox?.dataset.toDate || "-"}`;
+    if (scheduleTime) {
+        scheduleTime.textContent = showScheduleTime ? `${reasonBox?.dataset.fromTime || "-"} \u27F6 ${reasonBox?.dataset.toTime || "-"}` : "";
+        scheduleTime.hidden = !showScheduleTime;
+        scheduleTime.classList.toggle("reason-modal-schedule-time-accent", showScheduleTime);
+    }
+    if (days) days.textContent = daysDisplay;
+    if (applied) applied.textContent = formatReasonModalRelativeAge(reasonBox?.dataset.created) || "-";
+    if (appliedTime) appliedTime.textContent = formatReasonModalClockTime(reasonBox?.dataset.created);
+    if (updated) updated.textContent = reasonBox?.dataset.updated ? (formatReasonModalRelativeAge(reasonBox.dataset.updated) || "-") : "Not updated";
+    if (updatedTime) updatedTime.textContent = reasonBox?.dataset.updated ? formatReasonModalClockTime(reasonBox.dataset.updated) : "-";
+    if (metaGrid) metaGrid.classList.toggle("has-decision", hasDecision);
+    if (decisionCard) decisionCard.hidden = !hasDecision;
+    if (decisionLabel) setReasonModalLabel(decisionLabel, context === "rejected-employee" ? "&#9940;" : "&#10003;", context === "rejected-employee" ? "Rejected At" : "Approved At");
+    if (decision) decision.textContent = hasDecision ? (formatReasonModalRelativeAge(decisionIso) || "-") : "-";
+    if (decisionTime) decisionTime.textContent = hasDecision ? formatReasonModalClockTime(decisionIso) : "-";
+    setReasonModalLabel(fieldLabel, contextCopy.icon, contextCopy.label);
+    content.innerText = sourceElement?.dataset.reason || reasonContent?.dataset.full || reasonContent?.textContent?.trim() || "No reason provided";
     modalreason.style.display = "flex";
-    modalreason.classList.add("show");
+    modalreason.classList.add("show", "is-open");
     modalreason.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
 }
@@ -762,9 +920,14 @@ function openReasonModal(reason) {
 function closeReasonModal() {
     const modal = document.getElementById("reasonModal");
     if (modal) {
-        modal.classList.remove("show");
+        modal.classList.remove("show", "is-open", "is-closing");
         modal.style.display = "none";
         modal.setAttribute("aria-hidden", "true");
+        modal.classList.remove(
+            "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half",
+            "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
+        );
+        modal.classList.add("reason-theme-default");
     }
     document.body.style.overflow = "";
 }
@@ -815,6 +978,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if (nav) {
         const hasNext = nav.dataset.hasNext === "true";
         const hasPrev = nav.dataset.hasPrev === "true";
+        const lastBtn = nav.querySelector(".last-btn");
+        totalPages = Number.parseInt(lastBtn?.dataset.totalPages || "1", 10) || 1;
 
         if (!hasNext && !hasPrev) {
             nav.classList.add("hidden");
@@ -836,22 +1001,64 @@ function syncReasonMoreButtons() {
     document.querySelectorAll(".reason-content").forEach(el => {
         const box = el.closest(".reason-box");
         if (!box) return;
-        const moreBtn = box.querySelector(".more-btn");
-        if (!moreBtn) return;
+        let moreBtn = box.querySelector(".more-btn");
+        const fullReason = el.dataset.full || el.textContent.trim();
 
         // Reset display to check natural height
-        moreBtn.style.display = "none";
+        if (moreBtn) moreBtn.style.display = "none";
         
         // We detect overflow by comparing scrollHeight to clientHeight.
         const isClamped = el.scrollHeight > (el.clientHeight + 2); // Add small buffer
+        const shouldShowMore = isClamped || fullReason.length > 30;
         
-        if (isClamped) {
+        if (shouldShowMore) {
+            if (!moreBtn) {
+                moreBtn = document.createElement("span");
+                moreBtn.className = "more-btn";
+                moreBtn.textContent = "... more";
+                box.appendChild(moreBtn);
+            }
+            moreBtn.dataset.reason = fullReason;
             moreBtn.style.display = "inline-block";
         }
     });
 }
 
 document.addEventListener("click", function(e) {
+    const firstPageBtn = e.target.closest("[data-action='dashboard-first-page']");
+    if (firstPageBtn) {
+        e.preventDefault();
+        firstPage();
+        return;
+    }
+
+    const prevPageBtn = e.target.closest("[data-action='dashboard-prev-page']");
+    if (prevPageBtn) {
+        e.preventDefault();
+        prevPage();
+        return;
+    }
+
+    const nextPageBtn = e.target.closest("[data-action='dashboard-next-page']");
+    if (nextPageBtn) {
+        e.preventDefault();
+        nextPage();
+        return;
+    }
+
+    const lastPageBtn = e.target.closest("[data-action='dashboard-last-page']");
+    if (lastPageBtn) {
+        e.preventDefault();
+        lastPage();
+        return;
+    }
+
+    if (e.target.closest("[data-action='close-reason-modal']")) {
+        e.preventDefault();
+        closeReasonModal();
+        return;
+    }
+
     const appliedTime = e.target.closest(".applied-time.has-applied-tooltip");
     if (appliedTime) {
         e.preventDefault();
@@ -870,7 +1077,7 @@ document.addEventListener("click", function(e) {
     if (moreBtn) {
         e.preventDefault();
         e.stopPropagation();
-        openReasonModal(moreBtn.dataset.reason || "");
+        openReasonModal(moreBtn);
         return;
     }
 

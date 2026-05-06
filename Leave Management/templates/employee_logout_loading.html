@@ -7,7 +7,7 @@
     <title>{{ page_title }}</title>
     <link rel="stylesheet" href="{% static 'css/employee_logout_loading.css' %}">
 </head>
-<body>
+<body data-duration="{{ duration }}" data-target-url="{{ target_url }}" data-target-percent="85">
     <main class="page">
         <div class="shape shape--left" aria-hidden="true"></div>
         <div class="shape shape--right" aria-hidden="true"></div>
@@ -55,39 +55,6 @@
             <article><i>&#128340;</i><div><h3>Logged out at</h3><p>{{ logged_out_at }}</p></div></article>
         </section>
     </main>
-    <script>
-        (function () {
-            const duration = {{ duration }};
-            const targetUrl = "{{ target_url|escapejs }}";
-            const targetPercent = 85;
-            const fill = document.getElementById("progress-fill");
-            const value = document.getElementById("progress-value");
-            const stepCards = Array.from(document.querySelectorAll(".step-card"));
-            let remaining = duration;
-
-            function setActiveStep(index) {
-                stepCards.forEach(function (card, cardIndex) {
-                    card.classList.toggle("step-card--active", cardIndex === index);
-                });
-            }
-
-            function render() {
-                const elapsed = Math.max(0, duration - remaining);
-                const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
-                const stepIndex = Math.min(stepCards.length - 1, Math.floor((elapsed / duration) * stepCards.length));
-                fill.style.width = percent + "%";
-                value.textContent = percent + "%";
-                setActiveStep(stepIndex);
-            }
-
-            render();
-            const timer = setInterval(function () {
-                remaining -= 1;
-                render();
-                if (remaining <= 0) { clearInterval(timer); }
-            }, 1000);
-            setTimeout(function () { window.location.replace(targetUrl); }, duration * 1000);
-        }());
-    </script>
+    <script src="{% static 'js/logout_loading_transition.js' %}?v=20260506"></script>
 </body>
 </html>

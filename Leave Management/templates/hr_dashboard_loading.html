@@ -7,7 +7,7 @@
     <title>{{ page_title }}</title>
     <link rel="stylesheet" href="{% static 'css/hr_dashboard_loading.css' %}">
 </head>
-<body class="transition-page transition-page--hr">
+<body class="transition-page transition-page--hr" data-duration="{{ duration }}" data-target-url="{{ target_url }}" data-target-percent="85">
     <main class="transition-shell">
         <div class="glow glow--left" aria-hidden="true"></div>
         <div class="glow glow--right" aria-hidden="true"></div>
@@ -107,37 +107,6 @@
             </div>
         </section>
     </main>
-    <script>
-        (function () {
-            const duration = {{ duration }};
-            const targetUrl = "{{ target_url|escapejs }}";
-            const targetPercent = 85;
-            const fill = document.getElementById("progress-fill");
-            const value = document.getElementById("progress-value");
-            const countdown = document.getElementById("countdown");
-            const toastCountdown = document.getElementById("toast-countdown");
-            let remaining = duration;
-            function render() {
-                const elapsed = Math.max(0, duration - remaining);
-                const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
-                fill.style.width = percent + "%";
-                value.textContent = percent + "%";
-                const seconds = Math.max(0, remaining);
-                countdown.textContent = seconds;
-                if (toastCountdown) {
-                    toastCountdown.textContent = seconds;
-                }
-            }
-            render();
-            const timer = setInterval(function () {
-                remaining -= 1;
-                render();
-                if (remaining <= 0) {
-                    clearInterval(timer);
-                }
-            }, 1000);
-            setTimeout(function () { window.location.replace(targetUrl); }, duration * 1000);
-        }());
-    </script>
+    <script src="{% static 'js/dashboard_loading_transition.js' %}?v=20260506"></script>
 </body>
 </html>

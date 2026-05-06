@@ -2679,12 +2679,16 @@ def dashboard(request):
                 # ✅ LOCAL TIME + FULL MONTH
                 "from_datetime": localtime(leave.from_datetime).strftime("%B %d, %Y %I:%M %p"),
                 "to_datetime": localtime(leave.to_datetime).strftime("%I:%M %p"),
+                "from_time": localtime(leave.from_datetime).strftime("%I:%M %p") if leave.from_datetime else "",
+                "to_time": localtime(leave.to_datetime).strftime("%I:%M %p") if leave.to_datetime else "",
 
                 "status": leave.status,
 
                 # ✅ FULL MONTH
                 "created": localtime(leave.created_at).isoformat(),
                 "updated": localtime(leave.updated_at).isoformat() if leave.updated_at else "",
+                "approved": localtime(leave.approved_at).isoformat() if leave.approved_at else "",
+                "rejected": localtime(leave.rejected_at).isoformat() if leave.rejected_at else "",
 
                 "duration": duration,
                 "reason": leave.reason or "",

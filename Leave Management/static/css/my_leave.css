@@ -2081,6 +2081,30 @@ table {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.92),
         0 10px 22px rgba(71, 85, 105, 0.09);
+    cursor: pointer;
+}
+
+.popup-filter-leave-trigger,
+.popup-filter-leave-option,
+.popup-filter-date-shell .date-trigger,
+.popup-filter-date-shell .date-nav,
+.popup-filter-date-shell .date-action,
+.popup-filter-date-shell .date-day,
+.popup-filter-month-shell .month-trigger,
+.popup-filter-month-shell .month-nav,
+.popup-filter-month-shell .month-option,
+.popup-filter-month-shell .month-action,
+.popup-filter-actions .popup-filter-clear-btn,
+.popup-filter-actions .popup-filter-apply-btn {
+    cursor: pointer;
+}
+
+.popup-filter-shell.is-disabled,
+.popup-filter-shell.is-disabled *,
+.popup-filter-date-shell.is-disabled,
+.popup-filter-date-shell.is-disabled *,
+.popup-filter-control:disabled {
+    cursor: not-allowed;
 }
 
 .apply-btn {
@@ -2115,6 +2139,7 @@ table {
     align-items: center;
     justify-content: center;
     gap: 3px;
+    cursor: pointer;
 }
 
 .action-group {
@@ -2384,6 +2409,7 @@ textarea:focus {
     padding: 0 10px;
     border-radius: 12px;
     font-size: 0.7rem;
+    cursor: pointer;
     font-weight: 800;
     letter-spacing: 0.01em;
     justify-content: center;

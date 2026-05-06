@@ -7,7 +7,7 @@
     <title>{{ page_title }}</title>
     <link rel="stylesheet" href="{% static 'css/employee_dashboard_loading.css' %}">
 </head>
-<body class="transition-page transition-page--employee">
+<body class="transition-page transition-page--employee" data-duration="{{ duration }}" data-target-url="{{ target_url }}" data-target-percent="92">
     <main class="transition-shell">
         <div class="transition-orb transition-orb--left" aria-hidden="true"></div>
         <div class="transition-orb transition-orb--right" aria-hidden="true"></div>
@@ -144,45 +144,6 @@
         </section>
     </main>
 
-    <script>
-        (function () {
-            const duration = {{ duration }};
-            const targetUrl = "{{ target_url|escapejs }}";
-            const targetPercent = 92;
-            const progressFill = document.getElementById("progress-fill");
-            const progressValue = document.getElementById("progress-value");
-            const countdown = document.getElementById("countdown");
-            const toastCountdown = document.getElementById("toast-countdown");
-            let remaining = duration;
-
-            function render() {
-                const elapsed = Math.max(0, duration - remaining);
-                const percent = duration > 0 ? Math.min(targetPercent, Math.round((elapsed / duration) * targetPercent)) : targetPercent;
-                progressFill.style.width = percent + "%";
-                progressValue.textContent = percent + "%";
-                const seconds = Math.max(0, remaining);
-                countdown.textContent = seconds;
-                if (toastCountdown) {
-                    toastCountdown.textContent = seconds;
-                }
-            }
-
-            function goNext() {
-                window.location.replace(targetUrl);
-            }
-
-            render();
-
-            const timer = window.setInterval(function () {
-                remaining -= 1;
-                render();
-                if (remaining <= 0) {
-                    window.clearInterval(timer);
-                }
-            }, 1000);
-
-            window.setTimeout(goNext, duration * 1000);
-        }());
-    </script>
+    <script src="{% static 'js/dashboard_loading_transition.js' %}?v=20260506"></script>
 </body>
 </html>

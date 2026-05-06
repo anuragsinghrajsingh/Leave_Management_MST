@@ -528,7 +528,18 @@
                                         {% endif %}
                                     </p>
 
-                                    <div class="reason-box {% if leave.leave_type != 'Short' and leave.leave_type != 'Half' %}reason-box-full-day{% endif %}">
+                                    <div class="reason-box {% if leave.leave_type != 'Short' and leave.leave_type != 'Half' %}reason-box-full-day{% endif %}"
+                                        data-status="{{ leave.status }}"
+                                        data-leave-type="{{ leave.leave_type }}"
+                                        data-from-date="{{ leave.from_date|date:'M j, Y' }}"
+                                        data-to-date="{{ leave.to_date|date:'M j, Y' }}"
+                                        data-from-time="{{ leave.from_datetime|time:'h:i A' }}"
+                                        data-to-time="{{ leave.to_datetime|time:'h:i A' }}"
+                                        data-duration="{{ leave.duration }}"
+                                        data-created="{{ leave.created_at|date:'c' }}"
+                                        data-updated="{{ leave.updated_at|date:'c' }}"
+                                        data-approved="{{ leave.approved_at|date:'c' }}"
+                                        data-rejected="{{ leave.rejected_at|date:'c' }}">
                                         <div class="reason-label">Reason</div>
                                         <div class="reason-divider"></div>
                                         <div class="reason-content" data-full="{{ leave.reason|escape }}">
@@ -546,9 +557,11 @@
                     </div>
 
                     <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
-                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-prev-page">Prev</button>
+                        <button class="first-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-first-page"><span class="page-btn-icon" aria-hidden="true">&laquo;</span><span>First</span></button>
+                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-prev-page"><span class="page-btn-icon" aria-hidden="true">&lsaquo;</span><span>Prev</span></button>
                         <span id="pageNumber">Page {{ context_current_page }} of {{ context_total_pages }}</span>
-                        <button class="next-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-next-page">Next</button>
+                        <button class="next-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-next-page"><span>Next</span><span class="page-btn-icon" aria-hidden="true">&rsaquo;</span></button>
+                        <button class="last-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-last-page" data-total-pages="{{ context_total_pages }}"><span>Last</span><span class="page-btn-icon" aria-hidden="true">&raquo;</span></button>
                     </div>
                 </article>
             </section>
@@ -557,20 +570,61 @@
         </section>
     </section>
 
-    <div id="reasonModal" class="reason-modal" aria-hidden="true">
+    <div id="reasonModal" class="reason-modal reason-theme-default" aria-hidden="true">
         <div class="reason-modal-overlay" data-action="close-reason-modal"></div>
-        <div class="reason-modal-box" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
+        <div class="reason-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
             <div class="reason-modal-header">
-                <div class="reason-modal-heading-group">
-                    <span class="reason-modal-icon">R</span>
-                    <div>
-                        <h3 id="reasonModalTitle">Leave Reason</h3>
-                        <p class="reason-modal-subtitle">Request details and submitted note</p>
+                <div class="reason-modal-heading">
+                    <h3 id="reasonModalTitle">Leave</h3>
+                    <span class="reason-modal-heading-divider" aria-hidden="true"></span>
+                </div>
+                <button type="button" class="close-modal-btn" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>
+            </div>
+            <div class="reason-modal-body">
+                <div class="reason-modal-top-row">
+                    <span class="reason-modal-chip reason-modal-name-chip" id="reasonModalEmployee">My Leave</span>
+                    <span class="reason-modal-chip reason-modal-type-chip reason-modal-type-default" id="reasonModalLeaveType">Leave type</span>
+                    <span class="reason-modal-top-spacer" aria-hidden="true"></span>
+                </div>
+                <div class="reason-modal-meta-grid" id="reasonModalMetaGrid">
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128197;</span><span>Schedule</span></span></span>
+                        <div class="reason-meta-stack">
+                            <strong id="reasonModalScheduleDate">-</strong>
+                            <span id="reasonModalScheduleTime">-</span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">#</span><span>Days</span></span></span>
+                        <strong class="reason-meta-value" id="reasonModalDays">-</strong>
+                    </div>
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label" id="reasonModalAppliedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128338;</span><span>Applied</span></span></span>
+                        <div class="reason-meta-stack">
+                            <strong id="reasonModalApplied">-</strong>
+                            <span id="reasonModalAppliedTime">-</span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card">
+                        <span class="reason-meta-label" id="reasonModalUpdatedLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>Updated</span></span></span>
+                        <div class="reason-meta-stack">
+                            <strong id="reasonModalUpdated">-</strong>
+                            <span id="reasonModalUpdatedTime">-</span>
+                        </div>
+                    </div>
+                    <div class="reason-meta-card reason-modal-decision-card" id="reasonModalDecisionCard" hidden>
+                        <span class="reason-meta-label" id="reasonModalDecisionLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10003;</span><span>Approved At</span></span></span>
+                        <div class="reason-meta-stack">
+                            <strong id="reasonModalDecision">-</strong>
+                            <span id="reasonModalDecisionTime">-</span>
+                        </div>
                     </div>
                 </div>
-                <button type="button" class="reason-modal-close" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>
+                <div class="reason-field-card">
+                    <div class="reason-field-label" id="reasonModalFieldLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Reason</span></span></div>
+                    <div id="reasonModalContent"></div>
+                </div>
             </div>
-            <div class="reason-modal-content" id="reasonModalContent"></div>
         </div>
     </div>
 {% endblock %}

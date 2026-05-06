@@ -6688,6 +6688,26 @@ body {
     color: var(--manage-red);
 }
 
+.leave-type-pill-sick .leave-pill-symbol {
+    color: #dc2626;
+}
+
+.leave-type-pill-unpaid .leave-pill-symbol {
+    color: #b45309;
+}
+
+.leave-type-pill-earned .leave-pill-symbol {
+    color: #059669;
+}
+
+.leave-type-pill-short .leave-pill-symbol {
+    color: #2563eb;
+}
+
+.leave-type-pill-half .leave-pill-symbol {
+    color: #7c3aed;
+}
+
 .leave-type-pill-unpaid {
     background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.24));
     color: #92400e;

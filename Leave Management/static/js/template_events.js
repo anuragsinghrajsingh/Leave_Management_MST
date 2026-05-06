@@ -215,6 +215,12 @@
         const actionElement = getActionElement(event.target);
         if (!actionElement) return;
 
+        const editableTarget = event.target && event.target.closest
+            ? event.target.closest("input, textarea, select, [contenteditable='true']")
+            : null;
+
+        if (editableTarget) return;
+
         if (actionElement.dataset.action === "edit-photo-key") {
             callGlobal("handleEditPhotoKey", [event]);
             return;
