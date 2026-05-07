@@ -6285,7 +6285,8 @@ body.profile-page .profile-page-shell .chart-visual {
     justify-content: flex-start !important;
     width: auto !important;
     min-width: 0 !important;
-    min-height: 0 !important;
+    min-height: 180px !important;
+    height: 180px !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
@@ -6335,14 +6336,14 @@ body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-legend
     }
 
     body.profile-page .profile-page-shell .chart-card {
-        padding: 8px 6px 6px !important;
+        padding: 6px 4px 4px !important;
         border-radius: 18px !important;
     }
 
     body.profile-page .profile-page-shell .chart-headline {
-        min-height: 34px !important;
-        margin-bottom: 8px !important;
-        padding-bottom: 8px !important;
+        min-height: 30px !important;
+        margin-bottom: 4px !important;
+        padding-bottom: 4px !important;
     }
 
     body.profile-page .profile-page-shell .chart-headline h3 {
@@ -6362,21 +6363,21 @@ body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-legend
         flex-direction: column !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        gap: 12px !important;
+        gap: 4px !important;
     }
 
     body.profile-page .profile-page-shell .chart-visual {
         flex: 0 0 auto !important;
         width: 100% !important;
-        min-height: 140px !important;
-        height: 140px !important;
+        min-height: 150px !important;
+        height: 150px !important;
     }
 
     body.profile-page .profile-page-shell .chart-card canvas {
         width: 100% !important;
         height: 100% !important;
-        max-width: 175px !important;
-        max-height: 175px !important;
+        max-width: 200px !important;
+        max-height: 200px !important;
         margin: 0 auto;
     }
 
@@ -6384,7 +6385,7 @@ body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-legend
         flex: 1 1 auto !important;
         width: 100% !important;
         min-width: 0 !important;
-        margin-top: 8px !important;
+        margin-top: 0px !important;
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: wrap !important;

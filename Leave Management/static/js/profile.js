@@ -220,7 +220,7 @@ function getCSRFToken()
                     ],
                     borderWidth: 2,
                     borderColor: "#ffffff",
-                    hoverOffset: 14,
+                    hoverOffset: 6,
                     radius: "100%"
                 }]
             },
@@ -231,7 +231,7 @@ function getCSRFToken()
                 maintainAspectRatio: false,
                 layout:
                 {
-                    padding: 2
+                    padding: 3
                 },
 
                 animation:
@@ -531,8 +531,8 @@ function getCSRFToken()
 
                         borderWidth: 2,
                         borderColor: "#ffffff",
-                        hoverOffset: 14,
-                        radius: "96%"
+                        hoverOffset: 6,
+                        radius: "100%"
                     }]
                 },
 
@@ -543,7 +543,7 @@ function getCSRFToken()
                     cutout: "65%",
                     layout:
                     {
-                        padding: 2
+                        padding: 3
                     },
 
                     animation:
