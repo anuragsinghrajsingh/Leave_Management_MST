@@ -557,11 +557,11 @@
                     </div>
 
                     <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
-                        <button class="first-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-first-page"><span class="page-btn-icon" aria-hidden="true">&laquo;</span><span>First</span></button>
-                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-prev-page"><span class="page-btn-icon" aria-hidden="true">&lsaquo;</span><span>Prev</span></button>
+                        <button class="first-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-first-page"><span class="page-btn-icon" aria-hidden="true">«</span><span>First</span></button>
+                        <button class="prev-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-prev-page"><span class="page-btn-icon" aria-hidden="true">‹</span><span>Prev</span></button>
                         <span id="pageNumber">Page {{ context_current_page }} of {{ context_total_pages }}</span>
-                        <button class="next-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-next-page"><span>Next</span><span class="page-btn-icon" aria-hidden="true">&rsaquo;</span></button>
-                        <button class="last-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-last-page" data-total-pages="{{ context_total_pages }}"><span>Last</span><span class="page-btn-icon" aria-hidden="true">&raquo;</span></button>
+                        <button class="next-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-next-page"><span>Next</span><span class="page-btn-icon" aria-hidden="true">›</span></button>
+                        <button class="last-btn" {% if not has_next %}disabled{% endif %} data-action="dashboard-last-page" data-total-pages="{{ context_total_pages }}"><span>Last</span><span class="page-btn-icon" aria-hidden="true">»</span></button>
                     </div>
                 </article>
             </section>

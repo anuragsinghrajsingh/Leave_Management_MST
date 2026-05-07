@@ -213,11 +213,37 @@
 }
 
 .main-heading::before {
-    content: "✺";
-    width: 22px;
-    height: 22px;
-    color: #2563eb;
-    background: linear-gradient(135deg, rgba(219, 234, 254, 0.36), rgba(147, 197, 253, 0.18));
+    width: 20px;
+    height: 20px;
+    font-size: 0.8rem;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 
+        0 4px 10px rgba(37, 99, 235, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-right: 10px !important;
+}
+
+.upcoming .main-heading::before {
+    content: "✦";
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #2dd4bf) !important;
+}
+
+.last .main-heading::before {
+    content: "↺";
+    color: #ffffff;
+    background: linear-gradient(135deg, #f59e0b, #ea580c) !important;
+    font-size: 1.05rem;
+}
+
+.recent .main-heading::before {
+    content: "⚡";
+    color: #ffffff;
+    background: linear-gradient(135deg, #10b981, #0ea5e9) !important;
+    font-size: 0.75rem;
 }
 
 .summary-tile.total .tile-label::before,
@@ -488,7 +514,7 @@ body {
 }
 
 .corner-history::before {
-    content: "◔";
+    content: "↺";
 }
 
 .corner-recent {
@@ -497,7 +523,7 @@ body {
 }
 
 .corner-recent::before {
-    content: "◆";
+    content: "⚡";
 }
 
 .section-kicker {
@@ -511,7 +537,16 @@ body {
 }
 
 .section-head h3,
-.main-heading,
+.main-heading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    font-weight: 800;
+}
+
 .hero-title {
     margin: 0;
     color: var(--text);
@@ -1963,31 +1998,86 @@ body {
 }
 
 .pagination button {
-    border: none;
-    border-radius: 999px;
-    min-width: 38px;
-    padding: 7px 12px;
-    background: linear-gradient(135deg, #ff9d6c, #2f73d9);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 800;
+    border: 1px solid rgba(47, 115, 217, 0.18);
+    border-radius: 12px;
+    min-width: 0;
+    padding: 6px 12px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 900;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    box-shadow: 0 10px 18px rgba(47, 115, 217, 0.18);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    gap: 6px;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .page-btn-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 10px;
-    font-size: 15px;
-    font-weight: 900;
-    line-height: 0.8;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    color: #2563eb;
+    margin-bottom: 1px;
+}
+
+.next-btn .page-btn-icon,
+.last-btn .page-btn-icon {
+    color: #059669;
+}
+
+.first-btn, .prev-btn {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    border-color: rgba(37, 99, 235, 0.4) !important;
+    color: #ffffff !important;
+}
+
+.next-btn, .last-btn {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    color: #ffffff !important;
+}
+
+.first-btn .page-btn-icon,
+.prev-btn .page-btn-icon,
+.next-btn .page-btn-icon,
+.last-btn .page-btn-icon {
+    color: #ffffff !important;
+}
+
+.first-btn:hover, .prev-btn:hover {
+    filter: brightness(1.1) saturate(1.1) !important;
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3) !important;
+}
+
+.next-btn:hover, .last-btn:hover {
+    filter: brightness(1.1) saturate(1.1) !important;
+    box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3) !important;
+}
+
+.first-btn:disabled, .prev-btn:disabled {
+    background: #f1f5f9 !important;
+    border-color: rgba(0, 0, 0, 0.05) !important;
+    color: #475569 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.next-btn:disabled, .last-btn:disabled {
+    background: #f1f5f9 !important;
+    border-color: rgba(0, 0, 0, 0.05) !important;
+    color: #475569 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.pagination button:disabled .page-btn-icon {
+    color: #475569 !important;
 }
 
 .pagination button:hover:not(:disabled) {
@@ -2512,6 +2602,8 @@ body {
     overflow: auto;
     white-space: pre-wrap;
     text-align: left;
+    overflow-wrap: anywhere;
+    word-break: break-all;
 }
 
 .duration-number.animating {
