@@ -317,7 +317,7 @@
                                     </div>
 
                                     <div class="field-block time-block hidden" id="fromTimeBlock">
-                                        <label>From Time</label>
+                                        <label for="fromTime">From Time</label>
                                         <div class="time-grid">
                                             <div class="custom-select select-shell time-select-shell" data-menu-label="Hour">
                                                 <select id="fromHour" class="native-select" aria-hidden="true" tabindex="-1">
@@ -444,27 +444,41 @@
 
                         <div class="panel-body" id="instructionContent">
                             <div class="instruction-banner">
-                                <span class="instruction-banner-label">Important</span>
-                                <p class="instruction-note">Choose the correct leave type, add the right dates, and include time details only when needed.</p>
+                                <div class="banner-icon-box">
+                                    <span class="banner-icon">📢</span>
+                                </div>
+                                <div class="banner-text">
+                                    <h4 class="banner-title">IMPORTANT</h4>
+                                    <p class="instruction-note">Choose the correct leave type, add the right dates, and include time details only when needed.</p>
+                                </div>
                             </div>
 
                             <div class="instruction-list">
-                                <div class="instruction-item">
-                                    <span class="instruction-number">01</span>
+                                <div class="instruction-item item-purple">
+                                    <div class="item-number-box">01</div>
+                                    <div class="item-icon-box">
+                                        <span class="item-icon">🪣</span>
+                                    </div>
                                     <div class="instruction-copy">
                                         <strong>Use the right leave bucket</strong>
                                         <p>Use Sick, Unpaid, or Earned leave for date-based requests.</p>
                                     </div>
                                 </div>
-                                <div class="instruction-item">
-                                    <span class="instruction-number">02</span>
+                                <div class="instruction-item item-amber">
+                                    <div class="item-number-box">02</div>
+                                    <div class="item-icon-box">
+                                        <span class="item-icon">🕒</span>
+                                    </div>
                                     <div class="instruction-copy">
                                         <strong>Use time fields only when needed</strong>
                                         <p>Select Short or Half only when time fields are needed.</p>
                                     </div>
                                 </div>
-                                <div class="instruction-item">
-                                    <span class="instruction-number">03</span>
+                                <div class="instruction-item item-green">
+                                    <div class="item-number-box">03</div>
+                                    <div class="item-icon-box">
+                                        <span class="item-icon">📋</span>
+                                    </div>
                                     <div class="instruction-copy">
                                         <strong>Review before submit</strong>
                                         <p>Check the start and end values carefully before submission.</p>
@@ -556,38 +570,96 @@
                     </article>
 
                     <div class="bottom-grid">
-                        <article class="info-card compact-card holiday-tile">
-                            <div class="tile-top">
-                                <span class="tile-icon">📅</span>
-                                <span class="tile-badge">Company Holiday</span>
+                        <article class="info-card holiday-card">
+                            {% if upcoming_company_holiday %}
+                            <div class="holiday-header">
+                                <!-- Calendar box removed for a cleaner top row -->
+                                <div class="holiday-badge">
+                                    <span class="building-icon">🏢</span>
+                                    <span class="badge-text">Upcoming Company Holiday</span>
+                                </div>
                             </div>
-                            <div class="tile-main">
-                                <strong>Upcoming Holiday</strong>
-                                {% if upcoming_company_holiday %}
-                                    <div class="tile-dates">{{ upcoming_company_holiday.date|date:"l, F j" }}</div>
-                                    <p>{{ upcoming_company_holiday.name }}</p>
-                                    <div class="leave-progress holiday-progress">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" data-from="{{ upcoming_company_holiday.date|date:'Y-m-d' }}"></div>
-                                        </div>
-                                        <div class="progress-text">{{ upcoming_company_holiday_days }} days left</div>
+
+                            <div class="holiday-content">
+                                <!-- Title removed for compactness -->
+                                <div class="date-row">
+                                    <span class="mini-icon">📅</span>
+                                    <span class="holiday-date">{{ upcoming_company_holiday.date|date:"l, F j" }}</span>
+                                </div>
+                                
+                                <div class="holiday-divider">
+                                    <div class="divider-line"></div>
+                                    <div class="divider-dot"></div>
+                                    <div class="divider-line"></div>
+                                </div>
+                                
+                                <div class="name-row">
+                                    <div class="name-icon-box">
+                                        <span class="name-icon">✨</span>
                                     </div>
-                                {% else %}
-                                    <div class="tile-dates">No upcoming date</div>
-                                    <p>No company holiday has been added yet.</p>
-                                {% endif %}
+                                    <span class="holiday-name">{{ upcoming_company_holiday.name }}</span>
+                                </div>
                             </div>
+
+                            <div class="holiday-footer">
+                                <div class="footer-main">
+                                    <div class="hourglass-box">
+                                        <span class="hourglass-icon">⌛</span>
+                                    </div>
+                                    <div class="countdown-box">
+                                        <span class="days-num">{{ upcoming_company_holiday_days }}</span>
+                                        <span class="days-label">days left</span>
+                                    </div>
+                                </div>
+                                <div class="holiday-progress-bar">
+                                    <div class="progress-fill" data-from="{{ upcoming_company_holiday.date|date:'Y-m-d' }}"></div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="empty-holiday">
+                                <span class="empty-icon">📅</span>
+                                <p>No upcoming holidays</p>
+                            </div>
+                            {% endif %}
                         </article>
 
-                        <article class="info-card compact-card balance-tile {% if leaves_remaining < 7 %}balance-tile-low{% endif %}">
-                            <div class="tile-top">
-                                <span class="tile-icon">🧾</span>
-                                <span class="tile-badge">Balance</span>
+                        <article class="info-card balance-card">
+                            <div class="card-header">
+                                <div class="header-icon">
+                                    <span class="icon-clipboard">📋</span>
+                                </div>
+                                <div class="header-title-box">
+                                    <!-- Title removed for compactness -->
+                                </div>
+                                <div class="header-badge">
+                                    <span class="status-dot"></span>
+                                    <span class="badge-text">Balance</span>
+                                </div>
                             </div>
-                            <div class="tile-main">
-                                <strong>Leave Balance</strong>
-                                <div class="tile-dates">{{ total_leave_remaining }} Days Available</div>
-                                <p>Used {{ leaves_used }} days so far.</p>
+                            
+                            <div class="card-body">
+                                <div class="balance-display">
+                                    <h2 class="balance-value">{{ total_leave_remaining }}</h2>
+                                    <span class="balance-label">Days</span>
+                                </div>
+                                <div class="status-pill">
+                                    <span class="icon-calendar">📅</span>
+                                    <span>Available</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer">
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        {% with total=total_leave_remaining|add:leaves_used %}
+                                        <div class="progress-fill" style="width: {% if total > 0 %}{% widthratio leaves_used total 100 %}{% else %}0{% endif %}%"></div>
+                                        {% endwith %}
+                                    </div>
+                                    <div class="progress-stats">
+                                        <span class="stat-used">Used {{ leaves_used }} days so far.</span>
+                                        <span class="stat-total">Total {{ total_leave_balance }} days</span>
+                                    </div>
+                                </div>
                             </div>
                         </article>
                     </div>
