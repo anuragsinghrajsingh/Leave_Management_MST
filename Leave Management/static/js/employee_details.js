@@ -106,6 +106,7 @@
             });
         }
         let submitAttempted = false;
+        let employeeCreateConfirmed = false;
 
         function getCsrfToken()
         {
@@ -1141,13 +1142,20 @@
             {
                 if (button.dataset.boundDelete === "true") return;
                 button.dataset.boundDelete = "true";
-                button.addEventListener("click", function ()
+                button.addEventListener("click", async function ()
                 {
                     const card = button.closest("[data-employee-card]");
                     const deleteUrl = button.dataset.deleteUrl;
                     const employeeName = button.dataset.employeeName || "this employee";
                     if (!card || !deleteUrl) return;
-                    if (!window.confirm("Delete " + employeeName + "? A PDF archive will download before the record is removed.")) return;
+                    const shouldDelete = typeof window.showThemeConfirm === "function"
+                        ? await window.showThemeConfirm("Delete " + employeeName + "? A PDF archive will download before the record is removed.", {
+                            title: "Delete employee",
+                            confirmText: "Delete",
+                            variant: "delete"
+                        })
+                        : window.confirm("Delete " + employeeName + "? A PDF archive will download before the record is removed.");
+                    if (!shouldDelete) return;
 
                     fetch(deleteUrl, {
                         method: "POST",
@@ -1170,7 +1178,19 @@
                             card.remove();
                             updateEmployeeTotals();
                             runSearch();
-                            window.alert(payload.message || "Employee deleted successfully.");
+                            const successMessage = payload.message || "Employee deleted successfully.";
+                            if (typeof window.showThemeAlert === "function")
+                            {
+                                window.showThemeAlert(successMessage, {
+                                    title: "Employee deleted",
+                                    variant: "success",
+                                    confirmText: "Done"
+                                });
+                            }
+                            else
+                            {
+                                window.alert(successMessage);
+                            }
                         })
                         .catch(function ()
                         {
@@ -1272,7 +1292,7 @@
 
         if (employeeForm)
         {
-            employeeForm.addEventListener("submit", function (event)
+            employeeForm.addEventListener("submit", async function (event)
             {
                 ensurePhonePrefix();
                 submitAttempted = true;
@@ -1281,9 +1301,22 @@
                     event.preventDefault();
                     return;
                 }
-                if (!window.confirm("Create this employee record?"))
+                if (employeeCreateConfirmed)
                 {
-                    event.preventDefault();
+                    return;
+                }
+                event.preventDefault();
+                const shouldCreate = typeof window.showThemeConfirm === "function"
+                    ? await window.showThemeConfirm("Create this employee record?", {
+                        title: "Create employee",
+                        confirmText: "Create",
+                        variant: "confirm"
+                    })
+                    : window.confirm("Create this employee record?");
+                if (shouldCreate)
+                {
+                    employeeCreateConfirmed = true;
+                    employeeForm.requestSubmit();
                 }
             });
         }

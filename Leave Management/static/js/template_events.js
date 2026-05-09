@@ -245,23 +245,64 @@
         callGlobal("countWords");
     });
 
-    document.addEventListener("click", function (event) {
+    document.addEventListener("click", async function (event) {
         const confirmElement = event.target && event.target.closest
             ? event.target.closest("[data-confirm-click]")
             : null;
         if (!confirmElement) return;
 
-        if (!window.confirm(confirmElement.dataset.confirmClick || "Are you sure?")) {
-            event.preventDefault();
+        if (confirmElement.dataset.themeConfirmPassed === "true") {
+            delete confirmElement.dataset.themeConfirmPassed;
+            return;
         }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const message = confirmElement.dataset.confirmClick || "Are you sure?";
+        const confirmed = typeof window.showThemeConfirm === "function"
+            ? await window.showThemeConfirm(message, {
+                title: message.toLowerCase().includes("delete") ? "Delete leave" : "Confirm action",
+                confirmText: message.toLowerCase().includes("delete") ? "Delete" : "Confirm",
+                variant: message.toLowerCase().includes("delete") ? "delete" : "confirm"
+            })
+            : window.confirm(message);
+        if (!confirmed) {
+            return;
+        }
+
+        confirmElement.dataset.themeConfirmPassed = "true";
+        confirmElement.click();
     }, true);
 
-    document.addEventListener("submit", function (event) {
+    document.addEventListener("submit", async function (event) {
         const form = event.target;
         if (!form || !form.matches || !form.matches("[data-confirm-submit]")) return;
 
-        if (!window.confirm(form.dataset.confirmSubmit || "Are you sure?")) {
-            event.preventDefault();
+        if (form.dataset.themeConfirmPassed === "true") {
+            delete form.dataset.themeConfirmPassed;
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const message = form.dataset.confirmSubmit || "Are you sure?";
+        const confirmed = typeof window.showThemeConfirm === "function"
+            ? await window.showThemeConfirm(message, {
+                title: message.toLowerCase().includes("delete") ? "Delete leave" : "Confirm action",
+                confirmText: message.toLowerCase().includes("delete") ? "Delete" : "Confirm",
+                variant: message.toLowerCase().includes("delete") ? "delete" : "confirm"
+            })
+            : window.confirm(message);
+        if (!confirmed) {
+            return;
+        }
+
+        form.dataset.themeConfirmPassed = "true";
+        if (typeof form.requestSubmit === "function") {
+            form.requestSubmit(event.submitter || undefined);
+        }
+        else {
+            form.submit();
         }
     }, true);
 }());

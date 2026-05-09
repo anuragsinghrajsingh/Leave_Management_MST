@@ -6,6 +6,136 @@ const modal = document.getElementById("modal");
             const SURFACE_SKELETON_MIN_VISIBLE_MS = 90;
             let modalCloseTimer = null;
 
+            function escapeDialogHtml(value)
+            {
+                return String(value || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            function showThemeDialog(options)
+            {
+                const config = Object.assign({
+                    title: "Please confirm",
+                    message: "",
+                    type: "confirm",
+                    confirmText: "Confirm",
+                    cancelText: "Cancel"
+                }, options || {});
+
+                return new Promise(function (resolve)
+                {
+                    const existingDialog = document.querySelector(".theme-alert-overlay");
+                    if (existingDialog) existingDialog.remove();
+
+                    const isAlert = config.type === "alert";
+                    const overlay = document.createElement("div");
+                    overlay.className = "theme-alert-overlay";
+                    overlay.setAttribute("role", "dialog");
+                    overlay.setAttribute("aria-modal", "true");
+                    overlay.innerHTML = `
+                        <div class="theme-alert-card theme-alert-card-${escapeDialogHtml(config.variant || config.type)}">
+                            <div class="theme-alert-head">
+                                <span class="theme-alert-symbol" aria-hidden="true"></span>
+                                <div>
+                                    <p class="theme-alert-eyebrow">${isAlert ? "Notice" : "Confirmation"}</p>
+                                    <h3>${escapeDialogHtml(config.title)}</h3>
+                                </div>
+                            </div>
+                            <div class="theme-alert-message">
+                                <span class="theme-alert-message-icon" aria-hidden="true"></span>
+                                <p>${escapeDialogHtml(config.message)}</p>
+                            </div>
+                            <div class="theme-alert-actions">
+                                ${isAlert ? "" : `<button type="button" class="theme-alert-btn theme-alert-cancel">${escapeDialogHtml(config.cancelText)}</button>`}
+                                <button type="button" class="theme-alert-btn theme-alert-confirm">${escapeDialogHtml(config.confirmText)}</button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.appendChild(overlay);
+                    const card = overlay.querySelector(".theme-alert-card");
+                    const confirmButton = overlay.querySelector(".theme-alert-confirm");
+                    const cancelButton = overlay.querySelector(".theme-alert-cancel");
+                    const previousFocus = document.activeElement;
+
+                    function closeDialog(result)
+                    {
+                        overlay.classList.add("is-closing");
+                        window.setTimeout(function ()
+                        {
+                            overlay.remove();
+                            if (previousFocus && typeof previousFocus.focus === "function")
+                            {
+                                previousFocus.focus();
+                            }
+                            resolve(result);
+                        }, 180);
+                    }
+
+                    confirmButton.addEventListener("click", function () { closeDialog(true); });
+                    if (cancelButton) cancelButton.addEventListener("click", function () { closeDialog(false); });
+                    overlay.addEventListener("click", function (event)
+                    {
+                        if (event.target === overlay) closeDialog(isAlert ? true : false);
+                    });
+                    overlay.addEventListener("keydown", function (event)
+                    {
+                        if (event.key === "Escape")
+                        {
+                            event.preventDefault();
+                            closeDialog(isAlert ? true : false);
+                            return;
+                        }
+                        if (event.key === "Tab" && card)
+                        {
+                            const focusable = Array.from(card.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"));
+                            if (!focusable.length) return;
+                            const first = focusable[0];
+                            const last = focusable[focusable.length - 1];
+                            if (event.shiftKey && document.activeElement === first)
+                            {
+                                event.preventDefault();
+                                last.focus();
+                            }
+                            else if (!event.shiftKey && document.activeElement === last)
+                            {
+                                event.preventDefault();
+                                first.focus();
+                            }
+                        }
+                    });
+
+                    requestAnimationFrame(function ()
+                    {
+                        overlay.classList.add("is-open");
+                        confirmButton.focus();
+                    });
+                });
+            }
+
+            window.showThemeConfirm = function (message, options)
+            {
+                return showThemeDialog(Object.assign({
+                    type: "confirm",
+                    message: message,
+                    title: "Confirm action"
+                }, options || {}));
+            };
+
+            window.showThemeAlert = function (message, options)
+            {
+                return showThemeDialog(Object.assign({
+                    type: "alert",
+                    message: message,
+                    title: "Action update",
+                    confirmText: "OK"
+                }, options || {}));
+            };
+
             window.addEventListener("pageshow", function (event)
             {
                 const isAuthenticatedPage = document.body && document.body.dataset.authenticated === "true";

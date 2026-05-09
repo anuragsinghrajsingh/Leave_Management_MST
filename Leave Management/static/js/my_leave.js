@@ -1091,7 +1091,18 @@ const exportWrapper = document.createElement("div");
     {
         if (!leaves.length) 
         {
-            alert("No leaves to export");
+            if (typeof window.showThemeAlert === "function")
+            {
+                window.showThemeAlert("No leaves to export", {
+                    title: "Export calendar",
+                    variant: "export",
+                    confirmText: "OK"
+                });
+            }
+            else
+            {
+                alert("No leaves to export");
+            }
             return;
         }
         switch (format) 
@@ -1657,6 +1668,7 @@ const exportWrapper = document.createElement("div");
         }
         const hiddenInput = shell.querySelector('input[type="hidden"]');
         const trigger = shell.querySelector(".month-trigger");
+        const menu = shell.querySelector(".month-menu");
         const valueNode = shell.querySelector(".month-value");
         const currentNode = shell.querySelector(".month-current");
         const grid = shell.querySelector(".month-grid");
@@ -1664,7 +1676,7 @@ const exportWrapper = document.createElement("div");
         const nextButton = shell.querySelector(".next-year");
         const currentButton = shell.querySelector(".today-action");
         const clearButton = shell.querySelector(".clear-action");
-        if (!hiddenInput || !trigger || !valueNode || !currentNode || !grid)
+        if (!hiddenInput || !trigger || !menu || !valueNode || !currentNode || !grid)
         {
             return;
         }
@@ -1721,11 +1733,20 @@ const exportWrapper = document.createElement("div");
         };
         const close = () =>
         {
+            const wasOpenUp = shell.classList.contains("open-up");
             shell.classList.remove("open");
             trigger.setAttribute("aria-expanded", "false");
             viewYear = null;
             manualYear = false;
             openedAt = 0;
+            window.clearTimeout(shell._closeTimer);
+            shell._closeTimer = window.setTimeout(() =>
+            {
+                if (!shell.classList.contains("open"))
+                {
+                    shell.classList.remove("open-up");
+                }
+            }, wasOpenUp ? 230 : 10);
             sync();
         };
         const render = () =>
@@ -1774,6 +1795,13 @@ const exportWrapper = document.createElement("div");
             const today = getToday();
             viewYear = selected && Number.isFinite(selected.year) ? selected.year : today.year;
             openedAt = Date.now();
+            window.clearTimeout(shell._closeTimer);
+            const menuHeight = Math.max(menu.offsetHeight || 0, 176);
+            const shellRect = shell.getBoundingClientRect();
+            const viewportPadding = 18;
+            const spaceBelow = window.innerHeight - shellRect.bottom - viewportPadding;
+            const spaceAbove = shellRect.top - viewportPadding;
+            shell.classList.toggle("open-up", spaceAbove >= menuHeight || spaceAbove >= spaceBelow);
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
             sync();
@@ -3023,7 +3051,14 @@ const exportWrapper = document.createElement("div");
             const form = event.target.closest(".js-pending-delete-form");
             if (!form) return;
             event.preventDefault();
-            if (!window.confirm("Delete this leave?"))
+            const shouldDelete = typeof window.showThemeConfirm === "function"
+                ? await window.showThemeConfirm("Delete this leave?", {
+                    title: "Delete leave",
+                    confirmText: "Delete",
+                    variant: "delete"
+                })
+                : window.confirm("Delete this leave?");
+            if (!shouldDelete)
             {
                 return;
             }
@@ -4212,6 +4247,24 @@ const exportWrapper = document.createElement("div");
         });
         syncPopupFilterDateInputs();
     }
+    function setupPopupFilterClearButtonState(filterForm)
+    {
+        if (!filterForm) return;
+        const clearButton = filterForm.querySelector(".popup-filter-clear-btn");
+        const fields = Array.from(filterForm.querySelectorAll('input[name="leave_type"], input[name="month"], input[name="from_date"], input[name="to_date"]'));
+        if (!clearButton || !fields.length) return;
+        const syncClearButton = () =>
+        {
+            const values = Object.fromEntries(fields.map((field) => [field.name, field.value]));
+            clearButton.disabled = !hasActiveFilter(normalizeFilterState(values));
+        };
+        fields.forEach((field) =>
+        {
+            field.addEventListener("input", syncClearButton);
+            field.addEventListener("change", syncClearButton);
+        });
+        syncClearButton();
+    }
     function openFilterModal(status)
     {
         const modalContent = document.getElementById("modal-content");
@@ -4300,7 +4353,17 @@ const exportWrapper = document.createElement("div");
                 const actionUrl = submitter?.formAction || filterForm.action;
                 const submitMethod = (submitter?.formMethod || filterForm.method || "post").toUpperCase();
                 const isResetAction = submitter?.classList.contains("clear-btn");
-                if (isResetAction && !window.confirm(`Are you sure you want to clear all filters for ${status} Leaves Section?`)) return false;
+                if (isResetAction)
+                {
+                    const shouldClear = typeof window.showThemeConfirm === "function"
+                        ? await window.showThemeConfirm(`Are you sure you want to clear all filters for ${status} Leaves Section?`, {
+                            title: "Clear filters",
+                            confirmText: "Clear filters",
+                            variant: "confirm"
+                        })
+                        : window.confirm(`Are you sure you want to clear all filters for ${status} Leaves Section?`);
+                    if (!shouldClear) return false;
+                }
                 const submitBtn = submitter instanceof HTMLButtonElement ? submitter : null;
                 if (submitBtn) submitBtn.disabled = true;
                 const response = await fetch(actionUrl, {
@@ -4335,6 +4398,7 @@ const exportWrapper = document.createElement("div");
         buildMyLeavePopupFilterMonthPicker(content.querySelector(".popup-filter-month-shell"));
         content.querySelectorAll(".popup-filter-date-shell").forEach((shell) => buildMyLeavePopupFilterDatePicker(shell));
         setupFilterExclusivity(content);
+        setupPopupFilterClearButtonState(filterForm);
         openModal();
     }
 
