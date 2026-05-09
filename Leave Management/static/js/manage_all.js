@@ -456,7 +456,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             {
                 return {
                     value: item.label.split(" (")[0],
-                    label: `${item.symbol} ${item.label}`
+                    label: item.label,
+                    symbol: item.symbol
                 };
             });
 
@@ -560,6 +561,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const hiddenInput = shell.querySelector('input[type="hidden"]');
         const trigger = shell.querySelector(".month-trigger");
         const valueNode = shell.querySelector(".month-value");
+        const menu = shell.querySelector(".month-menu");
         const currentNode = shell.querySelector(".month-current");
         const grid = shell.querySelector(".month-grid");
         const prevButton = shell.querySelector(".prev-year");
@@ -567,7 +569,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const clearButton = shell.querySelector(".clear-action");
         const currentButton = shell.querySelector(".today-action");
 
-        if (!hiddenInput || !trigger || !valueNode || !currentNode || !grid)
+        if (!hiddenInput || !trigger || !valueNode || !menu || !currentNode || !grid)
         {
             return;
         }
@@ -603,6 +605,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         let viewYear = null;
         let manualYear = false;
         let openedAt = 0;
+        let menuPortal = null;
+        let menuPortalContent = null;
+        let menuPortalShell = null;
+        const originalMenuParent = menu.parentNode;
+        const originalMenuNextSibling = menu.nextSibling;
 
         const getToday = function ()
         {
@@ -659,12 +666,98 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         const close = function ()
         {
+            const wasOpenUp = shell.classList.contains("open-up");
             shell.classList.remove("open");
             trigger.setAttribute("aria-expanded", "false");
+            restoreMenu();
             viewYear = null;
             manualYear = false;
             openedAt = 0;
+            window.clearTimeout(shell._closeTimer);
+            shell._closeTimer = window.setTimeout(function ()
+            {
+                if (!shell.classList.contains("open"))
+                {
+                    shell.classList.remove("open-up");
+                }
+            }, wasOpenUp ? 230 : 10);
             syncDisplay();
+        };
+
+        const mountMenu = function (openUp)
+        {
+            if (!menuPortal)
+            {
+                menuPortal = document.createElement("div");
+                menuPortal.className = "popup-filter-menu-portal";
+                menuPortalContent = document.createElement("div");
+                menuPortalContent.className = "popup-filter-modal-content popup-filter-menu-portal-content";
+                menuPortalShell = document.createElement("div");
+                menuPortalShell.className = "popup-filter-month-shell custom-month-picker";
+                menuPortalContent.appendChild(menuPortalShell);
+                menuPortal.appendChild(menuPortalContent);
+            }
+
+            menuPortalShell.classList.toggle("open-up", !!openUp);
+            menuPortalShell.classList.add("open");
+            if (!menuPortal.isConnected)
+            {
+                document.body.appendChild(menuPortal);
+            }
+            if (menu.parentNode !== menuPortalShell)
+            {
+                menuPortalShell.appendChild(menu);
+            }
+            shell._restorePopupMenu = restoreMenu;
+        };
+
+        function restoreMenu()
+        {
+            menu.style.removeProperty("--popup-month-menu-left");
+            menu.style.removeProperty("--popup-month-menu-top");
+            menu.style.removeProperty("--popup-month-menu-bottom");
+            menu.style.maxHeight = "";
+            menu.style.overflowY = "";
+            if (menuPortalShell)
+            {
+                menuPortalShell.classList.remove("open", "open-up", "is-positioning");
+            }
+            if (originalMenuParent && menu.parentNode !== originalMenuParent)
+            {
+                originalMenuParent.insertBefore(menu, originalMenuNextSibling);
+            }
+            if (menuPortal && menuPortal.parentNode)
+            {
+                menuPortal.parentNode.removeChild(menuPortal);
+            }
+            delete shell._restorePopupMenu;
+        }
+
+        const positionMenu = function (openUp)
+        {
+            const viewportPadding = 12;
+            const menuGap = 2;
+            const shellRect = shell.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const menuWidth = menuRect.width || menu.offsetWidth || menu.scrollWidth || 282;
+            const menuHeight = menuRect.height || menu.offsetHeight || menu.scrollHeight || 176;
+            const maxLeft = Math.max(viewportPadding, window.innerWidth - viewportPadding - menuWidth);
+            const preferredLeft = shellRect.right - menuWidth;
+            const left = Math.min(Math.max(viewportPadding, preferredLeft), maxLeft);
+            const top = shellRect.bottom + menuGap;
+            const bottom = Math.max(viewportPadding, window.innerHeight - shellRect.top + menuGap);
+
+            menu.style.setProperty("--popup-month-menu-left", left + "px");
+            if (openUp)
+            {
+                menu.style.setProperty("--popup-month-menu-top", "auto");
+                menu.style.setProperty("--popup-month-menu-bottom", bottom + "px");
+            }
+            else
+            {
+                menu.style.setProperty("--popup-month-menu-top", top + "px");
+                menu.style.setProperty("--popup-month-menu-bottom", "auto");
+            }
         };
 
         const render = function ()
@@ -723,21 +816,26 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
             const isOpen = shell.classList.contains("open");
 
+            if (isOpen)
+            {
+                close();
+                return;
+            }
+
             document.querySelectorAll(".popup-filter-month-shell.open, .popup-filter-date-shell.open, .popup-filter-leave-shell.open").forEach(function (openShell)
             {
                 openShell.classList.remove("open");
+                openShell.classList.remove("open-up");
+                if (typeof openShell._restorePopupMenu === "function")
+                {
+                    openShell._restorePopupMenu();
+                }
                 const openTrigger = openShell.querySelector(".month-trigger, .date-trigger, .popup-filter-leave-trigger");
                 if (openTrigger)
                 {
                     openTrigger.setAttribute("aria-expanded", "false");
                 }
             });
-
-            if (isOpen)
-            {
-                close();
-                return;
-            }
 
             manualYear = false;
 
@@ -753,11 +851,35 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
             // Record open timestamp to guard against phantom clicks on nav buttons
             openedAt = Date.now();
+            window.clearTimeout(shell._closeTimer);
 
+            const menuHeight = menu.getBoundingClientRect().height || menu.offsetHeight || menu.scrollHeight || 176;
+            const shellRect = shell.getBoundingClientRect();
+            const viewportPadding = 18;
+            const openUp = true;
+
+            shell.classList.add("is-positioning");
+            shell.classList.toggle("open-up", openUp);
+            mountMenu(openUp);
+            positionMenu(openUp);
+            shell.offsetHeight;
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
             syncDisplay();
             render();
+            positionMenu(openUp);
+            requestAnimationFrame(function ()
+            {
+                shell.classList.remove("is-positioning");
+                positionMenu(openUp);
+                requestAnimationFrame(function ()
+                {
+                    if (shell.classList.contains("open"))
+                    {
+                        positionMenu(openUp);
+                    }
+                });
+            });
 
             // Force the header text AFTER render, as an absolute safety net
             currentNode.textContent = String(viewYear);
@@ -767,6 +889,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         {
             e.stopPropagation();
             open();
+        });
+        menu.addEventListener("click", function (e)
+        {
+            e.stopPropagation();
         });
         trigger.addEventListener("keydown", function (event)
         {
@@ -863,7 +989,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         document.addEventListener("click", function (event)
         {
-            if (!shell.contains(event.target))
+            if (!shell.contains(event.target) && !menu.contains(event.target))
             {
                 close();
             }
@@ -912,6 +1038,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         {
             return;
         }
+        let menuPortal = null;
+        let menuPortalContent = null;
+        let menuPortalShell = null;
+        const originalMenuParent = menu.parentNode;
+        const originalMenuNextSibling = menu.nextSibling;
 
         const parseValueDate = function (value)
         {
@@ -1010,6 +1141,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             const wasOpenUp = shell.classList.contains("open-up");
             shell.classList.remove("open");
             trigger.setAttribute("aria-expanded", "false");
+            restoreMenu();
             delete shell.dataset.previewValue;
             delete shell._viewDate;
             window.clearTimeout(shell._closeTimer);
@@ -1020,6 +1152,84 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     shell.classList.remove("open-up");
                 }
             }, wasOpenUp ? 230 : 10);
+        };
+
+        const mountMenu = function (openUp)
+        {
+            if (!menuPortal)
+            {
+                menuPortal = document.createElement("div");
+                menuPortal.className = "popup-filter-menu-portal";
+                menuPortalContent = document.createElement("div");
+                menuPortalContent.className = "popup-filter-modal-content popup-filter-menu-portal-content";
+                menuPortalShell = document.createElement("div");
+                menuPortalShell.className = "popup-filter-date-shell custom-date-picker";
+                menuPortalContent.appendChild(menuPortalShell);
+                menuPortal.appendChild(menuPortalContent);
+            }
+
+            menuPortalShell.classList.toggle("open-up", !!openUp);
+            menuPortalShell.classList.add("open");
+            if (!menuPortal.isConnected)
+            {
+                document.body.appendChild(menuPortal);
+            }
+            if (menu.parentNode !== menuPortalShell)
+            {
+                menuPortalShell.appendChild(menu);
+            }
+            shell._restorePopupMenu = restoreMenu;
+        };
+
+        function restoreMenu()
+        {
+            menu.style.removeProperty("--popup-date-menu-left");
+            menu.style.removeProperty("--popup-date-menu-top");
+            menu.style.removeProperty("--popup-date-menu-bottom");
+            menu.style.maxHeight = "";
+            menu.style.overflowY = "";
+            if (menuPortalShell)
+            {
+                menuPortalShell.classList.remove("open", "open-up");
+            }
+            if (originalMenuParent && menu.parentNode !== originalMenuParent)
+            {
+                originalMenuParent.insertBefore(menu, originalMenuNextSibling);
+            }
+            if (menuPortal && menuPortal.parentNode)
+            {
+                menuPortal.parentNode.removeChild(menuPortal);
+            }
+            delete shell._restorePopupMenu;
+        }
+
+        const positionMenu = function (openUp)
+        {
+            const viewportPadding = 12;
+            const menuGap = 2;
+            const shellRect = shell.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const menuWidth = menuRect.width || menu.offsetWidth || menu.scrollWidth || 236;
+            const menuHeight = menuRect.height || menu.offsetHeight || menu.scrollHeight || 318;
+            const maxLeft = Math.max(viewportPadding, window.innerWidth - viewportPadding - menuWidth);
+            const preferredLeft = hiddenInput.name === "to_date"
+                ? shellRect.right - menuWidth
+                : shellRect.left;
+            const left = Math.min(Math.max(viewportPadding, preferredLeft), maxLeft);
+            const top = shellRect.bottom + menuGap;
+            const bottom = Math.max(viewportPadding, window.innerHeight - shellRect.top + menuGap);
+
+            menu.style.setProperty("--popup-date-menu-left", left + "px");
+            if (openUp)
+            {
+                menu.style.setProperty("--popup-date-menu-top", "auto");
+                menu.style.setProperty("--popup-date-menu-bottom", bottom + "px");
+            }
+            else
+            {
+                menu.style.setProperty("--popup-date-menu-top", top + "px");
+                menu.style.setProperty("--popup-date-menu-bottom", "auto");
+            }
         };
 
         const render = function ()
@@ -1111,6 +1321,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             document.querySelectorAll(".popup-filter-month-shell.open, .popup-filter-date-shell.open, .popup-filter-leave-shell.open").forEach(function (openShell)
             {
                 openShell.classList.remove("open");
+                openShell.classList.remove("open-up");
+                if (typeof openShell._restorePopupMenu === "function")
+                {
+                    openShell._restorePopupMenu();
+                }
                 const openTrigger = openShell.querySelector(".month-trigger, .date-trigger, .popup-filter-leave-trigger");
                 if (openTrigger)
                 {
@@ -1128,21 +1343,30 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             shell.dataset.previewValue = formatValueDate(openDate);
             shell._viewDate = new Date(openDate.getFullYear(), openDate.getMonth(), 1);
             window.clearTimeout(shell._closeTimer);
-            const menuHeight = Math.max(menu.offsetHeight || 0, 318);
+            const menuHeight = menu.getBoundingClientRect().height || menu.offsetHeight || menu.scrollHeight || 318;
             const shellRect = shell.getBoundingClientRect();
             const viewportPadding = 18;
-            const spaceBelow = window.innerHeight - shellRect.bottom - viewportPadding;
-            const spaceAbove = shellRect.top - viewportPadding;
-            const openUp = spaceAbove >= menuHeight || spaceAbove >= spaceBelow;
+            const openUp = true;
 
             shell.classList.toggle("open-up", openUp);
+            mountMenu(openUp);
+            positionMenu(openUp);
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
             dateOpenedAt = Date.now();
             render();
+            positionMenu(openUp);
+            requestAnimationFrame(function ()
+            {
+                if (shell.classList.contains("open"))
+                {
+                    positionMenu(openUp);
+                }
+            });
         };
 
         trigger.addEventListener("click", function (e) { e.stopPropagation(); open(); });
+        menu.addEventListener("click", function (e) { e.stopPropagation(); });
         trigger.addEventListener("keydown", function (event)
         {
             if (event.key === "Enter" || event.key === " ")
@@ -1176,8 +1400,9 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         if (todayButton)
         {
-            todayButton.addEventListener("click", function ()
+            todayButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
                 const today = getTodayDate();
                 hiddenInput.value = formatValueDate(today);
                 shell._viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -1190,8 +1415,9 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         if (clearButton)
         {
-            clearButton.addEventListener("click", function ()
+            clearButton.addEventListener("click", function (e)
             {
+                e.stopPropagation();
                 hiddenInput.value = "";
                 shell._viewDate = getViewDate();
                 sync();
@@ -1203,7 +1429,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         document.addEventListener("click", function (event)
         {
-            if (!shell.contains(event.target))
+            if (!shell.contains(event.target) && !menu.contains(event.target))
             {
                 close();
             }
@@ -1276,6 +1502,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             document.querySelectorAll(".popup-filter-month-shell.open, .popup-filter-date-shell.open, .popup-filter-leave-shell.open").forEach(function (openShell)
             {
                 openShell.classList.remove("open");
+                openShell.classList.remove("open-up");
+                if (typeof openShell._restorePopupMenu === "function")
+                {
+                    openShell._restorePopupMenu();
+                }
                 const openTrigger = openShell.querySelector(".month-trigger, .date-trigger, .popup-filter-leave-trigger");
                 if (openTrigger)
                 {
@@ -1310,6 +1541,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             {
                 hiddenInput.value = option.dataset.value || "";
                 sync();
+                hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
+                hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
                 close();
             });
         });
@@ -1551,6 +1784,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const filterState = clonePopupHistoryFilter(getPopupFilterState(status));
         const leaveTypeOptions = getPopupFilterLeaveTypeOptions(status);
         const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+        const hasActiveModalFilter = function ()
+        {
+            return !!(filterState.leave_type || filterState.month || filterState.from_date || filterState.to_date);
+        };
 
         window.setSafeHTML(sharedModalContent, `
             <div class="popup-filter-modal-content">
@@ -1590,7 +1827,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                                     <button type="button" class="popup-filter-leave-option custom-option is-all-types" data-value="" data-display-label="<span class=&quot;popup-filter-leave-value-symbol&quot; aria-hidden=&quot;true&quot;>&#9679;</span><span class=&quot;popup-filter-leave-value-text&quot;>All types</span>"><span class="popup-filter-leave-option-symbol" aria-hidden="true">&#9679;</span><span class="option-title">All types</span><span class="popup-filter-leave-option-check" aria-hidden="true">&#10003;</span></button>
                                     ${leaveTypeOptions.map(function (type)
                                     {
-                                        return `<button type="button" class="popup-filter-leave-option custom-option" data-value="${escapeHtml(type.value)}" data-display-label="<span class=&quot;popup-filter-leave-value-symbol&quot; aria-hidden=&quot;true&quot;>${escapeHtml(type.symbol || "&#9679;")}</span><span class=&quot;popup-filter-leave-value-text&quot;>${escapeHtml(type.label)}</span>"><span class="popup-filter-leave-option-symbol" aria-hidden="true">${escapeHtml(type.symbol || "&#9679;")}</span><span class="option-title">${escapeHtml(type.label)}</span><span class="popup-filter-leave-option-check" aria-hidden="true">&#10003;</span></button>`;
+                                        return `<button type="button" class="popup-filter-leave-option custom-option" data-value="${escapeHtml(type.value)}" data-display-label="<span class=&quot;popup-filter-leave-value-symbol&quot; aria-hidden=&quot;true&quot;>${escapeHtml(type.symbol || "\u25CF")}</span><span class=&quot;popup-filter-leave-value-text&quot;>${escapeHtml(type.label)}</span>"><span class="popup-filter-leave-option-symbol" aria-hidden="true">${escapeHtml(type.symbol || "\u25CF")}</span><span class="option-title">${escapeHtml(type.label)}</span><span class="popup-filter-leave-option-check" aria-hidden="true">&#10003;</span></button>`;
                                     }).join("")}
                                 </div>
                             </div>
@@ -1722,6 +1959,23 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             const toDateInput = form.querySelector('input[name="to_date"]');
             const monthPickerShell = form.querySelector(".popup-filter-month-shell");
             const datePickerShells = Array.from(form.querySelectorAll(".popup-filter-date-shell"));
+            const syncPopupClearButton = function ()
+            {
+                if (!clearButton)
+                {
+                    return;
+                }
+
+                const hasFormFilter = !!(
+                    (leaveTypeShell && leaveTypeShell.querySelector('input[name="leave_type"]') && leaveTypeShell.querySelector('input[name="leave_type"]').value) ||
+                    (monthInput && monthInput.value) ||
+                    (fromDateInput && fromDateInput.value) ||
+                    (toDateInput && toDateInput.value)
+                );
+
+                clearButton.disabled = !hasFormFilter;
+                clearButton.setAttribute("aria-disabled", String(!hasFormFilter));
+            };
             const syncPopupFilterDateInputs = function ()
             {
                 const hasMonth = !!(monthInput && monthInput.value);
@@ -1759,11 +2013,19 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                         datePickerShells[1].classList.toggle("is-disabled", toDisabled);
                     }
                 }
+
+                syncPopupClearButton();
             };
 
             if (leaveTypeShell)
             {
                 buildPopupFilterLeaveTypeDropdown(leaveTypeShell);
+                const leaveTypeInput = leaveTypeShell.querySelector('input[name="leave_type"]');
+                if (leaveTypeInput)
+                {
+                    leaveTypeInput.addEventListener("input", syncPopupClearButton);
+                    leaveTypeInput.addEventListener("change", syncPopupClearButton);
+                }
             }
 
             if (monthPickerShell)
@@ -1788,6 +2050,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             });
 
             syncPopupFilterDateInputs();
+            syncPopupClearButton();
 
             form.addEventListener("submit", function (event)
             {
@@ -1811,8 +2074,15 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         if (clearButton)
         {
+            clearButton.disabled = !hasActiveModalFilter();
+            clearButton.setAttribute("aria-disabled", String(!hasActiveModalFilter()));
             clearButton.addEventListener("click", function ()
             {
+                if (clearButton.disabled)
+                {
+                    return;
+                }
+
                 popupHistoryFilters[status] = createEmptyPopupHistoryFilter();
                 setPopupHistoryPage(status, 1);
                 syncPopupTabFilterIndicators();
@@ -3697,7 +3967,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         }
 
         const baseRowHeight = cache[currentStatus] || 56;
-        const rowViewportHeight = baseRowHeight * 5;
+        const visibleRowCount = visibleRows.length ? Math.min(visibleRows.length, 5) : 1;
+        const rowViewportHeight = baseRowHeight * visibleRowCount;
         const bufferHeight = 6;
 
         popupTableInner.style.maxHeight = Math.ceil(headerHeight + rowViewportHeight + bufferHeight) + "px";
