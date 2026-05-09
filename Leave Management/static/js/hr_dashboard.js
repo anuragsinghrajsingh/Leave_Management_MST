@@ -1226,6 +1226,11 @@ const dashboardModalAnimationMs = 120;
             {
                 closeReject();
                 refreshDashboardLiveSections();
+                window.dispatchEvent(new CustomEvent("hr-notifications:refresh", {
+                    detail: {
+                        leaveId: leaveId
+                    }
+                }));
             })
             .catch(function (error)
             {

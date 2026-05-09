@@ -859,8 +859,13 @@ def get_hr_notification_context(user, limit=None):
 
 
 def build_employee_notifications(leaves, viewer=None):
+    notification_retention_cutoff = now() - timedelta(days=30)
     leaves = sorted(
-        [leave for leave in leaves if leave.status in ["Approved", "Rejected"]],
+        [
+            leave for leave in leaves
+            if leave.status in ["Approved", "Rejected"]
+            and get_leave_activity_datetime(leave) >= notification_retention_cutoff
+        ],
         key=get_leave_activity_datetime,
         reverse=True,
     )
@@ -882,6 +887,7 @@ def build_employee_notifications(leaves, viewer=None):
         panel_target = "rejected-panel" if leave.status == "Rejected" else "approved-panel"
         is_read = leave.id in read_ids
         is_new = leave.id not in seen_ids
+
         activity_at = get_leave_activity_datetime(leave)
         schedule_text = (
             f"{leave.from_date.strftime('%b %d')}, "
@@ -1305,6 +1311,11 @@ def employee_notifications(request):
 
     return JsonResponse({
         "count": payload["count"],
+        "leave_counts": {
+            "pending": Leave.objects.filter(user=request.user, status="Pending").count(),
+            "approved": Leave.objects.filter(user=request.user, status="Approved").count(),
+            "rejected": Leave.objects.filter(user=request.user, status="Rejected").count(),
+        },
         "recent_type_class": payload["recent_type_class"],
         "notifications": notifications,
     })
@@ -3854,8 +3865,14 @@ def delete_leave(request, leave_id):
 
         deleted_leave_id = leave.id
         leave.delete()
-        pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
-        return _my_leave_response(request, deleted_id=deleted_leave_id, pending_count=pending_count)
+        
+        live_counts = {
+            "pending": Leave.objects.filter(user=request.user, status="Pending").count(),
+            "approved": Leave.objects.filter(user=request.user, status="Approved").count(),
+            "rejected": Leave.objects.filter(user=request.user, status="Rejected").count(),
+        }
+        
+        return _my_leave_response(request, deleted_id=deleted_leave_id, live_counts=live_counts, pending_count=live_counts["pending"])
 
     return _my_leave_response(request, status=400)
 

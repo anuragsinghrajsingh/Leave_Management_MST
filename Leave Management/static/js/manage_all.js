@@ -2406,6 +2406,16 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         setPopupTableCollapsed(false);
     }
 
+    function refreshHrNotificationsAfterDecision(leaveId)
+    {
+        window.dispatchEvent(new CustomEvent("hr-notifications:refresh", {
+            detail: {
+                apiUrl: notificationApiUrl,
+                leaveId: leaveId
+            }
+        }));
+    }
+
     function approveLeaveRequest(leaveId)
     {
         if (popupActionInFlight || !currentEmployeeDetail)
@@ -2444,6 +2454,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             {
                 renderFlashMessages(payload.messages);
                 refreshEmployeeModalAfterAction(payload.employee_detail, "approved");
+                refreshHrNotificationsAfterDecision(leaveId);
             })
             .catch(function (error)
             {
@@ -4971,6 +4982,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     closeReject();
                     renderFlashMessages(payload.messages);
                     refreshEmployeeModalAfterAction(payload.employee_detail, "rejected");
+                    refreshHrNotificationsAfterDecision(payload.leave_id || currentRejectLeaveId);
                 })
                 .catch(function ()
                 {

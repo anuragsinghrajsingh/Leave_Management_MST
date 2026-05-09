@@ -1,6 +1,6 @@
 const modal = document.getElementById("modal");
             const modalContent = document.getElementById("modal-content");
-            const MODAL_ANIMATION_MS = 170;
+            const MODAL_ANIMATION_MS = 400;
             const POPUP_SKELETON_DELAY_MS = 150;
             const SURFACE_SKELETON_DELAY_MS = 150;
             const SURFACE_SKELETON_MIN_VISIBLE_MS = 90;
@@ -149,6 +149,18 @@ const modal = document.getElementById("modal");
 
                 modal.classList.remove("is-closing");
                 modal.style.display = "flex";
+                
+                const modalBox = modal.querySelector(".modal-box");
+                // Calculate origin for opening animation
+                if (window.lastModalTrigger && modalBox) 
+                {
+                    const triggerRect = window.lastModalTrigger.getBoundingClientRect();
+                    const originX = (triggerRect.left + triggerRect.width / 2) - (window.innerWidth / 2);
+                    const originY = (triggerRect.top + triggerRect.height / 2) - (window.innerHeight / 2);
+                    modalBox.style.setProperty("--modal-origin-x", originX + "px");
+                    modalBox.style.setProperty("--modal-origin-y", originY + "px");
+                }
+
                 requestAnimationFrame(() => modal.classList.add("is-open"));
                 modal.setAttribute("aria-hidden", "false");
                 trapFocus(modal);
@@ -183,14 +195,21 @@ const modal = document.getElementById("modal");
                 modal.classList.remove("popup-edit-modal-host");
                 modal.setAttribute("aria-hidden", "true");
 
-                modalBox.classList.remove("wide"); // For Calendar
-                modalBox.classList.remove("expanded-calendar"); // For Calendar
-                modalBox.classList.remove("compact-calendar"); // For Calendar
-                
-                // Remove calendar toggle if somehow still present
-                const existingToggle = document.getElementById("calendar-toggle-icon");
-                if (existingToggle) existingToggle.remove();
-
+                // Calculate offsets from viewport center to button center
+                if (window.lastModalTrigger && modalBox) 
+                {
+                    const triggerRect = window.lastModalTrigger.getBoundingClientRect();
+                    const originX = (triggerRect.left + triggerRect.width / 2) - (window.innerWidth / 2);
+                    const originY = (triggerRect.top + triggerRect.height / 2) - (window.innerHeight / 2);
+                    
+                    modalBox.style.setProperty("--modal-origin-x", originX + "px");
+                    modalBox.style.setProperty("--modal-origin-y", originY + "px");
+                } 
+                else if (modalBox) 
+                {
+                    modalBox.style.setProperty("--modal-origin-x", "0px");
+                    modalBox.style.setProperty("--modal-origin-y", "0px");
+                }
 
                 modalCloseTimer = setTimeout(() =>
                 {
@@ -198,6 +217,17 @@ const modal = document.getElementById("modal");
                     modal.classList.remove("is-closing");
                     modal.classList.remove("communication-detail-open");
                     modalContent.innerHTML = "";       // Empty 'modal' the container so that next time we open it, we start fresh without any leftover content from previous usage.
+
+                    if (modalBox)
+                    {
+                        modalBox.classList.remove("wide"); // For Calendar
+                        modalBox.classList.remove("expanded-calendar"); // For Calendar
+                        modalBox.classList.remove("compact-calendar"); // For Calendar
+                    }
+
+                    // Remove calendar toggle if somehow still present
+                    const existingToggle = document.getElementById("calendar-toggle-icon");
+                    if (existingToggle) existingToggle.remove();
 
                     // MOVE FORM BACK HOME (CRITICAL)
                     if (formTemplate && formHome) 

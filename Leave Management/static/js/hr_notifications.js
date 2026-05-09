@@ -103,6 +103,7 @@
             return String(item.dataset.notificationId);
         }));
         let latestNotifications = [];
+        let latestLeaveCounts = null;
         let hasFetchedOnce = false;
         let firstFetchEmptyGuardUsed = false;
         let dropdownInitAt = Date.now();
@@ -207,8 +208,49 @@
                     readIds: Array.from(readIds),
                     highlightedIds: Array.from(highlightedIds),
                     notifications: hasFetchedOnce ? latestNotifications.slice() : null,
+                    leaveCounts: latestLeaveCounts,
                 }
             }));
+        }
+
+        function removeNotificationsByIds(ids) {
+            const notificationIds = Array.isArray(ids)
+                ? ids.map(function (id) { return String(id || "").trim(); }).filter(Boolean)
+                : [];
+
+            if (!notificationIds.length) {
+                return;
+            }
+
+            const idSet = new Set(notificationIds);
+            knownIds = knownIds.filter(function (id) {
+                return !idSet.has(String(id));
+            });
+            latestNotifications = latestNotifications.filter(function (item) {
+                return !idSet.has(String(item.id || ""));
+            });
+            notificationIds.forEach(function (id) {
+                readIds.delete(id);
+                serverReadIds.delete(id);
+                highlightedIds.delete(id);
+            });
+
+            list.querySelectorAll("[data-notification-id]").forEach(function (item) {
+                if (idSet.has(String(item.dataset.notificationId || "")) && item.parentNode) {
+                    item.parentNode.removeChild(item);
+                }
+            });
+
+            updateTotal(knownIds.filter(function (id) {
+                return !readIds.has(id);
+            }).length);
+            updateNewIndicators();
+
+            if (!knownIds.length) {
+                renderNotifications([]);
+            }
+
+            broadcastNotificationState();
         }
 
         function syncInitialState() {
@@ -457,7 +499,10 @@
             postReadState({ all: true }).catch(function () {});
         }
 
-        function handlePayload(payload, fetchId) {
+        function handlePayload(payload, fetchId, options) {
+            const settings = options || {};
+            const forceAcceptEmpty = settings.forceAcceptEmpty === true;
+
             if (Number.isFinite(fetchId) && fetchId < latestHandledFetchId) {
                 return;
             }
@@ -466,6 +511,7 @@
             }
 
             const notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
+            latestLeaveCounts = payload && typeof payload.leave_counts === "object" ? payload.leave_counts : latestLeaveCounts;
             const payloadCount = Number(payload && payload.count);
             const hasRenderableItems =
                 knownIds.length > 0 ||
@@ -481,6 +527,7 @@
             // Guard against a transient stale/empty first response that can briefly zero-out
             // server-rendered notifications and badges before the next poll.
             if (
+                !forceAcceptEmpty &&
                 !hasFetchedOnce &&
                 !firstFetchEmptyGuardUsed &&
                 suspiciousEmptyPayload
@@ -492,6 +539,7 @@
 
             // Hard guard for inconsistent empty payloads that can arrive during page init/navigation.
             if (
+                !forceAcceptEmpty &&
                 suspiciousEmptyPayload &&
                 (
                     (Date.now() - dropdownInitAt < 70000 && !acceptedAnyNonEmptyPayload) ||
@@ -538,7 +586,8 @@
             dropdown.classList.add("is-hydrated");
         }
 
-        function fetchNotifications() {
+        function fetchNotifications(options) {
+            const settings = options || {};
             const requestId = ++fetchSequence;
             const shouldShowSkeleton =
                 dropdown.classList.contains("is-open") &&
@@ -564,7 +613,7 @@
                     return response.json();
                 })
                 .then(function (payload) {
-                    handlePayload(payload, requestId);
+                    handlePayload(payload, requestId, settings);
                 })
                 .catch(function () {
                     // Ignore polling failures silently.
@@ -640,6 +689,17 @@
             updateTotal(knownIds.filter(function (id) {
                 return !readIds.has(id);
             }).length);
+        });
+
+        window.addEventListener("hr-notifications:refresh", function (event) {
+            const detail = event.detail || {};
+
+            if (detail.apiUrl && detail.apiUrl !== apiUrl) {
+                return;
+            }
+
+            removeNotificationsByIds(detail.leaveIds || (detail.leaveId ? [detail.leaveId] : []));
+            fetchNotifications({ forceAcceptEmpty: true });
         });
 
         syncInitialState();

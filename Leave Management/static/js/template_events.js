@@ -110,11 +110,13 @@
 
             case "open-leave-calendar":
                 event.preventDefault();
+                window.lastModalTrigger = actionElement;
                 callGlobal("openLeaveCalendar");
                 break;
 
             case "open-filter-modal":
                 event.preventDefault();
+                window.lastModalTrigger = actionElement;
                 callGlobal("openFilterModal", [actionElement.dataset.status]);
                 break;
 
@@ -125,6 +127,7 @@
 
             case "open-edit-leave":
                 event.preventDefault();
+                window.lastModalTrigger = actionElement;
                 callGlobal("openEditLeave", [actionElement]);
                 break;
 

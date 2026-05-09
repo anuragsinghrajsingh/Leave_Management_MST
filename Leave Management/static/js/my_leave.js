@@ -885,9 +885,10 @@ const exportWrapper = document.createElement("div");
                             if (!target) return;
                             const containerRect = yearContainer.getBoundingClientRect();
                             const targetRect = target.getBoundingClientRect();
-                            const scrollPosition = yearContainer.scrollTop + (targetRect.top - containerRect.top);
+                            // Increased offset to 25px to ensure no month titles (especially right-most ones) are cut off
+                            const scrollPosition = yearContainer.scrollTop + (targetRect.top - containerRect.top) - 25;
                             yearContainer.scrollTo({ top: scrollPosition, behavior: "smooth" });
-                        }, 50);
+                        }, 350);
                         // When switching to expanded ? reset export month
                         exportMonth.value = "All";   // shows "Select month"
                         // OR use this if you prefer auto whole year:
@@ -1064,8 +1065,8 @@ const exportWrapper = document.createElement("div");
             }
             grid.appendChild(cell);
         }
-        const visibleDateCells = 42;
-        for (let i = firstDay + daysInMonth; i < visibleDateCells; i++) {
+        const totalCellsRequired = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+        for (let i = firstDay + daysInMonth; i < totalCellsRequired; i++) {
             const emptyCell = document.createElement("div");
             emptyCell.className = "calendar-cell empty";
             emptyCell.setAttribute("aria-hidden", "true");
@@ -2323,7 +2324,6 @@ const exportWrapper = document.createElement("div");
     function updatePendingCounts(count)
     {
         [
-            document.querySelector('.status-tab[data-target="pending-panel"] .status-tab-count'),
             document.querySelector('#pending-panel .card-summary-badge strong'),
             document.querySelector('.summary-panel-open-requests strong')
         ].forEach((node) =>
@@ -2373,9 +2373,8 @@ const exportWrapper = document.createElement("div");
     function updateStatusPanelCount(status, count)
     {
         const panelId = getPanelIdFromStatus(status);
-        const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
         const summaryCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
-        [tabCount, summaryCount].forEach((node) =>
+        [summaryCount].forEach((node) =>
         {
             if (!node) return;
             node.textContent = String(count);
@@ -2383,7 +2382,12 @@ const exportWrapper = document.createElement("div");
         });
         if (status === "Pending")
         {
-            updatePendingCounts(count);
+            const summaryOpenRequests = document.querySelector('.summary-panel-open-requests strong');
+            if (summaryOpenRequests)
+            {
+                summaryOpenRequests.textContent = String(count);
+                summaryOpenRequests.dataset.countupTarget = String(count);
+            }
         }
     }
     function renderFilterBadges(status)
@@ -2506,14 +2510,65 @@ const exportWrapper = document.createElement("div");
                 emptyRow = document.createElement("tr");
                 emptyRow.className = "table-empty-row";
                 const colCount = panelId === "pending-panel" || panelId === "rejected-panel" ? 8 : 7;
-                const emptyText = panelId === "approved-panel"
-                    ? "No approved leaves"
-                    : panelId === "rejected-panel"
-                        ? "No rejected leaves"
-                        : "No pending leaves";
+                const emptyDefs = {
+                    "pending-panel": {
+                        theme: "mle-pending",
+                        title: "Nothing in the Queue",
+                        message: "No pending leave requests right now. Apply when you need time off.",
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14" stroke-width="2" opacity="0.6"/><path d="M5 21h14" stroke-width="2" opacity="0.6"/><path d="M7 3v3c0 2.8 2.2 5 5 5s5-2.2 5-5V3" opacity="0.3"/><path d="M7 21v-3c0-2.8 2.2-5 5-5s5 2.2 5 5v3" opacity="0.3"/><circle cx="12" cy="12" r="0.8" fill="currentColor" opacity="0.6" class="mle-sand"/><circle cx="11.2" cy="17" r="0.5" fill="currentColor" opacity="0.4"/><circle cx="12.8" cy="17.5" r="0.5" fill="currentColor" opacity="0.4"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" opacity="0.5"/></svg>'
+                    },
+                    "approved-panel": {
+                        theme: "mle-approved",
+                        title: "All Clear Here",
+                        message: "No approved leaves to display. Approved requests will appear here.",
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" opacity="0.25" fill="currentColor"/><line x1="12" y1="1" x2="12" y2="4" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="12" y1="20" x2="12" y2="23" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="1" y1="12" x2="4" y2="12" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="20" y1="12" x2="23" y2="12" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34" stroke-width="1.5" opacity="0.35"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78" stroke-width="1.5" opacity="0.35"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66" stroke-width="1.5" opacity="0.35"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22" stroke-width="1.5" opacity="0.35"/><path d="m9 12 2 2 4-4" stroke-width="2.5" opacity="0.8" class="mle-check"/></svg>'
+                    },
+                    "rejected-panel": {
+                        theme: "mle-rejected",
+                        title: "Nothing Declined",
+                        message: "No rejected requests found. That\u2019s great \u2014 your requests are going through!",
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" opacity="0.2"/><polyline points="14 2 14 8 20 8" opacity="0.3"/><line x1="8" y1="13" x2="16" y2="13" opacity="0.15" stroke-width="1.2"/><line x1="8" y1="17" x2="12" y2="17" opacity="0.1" stroke-width="1.2"/><line x1="9" y1="9" x2="10" y2="9" opacity="0.1" stroke-width="1.2"/><line x1="9.5" y1="11.5" x2="14.5" y2="16.5" stroke-width="2.2" opacity="0.7" class="mle-cross"/><line x1="14.5" y1="11.5" x2="9.5" y2="16.5" stroke-width="2.2" opacity="0.7" class="mle-cross"/></svg>'
+                    }
+                };
+                const def = emptyDefs[panelId] || emptyDefs["pending-panel"];
                 const emptyCell = document.createElement("td");
                 emptyCell.colSpan = colCount;
-                emptyCell.textContent = emptyText;
+                window.setSafeHTML(emptyCell, '<div class="mle-empty-state ' + def.theme + '">' +
+                    '<div class="mle-particles">' +
+                        '<span class="mle-dot md1"></span>' +
+                        '<span class="mle-dot md2"></span>' +
+                        '<span class="mle-dot md3"></span>' +
+                        '<span class="mle-dot md4"></span>' +
+                        '<span class="mle-dot md5"></span>' +
+                        '<span class="mle-dot md6"></span>' +
+                        '<span class="mle-dot md7"></span>' +
+                        '<span class="mle-dot md8"></span>' +
+                    '</div>' +
+                    '<div class="mle-stars">' +
+                        '<span class="mle-star ms1">\u2726</span>' +
+                        '<span class="mle-star ms2">\u2727</span>' +
+                        '<span class="mle-star ms3">\u22C6</span>' +
+                        '<span class="mle-star ms4">\u2726</span>' +
+                        '<span class="mle-star ms5">\u2727</span>' +
+                        '<span class="mle-star ms6">\u22C6</span>' +
+                        '<span class="mle-star ms7">\u2726</span>' +
+                        '<span class="mle-star ms8">\u2727</span>' +
+                        '<span class="mle-star ms9">\u2734</span>' +
+                        '<span class="mle-star ms10">\u2726</span>' +
+                    '</div>' +
+                    '<div class="mle-core">' +
+                        '<div class="mle-visual">' +
+                            '<div class="mle-aura"></div>' +
+                            '<div class="mle-icon-anchor">' +
+                                '<div class="mle-icon-float">' + def.icon + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="mle-content">' +
+                            '<strong class="mle-title">' + def.title + '</strong>' +
+                            '<p class="mle-message">' + def.message + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>');
                 emptyRow.replaceChildren(emptyCell);
                 tbody.appendChild(emptyRow);
             }
@@ -2603,9 +2658,7 @@ const exportWrapper = document.createElement("div");
         Object.entries(panelMap).forEach(([key, panelId]) =>
         {
             const count = counts[key] ?? 0;
-            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
             const panelCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
-            updateMyLeaveCountElement(tabCount, count);
             updateMyLeaveCountElement(panelCount, count);
         });
     }
@@ -2630,9 +2683,7 @@ const exportWrapper = document.createElement("div");
         Object.entries(panelMap).forEach(([key, panelId]) =>
         {
             const count = getVisibleMyLeaveRowCount(panelId);
-            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
             const panelCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
-            setMyLeaveSectionCountElement(tabCount, count);
             setMyLeaveSectionCountElement(panelCount, count);
         });
     }
@@ -2648,7 +2699,23 @@ const exportWrapper = document.createElement("div");
             const fallback = getVisibleMyLeaveRowCount(panelId);
             const rawCount = Number(counts[key]);
             const count = Number.isFinite(rawCount) ? rawCount : fallback;
-            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] .status-tab-count`);
+            const panelCount = document.querySelector(`#${panelId} .card-summary-badge strong`);
+            updateMyLeaveCountElement(panelCount, count);
+        });
+    }
+    function syncMyLeaveStatusTabCounts(counts = {})
+    {
+        const panelMap = {
+            pending: "pending-panel",
+            approved: "approved-panel",
+            rejected: "rejected-panel"
+        };
+        Object.entries(panelMap).forEach(([key, panelId]) =>
+        {
+            const fallback = getVisibleMyLeaveRowCount(panelId);
+            const rawCount = Number(counts[key]);
+            const count = Number.isFinite(rawCount) ? rawCount : fallback;
+            const tabCount = document.querySelector(`.status-tab[data-target="${panelId}"] [data-live-count]`);
             setMyLeaveSectionCountElement(tabCount, count);
         });
     }
@@ -2688,9 +2755,9 @@ const exportWrapper = document.createElement("div");
         }
         return notifications.filter((item) => item && item.target_panel);
     }
-    function buildMyLeaveNotificationSignature(notifications)
+    function buildMyLeaveNotificationSignature(notifications, totalCount = 0)
     {
-        return getMyLeaveDecisionNotifications(notifications)
+        const itemsSig = getMyLeaveDecisionNotifications(notifications)
             .map((item) => [
                 item.id || "",
                 item.target_panel || "",
@@ -2700,6 +2767,7 @@ const exportWrapper = document.createElement("div");
                 item.applied_text || ""
             ].join(":"))
             .join("|");
+        return `${totalCount}:${itemsSig}`;
     }
     function getActiveMyLeavePanelId()
     {
@@ -2770,6 +2838,8 @@ const exportWrapper = document.createElement("div");
             applyAllMyLeaveFilters();
             syncMyLeavePanelCountsFromRows();
             syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
+            syncMyLeaveStatusTabCounts(payload.live_counts || payload.counts);
+            
             document.dispatchEvent(new CustomEvent("countup:refresh", {
                 detail: {
                     root: document,
@@ -2777,15 +2847,21 @@ const exportWrapper = document.createElement("div");
                     force: true
                 }
             }));
-            syncMyLeavePanelCountsFromRows();
-            syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
-            requestAnimationFrame(syncMyLeavePanelCountsFromRows);
-            requestAnimationFrame(() => syncMyLeaveTopBarCounts(payload.live_counts || payload.counts));
+            
+            // Multiple passes to ensure absolute sync after any animations or filter transitions
+            requestAnimationFrame(() => {
+                syncMyLeavePanelCountsFromRows();
+                syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
+                syncMyLeaveStatusTabCounts(payload.live_counts || payload.counts);
+            });
+            
             window.setTimeout(() =>
             {
                 syncMyLeavePanelCountsFromRows();
                 syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
-            }, 280);
+                syncMyLeaveStatusTabCounts(payload.live_counts || payload.counts);
+            }, 350);
+
             if (typeof window.myLeaveActivatePanel === "function")
             {
                 window.myLeaveActivatePanel(activePanelId);
@@ -2952,13 +3028,34 @@ const exportWrapper = document.createElement("div");
                 return;
             }
             const submitBtn = form.querySelector('button[type="submit"]');
+            const row = form.closest(".leave-row");
+            
             if (submitBtn) submitBtn.disabled = true;
+            if (row) {
+                row.style.opacity = "0.4";
+                row.style.pointerEvents = "none";
+                row.classList.add("deleting-feedback");
+            }
+            
             const payload = await submitPendingLeaveAjax(form.action, new FormData(form));
             if (submitBtn) submitBtn.disabled = false;
+            
             if (!payload.success)
             {
+                if (row) {
+                    row.style.opacity = "";
+                    row.style.pointerEvents = "";
+                    row.classList.remove("deleting-feedback");
+                }
                 return;
             }
+            
+            // Immediate UI update for the counts if available
+            if (payload.live_counts) {
+                syncMyLeaveTopBarCounts(payload.live_counts);
+                syncMyLeaveStatusTabCounts(payload.live_counts);
+            }
+            
             await refreshMyLeaveLiveData({
                 activePanel: "pending-panel"
             });
@@ -3024,12 +3121,20 @@ const exportWrapper = document.createElement("div");
         if (
             !notificationDropdown ||
             detail.apiUrl !== notificationDropdown.dataset.notificationApi ||
-            !Array.isArray(detail.notifications)
+            detail.userKey !== notificationDropdown.dataset.notificationUserKey
         )
         {
             return;
         }
-        const signature = buildMyLeaveNotificationSignature(detail.notifications);
+        if (detail.leaveCounts)
+        {
+            syncMyLeaveStatusTabCounts(detail.leaveCounts);
+        }
+        if (!Array.isArray(detail.notifications))
+        {
+            return;
+        }
+        const signature = buildMyLeaveNotificationSignature(detail.notifications, detail.notifications.length);
         if (!myLeaveLiveNotificationInitialized)
         {
             myLeaveLiveNotificationInitialized = true;
@@ -3837,7 +3942,7 @@ const exportWrapper = document.createElement("div");
                 modal._lastFocusedElement.focus({ preventScroll: true });
             }
             modal._lastFocusedElement = null;
-        }, 260);
+        }, 400);
     }
     function formatReasonModalClockTime(isoValue, fallbackText)
     {
