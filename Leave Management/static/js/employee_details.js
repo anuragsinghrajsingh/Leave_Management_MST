@@ -430,14 +430,6 @@
                 grid.appendChild(dayButton);
             }
 
-            while (grid.children.length < 42)
-            {
-                const blankCell = document.createElement("button");
-                blankCell.type = "button";
-                blankCell.className = "date-day muted";
-                blankCell.disabled = true;
-                grid.appendChild(blankCell);
-            }
         }
 
         function buildJoinDatePicker()
