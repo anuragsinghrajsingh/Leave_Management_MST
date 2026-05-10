@@ -43,9 +43,9 @@
 
 .page-kicker::before {
     content: "\25C8";
-    width: 32px;
-    height: 32px;
-    margin-right: 14px;
+    width: 18px;
+    height: 18px;
+    margin-right: 0;
     background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #2dd4bf 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -160,23 +160,31 @@ main.my-leave-page a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin: -6px auto 4px; /* Ultimate overlap to top */
-    padding: 4px 16px 4px 10px;
-    background: rgba(37, 99, 235, 0.04);
-    border: none;
+    gap: 8px;
+    margin: 5px auto 2px;
+    padding: 3px 16px 3px 12px;
+    border: 1px solid rgba(37, 99, 235, 0.18);
     border-radius: 999px;
-    
-    /* Text Gradient Magic */
-    background-image: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #2dd4bf 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent !important;
-    
-    font-size: 2.1rem;
-    font-weight: 900 !important;
-    letter-spacing: 0.12em;
+    background: rgba(219, 234, 254, 0.86);
+    color: #1d4ed8 !important;
+    font-size: 1.82rem;
+    font-weight: 1000 !important;
+    line-height: 1;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.02);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.72),
+        0 8px 18px rgba(37, 99, 235, 0.08);
+}
+
+.page-kicker span {
+    background-image: linear-gradient(90deg, #1d4ed8 0%, #0f766e 45%, #7c3aed 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    font-weight: 1000 !important;
+    text-shadow: 0 0 0 currentColor, 0.55px 0 currentColor, -0.55px 0 currentColor;
 }
 
 
@@ -204,7 +212,7 @@ main.my-leave-page a {
 
 .page-hero-summary {
     display: grid;
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr) minmax(0, 0.78fr);
+    grid-template-columns: minmax(0, 0.98fr) minmax(0, 0.86fr) minmax(0, 0.86fr);
     gap: 3px;
     padding: 3px;
     align-items: stretch;
@@ -318,6 +326,18 @@ main.my-leave-page a {
         linear-gradient(180deg, rgba(239, 253, 250, 0.98), rgba(220, 252, 247, 0.94));
     border-color: rgba(13, 148, 136, 0.24);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.summary-panel-company-holiday .summary-label {
+    font-size: 0.68rem;
+}
+
+.summary-panel-company-holiday strong {
+    font-size: 1.54rem;
+}
+
+.summary-panel-company-holiday .summary-meta {
+    font-size: clamp(0.62rem, 0.7vw, 0.69rem);
 }
 
 .summary-panel-company-holiday .summary-label,
@@ -2998,8 +3018,10 @@ textarea:focus {
     }
 
     .page-kicker {
-        font-size: 1.04rem;
-        margin-bottom: 8px;
+        margin: -8px auto 10px;
+        padding: 3px 14px 3px 11px;
+        font-size: 1.46rem;
+        letter-spacing: 0.08em;
     }
 
     .page-hero-copy h2 {
@@ -3046,6 +3068,17 @@ textarea:focus {
     .status-tab-label {
         min-width: 0;
         overflow-wrap: anywhere;
+    }
+
+    .summary-panel .summary-label {
+        font-size: 0.64rem;
+        letter-spacing: 0.08em;
+    }
+
+    .summary-panel .summary-label::before {
+        width: 16px;
+        height: 16px;
+        font-size: 0.68rem;
     }
 
     .stats-grid {
@@ -3330,8 +3363,13 @@ textarea:focus {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .summary-panel .summary-label {
+        font-size: 0.6rem;
+        letter-spacing: 0.06em;
+    }
+
     .page-kicker {
-        font-size: 0.94rem;
+        font-size: 1.28rem;
         letter-spacing: 0.06em;
     }
 
@@ -8124,7 +8162,7 @@ textarea:focus {
 }
 
 .my-leave-page .leave-table {
-    width: max-content;
+    width: 100%;
     min-width: 100%;
     border-collapse: separate;
     border-spacing: 0 4px;
@@ -8252,9 +8290,21 @@ textarea:focus {
 }
 
 .my-leave-page .leave-table .reason-inline-more {
+    display: inline !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.28) !important;
+    background: none !important;
+    color: #2563eb !important;
     font-size: inherit !important;
     font-weight: inherit !important;
     line-height: inherit !important;
+    cursor: pointer;
+    text-decoration: none !important;
+}
+
+.my-leave-page .leave-table .reason-text.is-truncated {
+    cursor: pointer;
 }
 
 .my-leave-page .leave-table .edit-btn,
@@ -8331,6 +8381,134 @@ textarea:focus {
     background: linear-gradient(135deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.72)) !important;
 }
 
+/* My Leave reason popup: mirror Manage All heading and reason text treatment. */
+#reasonModal .reason-modal-header h3,
+#reasonModal #reasonModalTitle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    font-size: 1.46rem !important;
+    font-weight: 1000 !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+    color: transparent !important;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 32%, #db2777 64%, #f59e0b 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: 0 0 0 currentColor, 0.25px 0 currentColor, -0.25px 0 currentColor !important;
+    -webkit-text-stroke: 0.18px currentColor;
+}
+
+#reasonModal.reason-context-pending #reasonModalTitle {
+    background: linear-gradient(90deg, #f59e0b 0%, #ea580c 42%, #b45309 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal.reason-context-approved #reasonModalTitle {
+    background: linear-gradient(90deg, #16a34a 0%, #0f766e 48%, #0284c7 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal.reason-context-rejected-employee #reasonModalTitle {
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 48%, #db2777 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal.reason-context-rejected-note #reasonModalTitle {
+    background: linear-gradient(90deg, #dc2626 0%, #e11d48 48%, #b91c1c 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal #reasonModalTitle::before {
+    content: "\270E";
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    font-size: 0.9em !important;
+    line-height: 1 !important;
+    background: inherit !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+#reasonModal #reasonModalContent {
+    font-size: 0.8rem !important;
+    font-weight: 850 !important;
+    line-height: 1.5 !important;
+    max-width: 100%;
+    width: 100%;
+    padding-right: 2px;
+    text-align: left;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+.my-leave-page .status-tab .status-tab-label {
+    font-size: 1.04rem !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+}
+
+.my-leave-page .status-tab .status-tab-label::before {
+    font-size: 1.06rem !important;
+    font-weight: 1000 !important;
+}
+
+.my-leave-page .status-tab .status-tab-count {
+    font-size: 0.96rem !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+}
+
+.my-leave-page .summary-panel .summary-label {
+    font-weight: 1000 !important;
+    font-variation-settings: "wght" 1000;
+    text-shadow: 0 0 0 currentColor, 0.2px 0 currentColor, -0.2px 0 currentColor;
+}
+
+.my-leave-page .summary-panel .summary-label::before {
+    font-weight: 1000 !important;
+}
+
+.my-leave-page .stats-grid {
+    gap: 12px !important;
+}
+
+.my-leave-page .stat-card {
+    min-height: 102px !important;
+    padding: 7px 13px 7px !important;
+    grid-template-rows: auto minmax(42px, 1fr) auto !important;
+}
+
+.my-leave-page .stat-card-main {
+    align-content: center !important;
+    padding: 3px 0 0 !important;
+}
+
+.my-leave-page .stat-card-foot {
+    gap: 3px !important;
+    padding-top: 6px !important;
+    padding-bottom: 1px;
+}
+
+.my-leave-page .stat-card .count {
+    margin-bottom: 0 !important;
+    font-size: 2rem !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+}
+
 @media (max-width: 640px) {
     .my-leave-page .leave-table thead th {
         font-size: 0.68rem !important;
@@ -8364,20 +8542,223 @@ textarea:focus {
     }
 
     .my-leave-page .table-pagination {
-        gap: 7px;
+        flex-wrap: nowrap;
+        gap: 9px;
+        justify-content: center;
+        overflow-x: visible;
+        padding-inline: 0;
     }
 
     .my-leave-page .table-pagination .pagination-btn,
     .my-leave-page .table-pagination .pagination-status {
-        height: 36px;
-        min-height: 36px;
-        padding-inline: 14px;
-        font-size: 0.8rem !important;
+        height: 30px;
+        min-height: 30px;
+        padding-inline: 5px;
+        font-size: 0.6rem !important;
+        letter-spacing: 0.01em;
+        gap: 3px;
     }
 
     .my-leave-page .table-pagination .pagination-status {
-        font-size: 0.72rem !important;
+        flex: 0 0 auto;
+        padding-inline: 8px;
+        font-size: 0.6rem !important;
         font-weight: 1000 !important;
+    }
+
+    .my-leave-page .table-pagination .pagination-icon {
+        width: 8px;
+        height: 8px;
+        font-size: 0.66rem !important;
+    }
+
+    #reasonModal .reason-modal-header h3,
+    #reasonModal #reasonModalTitle {
+        gap: 6px !important;
+        font-size: 1.18rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.08 !important;
+    }
+
+    #reasonModal #reasonModalContent {
+        font-size: 0.78rem !important;
+        font-weight: 850 !important;
+        line-height: 1.46 !important;
+    }
+
+    .my-leave-page .status-tab .status-tab-label {
+        font-size: 0.76rem !important;
+        font-weight: 1000 !important;
+    }
+
+    .my-leave-page .status-tab .status-tab-label::before {
+        font-size: 0.78rem !important;
+    }
+
+    .my-leave-page .status-tab .status-tab-count {
+        font-size: 0.7rem !important;
+        font-weight: 1000 !important;
+    }
+
+    .my-leave-page .stats-grid {
+        gap: 8px !important;
+    }
+
+    .my-leave-page .stat-card {
+        min-height: 90px !important;
+        padding: 6px 7px 6px !important;
+        grid-template-rows: auto minmax(34px, 1fr) auto !important;
+    }
+
+    .my-leave-page .stat-card-main {
+        padding: 2px 0 0 !important;
+    }
+
+    .my-leave-page .stat-card-foot {
+        padding-top: 4px !important;
+    }
+
+    .my-leave-page .stat-card-foot p {
+        margin-top: 4px !important;
+        font-weight: 850 !important;
+    }
+
+    .my-leave-page .stat-card .count {
+        font-size: 1.54rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .my-leave-page .js-paginated-table.is-empty {
+        overflow-x: hidden !important;
+        min-height: 168px !important;
+        padding-bottom: 6px !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .leave-table {
+        width: 100% !important;
+        min-width: 100% !important;
+        table-layout: fixed !important;
+        border-spacing: 0 !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .leave-table thead,
+    .my-leave-page .js-paginated-table.is-empty .leave-table thead::after {
+        display: none !important;
+        content: none !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .table-empty-row td {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        min-height: 150px !important;
+        padding: 0 !important;
+        color: #475569 !important;
+        font-size: 0.88rem !important;
+        font-weight: 1000 !important;
+        text-align: center !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-empty-state,
+    .my-leave-page .js-paginated-table.is-empty .table-empty-row td:not(:has(.mle-empty-state)) {
+        width: 100% !important;
+        min-height: 150px !important;
+        box-sizing: border-box !important;
+        padding: 4px 10px 6px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-core {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        align-items: center !important;
+        transform: none !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-visual {
+        width: 150px !important;
+        height: 82px !important;
+        margin: 0 auto 2px !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-icon-anchor {
+        width: 118px !important;
+        height: 78px !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-icon-anchor svg {
+        width: 72px !important;
+        height: 72px !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-content {
+        width: 100% !important;
+        gap: 3px !important;
+        align-items: center !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-title {
+        max-width: 100% !important;
+        font-size: 0.78rem !important;
+        line-height: 1 !important;
+        letter-spacing: 0.14em !important;
+        white-space: normal !important;
+        text-align: center !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .mle-message {
+        max-width: 245px !important;
+        margin: 0 auto !important;
+        font-size: 0.82rem !important;
+        line-height: 1.15 !important;
+        text-align: center !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .my-leave-page #approved-panel .table-shell {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .my-leave-page #approved-panel .leave-table {
+        width: 1050px !important;
+        min-width: 1050px !important;
+        table-layout: fixed !important;
+    }
+
+    .my-leave-page #approved-panel col.col-serial { width: 70px !important; }
+    .my-leave-page #approved-panel col.col-type { width: 118px !important; }
+    .my-leave-page #approved-panel col.col-schedule { width: 235px !important; }
+    .my-leave-page #approved-panel col.col-days { width: 82px !important; }
+    .my-leave-page #approved-panel col.col-applied { width: 170px !important; }
+    .my-leave-page #approved-panel col.col-status-meta { width: 170px !important; }
+    .my-leave-page #approved-panel col.col-reason { width: 205px !important; }
+
+    .my-leave-page #approved-panel .leave-table thead th,
+    .my-leave-page #approved-panel .leave-table tbody td {
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+        white-space: normal;
+    }
+
+    .my-leave-page #approved-panel .schedule-line,
+    .my-leave-page #approved-panel .applied-line {
+        white-space: nowrap;
+    }
+
+    .my-leave-page #approved-panel .js-paginated-table.is-empty {
+        overflow-x: hidden !important;
+    }
+
+    .my-leave-page #approved-panel .js-paginated-table.is-empty .leave-table {
+        width: 100% !important;
+        min-width: 100% !important;
     }
 }
 

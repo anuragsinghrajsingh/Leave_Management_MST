@@ -1327,7 +1327,7 @@ header .profile-dropdown .logout-btn::before
     top: calc(100% + 10px);
     left: auto;
     right: 0;
-    width: min(260px, calc(100vw - 18px));
+    width: min(276px, calc(100vw - 18px));
     display: none;
     padding: 7px;
     border-radius: 16px;
@@ -1530,7 +1530,7 @@ header .profile-dropdown .logout-btn::before
 
 .employee-notification-panel
 {
-    width: min(264px, calc(100vw - 18px));
+    width: min(280px, calc(100vw - 18px));
     padding: 8px;
     border-radius: 18px;
 }
@@ -1622,6 +1622,7 @@ header .profile-dropdown .logout-btn::before
 .employee-notification-panel .notification-subtitle
 {
     font-size: 0.64rem;
+    font-weight: 800;
     line-height: 1.25;
     margin-top: 4px;
 }
@@ -1629,6 +1630,7 @@ header .profile-dropdown .logout-btn::before
 .employee-notification-panel .notification-time
 {
     font-size: 0.58rem;
+    font-weight: 800;
     line-height: 1.2;
     margin-top: 3px;
 }
@@ -1940,7 +1942,7 @@ header .profile-dropdown .logout-btn::before
 
 .notification-dropdown[data-notification-api*="employee_notifications"] .notification-panel
 {
-    width: min(362px, calc(100vw - 18px));
+    width: min(376px, calc(100vw - 18px));
     padding-right: 10px;
 }
 
@@ -1970,12 +1972,14 @@ header .profile-dropdown .logout-btn::before
 .notification-dropdown[data-notification-api*="employee_notifications"] .notification-subtitle
 {
     font-size: 0.72rem;
+    font-weight: 800;
     line-height: 1.22;
 }
 
 .notification-dropdown[data-notification-api*="employee_notifications"] .notification-time
 {
     font-size: 0.71rem;
+    font-weight: 800;
     line-height: 1.2;
 }
 
@@ -2009,6 +2013,7 @@ header .profile-dropdown .logout-btn::before
     display: block;
     margin-top: 1px;
     font-size: 0.72rem;
+    font-weight: 800;
 }
 
 .notification-subtitle
@@ -2016,7 +2021,7 @@ header .profile-dropdown .logout-btn::before
     display: block;
     margin-top: 2px;
     font-size: 0.69rem;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.2;
     color: #51677d;
     white-space: nowrap;
@@ -2234,7 +2239,7 @@ header .profile-dropdown .logout-btn::before
     display: inline-flex;
     align-items: center;
     font-size: 0.66rem;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.15;
     color: #52677d;
     white-space: nowrap;
@@ -3789,7 +3794,7 @@ header .hamburger[data-header-tooltip-side="right"]:focus-visible::after
 
     .notification-panel
     {
-        width: min(230px, calc(100vw - 12px));
+        width: min(248px, calc(100vw - 12px));
         padding: 6px;
         right: 0;
         left: auto;

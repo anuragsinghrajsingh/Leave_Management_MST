@@ -151,7 +151,7 @@ body.hr-page .notification-panel
     top: calc(100% + 10px);
     right: 0;
     left: auto;
-    width: min(260px, calc(100vw - 18px));
+    width: min(276px, calc(100vw - 18px));
     display: none;
     padding: 7px 4px 7px 7px;
     border-radius: 16px;
@@ -530,6 +530,7 @@ body.hr-page .notification-copy small
     display: block;
     margin-top: 2px;
     font-size: 0.72rem;
+    font-weight: 800;
 }
 
 body.hr-page .notification-subtitle
@@ -537,7 +538,7 @@ body.hr-page .notification-subtitle
     display: block;
     margin-top: 3px;
     font-size: 0.6rem;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.2;
     color: #51677d;
     white-space: nowrap;
@@ -671,7 +672,7 @@ body.hr-page .notification-time
     align-items: center;
     gap: 4px;
     font-size: 0.6rem;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.15;
     color: #52677d;
     white-space: nowrap;
@@ -1074,7 +1075,7 @@ body.hr-page .notification-item-half.is-new
     {
         --notification-pointer-size: 7px;
         --notification-pointer-right: 10px;
-        width: min(222px, calc(100vw - 8px));
+        width: min(248px, calc(100vw - 8px));
         max-width: calc(100vw - 8px);
         padding: 6px 1px 6px 5px !important;
         border-radius: 14px;

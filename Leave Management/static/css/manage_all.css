@@ -754,6 +754,7 @@ body {
 
 .notification-copy p {
     font-size: 0.72rem;
+    font-weight: 800;
     opacity: 1;
     color: #5b6f83;
 }
@@ -831,7 +832,7 @@ body {
     display: inline-flex;
     align-items: center;
     font-size: 0.62rem;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1;
     color: #5b6f83;
     min-width: 0;
@@ -2175,7 +2176,7 @@ body {
     position: absolute;
     top: -6px;
     right: calc(100% + 10px);
-    width: 216px;
+    width: 228px;
     padding: 6px;
     display: none;
     border-radius: 14px;
@@ -2541,6 +2542,7 @@ body {
 .employee-bell-schedule {
     color: #52687f;
     font-size: 0.55rem;
+    font-weight: 800;
 }
 
 .employee-bell-activity {
@@ -2548,6 +2550,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 0.54rem;
+    font-weight: 800;
 }
 
 .employee-bell-type-symbol {
@@ -9136,7 +9139,7 @@ button {
     .notification-panel {
         left: auto;
         right: 0;
-        width: min(204px, calc(100vw - 12px));
+        width: min(232px, calc(100vw - 12px));
         max-width: calc(100vw - 12px);
         padding: 6px;
         border-radius: 14px;
@@ -10050,9 +10053,9 @@ button {
         top: calc(100% + 8px);
         right: -2px;
         left: auto;
-        width: 178px;
+        width: 202px;
         padding: 5px;
-        max-width: min(178px, calc(100vw - 20px));
+        max-width: min(202px, calc(100vw - 20px));
         --employee-bell-pointer-top: -7px;
         --employee-bell-pointer-right: 12px;
     }
@@ -18148,6 +18151,35 @@ button {
 #popupTableWrapper .detail-table tbody td small {
     font-size: 0.78rem !important;
     font-weight: 850 !important;
+}
+
+/* Manage all employee detail table: match My Leave colorful row borders. */
+#popupTableWrapper .detail-table tbody td {
+    border-top-color: rgba(56, 189, 248, 0.46) !important;
+    border-bottom-color: rgba(16, 185, 129, 0.42) !important;
+    border-right: 1px solid rgba(168, 85, 247, 0.28) !important;
+}
+
+#popupTableWrapper .detail-table tbody tr td:first-child {
+    border-left-color: rgba(59, 130, 246, 0.55) !important;
+}
+
+#popupTableWrapper .detail-table tbody tr td:last-child {
+    border-right-color: rgba(219, 39, 119, 0.42) !important;
+}
+
+#popupTableWrapper .detail-table tbody tr:hover td {
+    border-top-color: rgba(251, 146, 60, 0.56) !important;
+    border-bottom-color: rgba(20, 184, 166, 0.56) !important;
+    border-right-color: rgba(139, 92, 246, 0.42) !important;
+}
+
+#popupTableWrapper .detail-table tbody tr:hover td:first-child {
+    border-left-color: rgba(37, 99, 235, 0.62) !important;
+}
+
+#popupTableWrapper .detail-table tbody tr:hover td:last-child {
+    border-right-color: rgba(220, 38, 38, 0.52) !important;
 }
 
 #popupTableWrapper .compact-action-group .approve-btn,

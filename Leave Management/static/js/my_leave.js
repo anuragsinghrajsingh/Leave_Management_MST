@@ -3,6 +3,60 @@ const myLeaveConfig = myLeaveConfigElement ? myLeaveConfigElement.dataset : {};
 const myLeaveCalendarDataUrl = myLeaveConfig.calendarDataUrl || "";
 const myLeaveUrl = myLeaveConfig.myLeaveUrl || "";
 
+function buildInlineReasonMoreButton(reasonText, fullText) {
+    const moreBtn = document.createElement("button");
+    moreBtn.type = "button";
+    moreBtn.className = "reason-inline-more";
+    moreBtn.textContent = "...more";
+    moreBtn.dataset.reason = fullText;
+    moreBtn.dataset.title = reasonText.dataset.title || "Reason";
+    moreBtn.addEventListener("click", function () {
+        openReasonTextModal(moreBtn.dataset.title, moreBtn.dataset.reason, moreBtn);
+    });
+    return moreBtn;
+}
+
+function fitInlineReason(reasonText, fullText) {
+    const safeText = String(fullText || "").trim();
+    reasonText.classList.remove("is-truncated");
+    reasonText.replaceChildren(document.createTextNode(safeText || "-"));
+    reasonText.dataset.full = safeText;
+    if (!safeText) {
+        return;
+    }
+    requestAnimationFrame(function () {
+        if (reasonText.scrollHeight <= reasonText.clientHeight + 2) {
+            return;
+        }
+        reasonText.classList.add("is-truncated");
+        let low = 0;
+        let high = safeText.length;
+        let bestFit = "";
+        while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+            const candidate = safeText.slice(0, mid).trimEnd();
+            reasonText.replaceChildren(document.createTextNode(candidate), buildInlineReasonMoreButton(reasonText, safeText));
+            if (reasonText.scrollHeight <= reasonText.clientHeight + 2) {
+                bestFit = candidate;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        if (!bestFit) {
+            bestFit = safeText.slice(0, Math.max(8, Math.floor(safeText.length / 2))).trimEnd();
+        }
+        reasonText.replaceChildren(document.createTextNode(bestFit), buildInlineReasonMoreButton(reasonText, safeText));
+    });
+}
+
+function hydrateInlineReasons(root = document) {
+    root.querySelectorAll(".js-inline-reason").forEach((node) => {
+        const fullText = (node.dataset.full || node.textContent || "").trim();
+        fitInlineReason(node, fullText);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
         const tabs = Array.from(document.querySelectorAll(".status-tab"));
         const panels = Array.from(document.querySelectorAll(".leave-panel"));
@@ -116,32 +170,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
         hydrateRelativeDates();
-        function hydrateInlineReasons() {
-            document.querySelectorAll(".js-inline-reason").forEach((node) => {
-                const fullText = (node.dataset.full || node.textContent || "").trim();
-                if (!fullText) {
-                    node.textContent = "-";
-                    return;
-                }
-                const limit = 48;
-                if (fullText.length <= limit) {
-                    node.textContent = fullText;
-                    return;
-                }
-                const preview = `${fullText.slice(0, limit).trimEnd()}... `;
-                node.textContent = preview;
-                const moreBtn = document.createElement("button");
-                moreBtn.type = "button";
-                moreBtn.className = "reason-inline-more";
-                moreBtn.textContent = "more";
-                moreBtn.dataset.reason = fullText;
-                moreBtn.dataset.title = node.dataset.title || "Reason";
-                moreBtn.addEventListener("click", function () {
-                    openReasonTextModal(moreBtn.dataset.title, moreBtn.dataset.reason, moreBtn);
-                });
-                node.appendChild(moreBtn);
-            });
-        }
         function setupTablePagination() {
             document.querySelectorAll(".js-paginated-table").forEach((wrapper) => {
                 const panel = wrapper.closest(".leave-panel");
@@ -192,6 +220,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const hidePagination = totalPages <= 1;
                     pagination.hidden = hidePagination;
                     pagination.classList.toggle("is-hidden", hidePagination);
+                    hydrateInlineReasons(panel);
                     animateDayBlocksForPanel(panel.id);
                 };
                 panel._paginationController = {
@@ -297,6 +326,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 panel.classList.toggle("is-active", active);
                 panel.hidden = !active;
             });
+            const activePanel = panels.find((panel) => panel.id === targetId);
+            if (activePanel) {
+                hydrateInlineReasons(activePanel);
+            }
             animateDayBlocksForPanel(targetId);
         }
         tabs.forEach((tab) => {
@@ -2322,32 +2355,8 @@ const exportWrapper = document.createElement("div");
     {
         if (!node) return;
         const safeText = String(fullText || "").trim();
-        node.replaceChildren();
-        node.dataset.full = safeText;
         node.dataset.title = node.dataset.title || "Leave Reason";
-        if (!safeText)
-        {
-            node.textContent = "-";
-            return;
-        }
-        const limit = 48;
-        if (safeText.length <= limit)
-        {
-            node.textContent = safeText;
-            return;
-        }
-        node.append(document.createTextNode(`${safeText.slice(0, limit).trimEnd()}... `));
-        const moreBtn = document.createElement("button");
-        moreBtn.type = "button";
-        moreBtn.className = "reason-inline-more";
-        moreBtn.textContent = "more";
-        moreBtn.dataset.reason = safeText;
-        moreBtn.dataset.title = node.dataset.title;
-        moreBtn.addEventListener("click", function ()
-        {
-            openReasonTextModal(moreBtn.dataset.title, moreBtn.dataset.reason, moreBtn);
-        });
-        node.appendChild(moreBtn);
+        fitInlineReason(node, safeText);
     }
     function updatePendingCounts(count)
     {
@@ -2533,6 +2542,7 @@ const exportWrapper = document.createElement("div");
         const status = pagination.querySelector(".pagination-status");
         if (rows.length === 0)
         {
+            wrapper.classList.add("is-empty");
             if (!emptyRow)
             {
                 emptyRow = document.createElement("tr");
@@ -2605,6 +2615,7 @@ const exportWrapper = document.createElement("div");
             pagination.classList.add("is-hidden");
             return;
         }
+        wrapper.classList.remove("is-empty");
         if (emptyRow) emptyRow.hidden = true;
         const existingVisibleIndex = rows.findIndex((row) => !row.hidden);
         const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
@@ -2626,6 +2637,7 @@ const exportWrapper = document.createElement("div");
             const hidePagination = totalPages <= 1;
             pagination.hidden = hidePagination;
             pagination.classList.toggle("is-hidden", hidePagination);
+            hydrateInlineReasons(panel);
         };
         panel._paginationController = {
             showRow(row)
