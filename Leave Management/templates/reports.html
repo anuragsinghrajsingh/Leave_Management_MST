@@ -4,7 +4,7 @@
 {% block title %}Reports{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}?v=20260510-hero-top-volume">
     <link rel="stylesheet" href="{% static 'css/hr_notification_shared.css' %}">
 {% endblock %}
 
@@ -194,7 +194,7 @@
         <div class="reports-shell">
             <section class="reports-hero">
                 <div class="hero-copy">
-                    <p class="eyebrow">HR analytics workspace</p>
+                    <p class="eyebrow"><span class="reports-eyebrow-text">HR analytics workspace</span></p>
                     <p class="hero-text">
                         Review employee leave volume, approval flow, and pending workload in one clean reporting view.
                         <span class="hero-focus" id="focusMessage">
@@ -207,7 +207,7 @@
                     <article class="insight-card spotlight-card">
                         <span class="insight-label">Top leave volume</span>
                         {% if top_employee %}
-                            <strong>{{ top_employee.user.username }}</strong>
+                            <strong>{{ top_employee.first_name }}</strong>
                             <p>{{ top_employee.total }} total requests logged</p>
                         {% else %}
                             <strong>No report data</strong>

@@ -2037,8 +2037,12 @@ def reports(request):
     for item in report_data:
         report_user = User.objects.get(id=item["user"])
         report_profile = getattr(report_user, "profile", None)
+        report_display_name = report_user.get_full_name().strip() or report_user.username
+        report_first_name = report_user.first_name or report_display_name.split()[0]
         reports.append({
             "user": report_user,
+            "display_name": report_display_name,
+            "first_name": report_first_name,
             "employee_id": getattr(report_profile, "employee_id", "Not assigned"),
             "department": getattr(report_profile, "department", "Not assigned"),
             "phone": getattr(report_profile, "phone", "Not added"),

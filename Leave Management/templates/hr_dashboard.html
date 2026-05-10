@@ -4,7 +4,7 @@
 {% block title %}HR Dashboard{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}?v=20260510-reject-confirm-heading-colors">
+    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}?v=20260510-hero-main-style">
     <link rel="stylesheet" href="{% static 'css/hr_notification_shared.css' %}">
 {% endblock %}
 
@@ -243,7 +243,7 @@
                 <div class="hero-main">
                     <div class="hero-top-row">
                         <div class="hero-copy">
-                            <p class="eyebrow">Operations overview</p>
+                            <p class="eyebrow"><span class="hero-eyebrow-text">Operations overview</span></p>
                             <h2>Track requests faster and keep HR decisions on schedule.</h2>
                             <p class="hero-text">
                                 Check queue status, review urgent requests, and move quickly into the actions that need attention.
@@ -856,6 +856,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/hr_dashboard.js' %}?v=20260509-decision-clear"></script>
+<script src="{% static 'js/hr_dashboard.js' %}?v=20260510-quote-interval"></script>
 {% endblock %}
 

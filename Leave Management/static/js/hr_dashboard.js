@@ -510,7 +510,7 @@ const dashboardModalAnimationMs = 120;
     }
 
     renderHeroQuote(currentHeroQuote);
-    setInterval(rotateHeroQuote, 180000);
+    setInterval(rotateHeroQuote, 60000);
     updateRelativeAppliedTime();
     hydrateRelativeUpdatedDates();
     animateDayCounters();
