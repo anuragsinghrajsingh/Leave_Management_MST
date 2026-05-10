@@ -1016,6 +1016,43 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         return String(parsed.getDate()).padStart(2, "0") + "-" + String(parsed.getMonth() + 1).padStart(2, "0") + "-" + parsed.getFullYear();
     }
 
+    function showPopupFilterPointWarning(shell, message)
+    {
+        if (!shell || !message)
+        {
+            return;
+        }
+
+        const field = shell.closest(".popup-filter-field") || shell.parentElement;
+
+        if (!field)
+        {
+            return;
+        }
+
+        let warning = field.querySelector(".popup-filter-point-warning");
+
+        if (!warning)
+        {
+            warning = document.createElement("div");
+            warning.className = "popup-filter-point-warning";
+            warning.setAttribute("role", "alert");
+            field.appendChild(warning);
+        }
+
+        warning.textContent = message;
+        warning.hidden = false;
+        field.classList.add("has-point-warning");
+        shell.classList.add("is-warning");
+        window.clearTimeout(field._popupFilterWarningTimer);
+        field._popupFilterWarningTimer = window.setTimeout(function ()
+        {
+            warning.hidden = true;
+            field.classList.remove("has-point-warning");
+            shell.classList.remove("is-warning");
+        }, 2600);
+    }
+
     function buildPopupFilterDatePicker(shell)
     {
         if (!shell || shell.dataset.bound === "true")
@@ -1313,6 +1350,18 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         {
             if (hiddenInput.disabled || shell.classList.contains("is-disabled"))
             {
+                const form = hiddenInput.form || shell.closest("form");
+                const monthInput = form ? form.querySelector('input[name="month"]') : null;
+                const fromInput = form ? form.querySelector('input[name="from_date"]') : null;
+
+                if (monthInput && monthInput.value)
+                {
+                    showPopupFilterPointWarning(shell, "Clear Month to use date range.");
+                }
+                else if (hiddenInput.name === "to_date" && fromInput && !fromInput.value)
+                {
+                    showPopupFilterPointWarning(shell, "Select From Date first.");
+                }
                 return;
             }
 
@@ -2076,9 +2125,22 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         {
             clearButton.disabled = !hasActiveModalFilter();
             clearButton.setAttribute("aria-disabled", String(!hasActiveModalFilter()));
-            clearButton.addEventListener("click", function ()
+            clearButton.addEventListener("click", async function ()
             {
                 if (clearButton.disabled)
+                {
+                    return;
+                }
+
+                const shouldClear = typeof window.showThemeConfirm === "function"
+                    ? await window.showThemeConfirm(`Are you sure you want to clear all filters for ${statusLabel} Requests Section?`, {
+                        title: "Clear filters",
+                        confirmText: "Clear filters",
+                        variant: "confirm"
+                    })
+                    : window.confirm(`Are you sure you want to clear all filters for ${statusLabel} Requests Section?`);
+
+                if (!shouldClear)
                 {
                     return;
                 }

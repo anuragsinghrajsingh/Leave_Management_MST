@@ -3995,6 +3995,69 @@ textarea:focus {
     z-index: 1;
 }
 
+.popup-filter-point-warning {
+    position: absolute;
+    left: 14px;
+    right: 12px;
+    top: calc(100% + 6px);
+    z-index: 120;
+    width: max-content;
+    max-width: min(260px, calc(100% - 8px));
+    padding: 7px 10px;
+    border: 1px solid rgba(245, 158, 11, 0.42);
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 237, 213, 0.98));
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 1000;
+    line-height: 1.25;
+    box-shadow: 0 12px 22px rgba(146, 64, 14, 0.16);
+    animation: popupFilterPointWarningIn 0.18s ease both;
+    pointer-events: none;
+}
+
+.popup-filter-point-warning::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 18px;
+    width: 10px;
+    height: 10px;
+    border-left: 1px solid rgba(245, 158, 11, 0.42);
+    border-top: 1px solid rgba(245, 158, 11, 0.42);
+    background: rgba(255, 251, 235, 0.98);
+    transform: rotate(45deg);
+}
+
+.popup-filter-point-warning[hidden] {
+    display: none;
+}
+
+.popup-filter-field.has-point-warning {
+    z-index: 110;
+}
+
+.popup-filter-shell.is-warning,
+.popup-filter-shell.is-warning:hover,
+.popup-filter-shell.is-warning:focus-within {
+    border-color: rgba(245, 158, 11, 0.72);
+    box-shadow:
+        0 0 0 4px rgba(245, 158, 11, 0.14),
+        0 10px 18px rgba(146, 64, 14, 0.10);
+}
+
+@keyframes popupFilterPointWarningIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .popup-filter-modal-content .popup-filter-field:has(.popup-filter-leave-shell.open),
 .popup-filter-modal-content .popup-filter-field:has(.popup-filter-date-shell.open),
 .popup-filter-modal-content .popup-filter-field:has(.popup-filter-month-shell.open) {
@@ -4066,9 +4129,9 @@ textarea:focus {
 }
 
 .popup-filter-field-heading-text {
-    font-size: 0.7rem;
-    font-weight: 950;
-    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+    font-weight: 1000;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #304b91;
     white-space: nowrap;
@@ -5261,7 +5324,7 @@ textarea:focus {
     display: flex;
     justify-content: space-between;
     gap: 5px;
-    margin-top: 0;
+    margin-top: -8px;
 }
 
 .popup-filter-modal-content .popup-filter-month-shell .month-action {

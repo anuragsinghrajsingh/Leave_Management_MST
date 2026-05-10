@@ -1926,6 +1926,37 @@ const exportWrapper = document.createElement("div");
         sync();
         render();
     }
+    function showMyLeavePopupFilterPointWarning(shell, message)
+    {
+        if (!shell || !message)
+        {
+            return;
+        }
+        const field = shell.closest(".popup-filter-field") || shell.parentElement;
+        if (!field)
+        {
+            return;
+        }
+        let warning = field.querySelector(".popup-filter-point-warning");
+        if (!warning)
+        {
+            warning = document.createElement("div");
+            warning.className = "popup-filter-point-warning";
+            warning.setAttribute("role", "alert");
+            field.appendChild(warning);
+        }
+        warning.textContent = message;
+        warning.hidden = false;
+        field.classList.add("has-point-warning");
+        shell.classList.add("is-warning");
+        window.clearTimeout(field._popupFilterWarningTimer);
+        field._popupFilterWarningTimer = window.setTimeout(() =>
+        {
+            warning.hidden = true;
+            field.classList.remove("has-point-warning");
+            shell.classList.remove("is-warning");
+        }, 2600);
+    }
     function buildMyLeavePopupFilterDatePicker(shell)
     {
         if (!shell || shell.dataset.bound === "true")
@@ -2168,7 +2199,22 @@ const exportWrapper = document.createElement("div");
         let dateOpenedAt = 0;
         const open = () =>
         {
-            if (hiddenInput.disabled || shell.classList.contains("is-disabled")) return;
+            if (hiddenInput.disabled || shell.classList.contains("is-disabled"))
+            {
+                const form = hiddenInput.form || shell.closest("form");
+                const monthInput = form ? form.querySelector('input[name="month"]') : null;
+                const fromInput = form ? form.querySelector('input[name="from_date"]') : null;
+
+                if (monthInput && monthInput.value)
+                {
+                    showMyLeavePopupFilterPointWarning(shell, "Clear Month to use date range.");
+                }
+                else if (hiddenInput.name === "to_date" && fromInput && !fromInput.value)
+                {
+                    showMyLeavePopupFilterPointWarning(shell, "Select From Date first.");
+                }
+                return;
+            }
             const isOpen = shell.classList.contains("open");
             closeMyLeavePopupFilterPickers(shell);
             if (isOpen)
