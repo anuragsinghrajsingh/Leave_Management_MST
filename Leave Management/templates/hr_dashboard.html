@@ -4,7 +4,7 @@
 {% block title %}HR Dashboard{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hr_dashboard.css' %}?v=20260510-reject-confirm-heading-colors">
     <link rel="stylesheet" href="{% static 'css/hr_notification_shared.css' %}">
 {% endblock %}
 
@@ -685,7 +685,7 @@
                                 <div class="reason-field-label reject-review-section-label"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#9998;&#65038;</span><span class="reject-review-section-label-text">Employee Reason</span></span></div>
                             </div>
                             <div class="reason-modal-content-shell reject-review-section-body">
-                                <textarea id="rejectModalReason" class="reject-review-readonly-field" readonly>-</textarea>
+                                <textarea id="rejectModalReason" class="reject-review-readonly-field" wrap="soft" readonly>-</textarea>
                             </div>
                         </div>
 
@@ -695,8 +695,8 @@
                             </div>
                             <div class="reject-review-section-body">
                                 <div class="reject-review-textarea-wrap">
-                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="100" required></textarea>
-                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0/100</span>
+                                    <textarea id="rejectionReason" name="rejection_reason" placeholder="Explain why this request cannot be approved right now..." maxlength="500" wrap="soft" required></textarea>
+                                    <span class="reject-review-textarea-count" id="rejectionReasonCount">0/500</span>
                                 </div>
                             </div>
                         </div>
@@ -808,7 +808,7 @@
         <div class="reason-modal-dialog">
             <div class="reason-modal-header">
                 <div class="reason-modal-heading">
-                    <h3 id="reasonModalTitle">Reason detail</h3>
+                    <h3 id="reasonModalTitle">Leave</h3>
                     <span class="reason-modal-heading-divider" aria-hidden="true"></span>
                 </div>
                 <button type="button" class="close-modal-btn" data-action="close-reason-modal" aria-label="Close reason modal">&times;</button>

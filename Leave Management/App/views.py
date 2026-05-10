@@ -1096,7 +1096,12 @@ def get_communication_recipients_for_user(user):
     if user.role != "HR":
         return []
 
-    employees = get_user_model().objects.filter(role="EMPLOYEE").select_related("profile").order_by("first_name", "username")
+    employees = (
+        get_user_model().objects
+        .filter(role="EMPLOYEE", is_active=True)
+        .select_related("profile")
+        .order_by("first_name", "username")
+    )
     recipients = []
 
     for employee in employees:
@@ -1217,7 +1222,7 @@ def communications_send(request):
             )
         elif message_type == "DIRECT":
             recipient_id = request.POST.get("recipient_id")
-            recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE")
+            recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE", is_active=True)
             Communication.objects.create(
                 sender=user,
                 recipient=recipient,

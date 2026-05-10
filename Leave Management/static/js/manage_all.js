@@ -2417,6 +2417,32 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         }
     }
 
+    function setManagedModalButtonOrigin(modal, trigger)
+    {
+        if (!modal)
+        {
+            return;
+        }
+
+        const source = trigger instanceof HTMLElement
+            ? trigger
+            : (window.lastModalTrigger instanceof HTMLElement ? window.lastModalTrigger : null);
+
+        if (!source || typeof source.getBoundingClientRect !== "function")
+        {
+            modal.style.removeProperty("--button-origin-x");
+            modal.style.removeProperty("--button-origin-y");
+            return;
+        }
+
+        const rect = source.getBoundingClientRect();
+        const originX = rect.left + (rect.width / 2) - (window.innerWidth / 2);
+        const originY = rect.top + (rect.height / 2) - (window.innerHeight / 2);
+
+        modal.style.setProperty("--button-origin-x", originX.toFixed(1) + "px");
+        modal.style.setProperty("--button-origin-y", originY.toFixed(1) + "px");
+    }
+
     function openDecisionConfirm(config)
     {
         const modal = document.getElementById("decisionConfirmModal");
@@ -2462,6 +2488,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         }
 
         modal.dataset.variant = variant;
+        setManagedModalButtonOrigin(modal, config && config.trigger);
         modal.classList.remove("reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half", "reason-theme-default");
         modal.classList.add("reason-theme-" + typeClass);
 
@@ -2747,7 +2774,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         openDecisionConfirm({
             variant: "approve",
-            leave: leave
+            leave: leave,
+            trigger: window.lastModalTrigger
         }).then(function (confirmed)
         {
             if (!confirmed)
@@ -4324,21 +4352,12 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         updatePopupHistoryTabs(selected);
         renderPopupFilterBadges(activePopupHistoryStatus);
-        window.setSafeHTML(document.getElementById("detailTableTitle"), `<span class="title-name-chip">${escapeHtml(formattedName)}</span><span class="title-separator">-</span><span class="title-label-chip">${escapeHtml(definition.heading)}</span>`);
+        window.setSafeHTML(document.getElementById("detailTableTitle"), `<span class="title-name-chip">${escapeHtml(formattedName)}</span><span class="title-separator">-</span><span class="title-label-chip title-label-chip-${escapeHtml(activePopupHistoryStatus)}">${escapeHtml(definition.heading)}</span>`);
 
         if (detailTableCount)
         {
             detailTableCount.dataset.count = filteredLeaves.length;
-            detailTableCount.dataset.countupTarget = String(filteredLeaves.length);
-
-            if (typeof window.animateCountUp === "function")
-            {
-                window.animateCountUp(detailTableCount, filteredLeaves.length, { duration: 320, suffix: definition.countSuffix });
-            }
-            else
-            {
-                detailTableCount.textContent = String(filteredLeaves.length) + definition.countSuffix;
-            }
+            window.setSafeHTML(detailTableCount, `<span class="popup-count-number">${filteredLeaves.length}</span><span class="popup-count-suffix">${escapeHtml(definition.countSuffix.trim())}</span>`);
         }
 
         window.setSafeHTML(tableBody, pagedLeaves.length
@@ -4864,7 +4883,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             reasonModalCloseTimer = null;
         }
 
-        activeReasonAnchor = reasonText.closest(".reason-box") || reasonText;
+        const reasonTrigger = window.lastModalTrigger instanceof HTMLElement && reasonText.contains(window.lastModalTrigger)
+            ? window.lastModalTrigger
+            : null;
+        activeReasonAnchor = reasonTrigger || reasonText;
 
         if (activeReasonAnchor && typeof activeReasonAnchor.getBoundingClientRect === "function")
         {
@@ -4876,6 +4898,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
             modal.style.setProperty("--reason-origin-x", (anchorCenterX - viewportCenterX) + "px");
             modal.style.setProperty("--reason-origin-y", (anchorCenterY - viewportCenterY) + "px");
+        }
+        else
+        {
+            modal.style.removeProperty("--reason-origin-x");
+            modal.style.removeProperty("--reason-origin-y");
         }
 
         let dayText = reasonText.dataset.daysDisplay || "-";
@@ -5055,6 +5082,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         form.action = getLeaveActionUrl(rejectLeaveUrlTemplate, leaveId);
         populateRejectModal(leave);
         resetRejectSectionCards();
+        setManagedModalButtonOrigin(modal, window.lastModalTrigger);
         showManagedModal(modal);
         syncRejectionReasonCount();
         textarea.focus();
@@ -5229,7 +5257,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             openDecisionConfirm({
                 variant: "reject",
                 leave: activeLeave,
-                note: rejectionReason
+                note: rejectionReason,
+                trigger: event.submitter || document.activeElement
             }).then(function (confirmed)
             {
                 if (!confirmed)
@@ -5598,6 +5627,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         if (reasonText && inlineMore)
         {
+            window.lastModalTrigger = inlineMore;
             openReasonModal(reasonText);
         }
     });

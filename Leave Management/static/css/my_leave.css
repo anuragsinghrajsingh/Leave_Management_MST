@@ -2388,6 +2388,43 @@ table {
     }
 }
 
+@media (max-width: 520px) {
+    .nav-links .calendar-btn {
+        min-height: 34px !important;
+        padding: 7px 9px 7px 10px !important;
+        border-radius: 10px !important;
+        font-size: 0.86rem !important;
+        font-family: inherit !important;
+        font-weight: 900 !important;
+        letter-spacing: 0 !important;
+        line-height: 1.1 !important;
+    }
+
+    .nav-links .calendar-btn > span:first-child {
+        font-size: 0.86rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0 !important;
+        font-family: inherit !important;
+        background: none !important;
+        -webkit-background-clip: initial !important;
+        background-clip: initial !important;
+        color: inherit !important;
+    }
+
+    .nav-links .calendar-btn-glyph {
+        width: 18px !important;
+        height: 18px !important;
+        margin-right: 5px !important;
+        border-radius: 7px !important;
+    }
+
+    .nav-links .calendar-btn-glyph::before {
+        inset: 4px 3px 3px !important;
+        border-width: 1.6px !important;
+        border-top-width: 4px !important;
+    }
+}
+
 .filter-btn {
     display: inline-flex;
     align-items: center;

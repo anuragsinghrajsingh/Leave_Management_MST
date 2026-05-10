@@ -1336,6 +1336,129 @@ body {
     background: linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(204, 251, 241, 0.92));
 }
 
+/* Manage all top leave totals: colorful, bolder labels and values. */
+.manage-hero .hero-metric span {
+    font-weight: 1000 !important;
+    letter-spacing: 0.08em !important;
+}
+
+.manage-hero .hero-metric > .hero-metric-label {
+    display: grid !important;
+    grid-template-columns: 1fr 16px max-content 1fr !important;
+    grid-template-rows: auto auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    column-gap: 1px !important;
+    row-gap: 2px !important;
+    width: 100% !important;
+    margin-bottom: 5px !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    line-height: 1.02 !important;
+}
+
+.manage-hero .hero-metric > .hero-metric-label::before {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+}
+
+.manage-hero .hero-metric-label .hero-metric-title {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    display: inline-block !important;
+    width: auto !important;
+    margin: 0 !important;
+    font-size: 0.86rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+}
+
+.manage-hero .hero-metric-label .hero-metric-subtitle {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    font-size: 0.8rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+}
+
+.manage-hero .hero-metric-label .hero-metric-title::before,
+.manage-hero .hero-metric-label .hero-metric-subtitle::before {
+    content: none !important;
+    display: none !important;
+}
+
+.manage-hero .hero-metric strong {
+    font-weight: 1000 !important;
+    text-shadow: 0 0 0 currentColor, 0.25px 0 currentColor, -0.25px 0 currentColor !important;
+}
+
+.manage-hero .hero-metric.total span,
+.manage-hero .hero-metric.total strong {
+    color: #2563eb !important;
+}
+
+.manage-hero .hero-metric.pending span,
+.manage-hero .hero-metric.pending strong {
+    color: #b45309 !important;
+}
+
+.manage-hero .hero-metric.queue span,
+.manage-hero .hero-metric.queue strong {
+    color: #0f766e !important;
+}
+
+.manage-hero .hero-metric.total span::before {
+    background:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M7 3h6M7 17h6M8 3v3.2l2 1.8-2 1.8V17M12 3v3.2l-2 1.8 2 1.8V17' fill='none' stroke='%232563eb' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/9px 9px no-repeat,
+        linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+}
+
+.manage-hero .hero-metric.pending span::before {
+    background:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M10 4.2a5.8 5.8 0 1 1 0 11.6' fill='none' stroke='%23b45309' stroke-width='1.8' stroke-linecap='round'/><path d='M10 6.4v3.5l2.5 1.6' fill='none' stroke='%23b45309' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/9px 9px no-repeat,
+        linear-gradient(135deg, #fef3c7, #fde68a) !important;
+}
+
+.manage-hero .hero-metric.queue span::before {
+    background:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M6 6l8 8M14 6l-8 8' fill='none' stroke='%230f766e' stroke-width='1.9' stroke-linecap='round'/></svg>") center/9px 9px no-repeat,
+        linear-gradient(135deg, #ccfbf1, #99f6e4) !important;
+}
+
+@media (max-width: 640px) {
+    .manage-hero .hero-metric-label .hero-metric-title {
+        font-size: 0.64rem !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .manage-hero .hero-metric-label .hero-metric-subtitle {
+        font-size: 0.56rem !important;
+        letter-spacing: 0.04em !important;
+    }
+
+    .manage-hero .hero-metric > .hero-metric-label {
+        grid-template-columns: 1fr 13px max-content 1fr !important;
+        column-gap: 1px !important;
+    }
+
+    .manage-hero .hero-metric > .hero-metric-label::before {
+        width: 13px !important;
+        height: 13px !important;
+        flex-basis: 13px !important;
+        background-size: 8px 8px !important;
+    }
+}
+
 .panel-card {
     padding: 14px;
 }
@@ -1988,8 +2111,9 @@ body {
     justify-content: center;
     background: linear-gradient(180deg, #ef4444, #dc2626);
     color: #fff;
-    font-size: 0.56rem;
-    font-weight: 900;
+    font-size: 0.66rem;
+    font-weight: 1000;
+    font-variation-settings: "wght" 1000;
     line-height: 1;
     border: 2px solid rgba(255, 255, 255, 0.96);
     box-shadow:
@@ -2012,9 +2136,10 @@ body {
     border-radius: 999px;
     background: linear-gradient(135deg, rgb(255, 84, 104), rgb(96, 165, 250), rgb(34, 197, 94));
     color: #fff;
-    font-size: 0.5rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
+    font-size: 0.6rem;
+    font-weight: 1000;
+    font-variation-settings: "wght" 1000;
+    letter-spacing: 0.02em;
     line-height: 1;
     border: 2px solid rgba(255, 255, 255, 0.96);
     box-shadow:
@@ -11866,6 +11991,11 @@ button {
         width: var(--detail-col-8) !important;
     }
 
+    .detail-table[data-view="approved"] th:nth-child(3),
+    .detail-table[data-view="approved"] td:nth-child(3) {
+        width: 16% !important;
+    }
+
     .detail-table[data-view="rejected"] th:nth-child(1),
     .detail-table[data-view="rejected"] td:nth-child(1) {
         width: 6% !important;
@@ -11878,7 +12008,7 @@ button {
 
     .detail-table[data-view="rejected"] th:nth-child(3),
     .detail-table[data-view="rejected"] td:nth-child(3) {
-        width: 16% !important;
+        width: 17% !important;
     }
 
     .detail-table[data-view="rejected"] th:nth-child(4),
@@ -11903,7 +12033,7 @@ button {
 
     .detail-table[data-view="rejected"] th:nth-child(8),
     .detail-table[data-view="rejected"] td:nth-child(8) {
-        width: 19% !important;
+        width: 18% !important;
     }
 
     .detail-table[data-view] th:nth-child(3),
@@ -16717,9 +16847,17 @@ button {
 @keyframes reasonPreviewModalIn {
     from {
         opacity: 0;
-        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.16);
-        clip-path: inset(38% 42% 38% 42% round 12px);
-        filter: blur(4px);
+        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.22);
+        clip-path: inset(36% 40% 36% 40% round 12px);
+        filter: blur(8px);
+        transform-origin: center center;
+    }
+
+    72% {
+        opacity: 1;
+        transform: translate(-3px, -3px) scale(1.015);
+        clip-path: inset(0 0 0 0 round 18px);
+        filter: blur(0);
         transform-origin: center center;
     }
 
@@ -16742,9 +16880,9 @@ button {
 
     to {
         opacity: 0;
-        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.16);
-        clip-path: inset(38% 42% 38% 42% round 12px);
-        filter: blur(4px);
+        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.22);
+        clip-path: inset(36% 40% 36% 40% round 12px);
+        filter: blur(8px);
     }
 }
 
@@ -16806,7 +16944,7 @@ button {
 }
 
 .reason-modal[aria-hidden="false"] .reason-modal-dialog {
-    animation: reasonPreviewModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: reasonPreviewModalIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .reason-modal.is-closing .reason-modal-dialog {
@@ -17882,5 +18020,939 @@ button {
         background-size: 5px 5px, auto, auto !important;
         line-height: 1 !important;
         vertical-align: middle !important;
+    }
+}
+
+/* Mobile employee detail popup overview cards: smaller numbers. */
+@media (max-width: 640px) {
+    #employeeModal .employee-summary-panel[data-mobile-set="overview"] [data-summary-card="overview"] strong,
+    #employeeModal #detailTotal,
+    #employeeModal #detailPending,
+    #employeeModal #detailApproved,
+    #employeeModal #detailRejected {
+        font-size: 1.05rem !important;
+        line-height: 1 !important;
+        font-weight: 1000 !important;
+        font-variation-settings: "wght" 1000 !important;
+        text-shadow: 0 0 0 currentColor, 0.25px 0 currentColor, -0.25px 0 currentColor !important;
+        -webkit-text-stroke: 0.2px currentColor;
+    }
+}
+
+/* Manage all reject decision and confirmation heading color treatment. */
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label-icon {
+    color: #f59e0b !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label-icon {
+    color: #0f766e !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label::after,
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label,
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label .reason-meta-label-content,
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label .reason-meta-label-icon,
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label .reject-review-section-label-text,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label .reason-meta-label-icon,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonHeading {
+    color: #2563eb !important;
+}
+
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label::after,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label::after {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label-icon {
+    color: #f59e0b !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label-icon {
+    color: #0f766e !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label::after,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label .reason-meta-label-icon,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNoteHeading {
+    color: #dc2626 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label::after {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+/* Manage all employee detail table: stronger row text and action labels. */
+#popupTableWrapper .detail-table tbody td,
+#popupTableWrapper .detail-table tbody td span,
+#popupTableWrapper .detail-table tbody td strong,
+#popupTableWrapper .detail-table tbody td small {
+    font-size: 0.78rem !important;
+    font-weight: 850 !important;
+}
+
+#popupTableWrapper .compact-action-group .approve-btn,
+#popupTableWrapper .compact-action-group .reject-btn,
+.detail-table .compact-action-group .approve-btn,
+.detail-table .compact-action-group .reject-btn {
+    font-size: 0.84rem !important;
+    font-weight: 1000 !important;
+}
+
+@media (max-width: 640px) {
+    #popupTableWrapper .detail-table tbody td,
+    #popupTableWrapper .detail-table tbody td span,
+    #popupTableWrapper .detail-table tbody td strong,
+    #popupTableWrapper .detail-table tbody td small {
+        font-size: 0.72rem !important;
+        font-weight: 850 !important;
+    }
+
+    #popupTableWrapper .compact-action-group .approve-btn,
+    #popupTableWrapper .compact-action-group .reject-btn,
+    .detail-table .compact-action-group .approve-btn,
+    .detail-table .compact-action-group .reject-btn {
+        font-size: 0.82rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* Manage all pending table: tune Applied At, Updated At, and Action column widths. */
+@media (max-width: 980px) {
+    #popupTableWrapper .detail-table[data-view="pending"] {
+        min-width: 1203px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(1),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(1) {
+        width: 58px !important;
+        min-width: 58px !important;
+        max-width: 58px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(2),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(2) {
+        width: 116px !important;
+        min-width: 116px !important;
+        max-width: 116px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(3),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(3) {
+        width: 200px !important;
+        min-width: 200px !important;
+        max-width: 200px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(4),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(4) {
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(5),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(5),
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(6),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(6) {
+        width: 155px !important;
+        min-width: 155px !important;
+        max-width: none !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] th:nth-child(8),
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(8) {
+        width: 125px !important;
+        min-width: 125px !important;
+        max-width: 125px !important;
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(8) .compact-action-group {
+        min-width: 119px !important;
+        gap: 2px !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(8) .approve-btn,
+    #popupTableWrapper .detail-table[data-view="pending"] td:nth-child(8) .reject-btn {
+        min-width: 0 !important;
+        padding-inline: 3px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+/* Manage all detail table: bold two-line reasons with matching more label. */
+#popupTableWrapper .detail-table[data-view] .reason-text,
+#popupTableWrapper .detail-table[data-view] .action-reason-text {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    font-size: 0.78rem !important;
+    font-weight: 850 !important;
+    line-height: 1.22 !important;
+    min-height: 2.44em !important;
+    max-height: 2.44em !important;
+}
+
+#popupTableWrapper .detail-table[data-view] .reason-inline-more {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+}
+
+@media (max-width: 640px) {
+    #popupTableWrapper .detail-table[data-view] .reason-text,
+    #popupTableWrapper .detail-table[data-view] .action-reason-text {
+        font-size: 0.72rem !important;
+        font-weight: 850 !important;
+        line-height: 1.2 !important;
+        min-height: 2.4em !important;
+        max-height: 2.4em !important;
+    }
+}
+
+/* Manage all detail table: larger, bolder, colorful table headings. */
+#popupTableWrapper .detail-table[data-view] th {
+    font-size: 0.82rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.08em !important;
+    color: #1e293b !important;
+}
+
+#popupTableWrapper .detail-table[data-view] .detail-th-icon {
+    font-size: 1rem !important;
+    font-weight: 1000 !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(1),
+#popupTableWrapper .detail-table[data-view] th:nth-child(1) .detail-th-label {
+    color: #2563eb !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(2),
+#popupTableWrapper .detail-table[data-view] th:nth-child(2) .detail-th-label {
+    color: #047857 !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(3),
+#popupTableWrapper .detail-table[data-view] th:nth-child(3) .detail-th-label {
+    color: #ea580c !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(4),
+#popupTableWrapper .detail-table[data-view] th:nth-child(4) .detail-th-label {
+    color: #7c3aed !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(5),
+#popupTableWrapper .detail-table[data-view] th:nth-child(5) .detail-th-label {
+    color: #0f766e !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(6),
+#popupTableWrapper .detail-table[data-view] th:nth-child(6) .detail-th-label {
+    color: #0284c7 !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(7),
+#popupTableWrapper .detail-table[data-view] th:nth-child(7) .detail-th-label {
+    color: #db2777 !important;
+}
+
+#popupTableWrapper .detail-table[data-view] th:nth-child(8),
+#popupTableWrapper .detail-table[data-view] th:nth-child(8) .detail-th-label {
+    color: #dc2626 !important;
+}
+
+@media (max-width: 640px) {
+    #popupTableWrapper .detail-table[data-view] th {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    #popupTableWrapper .detail-table[data-view] .detail-th-icon {
+        font-size: 0.82rem !important;
+    }
+}
+
+/* Manage all employee popup: stronger section labels and request title text. */
+#employeeModal .detail-title-eyebrow,
+#employeeModal .popup-table-heading .eyebrow {
+    font-size: 1rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.1em !important;
+}
+
+#employeeModal .detail-title-eyebrow {
+    font-size: 1.22rem !important;
+    font-weight: 1000 !important;
+    color: #7c3aed !important;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 45%, #db2777 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8), 0 10px 22px rgba(124, 58, 237, 0.22);
+}
+
+#employeeModal #detailUsername {
+    font-size: clamp(1.45rem, 1.15rem + 0.8vw, 2rem) !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+    color: #0f172a !important;
+}
+
+#employeeModal .popup-table-heading h3,
+#employeeModal #detailTableTitle {
+    font-size: 1.08rem !important;
+    font-weight: 1000 !important;
+}
+
+#employeeModal #detailTableTitle .title-name-chip,
+#employeeModal #detailTableTitle .title-label-chip {
+    font-size: 1rem !important;
+    font-weight: 1000 !important;
+    min-height: 30px !important;
+}
+
+#employeeModal #detailTableTitle .title-name-chip {
+    font-size: 1.16rem !important;
+    font-weight: 1000 !important;
+    min-height: 34px !important;
+    padding-inline: 14px !important;
+}
+
+#employeeModal #detailTableTitle .title-separator {
+    font-size: 1.08rem !important;
+    font-weight: 1000 !important;
+    color: #334155 !important;
+}
+
+#employeeModal #detailTableTitle .title-label-chip-pending {
+    color: #b45309 !important;
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    border-color: rgba(245, 158, 11, 0.34) !important;
+}
+
+#employeeModal #detailTableTitle .title-label-chip-approved {
+    color: #047857 !important;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+    border-color: rgba(22, 163, 74, 0.34) !important;
+}
+
+#employeeModal #detailTableTitle .title-label-chip-rejected {
+    color: #dc2626 !important;
+    background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+    border-color: rgba(239, 68, 68, 0.34) !important;
+}
+
+#employeeModal #detailTableCount .popup-count-number::after {
+    content: " -";
+    margin: 0 4px;
+}
+
+#employeeModal #detailTableCount,
+#employeeModal .popup-history-tab-label,
+#employeeModal .popup-history-tab-count,
+#employeeModal .mobile-summary-tab,
+#employeeModal .mini-stat span,
+#employeeModal .balance-chip-label,
+#employeeModal .info-label {
+    font-size: 0.88rem !important;
+    font-weight: 1000 !important;
+}
+
+@media (max-width: 640px) {
+    #employeeModal .detail-title-eyebrow,
+    #employeeModal .popup-table-heading .eyebrow {
+        font-size: 0.86rem !important;
+        font-weight: 1000 !important;
+        letter-spacing: 0.08em !important;
+    }
+
+    #employeeModal .detail-title-eyebrow {
+        font-size: 1rem !important;
+    }
+
+    #employeeModal #detailUsername {
+        font-size: 1.28rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #employeeModal .popup-table-heading h3,
+    #employeeModal #detailTableTitle {
+        font-size: 0.92rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #employeeModal #detailTableTitle .title-name-chip,
+    #employeeModal #detailTableTitle .title-label-chip {
+        font-size: 0.82rem !important;
+        font-weight: 1000 !important;
+        min-height: 26px !important;
+    }
+
+    #employeeModal #detailTableTitle .title-separator {
+        font-size: 0.9rem !important;
+    }
+
+    #employeeModal #detailTableCount,
+    #employeeModal .popup-history-tab-label,
+    #employeeModal .popup-history-tab-count,
+    #employeeModal .mobile-summary-tab,
+    #employeeModal .mini-stat span,
+    #employeeModal .balance-chip-label,
+    #employeeModal .info-label {
+        font-size: 0.76rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* Manage all employee popup: stronger pagination text. */
+#employeeModal .popup-page-btn,
+#employeeModal .popup-page-btn span,
+#employeeModal .popup-page-status {
+    font-size: 0.84rem !important;
+    font-weight: 1000 !important;
+}
+
+@media (max-width: 640px) {
+    #employeeModal .popup-page-btn,
+    #employeeModal .popup-page-btn span,
+    #employeeModal .popup-page-status {
+        font-size: 0.76rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* Manage all: colorful employee names in cards and popup. */
+.employee-profile-card .employee-primary-head strong,
+#employeeModal #detailUsername,
+#employeeModal #detailTableTitle .title-name-chip {
+    color: #2563eb !important;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 28%, #db2777 54%, #f59e0b 76%, #0f766e 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: 0 10px 22px rgba(37, 99, 235, 0.16) !important;
+}
+
+.employee-profile-card .employee-primary-head strong {
+    font-weight: 1000 !important;
+    font-size: 1.28rem !important;
+    line-height: 1.22 !important;
+    padding-bottom: 4px !important;
+    min-height: 1.28em !important;
+    overflow-y: visible !important;
+}
+
+.employee-profile-card .employee-primary-head {
+    padding-bottom: 2px !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 640px) {
+    .employee-profile-card .employee-primary-head strong {
+        font-size: 0.72rem !important;
+        line-height: 1.18 !important;
+        padding-bottom: 3px !important;
+        min-height: 1.24em !important;
+    }
+}
+
+/* Manage all popup: prevent colorful employee name descenders from clipping. */
+#employeeModal #detailUsername {
+    display: inline-block !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    font-size: clamp(1.72rem, 1.28rem + 1vw, 2.2rem) !important;
+    font-weight: 1000 !important;
+    line-height: 1.24 !important;
+    padding-bottom: 7px !important;
+    margin-bottom: -2px !important;
+    min-height: 1.34em !important;
+    overflow: visible !important;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 24%, #db2777 48%, #f59e0b 72%, #0f766e 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+
+#employeeModal .detail-copy,
+#employeeModal .detail-copy-shifted {
+    overflow: visible !important;
+}
+
+@media (max-width: 640px) {
+    #employeeModal #detailUsername {
+        font-size: 1.24rem !important;
+        line-height: 1.22 !important;
+        padding-bottom: 6px !important;
+        min-height: 1.32em !important;
+    }
+
+    #employeeModal .detail-title-eyebrow {
+        font-size: 0.72rem !important;
+    }
+
+    #employeeModal #detailTableTitle .title-name-chip,
+    #employeeModal #detailTableTitle .title-label-chip {
+        font-size: 0.66rem !important;
+        min-height: 22px !important;
+    }
+
+    #employeeModal #detailTableTitle .title-name-chip {
+        font-size: 0.82rem !important;
+        font-weight: 1000 !important;
+        min-height: 26px !important;
+        padding-inline: 10px !important;
+    }
+
+    #employeeModal .popup-history-tab-label,
+    #employeeModal .popup-history-tab-count,
+    #employeeModal .mobile-summary-tab,
+    #employeeModal .mini-stat span,
+    #employeeModal .balance-chip-label,
+    #employeeModal .info-label {
+        font-size: 0.62rem !important;
+    }
+
+    #employeeModal .popup-history-tab-label,
+    #employeeModal .popup-history-tab-count {
+        font-size: 0.58rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #employeeModal .mobile-summary-tab {
+        font-size: 0.56rem !important;
+    }
+
+    #employeeModal .mobile-popup-card span,
+    #employeeModal .mobile-popup-card .balance-chip-label,
+    #employeeModal .mobile-popup-card .info-label {
+        font-size: 0.58rem !important;
+    }
+
+    #employeeModal .mobile-popup-card strong {
+        font-size: 0.96rem !important;
+        line-height: 1 !important;
+    }
+
+    #employeeModal .mobile-popup-card small {
+        font-size: 0.54rem !important;
+    }
+
+    #employeeModal #detailTableCount .popup-count-suffix {
+        display: none !important;
+    }
+
+    #employeeModal #detailTableCount::before,
+    #employeeModal #detailTableCount .popup-count-number::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    #employeeModal .table-heading-row {
+        justify-content: stretch !important;
+    }
+
+    #employeeModal .table-section-actions {
+        justify-content: flex-end !important;
+        justify-self: end !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        transform: none !important;
+    }
+}
+
+/* Manage all employee cards: bold department and mobile number. */
+.employee-profile-card .employee-department-chip,
+.employee-profile-card .employee-department-chip span,
+.employee-profile-card .employee-phone-chip,
+.employee-profile-card .employee-phone-chip span {
+    font-weight: 1000 !important;
+}
+
+/* Manage all hero intro: stronger title and description. */
+.manage-hero .hero-copy > .eyebrow {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content !important;
+    justify-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    min-height: 34px !important;
+    padding: 0 16px !important;
+    border-radius: 999px !important;
+    font-size: 1.72rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.04em !important;
+    color: #2563eb !important;
+    background:
+        linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(240, 249, 255, 0.96)) padding-box,
+        linear-gradient(135deg, #f97316, #ec4899, #8b5cf6, #06b6d4) border-box !important;
+    border: 2px solid transparent !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 12px 24px rgba(37, 99, 235, 0.14) !important;
+}
+
+.manage-hero .hero-copy > .eyebrow .hero-eyebrow-text {
+    display: inline-block;
+    background: linear-gradient(90deg, #ea580c 0%, #db2777 30%, #7c3aed 62%, #0891b2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.manage-hero .hero-copy h2 {
+    font-size: clamp(1.14rem, 0.9rem + 0.62vw, 1.55rem) !important;
+    font-weight: 1000 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding-left: 0 !important;
+}
+
+.manage-hero .hero-copy h2::before {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    margin-right: 0 !important;
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+    position: static !important;
+    transform: none !important;
+    vertical-align: middle !important;
+}
+
+.manage-hero .hero-copy .hero-text {
+    font-size: 0.78rem !important;
+    font-weight: 850 !important;
+    line-height: 1.25 !important;
+}
+
+.manage-hero {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+}
+
+@media (max-width: 640px) {
+    .manage-hero .hero-copy > .eyebrow {
+        font-size: 1.12rem !important;
+        letter-spacing: 0.03em !important;
+        min-height: 28px !important;
+        padding: 0 12px !important;
+    }
+
+    .manage-hero .hero-copy h2 {
+        font-size: 0.92rem !important;
+        gap: 6px !important;
+    }
+
+    .manage-hero .hero-copy h2::before {
+        width: 22px !important;
+        height: 22px !important;
+        min-width: 22px !important;
+        font-size: 0.82rem !important;
+    }
+
+    .manage-hero .hero-copy .hero-text {
+        font-size: 0.6rem !important;
+        font-weight: 850 !important;
+    }
+}
+
+/* Manage all employee gallery label: colorful chip, same position. */
+.employee-directory .panel-heading .eyebrow {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 32px !important;
+    padding: 0 16px !important;
+    border-radius: 999px !important;
+    letter-spacing: 0.06em !important;
+    color: #0891b2 !important;
+    background:
+        linear-gradient(135deg, rgba(240, 253, 250, 0.98), rgba(239, 246, 255, 0.96)) padding-box,
+        linear-gradient(135deg, #06b6d4, #22c55e, #f59e0b, #e11d48) border-box !important;
+    border: 2px solid transparent !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 10px 20px rgba(6, 182, 212, 0.12) !important;
+}
+
+/* Manage all employee cards: only reserve bell space where the bell sits. */
+@media (min-width: 641px) {
+    .employee-profile-card .employee-card-panel-head {
+        padding-right: 0 !important;
+    }
+
+    .employee-profile-card .employee-primary-head {
+        width: calc(100% - 34px) !important;
+        max-width: calc(100% - 34px) !important;
+    }
+
+    .employee-profile-card .employee-department-chip,
+    .employee-profile-card .employee-phone-chip {
+        max-width: 100% !important;
+    }
+}
+
+/* Manage all reason popup: larger, bolder heading across desktop and mobile. */
+#reasonModal .reason-modal-header h3,
+#reasonModal #reasonModalTitle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    font-size: 1.46rem !important;
+    font-weight: 1000 !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+    color: transparent !important;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 32%, #db2777 64%, #f59e0b 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: 0 0 0 currentColor, 0.25px 0 currentColor, -0.25px 0 currentColor !important;
+    -webkit-text-stroke: 0.18px currentColor;
+}
+
+#reasonModal.reason-context-pending #reasonModalTitle {
+    background: linear-gradient(90deg, #f59e0b 0%, #ea580c 42%, #b45309 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal.reason-context-approved #reasonModalTitle {
+    background: linear-gradient(90deg, #16a34a 0%, #0f766e 48%, #0284c7 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal.reason-context-rejected-employee #reasonModalTitle {
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 48%, #db2777 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal.reason-context-rejected-note #reasonModalTitle {
+    background: linear-gradient(90deg, #dc2626 0%, #e11d48 48%, #b91c1c 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+#reasonModal #reasonModalTitle::before {
+    content: "\270E";
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    font-size: 0.9em !important;
+    line-height: 1 !important;
+    background: inherit !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+@media (max-width: 640px) {
+    #reasonModal .reason-modal-header h3,
+    #reasonModal #reasonModalTitle {
+        gap: 6px !important;
+        font-size: 1.18rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.08 !important;
+    }
+}
+
+/* Manage all approval/rejection confirmation popup: stronger heading. */
+#decisionConfirmModal .decision-confirm-heading .reject-review-eyebrow,
+#decisionConfirmModal #decisionConfirmEyebrow,
+#decisionConfirmModal[data-variant="approve"] #decisionConfirmEyebrow,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmEyebrow {
+    font-size: 1.44rem !important;
+    font-weight: 1000 !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0.01em !important;
+    padding: 9px 18px !important;
+    text-shadow: 0 0 0 currentColor, 0.25px 0 currentColor, -0.25px 0 currentColor !important;
+    -webkit-text-stroke: 0.18px currentColor;
+}
+
+#decisionConfirmModal .decision-confirm-heading h3,
+#decisionConfirmModal #decisionConfirmTitle {
+    font-size: 1.5rem !important;
+    font-weight: 1000 !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+    text-shadow: 0 0 0 currentColor, 0.25px 0 currentColor, -0.25px 0 currentColor !important;
+    -webkit-text-stroke: 0.18px currentColor;
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal .decision-confirm-heading .reject-review-eyebrow,
+    #decisionConfirmModal #decisionConfirmEyebrow,
+    #decisionConfirmModal[data-variant="approve"] #decisionConfirmEyebrow,
+    #decisionConfirmModal[data-variant="reject"] #decisionConfirmEyebrow {
+        font-size: 1.16rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.08 !important;
+        padding: 8px 14px !important;
+    }
+
+    #decisionConfirmModal .decision-confirm-heading h3,
+    #decisionConfirmModal #decisionConfirmTitle {
+        font-size: 1.2rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.08 !important;
+    }
+}
+
+/* Manage all confirmation popup: bold primary confirmation copy in both variants. */
+#decisionConfirmModal .decision-confirm-message,
+#decisionConfirmModal .decision-confirm-subtext,
+#decisionConfirmModal #decisionConfirmMessage,
+#decisionConfirmModal #decisionConfirmSubtext {
+    font-weight: 1000 !important;
+    font-variation-settings: "wght" 1000 !important;
+    text-shadow: 0 0 0 currentColor, 0.22px 0 currentColor, -0.22px 0 currentColor !important;
+}
+
+/* Manage all reject popup: slightly stronger instruction line. */
+#rejectModal .reject-review-subtitle {
+    font-size: 0.96rem !important;
+    font-weight: 950 !important;
+    line-height: 1.22 !important;
+    text-shadow: 0 0 0 currentColor, 0.18px 0 currentColor, -0.18px 0 currentColor !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-subtitle {
+        font-size: 0.84rem !important;
+        font-weight: 950 !important;
+    }
+}
+
+/* Manage all popups: fly in/out from the triggering button. */
+@keyframes manageButtonFlyIn {
+    0% {
+        opacity: 0;
+        transform: translate(var(--button-origin-x, 0), var(--button-origin-y, 0)) scale(0.22);
+        filter: blur(8px);
+    }
+
+    72% {
+        opacity: 1;
+        transform: translate(-3px, -3px) scale(1.015);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes manageButtonFlyOut {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(var(--button-origin-x, 0), var(--button-origin-y, 0)) scale(0.22);
+        filter: blur(8px);
+    }
+}
+
+#rejectModal[aria-hidden="false"] .reject-modal-dialog,
+#decisionConfirmModal[aria-hidden="false"] .decision-confirm-dialog {
+    transform-origin: center center !important;
+    animation: manageButtonFlyIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+#rejectModal.is-closing .reject-modal-dialog,
+#decisionConfirmModal.is-closing .decision-confirm-dialog {
+    transform-origin: center center !important;
+    animation: manageButtonFlyOut 0.24s cubic-bezier(0.4, 0, 0.2, 1) both !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #rejectModal[aria-hidden="false"] .reject-modal-dialog,
+    #decisionConfirmModal[aria-hidden="false"] .decision-confirm-dialog,
+    #rejectModal.is-closing .reject-modal-dialog,
+    #decisionConfirmModal.is-closing .decision-confirm-dialog {
+        animation: none !important;
     }
 }

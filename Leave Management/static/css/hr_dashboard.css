@@ -1017,6 +1017,8 @@ tbody td
     border-top: 1px solid rgba(56, 189, 248, 0.34);
     border-bottom: 1px solid rgba(20, 184, 166, 0.3);
     vertical-align: middle;
+    font-size: 0.84rem;
+    font-weight: 750;
     transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -1144,15 +1146,15 @@ tbody tr:hover td:last-child
 {
     display: block;
     margin-bottom: 1px;
-    font-size: 0.86rem;
-    font-weight: 800;
+    font-size: 0.9rem;
+    font-weight: 850;
 }
 
 .employee-cell small
 {
     color: var(--hr-muted);
-    font-size: 0.74rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 750;
 }
 
 .leave-pill
@@ -1163,8 +1165,8 @@ tbody tr:hover td:last-child
     justify-content: flex-start;
     padding: 4px 8px;
     border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.74rem;
+    font-weight: 850;
+    font-size: 0.78rem;
     line-height: 1;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
@@ -1282,8 +1284,8 @@ tbody tr:hover td:last-child
     gap: 5px;
     white-space: nowrap;
     color: var(--hr-text);
-    font-size: 0.74rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 750;
     min-height: 16px;
     line-height: 1.05;
     transition: transform 0.18s ease;
@@ -1390,10 +1392,10 @@ tbody tr:hover td:last-child
 
 .applied-block strong
 {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     color: var(--hr-text);
     white-space: nowrap;
-    font-weight: 800;
+    font-weight: 850;
 }
 
 tbody td:nth-child(6) .applied-block strong
@@ -1411,7 +1413,7 @@ tbody td:nth-child(6) .applied-block strong
     align-items: center;
     gap: 3px;
     min-height: 16px;
-    font-weight: 700;
+    font-weight: 750;
     line-height: 1.05;
     transition: transform 0.18s ease;
     max-width: 100%;
@@ -1420,8 +1422,8 @@ tbody td:nth-child(6) .applied-block strong
 .applied-block span
 {
     color: var(--hr-muted);
-    font-size: 0.74rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 750;
 }
 
 .days-block
@@ -1437,17 +1439,17 @@ tbody td:nth-child(6) .applied-block strong
 
 .days-counter
 {
-    font-size: 0.86rem;
-    font-weight: 800;
+    font-size: 0.9rem;
+    font-weight: 850;
     line-height: 1;
     color: var(--hr-text);
 }
 
 .days-block span
 {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     color: var(--hr-muted);
-    font-weight: 700;
+    font-weight: 750;
 }
 
 .range-arrow
@@ -1465,8 +1467,8 @@ tbody td:nth-child(6) .applied-block strong
     max-width: 100%;
     line-height: 1.35;
     color: var(--hr-muted);
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 0.82rem;
+    font-weight: 750;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -6378,4 +6380,1695 @@ button
     #reasonModalContent {
         max-height: 84px !important;
     }
+}
+
+/* Keep HR decision popups in visual parity with manage_all employee detail popups. */
+.reject-review-dialog {
+    width: min(740px, calc(100vw - 44px)) !important;
+    padding: 14px 16px 14px !important;
+}
+
+.decision-confirm-modal[data-variant="approve"] .decision-confirm-dialog,
+.decision-confirm-modal[data-variant="reject"] .decision-confirm-dialog {
+    width: min(620px, calc(100vw - 40px)) !important;
+    max-height: calc(100vh - 8px) !important;
+}
+
+.reject-review-header,
+.reject-review-body,
+.decision-confirm-header,
+.decision-confirm-body {
+    gap: 12px !important;
+}
+
+.reject-review-heading h3,
+.decision-confirm-heading h3 {
+    font-size: 1.14rem !important;
+    font-weight: 1000 !important;
+}
+
+.reject-review-eyebrow,
+.reject-review-meta-card .reason-meta-label,
+.decision-confirm-card .reason-meta-label {
+    font-weight: 1000 !important;
+}
+
+.reject-review-section-label,
+.decision-confirm-note-label {
+    font-size: 1rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.13em !important;
+}
+
+.reject-review-meta-card .reason-meta-label,
+.decision-confirm-card .reason-meta-label {
+    font-size: 0.86rem !important;
+    font-weight: 1000 !important;
+}
+
+.reject-review-subtitle,
+.reject-review-meta-card .reason-meta-stack span,
+.reject-review-meta-card .reason-meta-value > span,
+.decision-confirm-card .reason-meta-stack > span {
+    font-size: 0.74rem !important;
+    font-weight: 850 !important;
+}
+
+.reject-review-meta-card .reason-meta-stack strong,
+.reject-review-meta-card .reason-meta-value strong,
+.decision-confirm-card .reason-meta-value {
+    font-size: 0.82rem !important;
+    font-weight: 1000 !important;
+}
+
+.reject-review-reason-card,
+.reject-review-note-card,
+.decision-confirm-note {
+    padding: 11px 13px !important;
+}
+
+#rejectModalReason,
+#rejectionReason {
+    height: 140px !important;
+    min-height: 140px !important;
+    max-height: 140px !important;
+    padding: 12px 14px 24px !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    line-height: 1.5 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+}
+
+#decisionConfirmReasonContent,
+#decisionConfirmNoteContent,
+.decision-confirm-note-content {
+    height: 96px !important;
+    min-height: 96px !important;
+    max-height: 96px !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    line-height: 1.52 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+}
+
+.reject-review-reason-card,
+.reject-review-note-card,
+.decision-confirm-note {
+    padding-top: 3px !important;
+}
+
+.reject-review-section-label,
+.decision-confirm-note-label {
+    margin-top: 0 !important;
+}
+
+#decisionConfirmModal[data-variant="approve"][aria-hidden="false"] .decision-confirm-dialog {
+    animation: approveConfirmModalIn 0.27s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#decisionConfirmModal[data-variant="approve"].is-closing .decision-confirm-dialog {
+    animation: approveConfirmModalOut 0.18s ease-in both;
+}
+
+#decisionConfirmModal[data-variant="reject"][aria-hidden="false"] .decision-confirm-dialog {
+    animation: rejectConfirmModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#decisionConfirmModal[data-variant="reject"].is-closing .decision-confirm-dialog {
+    animation: rejectConfirmModalOut 0.18s ease-in both;
+}
+
+@keyframes approveConfirmModalIn {
+    0% {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+        filter: blur(4px);
+    }
+
+    70% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.01);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes approveConfirmModalOut {
+    to {
+        opacity: 0;
+        transform: translateY(10px) scale(0.97);
+        filter: blur(4px);
+    }
+}
+
+@keyframes rejectConfirmModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(-16px) scale(0.975);
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes rejectConfirmModalOut {
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.978);
+        filter: blur(4px);
+    }
+}
+
+@media (min-width: 641px) {
+    #rejectModal .reject-review-body {
+        padding-bottom: 4px !important;
+    }
+
+    #rejectModal .reject-review-actions {
+        margin-bottom: -6px !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .decision-confirm-modal[data-variant="approve"] .decision-confirm-dialog,
+    .decision-confirm-modal[data-variant="reject"] .decision-confirm-dialog {
+        width: min(540px, calc(100vw - 28px)) !important;
+        max-height: calc(100vh - 6px) !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .reject-modal {
+        padding: 0 !important;
+    }
+
+    .reject-review-dialog {
+        width: calc(100vw - 24px) !important;
+        max-height: calc(100vh - 44px) !important;
+        padding: 0 !important;
+    }
+
+    .decision-confirm-modal[data-variant="approve"] .decision-confirm-dialog,
+    .decision-confirm-modal[data-variant="reject"] .decision-confirm-dialog {
+        width: calc(100vw - 26px) !important;
+        max-height: calc(100vh - 4px) !important;
+    }
+
+    .reject-review-heading h3,
+    .decision-confirm-heading h3 {
+        font-size: 0.9rem !important;
+    }
+
+    .reject-review-section-label,
+    .decision-confirm-note-label {
+        font-size: 0.84rem !important;
+        font-weight: 1000 !important;
+        letter-spacing: 0.08em !important;
+    }
+
+    .reject-review-meta-card .reason-meta-label,
+    .reject-review-meta-card .reason-meta-label-content,
+    .reject-review-meta-card .reason-meta-label-content span,
+    .decision-confirm-card .reason-meta-label,
+    .decision-confirm-card .reason-meta-label-content,
+    .decision-confirm-card .reason-meta-label-content span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+
+    .reject-review-meta-card .reason-meta-value,
+    .reject-review-meta-card .reason-meta-value strong,
+    .reject-review-meta-card .reason-meta-value span,
+    .decision-confirm-card .reason-meta-value,
+    .decision-confirm-card .reason-meta-value strong,
+    .decision-confirm-card .reason-meta-value span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.2 !important;
+    }
+
+    #rejectModalReason,
+    #rejectionReason {
+        height: 116px !important;
+        min-height: 116px !important;
+        max-height: 116px !important;
+        font-size: 0.72rem !important;
+        font-weight: 900 !important;
+        line-height: 1.46 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+        word-wrap: break-word !important;
+    }
+
+    #decisionConfirmReasonContent,
+    #decisionConfirmNoteContent,
+    .decision-confirm-note-content {
+        font-size: 0.72rem !important;
+        font-weight: 900 !important;
+        line-height: 1.5 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+        word-wrap: break-word !important;
+    }
+
+    #rejectModal .reject-review-dialog {
+        padding: 8px 8px 3px !important;
+        overflow: hidden !important;
+    }
+
+    #rejectModal .reject-review-actions {
+        margin-bottom: 0 !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-cancel-btn,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-submit-btn,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-cancel-btn,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-submit-btn {
+        font-size: 0.88rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* Slightly smaller reason/note headings in decision popups. */
+#rejectModal .reject-review-section-label,
+#decisionConfirmModal .decision-confirm-note-label {
+    font-size: 0.86rem !important;
+}
+
+#rejectModal .reject-review-cancel-btn,
+#rejectModal .reject-review-submit-btn,
+#decisionConfirmModal .decision-confirm-cancel-btn,
+#decisionConfirmModal .decision-confirm-submit-btn,
+#rejectModal .reject-review-cancel-btn span,
+#rejectModal .reject-review-submit-btn span,
+#decisionConfirmModal .decision-confirm-cancel-btn span,
+#decisionConfirmModal .decision-confirm-submit-btn span {
+    font-size: 0.98rem !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reason-meta-label-icon,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal .decision-confirm-note-label,
+    #decisionConfirmModal .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-note-label span {
+        font-size: 0.74rem !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn {
+        flex: 0 0 34% !important;
+        width: 34% !important;
+        min-width: 0 !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn,
+    #rejectModal .reject-review-cancel-btn span,
+    #rejectModal .reject-review-submit-btn span,
+    #decisionConfirmModal .decision-confirm-cancel-btn span,
+    #decisionConfirmModal .decision-confirm-submit-btn span {
+        font-size: 0.94rem !important;
+    }
+}
+
+/* Slightly smaller reason/note headings in decision popups. */
+#rejectModal .reject-review-section-label,
+#decisionConfirmModal .decision-confirm-note-label {
+    font-size: 0.86rem !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reason-meta-label-icon,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal .decision-confirm-note-label,
+    #decisionConfirmModal .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-note-label span {
+        font-size: 0.74rem !important;
+    }
+}
+
+/* HR-only button sizing adjustment after parity layer. */
+#rejectModal .reject-review-cancel-btn,
+#rejectModal .reject-review-submit-btn,
+#decisionConfirmModal .decision-confirm-cancel-btn,
+#decisionConfirmModal .decision-confirm-submit-btn,
+#rejectModal .reject-review-cancel-btn span,
+#rejectModal .reject-review-submit-btn span,
+#decisionConfirmModal .decision-confirm-cancel-btn span,
+#decisionConfirmModal .decision-confirm-submit-btn span {
+    font-size: 0.98rem !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-actions,
+    #decisionConfirmModal .decision-confirm-actions {
+        display: flex !important;
+        align-items: stretch !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn {
+        flex: 0 0 34% !important;
+        width: 34% !important;
+        min-width: 0 !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn,
+    #rejectModal .reject-review-cancel-btn span,
+    #rejectModal .reject-review-submit-btn span,
+    #decisionConfirmModal .decision-confirm-cancel-btn span,
+    #decisionConfirmModal .decision-confirm-submit-btn span {
+        font-size: 0.94rem !important;
+        white-space: nowrap !important;
+    }
+}
+
+/* Exact manage_all decision/reject popup parity layer for HR dashboard. */
+.reject-review-dialog {
+    width: min(740px, calc(100vw - 44px)) !important;
+    padding: 14px 16px 14px !important;
+}
+
+.reject-review-header,
+.reject-review-body,
+.reason-modal-header,
+.reason-modal-body {
+    gap: 12px !important;
+}
+
+.reject-review-heading h3,
+.reason-modal-header h3 {
+    font-size: 1.14rem !important;
+    font-weight: 1000 !important;
+}
+
+.reject-review-eyebrow,
+.reject-review-meta-card .reason-meta-label,
+.reason-modal-chip,
+.reason-meta-label {
+    font-weight: 1000 !important;
+}
+
+.reason-field-label,
+.reject-review-section-label,
+.decision-confirm-note-label {
+    font-size: 1rem !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0.13em !important;
+}
+
+.reject-review-meta-card .reason-meta-label,
+.reason-meta-label,
+.reason-modal-chip {
+    font-size: 0.86rem !important;
+    font-weight: 1000 !important;
+}
+
+.reject-review-subtitle,
+.reject-review-meta-card .reason-meta-stack span,
+.reject-review-meta-card .reason-meta-value > span,
+.reason-meta-stack span {
+    font-size: 0.74rem !important;
+    font-weight: 850 !important;
+}
+
+.reject-review-meta-card .reason-meta-stack strong,
+.reject-review-meta-card .reason-meta-value strong,
+.reason-meta-value,
+.reason-meta-stack strong {
+    font-size: 0.82rem !important;
+    font-weight: 1000 !important;
+}
+
+.reject-review-reason-card,
+.reject-review-note-card,
+.reason-field-card {
+    padding: 11px 13px !important;
+}
+
+#rejectModalReason,
+#rejectionReason {
+    height: 140px !important;
+    min-height: 140px !important;
+    max-height: 140px !important;
+    padding: 12px 14px 24px !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    line-height: 1.5 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+}
+
+.reason-modal-dialog {
+    width: min(680px, calc(100vw - 32px)) !important;
+    max-height: min(560px, calc(100vh - 32px)) !important;
+    padding: 12px 18px 16px !important;
+}
+
+.reason-modal-header .close-modal-btn {
+    top: -12px !important;
+    right: -12px !important;
+}
+
+.reason-field-card {
+    min-height: 138px !important;
+}
+
+#reasonModalContent,
+#decisionConfirmReasonContent,
+#decisionConfirmNoteContent,
+.decision-confirm-note-content {
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    line-height: 1.52 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+}
+
+#reasonModalContent {
+    max-height: 176px !important;
+}
+
+.reject-review-reason-card,
+.reject-review-note-card,
+.reason-field-card,
+.decision-confirm-note {
+    padding-top: 3px !important;
+}
+
+.reason-field-label,
+.reject-review-section-label,
+.decision-confirm-note-label {
+    margin-top: 0 !important;
+}
+
+@media (min-width: 641px) {
+    #reasonModal .reason-modal-top-row {
+        margin-top: 9px !important;
+        margin-bottom: -7px !important;
+    }
+
+    .reject-review-note-card .reject-review-section-label {
+        position: relative !important;
+        top: -3px !important;
+    }
+
+    #rejectModal .reject-review-body {
+        padding-bottom: 4px !important;
+    }
+
+    #rejectModal .reject-review-actions {
+        margin-bottom: -6px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .modal-box:has(.popup-filter-modal-content) {
+        width: calc(100vw - 36px) !important;
+        max-width: calc(100vw - 36px) !important;
+        position: relative !important;
+        overflow: visible !important;
+    }
+
+    .modal-box:has(.popup-filter-modal-content) .modal-header {
+        display: flex !important;
+        position: absolute !important;
+        top: 8px !important;
+        right: 8px !important;
+        z-index: 30 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        pointer-events: auto !important;
+    }
+
+    .modal-box:has(.popup-filter-modal-content) .modal-header .close {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 50% !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        color: #334155 !important;
+        font-size: 1.25rem !important;
+        font-weight: 1000 !important;
+        line-height: 1 !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.92),
+            0 10px 20px rgba(15, 23, 42, 0.18) !important;
+        cursor: pointer !important;
+    }
+
+    #rejectModalReason,
+    #rejectionReason {
+        height: 92px !important;
+        min-height: 92px !important;
+        max-height: 92px !important;
+    }
+
+    #decisionConfirmReasonContent,
+    #decisionConfirmNoteContent,
+    .decision-confirm-note-content {
+        height: 92px !important;
+        min-height: 92px !important;
+        max-height: 92px !important;
+    }
+}
+
+@keyframes approveConfirmModalIn {
+    0% {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+        filter: blur(4px);
+    }
+
+    70% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.01);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes approveConfirmModalOut {
+    to {
+        opacity: 0;
+        transform: translateY(10px) scale(0.97);
+        filter: blur(4px);
+    }
+}
+
+@keyframes rejectConfirmModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(-16px) scale(0.975);
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes rejectConfirmModalOut {
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.978);
+        filter: blur(4px);
+    }
+}
+
+@keyframes reasonPreviewModalIn {
+    from {
+        opacity: 0;
+        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.16);
+        clip-path: inset(38% 42% 38% 42% round 12px);
+        filter: blur(4px);
+        transform-origin: center center;
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        clip-path: inset(0 0 0 0 round 18px);
+        filter: blur(0);
+        transform-origin: center center;
+    }
+}
+
+@keyframes reasonPreviewModalOut {
+    from {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        clip-path: inset(0 0 0 0 round 18px);
+        filter: blur(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.16);
+        clip-path: inset(38% 42% 38% 42% round 12px);
+        filter: blur(4px);
+    }
+}
+
+@keyframes filterModalInContext {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.965);
+        clip-path: inset(10% 6% 0 6% round 20px);
+        filter: blur(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        clip-path: inset(0 0 0 0 round 20px);
+        filter: blur(0);
+    }
+}
+
+@keyframes filterModalOutContext {
+    to {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+        clip-path: inset(8% 6% 0 6% round 20px);
+        filter: blur(3px);
+    }
+}
+
+.employee-modal[aria-hidden="false"] .employee-modal-dialog {
+    animation: employeeDetailModalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.employee-modal.is-closing .employee-modal-dialog {
+    animation: employeeDetailModalOut 0.2s ease-in both;
+}
+
+#rejectModal[aria-hidden="false"] .reject-modal-dialog {
+    animation: rejectReasonModalIn 0.27s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#rejectModal.is-closing .reject-modal-dialog {
+    animation: rejectReasonModalOut 0.2s ease-in both;
+}
+
+#decisionConfirmModal[data-variant="approve"][aria-hidden="false"] .decision-confirm-dialog {
+    animation: approveConfirmModalIn 0.27s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#decisionConfirmModal[data-variant="approve"].is-closing .decision-confirm-dialog {
+    animation: approveConfirmModalOut 0.18s ease-in both;
+}
+
+#decisionConfirmModal[data-variant="reject"][aria-hidden="false"] .decision-confirm-dialog {
+    animation: rejectConfirmModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#decisionConfirmModal[data-variant="reject"].is-closing .decision-confirm-dialog {
+    animation: rejectConfirmModalOut 0.18s ease-in both;
+}
+
+@media (max-width: 640px) {
+    .reject-modal,
+    #reasonModal.reason-modal {
+        padding: 0 !important;
+    }
+
+    .reject-review-dialog {
+        width: calc(100vw - 24px) !important;
+        max-height: calc(100vh - 44px) !important;
+        padding: 0 !important;
+    }
+
+    .reject-review-heading h3,
+    .reason-modal-header h3 {
+        font-size: 0.9rem !important;
+    }
+
+    .reason-field-label,
+    .reject-review-section-label,
+    .decision-confirm-note-label {
+        font-size: 0.78rem !important;
+        font-weight: 1000 !important;
+        letter-spacing: 0.08em !important;
+    }
+
+    .reject-review-meta-card .reason-meta-label,
+    .reason-meta-label,
+    .reason-modal-chip {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+    }
+
+    .reject-review-subtitle,
+    .reject-review-meta-card .reason-meta-stack span,
+    .reject-review-meta-card .reason-meta-value > span,
+    .reason-meta-stack span {
+        font-size: 0.62rem !important;
+        font-weight: 850 !important;
+    }
+
+    .reject-review-meta-card .reason-meta-stack strong,
+    .reject-review-meta-card .reason-meta-value strong,
+    .reason-meta-value,
+    .reason-meta-stack strong {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #rejectModalReason,
+    #rejectionReason {
+        height: 116px !important;
+        min-height: 116px !important;
+        max-height: 116px !important;
+        font-size: 0.64rem !important;
+        font-weight: 800 !important;
+        line-height: 1.46 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+        word-wrap: break-word !important;
+    }
+
+    #reasonModal .reason-modal-dialog {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        padding: 0 !important;
+    }
+
+    #reasonModal .reason-modal-header .close-modal-btn {
+        top: 1px !important;
+        right: 5px !important;
+    }
+
+    #reasonModalContent {
+        max-height: 154px !important;
+    }
+
+    #reasonModalContent,
+    #decisionConfirmReasonContent,
+    #decisionConfirmNoteContent,
+    .decision-confirm-note-content {
+        font-size: 0.66rem !important;
+        font-weight: 800 !important;
+        line-height: 1.5 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+        word-wrap: break-word !important;
+    }
+
+    #rejectModal .reject-review-actions {
+        padding-bottom: 8px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #reasonModal .reason-modal-body {
+        gap: 0 !important;
+        overflow: visible !important;
+    }
+
+    #reasonModal .reason-modal-header {
+        margin-bottom: -6px !important;
+    }
+
+    #reasonModal .reason-modal-top-row {
+        position: static !important;
+        top: auto !important;
+        margin-top: 0 !important;
+        margin-bottom: 5px !important;
+    }
+
+    #reasonModal .reason-field-card {
+        margin-top: 4px !important;
+        padding-top: 2px !important;
+    }
+
+    #reasonModal .reason-field-label {
+        margin-top: 0 !important;
+        margin-bottom: 1px !important;
+        padding-bottom: 2px !important;
+    }
+}
+
+#reasonModal .reason-modal-name-chip,
+#reasonModal .reason-modal-type-chip {
+    font-size: 0.96rem !important;
+    font-weight: 1000 !important;
+    line-height: 1.1 !important;
+    padding: 6px 14px !important;
+}
+
+@media (max-width: 640px) {
+    #reasonModal .reason-modal-name-chip,
+    #reasonModal .reason-modal-type-chip {
+        font-size: 0.78rem !important;
+        font-weight: 1000 !important;
+        padding: 5px 10px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #reasonModal .reason-modal-header > .close-modal-btn {
+        position: absolute !important;
+        top: 0 !important;
+        right: 0 !important;
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 1rem !important;
+        transform: translate(-5px, 2px) !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-dialog {
+        padding: 8px 8px 3px !important;
+        overflow: hidden !important;
+    }
+
+    #rejectModal .reject-review-header {
+        padding-top: 2px !important;
+        overflow: visible !important;
+    }
+
+    #rejectModal .reject-review-hero {
+        padding-top: 2px !important;
+        padding-right: 38px !important;
+    }
+
+    #rejectModal .reject-review-header .close-modal-btn {
+        top: 2px !important;
+        right: 2px !important;
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 1.18rem !important;
+        font-weight: 1000 !important;
+        transform: none !important;
+    }
+
+    #rejectModal .reject-review-eyebrow {
+        font-size: 0.82rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+}
+
+#decisionConfirmModal[data-variant="approve"] .decision-confirm-actions {
+    margin-top: 8px !important;
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-actions {
+        margin-top: 6px !important;
+    }
+}
+
+/* Slightly roomier reject decision confirmation popup. */
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
+    width: min(660px, calc(100vw - 40px)) !important;
+    padding-bottom: 12px !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-actions {
+    margin-bottom: 8px !important;
+}
+
+@media (max-width: 640px) {
+    #popupTableWrapper .compact-action-group .approve-btn,
+    #popupTableWrapper .compact-action-group .reject-btn,
+    .detail-table .compact-action-group .approve-btn,
+    .detail-table .compact-action-group .reject-btn {
+        min-height: 32px !important;
+        height: 32px !important;
+        font-size: 0.78rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-section-label,
+    #decisionConfirmModal .decision-confirm-note-label {
+        font-size: 0.84rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #rejectModal #rejectModalReason,
+    #rejectModal #rejectionReason,
+    #decisionConfirmModal #decisionConfirmReasonContent,
+    #decisionConfirmModal #decisionConfirmNoteContent,
+    #decisionConfirmModal .decision-confirm-note-content {
+        font-size: 0.72rem !important;
+        font-weight: 900 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-meta-card .reason-meta-label,
+    #rejectModal .reject-review-meta-card .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card .reason-meta-label-content span,
+    #decisionConfirmModal .decision-confirm-card .reason-meta-label,
+    #decisionConfirmModal .decision-confirm-card .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-card .reason-meta-label-content span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+
+    #rejectModal .reject-review-meta-card .reason-meta-value,
+    #rejectModal .reject-review-meta-card .reason-meta-value strong,
+    #rejectModal .reject-review-meta-card .reason-meta-value span,
+    #decisionConfirmModal .decision-confirm-card .reason-meta-value,
+    #decisionConfirmModal .decision-confirm-card .reason-meta-value strong,
+    #decisionConfirmModal .decision-confirm-card .reason-meta-value span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.2 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-meta-card .reason-meta-label,
+    #rejectModal .reject-review-meta-card .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card .reason-meta-label-content span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card .reason-meta-label,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card .reason-meta-label-content span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+
+    #rejectModal .reject-review-meta-card .reason-meta-value,
+    #rejectModal .reject-review-meta-card .reason-meta-value strong,
+    #rejectModal .reject-review-meta-card .reason-meta-value span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card .reason-meta-value,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card .reason-meta-value strong,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card .reason-meta-value span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.2 !important;
+    }
+
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-note-label,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-note-label span {
+        font-size: 0.84rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-meta-card .reason-meta-label,
+    #rejectModal .reject-review-meta-card .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card .reason-meta-label-content span,
+    #rejectModal .reject-review-meta-card .reason-meta-label-icon {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+
+    #rejectModal .reject-review-meta-card .reason-meta-value,
+    #rejectModal .reject-review-meta-card .reason-meta-value strong,
+    #rejectModal .reject-review-meta-card .reason-meta-value span,
+    #rejectModal .reject-review-meta-card .reason-meta-content-line,
+    #rejectModal .reject-review-meta-card .reason-meta-content-line span {
+        font-size: 0.68rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.2 !important;
+    }
+
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reason-meta-label-icon,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text {
+        font-size: 0.84rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(1) .reason-meta-label,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(1) .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(1) .reason-meta-label-content span,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(2) .reason-meta-label,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(2) .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(2) .reason-meta-label-content span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(1) .reason-meta-label,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(1) .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(1) .reason-meta-label-content span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(2) .reason-meta-label,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(2) .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(2) .reason-meta-label-content span {
+        font-size: 0.76rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(1) .reason-meta-value,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(1) .reason-meta-value span,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(2) .reason-meta-value,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-card:nth-child(2) .reason-meta-value span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(1) .reason-meta-value,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(1) .reason-meta-value span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(2) .reason-meta-value,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(2) .reason-meta-value span {
+        font-size: 0.82rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reason-meta-label-icon,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal .decision-confirm-note-label,
+    #decisionConfirmModal .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-note-label span {
+        font-size: 0.78rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal .decision-confirm-card:nth-child(3) .reason-meta-label,
+    #decisionConfirmModal .decision-confirm-card:nth-child(3) .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-card:nth-child(3) .reason-meta-label-content span,
+    #decisionConfirmModal .decision-confirm-card:nth-child(4) .reason-meta-label,
+    #decisionConfirmModal .decision-confirm-card:nth-child(4) .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-card:nth-child(4) .reason-meta-label-content span,
+    #decisionConfirmModal .decision-confirm-card:nth-child(5) .reason-meta-label,
+    #decisionConfirmModal .decision-confirm-card:nth-child(5) .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-card:nth-child(5) .reason-meta-label-content span,
+    #decisionConfirmModal .decision-confirm-card:nth-child(6) .reason-meta-label,
+    #decisionConfirmModal .decision-confirm-card:nth-child(6) .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-card:nth-child(6) .reason-meta-label-content span,
+    #rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label,
+    #rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label-content span,
+    #rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label,
+    #rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label-content span,
+    #rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label,
+    #rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label-content span,
+    #rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label,
+    #rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label-content span {
+        font-size: 0.72rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-label,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-label-content,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-label-content span,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-label-icon {
+        font-size: 0.78rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+    }
+
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-value,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-value strong,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-value span,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-content-line,
+    #rejectModal .reject-review-meta-card:nth-child(3) .reason-meta-content-line span {
+        font-size: 0.82rem !important;
+        font-weight: 1000 !important;
+        line-height: 1.2 !important;
+    }
+}
+
+@media (min-width: 641px) {
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-note-label,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-note-label span,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-note-label,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-note-label span {
+        font-size: 0.9rem !important;
+        font-weight: 1000 !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-cancel-btn,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-submit-btn,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-cancel-btn,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-submit-btn {
+        font-size: 0.88rem !important;
+        font-weight: 1000 !important;
+
+    }
+}
+
+/* Slightly smaller reason/note headings in decision popups. */
+#rejectModal .reject-review-section-label,
+#decisionConfirmModal .decision-confirm-note-label {
+    font-size: 0.86rem !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reason-meta-label-icon,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal .decision-confirm-note-label,
+    #decisionConfirmModal .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-note-label span {
+        font-size: 0.74rem !important;
+    }
+}
+
+/* HR-only final button sizing adjustment. */
+#rejectModal .reject-review-cancel-btn,
+#rejectModal .reject-review-submit-btn,
+#decisionConfirmModal .decision-confirm-cancel-btn,
+#decisionConfirmModal .decision-confirm-submit-btn,
+#rejectModal .reject-review-cancel-btn span,
+#rejectModal .reject-review-submit-btn span,
+#decisionConfirmModal .decision-confirm-cancel-btn span,
+#decisionConfirmModal .decision-confirm-submit-btn span {
+    font-size: 0.98rem !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-actions,
+    #decisionConfirmModal .decision-confirm-actions {
+        display: flex !important;
+        align-items: stretch !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn {
+        flex: 0 0 34% !important;
+        width: 34% !important;
+        min-width: 0 !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn,
+    #rejectModal .reject-review-cancel-btn span,
+    #rejectModal .reject-review-submit-btn span,
+    #decisionConfirmModal .decision-confirm-cancel-btn span,
+    #decisionConfirmModal .decision-confirm-submit-btn span {
+        font-size: 0.94rem !important;
+    }
+}
+
+/* HR mobile action buttons stay in one row. */
+@media (max-width: 640px) {
+    #rejectModal .reject-review-actions,
+    #decisionConfirmModal .decision-confirm-actions {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn {
+        flex: 0 0 34% !important;
+        width: 34% !important;
+        min-width: 0 !important;
+    }
+
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
+    #rejectModal .reject-review-cancel-btn span,
+    #rejectModal .reject-review-submit-btn span,
+    #decisionConfirmModal .decision-confirm-cancel-btn span,
+    #decisionConfirmModal .decision-confirm-submit-btn span {
+        white-space: nowrap !important;
+    }
+}
+
+/* Desktop-only smaller reason/note headings in decision popups. */
+@media (min-width: 641px) {
+    #rejectModal .reject-review-section-label,
+    #rejectModal .reject-review-section-label .reason-meta-label-content,
+    #rejectModal .reject-review-section-label .reject-review-section-label-text,
+    #decisionConfirmModal .decision-confirm-note-label,
+    #decisionConfirmModal .decision-confirm-note-label .reason-meta-label-content,
+    #decisionConfirmModal .decision-confirm-note-label span {
+        font-size: 0.8rem !important;
+    }
+}
+
+/* HR mobile popup button text slight reduction. */
+@media (max-width: 640px) {
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn,
+    #decisionConfirmModal .decision-confirm-cancel-btn,
+    #decisionConfirmModal .decision-confirm-submit-btn,
+    #rejectModal .reject-review-cancel-btn span,
+    #rejectModal .reject-review-submit-btn span,
+    #decisionConfirmModal .decision-confirm-cancel-btn span,
+    #decisionConfirmModal .decision-confirm-submit-btn span {
+        font-size: 0.84rem !important;
+    }
+}
+
+/* HR mobile popup action bottom breathing room. */
+@media (max-width: 640px) {
+    #rejectModal .reject-review-actions,
+    #decisionConfirmModal .decision-confirm-actions {
+        margin-bottom: 8px !important;
+        padding-bottom: 4px !important;
+    }
+}
+
+/* HR mobile popup slightly wider. */
+@media (max-width: 640px) {
+    #rejectModal .reject-review-dialog,
+    #decisionConfirmModal .decision-confirm-dialog {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+    }
+}
+
+/* HR mobile rejection decision popup width override. */
+@media (max-width: 640px) {
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+    }
+}
+
+/* HR mobile decision popups: final enforced width. */
+@media (max-width: 640px) {
+    #decisionConfirmModal.reject-modal {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        box-sizing: border-box !important;
+    }
+
+    #decisionConfirmModal .decision-confirm-dialog,
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-dialog,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog,
+    #decisionConfirmModal .reject-modal-dialog {
+        width: calc(100vw - 8px) !important;
+        max-width: calc(100vw - 8px) !important;
+        min-width: 0 !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* HR reject decision popup: final width and button-row breathing room. */
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
+    width: min(700px, calc(100vw - 24px)) !important;
+    max-width: min(700px, calc(100vw - 24px)) !important;
+    padding-bottom: 8px !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-actions {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal[data-variant="reject"].reject-modal {
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
+        width: calc(100vw - 4px) !important;
+        max-width: calc(100vw - 4px) !important;
+        padding-bottom: 6px !important;
+    }
+
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-actions {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+}
+
+/* HR reject notes popup: final width and action-row spacing. */
+#rejectModal .reject-review-dialog {
+    width: min(700px, calc(100vw - 24px)) !important;
+    max-width: min(700px, calc(100vw - 24px)) !important;
+    padding-bottom: 8px !important;
+}
+
+#rejectModal .reject-review-actions {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+@media (max-width: 640px) {
+    #rejectModal.reject-modal {
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+
+    #rejectModal .reject-review-dialog {
+        width: calc(100vw - 4px) !important;
+        max-width: calc(100vw - 4px) !important;
+        padding-bottom: 6px !important;
+    }
+
+    #rejectModal .reject-review-actions {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+}
+
+/* HR mobile/tablet: keep both reject popups the same reduced width. */
+@media (max-width: 900px) {
+    #rejectModal .reject-review-dialog,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
+        width: min(540px, calc(100vw - 28px)) !important;
+        max-width: min(540px, calc(100vw - 28px)) !important;
+        box-sizing: border-box !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #rejectModal .reject-review-dialog,
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+/* HR leave table action buttons: slightly larger, bolder labels. */
+.table-wrapper .action-group .approve-btn,
+.table-wrapper .action-group .reject-btn {
+    font-size: 0.8rem !important;
+    font-weight: 1000 !important;
+}
+
+@media (max-width: 720px) {
+    .table-wrapper .action-group .approve-btn,
+    .table-wrapper .action-group .reject-btn {
+        font-size: 0.78rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* Match reject decision heading symbol on mobile and desktop. */
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-badge {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 999px !important;
+    display: grid !important;
+    place-items: center !important;
+    border: 1px solid rgba(239, 68, 68, 0.24) !important;
+    background: linear-gradient(180deg, rgba(255, 241, 242, 0.98), rgba(254, 226, 226, 0.92)) !important;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.12) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-badge-icon {
+    font-size: 0 !important;
+    line-height: 1 !important;
+    color: #ef4444 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-badge-icon::before {
+    content: "\26D4\FE0E";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #ef4444;
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-badge {
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+    }
+
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-badge-icon {
+        font-size: 0 !important;
+        font-weight: 900 !important;
+    }
+
+    #decisionConfirmModal[data-variant="reject"] .decision-confirm-badge-icon::before {
+        font-size: 0.82rem !important;
+    }
+}
+
+/* HR mobile approve confirmation: match reject popup width and tighten actions. */
+@media (max-width: 900px) {
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-dialog {
+        width: min(540px, calc(100vw - 28px)) !important;
+        max-width: min(540px, calc(100vw - 28px)) !important;
+        box-sizing: border-box !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #decisionConfirmModal[data-variant="approve"] .decision-confirm-dialog {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-bottom: 6px !important;
+    }
+}
+
+#decisionConfirmModal[data-variant="approve"] .decision-confirm-actions {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* HR mobile reject decision buttons match rejection confirmation height. */
+@media (max-width: 640px) {
+    #rejectModal .reject-review-cancel-btn,
+    #rejectModal .reject-review-submit-btn {
+        height: 37px !important;
+        min-height: 37px !important;
+        max-height: 37px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* HR reject decision field headings match rejection confirmation color. */
+#rejectModal .reject-review-section-label,
+#rejectModal .reject-review-section-label .reason-meta-label-content,
+#rejectModal .reject-review-section-label .reason-meta-label-icon,
+#rejectModal .reject-review-section-label .reject-review-section-label-text {
+    color: #dc2626 !important;
+}
+
+#rejectModal .reject-review-section-label::after {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal #rejectModalReason,
+#rejectModal #rejectionReason {
+    color: #334155 !important;
+}
+
+#rejectModal #rejectionReason::placeholder {
+    color: #64748b !important;
+}
+
+/* HR reject decision meta headings use approve-style field colors. */
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label-icon {
+    color: #f59e0b !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label-icon {
+    color: #0f766e !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label,
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label-content,
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(1) .reason-meta-label::after,
+#rejectModal .reject-review-meta-card:nth-child(5) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(2) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal .reject-review-meta-card:nth-child(4) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label,
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label .reason-meta-label-content,
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label .reason-meta-label-icon,
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label .reject-review-section-label-text {
+    color: #2563eb !important;
+}
+
+#rejectModal #rejectEmployeeReasonCard .reject-review-section-label::after {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.96), rgba(191, 219, 254, 0.4)) !important;
+}
+
+/* HR rejected confirmation meta headings use the same field colors. */
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label-icon {
+    color: #f59e0b !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label-icon {
+    color: #0f766e !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label-icon {
+    color: #3b82f6 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(3) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(4) .reason-meta-label::after,
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(6) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] .decision-confirm-card:nth-child(5) .reason-meta-label::after {
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label .reason-meta-label-icon,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonHeading {
+    color: #2563eb !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmReasonNote .decision-confirm-note-label::after {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.28), rgba(226, 232, 240, 0.82)) !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label .reason-meta-label-content,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label .reason-meta-label-icon,
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNoteHeading {
+    color: #dc2626 !important;
+}
+
+#decisionConfirmModal[data-variant="reject"] #decisionConfirmNote .decision-confirm-note-label::after {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.28), rgba(226, 232, 240, 0.82)) !important;
 }

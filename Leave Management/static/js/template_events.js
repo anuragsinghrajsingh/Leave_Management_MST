@@ -85,6 +85,7 @@
 
             case "open-reject":
                 event.preventDefault();
+                window.lastModalTrigger = actionElement;
                 callGlobal("openReject", [actionElement.dataset.leaveId]);
                 break;
 
@@ -105,6 +106,7 @@
 
             case "approve-leave-popup":
                 event.preventDefault();
+                window.lastModalTrigger = actionElement;
                 callGlobal("approveLeaveFromPopup", [actionElement.dataset.leaveId]);
                 break;
 
