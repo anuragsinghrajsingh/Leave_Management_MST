@@ -19061,3 +19061,114 @@ button {
         animation: none !important;
     }
 }
+
+/* Employee detail popup empty table: mobile card layout matching My Leave. */
+@media (max-width: 640px) {
+    #employeeModal #popupTableWrapper.is-empty {
+        overflow: hidden !important;
+        min-height: 198px !important;
+        max-height: none !important;
+        padding-bottom: 6px !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .compact-table-inner,
+    #employeeModal #popupTableWrapper.is-empty .detail-table,
+    #employeeModal #popupTableWrapper.is-empty .detail-table tbody,
+    #employeeModal #popupTableWrapper.is-empty .cosmic-tr,
+    #employeeModal #popupTableWrapper.is-empty .cosmic-tr td {
+        display: block !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .detail-table {
+        table-layout: fixed !important;
+        border-spacing: 0 !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .detail-table thead,
+    #employeeModal #popupTableWrapper.is-empty .detail-table thead::after,
+    #employeeModal #popupTableWrapper.is-empty .compact-table-inner::before,
+    #employeeModal #popupTableWrapper.is-empty .compact-table-inner::after {
+        display: none !important;
+        content: none !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-tr td {
+        min-height: 178px !important;
+        padding: 0 !important;
+        text-align: center !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-empty-state {
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 178px !important;
+        padding: 10px 10px 12px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-interactive-core {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        align-items: center !important;
+        transform: none !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-visual-zone {
+        width: 150px !important;
+        height: 82px !important;
+        min-height: 82px !important;
+        margin: 0 auto 2px !important;
+        justify-content: center !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-icon-anchor,
+    #employeeModal #popupTableWrapper.is-empty .cosmic-icon-reveal-wrapper {
+        width: 118px !important;
+        height: 78px !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-icon-reveal-wrapper svg,
+    #employeeModal #popupTableWrapper.is-empty .cosmic-visual-zone svg {
+        width: 72px !important;
+        height: 72px !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-content {
+        width: 100% !important;
+        gap: 4px !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-title {
+        max-width: 300px !important;
+        margin: 0 auto !important;
+        font-size: 0.92rem !important;
+        line-height: 1.08 !important;
+        letter-spacing: 0.13em !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        text-align: center !important;
+    }
+
+    #employeeModal #popupTableWrapper.is-empty .cosmic-message {
+        max-width: 310px !important;
+        margin: 0 auto !important;
+        font-size: 0.86rem !important;
+        line-height: 1.18 !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        text-align: center !important;
+    }
+}

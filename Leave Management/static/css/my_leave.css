@@ -8695,15 +8695,23 @@ textarea:focus {
 @media (max-width: 768px) {
     .my-leave-page .js-paginated-table.is-empty {
         overflow-x: hidden !important;
-        min-height: 168px !important;
+        overflow-y: hidden !important;
+        min-height: 198px !important;
         padding-bottom: 6px !important;
     }
 
     .my-leave-page .js-paginated-table.is-empty .leave-table {
+        display: block !important;
         width: 100% !important;
         min-width: 100% !important;
         table-layout: fixed !important;
         border-spacing: 0 !important;
+    }
+
+    .my-leave-page .js-paginated-table.is-empty .leave-table tbody,
+    .my-leave-page .js-paginated-table.is-empty .table-empty-row {
+        display: block !important;
+        width: 100% !important;
     }
 
     .my-leave-page .js-paginated-table.is-empty .leave-table thead,
@@ -8713,11 +8721,9 @@ textarea:focus {
     }
 
     .my-leave-page .js-paginated-table.is-empty .table-empty-row td {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        display: block !important;
         width: 100% !important;
-        min-height: 150px !important;
+        min-height: 178px !important;
         padding: 0 !important;
         color: #475569 !important;
         font-size: 0.88rem !important;
@@ -8728,9 +8734,12 @@ textarea:focus {
     .my-leave-page .js-paginated-table.is-empty .mle-empty-state,
     .my-leave-page .js-paginated-table.is-empty .table-empty-row td:not(:has(.mle-empty-state)) {
         width: 100% !important;
-        min-height: 150px !important;
+        max-width: 100% !important;
+        min-height: 178px !important;
         box-sizing: border-box !important;
-        padding: 4px 10px 6px !important;
+        padding: 10px 10px 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
@@ -8767,21 +8776,22 @@ textarea:focus {
     }
 
     .my-leave-page .js-paginated-table.is-empty .mle-title {
-        max-width: 100% !important;
-        font-size: 0.78rem !important;
-        line-height: 1 !important;
-        letter-spacing: 0.14em !important;
+        max-width: 290px !important;
+        font-size: 0.92rem !important;
+        line-height: 1.08 !important;
+        letter-spacing: 0.13em !important;
         white-space: normal !important;
         text-align: center !important;
     }
 
     .my-leave-page .js-paginated-table.is-empty .mle-message {
-        max-width: 245px !important;
+        max-width: 310px !important;
         margin: 0 auto !important;
-        font-size: 0.82rem !important;
-        line-height: 1.15 !important;
+        font-size: 0.86rem !important;
+        line-height: 1.18 !important;
         text-align: center !important;
-        overflow-wrap: anywhere !important;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
     }
 
     .my-leave-page #approved-panel .table-shell {
@@ -8820,9 +8830,52 @@ textarea:focus {
     }
 
     .my-leave-page #approved-panel .js-paginated-table.is-empty .leave-table {
+        display: block !important;
         width: 100% !important;
         min-width: 100% !important;
     }
+
+    .my-leave-page #approved-panel .js-paginated-table.is-empty .leave-table tbody,
+    .my-leave-page #approved-panel .js-paginated-table.is-empty .table-empty-row,
+    .my-leave-page #approved-panel .js-paginated-table.is-empty .table-empty-row td {
+        display: block !important;
+        width: 100% !important;
+    }
+}
+
+.my-leave-page .js-paginated-table.is-empty {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    min-height: 240px !important;
+}
+
+.my-leave-page .js-paginated-table.is-empty .leave-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    table-layout: fixed !important;
+    border-spacing: 0 !important;
+}
+
+.my-leave-page .js-paginated-table.is-empty .leave-table thead,
+.my-leave-page .js-paginated-table.is-empty .leave-table thead::after {
+    display: none !important;
+    content: none !important;
+}
+
+.my-leave-page .js-paginated-table.is-empty .leave-table tbody,
+.my-leave-page .js-paginated-table.is-empty .table-empty-row,
+.my-leave-page .js-paginated-table.is-empty .table-empty-row td {
+    display: block !important;
+    width: 100% !important;
+}
+
+.my-leave-page .js-paginated-table.is-empty .mle-empty-state {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 220px !important;
+    padding: 16px 18px 18px !important;
+    box-sizing: border-box !important;
 }
 
 
