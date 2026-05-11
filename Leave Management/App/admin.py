@@ -15,6 +15,8 @@ from django.utils.timezone import now, localtime
 
 
 
+
+
 class ProfileInlineForm(forms.ModelForm):
     class Meta:
         model = Profile
@@ -32,6 +34,11 @@ class ProfileInlineForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError(f"The ID '{eid}' is already assigned to another user. Please provide a unique ID.")
         return eid
+
+
+
+
+
 
 # class ProfileInline(admin.TabularInline):
 class ProfileInline(admin.StackedInline):
@@ -61,47 +68,13 @@ class ProfileInline(admin.StackedInline):
 
     photo_preview.short_description = "Preview"
     
-    readonly_fields = ("photo_preview",)
-
-    # readonly_fields = ("employee_id",)  # optional
+    readonly_fields = ("photo_preview",)    
     
     
-    
-
-
-# No use of it as of now it has been bypassed using other method
-
-# class CustomUserAdminForm(forms.ModelForm):
-#     profile_role = forms.CharField(label="Profile Role", required=False, disabled=True)
-
-#     class Meta:
-#         model = CustomUser
-#         fields = "__all__"
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-
-#         if self.instance.pk and hasattr(self.instance, "profile"):
-#             self.fields["profile_role"].initial = self.instance.profile.role
-#         else:
-#             self.fields["profile_role"].initial = "-"
-
-
 
 
     
 CustomUser = get_user_model()
-
-
-# 🔹 Register CustomUser
-# @admin.register(CustomUser)
-# class CustomUserAdmin(UserAdmin):
-    
-#     fieldsets = UserAdmin.fieldsets + (("Role Information", {"fields": ("role",),}),)
-#     list_display = ("username", "email", "role", "is_staff", "is_superuser")
-
-
-
 
 # 🔹 Register CustomUser
 @login_required
@@ -170,61 +143,7 @@ class CustomUserAdmin(UserAdmin):
         return form
 
 
-
-
-
-
-# 🔹 Register Leave
-# @login_required
-# @never_cache
-# @admin.register(Leave)
-# class LeaveAdmin(admin.ModelAdmin):
-
-#     list_display = ('created_at', 'id', 'user', 'leave_type', 'from_date', 'to_date', 'reason', 'status', )
-
-#     list_filter = ('id', 'user', 'status','leave_type', 'from_date', )
-
-#     search_fields = ('id', 'user__username', 'leave_type',  'from_date', 'status', )
-
-#     # Default ordering
-#     ordering = ('-created_at',)
-
-
-#     # readonly_fields = ('created_at', 'id', 'user', 'leave_type', 'from_date', 'to_date', 'reason', 'status',)
     
-#     # Fields admin CANNOT edit
-    
-#     def get_readonly_fields(self, request, obj=None):
-#         if obj:  # When editing existing leave
-#             return ('user', 'leave_type', 'from_date', 'to_date', 'reason', 'created_at', )
-#         return ()
-    
-    
-#     # Page layout
-#     fieldsets = (
-#         ("Employee Info", {
-#             'fields': ('user',)
-#         }),
-
-#         ("Leave Details (Read Only)", {
-#             'fields': ('leave_type', 'from_date', 'to_date', 'reason')
-#         }),
-
-#         ("Admin Decision", {
-#             'fields': ('status', 'rejection_reason')
-#         }),
-
-#         ("Metadata", {
-#             'fields': ('created_at',)
-#         }),
-#     )
-    
-#     # This will block the the "add" button so that new leave cannot be added directly through admin panel
-    
-#     def has_add_permission(self, request):
-#         return False
-
-
 
 
 
@@ -235,7 +154,6 @@ class LeaveAdmin(admin.ModelAdmin):
 
     class Media:
         js = ("/static/admin/js/leave_toggle.js",)
-    
     
     
     # ✅ LIST VIEW (clean + useful)
@@ -281,8 +199,7 @@ class LeaveAdmin(admin.ModelAdmin):
     # ✅ OPTIONAL: make created_at auto (not editable)
     readonly_fields = ('created_at_display',)
     
-
-
+    
     def created_at_display(self, obj):
 
         if obj and obj.created_at:
@@ -293,7 +210,6 @@ class LeaveAdmin(admin.ModelAdmin):
         return ist_time.strftime("%d %b %Y, %I:%M %p")
 
     created_at_display.short_description = "Created At"
-    
     
 
     def save_model(self, request, obj, form, change):
@@ -338,16 +254,7 @@ class LeaveBalanceAdmin(admin.ModelAdmin):
     
 
 
-# @admin.register(CompanyHoliday)
-# class CompanyHolidayAdmin(admin.ModelAdmin):
 
-#     list_display = ("name", "date", "is_optional")
-#     search_fields = ("name", "date")
-#     ordering = ("date", "name")
-#     date_hierarchy = "date"
-#     list_filter = ("is_optional", "name", "date",)
-
-    
 
 @login_required
 @never_cache
@@ -357,40 +264,6 @@ class HolidayUploadForm(forms.Form):
 
 
 
-# upload csv file Without preview 
-# @admin.register(CompanyHoliday)
-# class CompanyHolidayAdmin(admin.ModelAdmin):
-
-#     list_display = ("name", "date")
-#     change_list_template = "admin/holiday_upload.html"
-
-#     def get_urls(self):
-#         urls = super().get_urls()
-#         custom_urls = [
-#             path("upload-csv/", self.upload_csv),
-#         ]
-#         return custom_urls + urls
-
-#     def upload_csv(self, request):
-#         if request.method == "POST":
-#             form = HolidayUploadForm(request.POST, request.FILES)
-#             if form.is_valid():
-#                 file = request.FILES["csv_file"]
-#                 decoded_file = file.read().decode("utf-8").splitlines()
-#                 reader = csv.DictReader(decoded_file)
-
-#                 for row in reader:
-#                     CompanyHoliday.objects.get_or_create(
-#                         date=datetime.strptime(row["date"], "%Y-%m-%d").date(),
-#                         defaults={"name": row["name"]}
-#                     )
-
-#                 self.message_user(request, "Holidays uploaded successfully")
-#                 return redirect("..")
-#         else:
-#             form = HolidayUploadForm()
-
-#         return render(request, "admin/upload_form.html", {"form": form})
 
 
 
@@ -488,15 +361,3 @@ class WorkFromHomeDayAdmin(admin.ModelAdmin):
     list_display = ("weekday", "is_active", "updated_at")
     list_filter = ("is_active",)
     ordering = ("weekday",)
-    
-    
-# Bulk Operation Do it Later
-# actions = ['approve_leaves', 'reject_leaves']
-
-# def approve_leaves(self, request, queryset):
-#     queryset.update(status='Approved')
-# approve_leaves.short_description = "Approve selected leaves"
-
-# def reject_leaves(self, request, queryset):
-#     queryset.update(status='Rejected')
-# reject_leaves.short_description = "Reject selected leaves"

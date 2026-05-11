@@ -1,6 +1,13 @@
+# This file defines the core data models for the leave management system, including user profiles, 
+# leave requests, leave balances, company holidays, work-from-home days, and communication entities.
+# Each model includes fields relevant to its purpose, along with methods for validation, string 
+# representation, and any necessary business logic. The models are designed to support the functionality of the leave management 
+# system, allowing for efficient data storage and retrieval while enforcing the rules and policies defined by the organization.    
+
+
+
 from django.db import models, transaction
 import re
-# from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -9,6 +16,14 @@ from django.db.models import Count
 from django.utils.timezone import now
 
 
+
+
+
+# The CustomUser model extends Django's AbstractUser to include a role field (Admin, HR, Employee) 
+# and automatically sets staff permissions for Admins. The save method ensures that the is_staff flag is correctly set based on 
+# the user's role, and the string representation provides a clear display of the username and role for easy identification in the 
+# admin interface and other parts of the application. This model serves as the foundation for user management within the leave 
+# management system, allowing for role-based access control and user-specific functionality throughout the application.  
 
 class CustomUser(AbstractUser):
 
@@ -31,86 +46,14 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f"{self.username} - {self.role}"
-    
-    
-    
-    
-
-# class Leave(models.Model):
-#     LEAVE_TYPE = [
-#         ('Casual', 'Casual'),
-#         ('Sick', 'Sick'),
-#         ('Earned', 'Earned'),
-#     ]
-
-#     STATUS = [
-#         ('Pending', 'Pending'),
-#         ('Approved', 'Approved'),
-#         ('Rejected', 'Rejected'),
-#     ]
-
-#     # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
-#     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='leaves')
-
-
-#     leave_type = models.CharField(max_length=20, choices=LEAVE_TYPE)
-#     from_date = models.DateField()
-#     to_date = models.DateField()
-#     reason = models.TextField()
-
-#     status = models.CharField(max_length=20, choices=STATUS, default='Pending')
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-    
-#     rejection_reason = models.TextField(blank=True, null=True)
-
-
-#     def __str__(self):
-#         return f"{self.user.username} - {self.leave_type}"
 
 
 
 
-# class Leave(models.Model):
-#     LEAVE_TYPE = [
-#         ("Short", "Short"),
-#         ("Half", "Half Day"),
-#         ('Casual', 'Casual'),
-#         ('Sick', 'Sick'),
-#         ('Earned', 'Earned'),
-#     ]
 
-#     STATUS = [
-#         ('Pending', 'Pending'),
-#         ('Approved', 'Approved'),
-#         ('Rejected', 'Rejected'),
-#     ]
-
-#     # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
-#     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='leaves')
-
-
-#     leave_type = models.CharField(max_length=20, choices=LEAVE_TYPE)
-    
-#     from_date = models.DateField()
-#     # from_time = models.TimeField(blank=True, null=True)
-    
-#     to_date = models.DateField()
-#     # to_time = models.TimeField(blank=True, null=True)
-    
-#     reason = models.TextField()
-
-#     status = models.CharField(max_length=20, choices=STATUS, default='Pending')
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-    
-#     rejection_reason = models.TextField(blank=True, null=True)
-
-
-#     def __str__(self):
-#         return f"{self.user.username} - {self.leave_type}"
-
-
+# The Leave model captures all details of a leave request, including type, date range, reason, status, and deduction source.
+# It includes validation logic for short and half-day leaves and a save method that checks for monthly limits on these leave types, 
+# printing warnings if limits are exceeded.
 
 class Leave(models.Model):
 
@@ -135,7 +78,6 @@ class Leave(models.Model):
         ("None", "None"),
     ]
 
-    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='leaves')
 
     leave_type = models.CharField(max_length=20, choices=LEAVE_TYPES)
@@ -163,7 +105,6 @@ class Leave(models.Model):
     deducted_from = models.CharField( max_length=20, choices=DEDUCTION_SOURCE, default="None")
 
 
-
     def clean(self):
 
         if self.leave_type in ["Short", "Half"]:
@@ -187,9 +128,6 @@ class Leave(models.Model):
             if self.leave_type == "Half" and duration > 4:
                 raise ValidationError("Half leave max 4 hours")
 
-
-    
-    
 
     def save(self, *args, **kwargs):
 
@@ -224,27 +162,11 @@ class Leave(models.Model):
 
 
 
-# class LeaveBalance(models.Model):
-    
-#     # user = models.OneToOneField(User, on_delete=models.CASCADE)
-    
-#     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
-#     total_leaves = models.IntegerField(default=30)
-
-#     sick_total = models.IntegerField(default=15)
-#     sick_used = models.IntegerField(default=0)
-
-#     earned_total = models.IntegerField(default=15)
-#     earned_used = models.IntegerField(default=0)
-
-#     unpaid = models.IntegerField(default=0)
-
-#     def __str__(self):
-#         return f"{self.user.username} Leave Balance"
-
-
+# The LeaveBalance model tracks the total and remaining leave balances for each user, including breakdowns for sick and earned leaves,
+#  as well as any unpaid leave. It also includes a method to ensure that the total remaining leave cannot be negative and a string 
+# representation for easy identification.    
 
 class LeaveBalance(models.Model):
     
@@ -270,6 +192,18 @@ class LeaveBalance(models.Model):
         return f"{self.user.username} Leave Balance"
 
 
+
+
+
+
+# The CompanyHoliday model defines company-wide holidays with a name and date. Employees cannot apply for leave on these dates, 
+# but they still count if they fall within a leave range. The WorkFromHomeDay model specifies which weekdays are designated as 
+# work-from-home days, allowing for flexible leave calculations that can automatically include adjacent work-from-home days. 
+# When determining the effective leave period. This enables scenarios where a single day of leave can be surrounded by 
+# work-from-home days, effectively extending the leave duration without additional leave days being deducted from the employee's 
+# balance. This design allows for a more accurate and employee-friendly calculation of leave periods, taking into account the 
+# realities of modern work arrangements and company policies.   
+
 class YearEndCarryForwardRun(models.Model):
     year = models.PositiveIntegerField(unique=True)
     completed_at = models.DateTimeField(blank=True, null=True)
@@ -286,6 +220,11 @@ class YearEndCarryForwardRun(models.Model):
 
 
 
+
+# The CompanyHoliday model defines company-wide holidays with a name and date. Employees cannot apply for leave on these dates, 
+# but they still count if they fall within a leave range. The WorkFromHomeDay model specifies which weekdays are designated as 
+# work-from-home days, allowing for flexible leave calculations that can automatically include adjacent work-from-home days 
+# when determining the effective leave period.   
 
 class CompanyHoliday(models.Model):
     """
@@ -309,6 +248,13 @@ class CompanyHoliday(models.Model):
     def __str__(self):
         return f"{self.name} - {self.date.strftime('%d %b %Y')}"
 
+
+
+
+
+# The WorkFromHomeDay model specifies which weekdays are designated as work-from-home days, allowing for flexible leave calculations 
+# that can automatically include adjacent work-from-home days. When determining the effective leave period. This enables scenarios 
+# where a single day of leave can be
 
 class WorkFromHomeDay(models.Model):
     WEEKDAY_CHOICES = [
@@ -339,6 +285,13 @@ class WorkFromHomeDay(models.Model):
 
 
 
+# The Profile model extends the user model with additional fields such as employee ID, department, role, date of joining, and 
+# contact information. It includes a method to generate unique employee IDs based on the user's role, ensuring that IDs are never 
+# reused even if a user is deleted. The save method automatically generates an employee ID if it's missing and a role is assigned, 
+# maintaining data integrity and consistency across the system. The Communication and related models facilitate internal messaging 
+# between users, allowing for announcements and direct messages with tracking for read and seen statuses. The LeaveNotificationRead
+#  and LeaveNotificationSeen models track when users have read or seen notifications related to their leave requests, ensuring that 
+# important updates are acknowledged.
 
 class Profile(models.Model):
     # --- Production Level ID Configuration ---
@@ -409,6 +362,16 @@ class Profile(models.Model):
         super().save(*args, **kwargs)
 
 
+
+
+
+
+# The Communication and related models facilitate internal messaging between users, allowing for announcements and direct messages 
+# with tracking for read and seen statuses. The LeaveNotificationRead and LeaveNotificationSeen models track when users have read or 
+# seen notifications related to their leave requests, ensuring that important updates are acknowledged. The calculate_leave_breakdown
+#  function computes the effective leave period by automatically including adjacent work-from-home days and excluding company holidays,
+#  providing a comprehensive breakdown of the leave duration and any additional days added to the original request.
+
 class Communication(models.Model):
 
     MESSAGE_TYPES = [
@@ -447,6 +410,18 @@ class Communication(models.Model):
         return f"{self.sender.username} - {label}"
 
 
+
+
+# The calculate_leave_breakdown function computes the effective leave period by automatically including adjacent work-from-home days 
+# and excluding company holidays, providing a comprehensive breakdown of the leave duration and any additional days added to the 
+# original request. It iteratively checks for gaps between the requested leave and existing approved leaves, adjusting the start and 
+# end dates accordingly while ensuring that only valid work-from-home days are included. The function returns the adjusted leave 
+# period along with any auto-added dates, giving a clear picture of the total leave duration after accounting for company policies 
+# and calendar factors.
+# The Communication and related models facilitate internal messaging between users, allowing for announcements and direct messages 
+# with tracking for read and seen statuses. The LeaveNotificationRead and LeaveNotificationSeen models track when users have read 
+# or seen notifications related to their leave requests, ensuring that important updates are acknowledged. 
+
 class CommunicationRead(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -464,6 +439,15 @@ class CommunicationRead(models.Model):
         unique_together = [("user", "communication")]
         ordering = ["-read_at"]
 
+
+
+
+# The calculate_leave_breakdown function computes the effective leave period by automatically including adjacent work-from-home days 
+# and excluding company holidays, providing a comprehensive breakdown of the leave duration and any additional days added to the 
+# original request. It iteratively checks for gaps between the requested leave and existing approved leaves, adjusting the start and 
+# end dates accordingly while ensuring that only valid work-from-home days are included. The function returns the adjusted leave 
+# period along with any auto-added dates, giving a clear picture of the total leave duration after accounting for company policies 
+# and calendar factors.   
 
 class CommunicationSeen(models.Model):
     user = models.ForeignKey(
@@ -483,6 +467,16 @@ class CommunicationSeen(models.Model):
         ordering = ["-seen_at"]
 
 
+
+
+
+# The calculate_leave_breakdown function computes the effective leave period by automatically including adjacent work-from-home days 
+# and excluding company holidays, providing a comprehensive breakdown of the leave duration and any additional days added to the 
+# original request. It iteratively checks for gaps between the requested leave and existing approved leaves, adjusting the start and 
+# end dates accordingly while ensuring that only valid work-from-home days are included. The function returns the adjusted leave
+#  period along with any auto-added dates, giving a clear picture of the total leave duration after accounting for company policies 
+# and calendar factors.   
+
 class LeaveNotificationRead(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -501,6 +495,14 @@ class LeaveNotificationRead(models.Model):
         ordering = ["-read_at"]
 
 
+
+# The calculate_leave_breakdown function computes the effective leave period by automatically including adjacent work-from-home days 
+# and excluding company holidays, providing a comprehensive breakdown of the leave duration and any additional days added to the 
+# original request. It iteratively checks for gaps between the requested leave and existing approved leaves, adjusting the start and 
+# end dates accordingly while ensuring that only valid work-from-home days are included. The function returns the adjusted leave 
+# period along with any auto-added dates, giving a clear picture of the total leave duration after accounting for company policies 
+# and calendar factors.   
+
 class LeaveNotificationSeen(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -517,36 +519,3 @@ class LeaveNotificationSeen(models.Model):
     class Meta:
         unique_together = [("user", "leave")]
         ordering = ["-seen_at"]
-
-
-
-
-
-
-
-
-# class LeaveHourBalance(models.Model):
-    
-#     # user = models.OneToOneField(User, on_delete=models.CASCADE)
-    
-#     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-#     hour_total = models.IntegerField(default=4)
-#     hour_used = models.IntegerField(default=0)
-
-#     def __str__(self):
-#         return f"{self.user.username} Leave Balance"
-
-
-# class LeaveAuditLog(models.Model):
-    
-#     leave = models.ForeignKey( "Leave", on_delete=models.CASCADE, related_name="audit_logs")
-    
-#     edited_by = models.ForeignKey( User, on_delete=models.SET_NULL, null=True)
-#     edited_at = models.DateTimeField(auto_now_add=True)
-
-#     changes = models.JSONField()  # before → after
-#     action = models.CharField(max_length=50, default="EDIT")
-
-#     def __str__(self):
-#         return f"Leave {self.leave.id} edited by {self.edited_by}"
