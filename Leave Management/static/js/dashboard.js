@@ -29,30 +29,29 @@ function rotateQuotes() {
     }, 400);
 }
 
-function activateLine(card) {
-    const dot = document.getElementById("activeDot");
-    const wrapper = document.querySelector(".leave-wrapper");
-
-    if (!dot || !wrapper || !card) return;
-
-    const cardRect = card.getBoundingClientRect();
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const offset = cardRect.top - wrapperRect.top + (cardRect.height / 2);
-
-    dot.style.top = offset + "px";
-    dot.classList.add("active");
-}
-
 function animateLeaveProgress() {
     document.querySelectorAll(".leave-progress .progress-fill").forEach(bar => {
-        const fromValue = bar.dataset.from;
-        if (!fromValue) return;
+        const startValue = bar.dataset.start || bar.dataset.from;
+        if (!startValue) return;
 
-        const fromDate = new Date(fromValue);
-        const today = new Date();
-        const totalDays = 30;
-        const diff = (fromDate - today) / (1000 * 60 * 60 * 24);
-        const percent = Math.max(0, Math.min(100, 100 - (diff * 100 / totalDays)));
+        const startDate = parseTimelineDate(startValue);
+        if (!startDate) return;
+
+        const endDate = bar.dataset.end
+            ? parseTimelineDate(bar.dataset.end, { endOfFullDay: bar.dataset.fullDay === "true" })
+            : null;
+        const now = new Date();
+        let percent = 0;
+
+        if (endDate && endDate > startDate) {
+            percent = ((now - startDate) / (endDate - startDate)) * 100;
+        } else {
+            const totalDays = 30;
+            const diff = (startDate - now) / (1000 * 60 * 60 * 24);
+            percent = 100 - (diff * 100 / totalDays);
+        }
+
+        percent = Math.max(0, Math.min(100, percent));
 
         setTimeout(() => {
             bar.style.width = percent + "%";
@@ -60,59 +59,134 @@ function animateLeaveProgress() {
     });
 }
 
-function startCountdown() {
-    countdownTimers.forEach(timerId => clearInterval(timerId));
-    countdownTimers = [];
+function parseTimelineDate(value, { endOfFullDay = false } = {}) {
+    if (!value) return null;
 
-    document.querySelectorAll(".live-countdown").forEach(el => {
-        const start = new Date(el.dataset.start || el.dataset.time);
-        const end = new Date(el.dataset.end || el.dataset.time);
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch.map(Number);
+        const parsed = new Date(year, month - 1, day);
+        if (endOfFullDay) parsed.setDate(parsed.getDate() + 1);
+        return parsed;
+    }
 
-        if (isNaN(start) || isNaN(end)) {
-            el.innerText = "Invalid time";
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatClockTime(date) {
+    return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+    });
+}
+
+function formatDuration(milliseconds, includeDays = true) {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const timeText = `${hours}h ${minutes}m ${seconds}s`;
+    return includeDays && days > 0 ? `${days}d ${timeText}` : timeText;
+}
+
+function updateLiveLeaveStatuses() {
+    document.querySelectorAll(".live-leave-status").forEach(el => {
+        const isFullDay = el.dataset.kind === "full" || el.dataset.fullDay === "true";
+        const start = parseTimelineDate(el.dataset.start || el.dataset.time);
+        const end = parseTimelineDate(el.dataset.end || el.dataset.time, { endOfFullDay: isFullDay });
+
+        if (!start || !end) {
+            el.innerText = "";
             return;
         }
 
-        function update() {
-            const now = new Date();
-            const startDiff = start - now;
-            const endDiff = end - now;
-            const startingNowWindow = start.getTime() + (15 * 60 * 1000);
+        const now = new Date();
 
-            if (now >= end) {
-                el.innerText = "Leave completed";
-                el.classList.remove("urgent");
-                return;
-            }
-
-            if (now >= start && now < new Date(startingNowWindow)) {
-                el.innerText = "Starting now";
-                el.classList.add("urgent");
-                return;
-            }
-
-            const diff = now < start ? startDiff : endDiff;
-            const hrs = Math.floor(diff / (1000 * 60 * 60));
-            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const secs = Math.floor((diff % (1000 * 60)) / 1000);
-            const totalMinutes = diff / (1000 * 60);
-
-            if (now < start) {
-                el.innerText = `Starts in ${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-            } else {
-                el.innerText = `Time left ${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-            }
-
-            if (now < start && totalMinutes <= 15) {
-                el.classList.add("urgent");
-            } else {
-                el.classList.remove("urgent");
-            }
+        if (now < start) {
+            const diff = start - now;
+            el.innerText = diff < 86400000
+                ? `Starts in ${formatDuration(diff, false)}`
+                : `${formatDuration(diff)} to start`;
+            el.dataset.state = "upcoming";
+            el.classList.toggle("urgent", diff < 15 * 60 * 1000);
+            return;
         }
 
-        update();
-        countdownTimers.push(setInterval(update, 1000));
+        if (now >= end) {
+            el.innerText = `Ended.. at ${formatClockTime(end)}`;
+            el.dataset.state = "ended";
+            el.classList.remove("urgent");
+            return;
+        }
+
+        el.innerText = `Started.. ${formatDuration(end - now)} left`;
+        el.dataset.state = "started";
+        el.classList.remove("urgent");
     });
+}
+
+function startCountdown() {
+    countdownTimers.forEach(timerId => clearInterval(timerId));
+    countdownTimers = [];
+    updateLiveLeaveStatuses();
+    countdownTimers.push(setInterval(() => {
+        updateLiveLeaveStatuses();
+        animateLeaveProgress();
+    }, 1000));
+}
+
+function syncDividerPointer(targetCard) {
+    const line = document.querySelector(".global-line");
+    const dot = document.getElementById("activeDot");
+    if (!line || !dot || !targetCard) return;
+
+    const lineRect = line.getBoundingClientRect();
+    const cardRect = targetCard.getBoundingClientRect();
+    const dotHalf = dot.offsetHeight / 2;
+    const targetTop = cardRect.top + (cardRect.height / 2) - lineRect.top - dotHalf;
+    const maxTop = Math.max(0, lineRect.height - dot.offsetHeight);
+    const nextTop = Math.max(0, Math.min(maxTop, targetTop));
+
+    dot.style.top = `${nextTop}px`;
+    dot.classList.remove("pointer-upcoming", "pointer-last", "pointer-recent");
+    const sectionCard = targetCard.closest(".main-leave-card");
+    if (sectionCard?.classList.contains("upcoming")) {
+        dot.classList.add("pointer-upcoming");
+    } else if (sectionCard?.classList.contains("last")) {
+        dot.classList.add("pointer-last");
+    } else if (sectionCard?.classList.contains("recent")) {
+        dot.classList.add("pointer-recent");
+    }
+    dot.classList.add("active");
+}
+
+function initDashboardDividerPointer() {
+    const rightPanel = document.querySelector(".right-panel");
+    const line = document.querySelector(".global-line");
+    const dot = document.getElementById("activeDot");
+    if (!rightPanel || !line || !dot) return;
+
+    const pointerCards = rightPanel.querySelectorAll(".main-leave-card, .inner-leave-card, .activity-card");
+    pointerCards.forEach(card => {
+        card.addEventListener("mouseenter", () => syncDividerPointer(card));
+        card.addEventListener("focusin", () => syncDividerPointer(card));
+    });
+
+    rightPanel.addEventListener("mouseleave", () => {
+        dot.classList.remove("active");
+    });
+
+    window.addEventListener("resize", () => {
+        const hoveredCard = rightPanel.querySelector(".main-leave-card:hover, .inner-leave-card:hover, .activity-card:hover");
+        if (hoveredCard) syncDividerPointer(hoveredCard);
+    });
+
+    const firstCard = rightPanel.querySelector(".main-leave-card");
+    if (firstCard) syncDividerPointer(firstCard);
 }
 
 function animateNumber(el, start, end, duration = 1200) {
@@ -181,20 +255,46 @@ function updateNewBadges() {
 }
 
 function animateSlide(container, directionValue, callback) {
-    container.classList.remove("slide-in-left", "slide-in-right", "slide-out-left", "slide-out-right");
-    void container.offsetWidth;
-    container.classList.add(directionValue === "next" ? "slide-out-left" : "slide-out-right");
+    container.classList.remove(
+        "slide-in-left",
+        "slide-in-right",
+        "slide-out-left",
+        "slide-out-right",
+        "activity-page-enter",
+        "activity-page-leave",
+        "is-paginating"
+    );
+    const viewport = container.closest(".activity-viewport") || container.parentElement;
+    const oldGrid = container.cloneNode(true);
+    const isNext = directionValue === "next";
+    const incomingStart = isNext ? "translateX(104%)" : "translateX(-104%)";
+    const outgoingEnd = isNext ? "translateX(-104%)" : "translateX(104%)";
+
+    oldGrid.removeAttribute("id");
+    oldGrid.classList.add("activity-grid-clone");
+    oldGrid.setAttribute("aria-hidden", "true");
+    viewport.appendChild(oldGrid);
+
+    container.classList.add("is-paginating");
+    container.style.transition = "none";
+    container.style.transform = incomingStart;
 
     setTimeout(() => {
         callback();
-        container.classList.remove("slide-out-left", "slide-out-right");
         void container.offsetWidth;
-        container.classList.add(directionValue === "next" ? "slide-in-right" : "slide-in-left");
+
+        oldGrid.style.transition = "transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)";
+        container.style.transition = "transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)";
+        oldGrid.style.transform = outgoingEnd;
+        container.style.transform = "translateX(0)";
 
         setTimeout(() => {
-            container.classList.remove("slide-in-left", "slide-in-right");
-        }, 320);
-    }, 240);
+            container.classList.remove("is-paginating");
+            container.style.transition = "";
+            container.style.transform = "";
+            oldGrid.remove();
+        }, 620);
+    }, 20);
 }
 
 function renderLeaveCard(leave, isNew) {
@@ -265,7 +365,7 @@ function renderLeaveCard(leave, isNew) {
         : "reason-box reason-box-full-day";
 
     return `
-        <div class="activity-card ${leave.status.toLowerCase()} ${activityTypeClass}">
+        <div class="activity-card pagination-card ${leave.status.toLowerCase()} ${activityTypeClass}">
             <div class="activity-header">
                 <span class="leave-type ${leaveTypeClass}">${leave.type}</span>
                 ${newBadge}
@@ -349,18 +449,6 @@ function loadLeaves(page) {
             data.leaves.forEach(leave => {
                 const isNew = isNewEntry(leave.created);
                 container.insertAdjacentHTML("beforeend", renderLeaveCard(leave, isNew));
-
-                const card = container.lastElementChild;
-                const durationEl = card.querySelector(".duration-number");
-
-                if (durationEl) {
-                    const value = parseInt(durationEl.innerText, 10);
-                    const unit = durationEl.dataset.unit;
-
-                    if (!isNaN(value)) {
-                        animateNumber(durationEl, 0, value, unit === "hour" ? 2000 : 1500);
-                    }
-                }
             });
 
             updateAppliedTimeElements(container);
@@ -542,12 +630,72 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
-function renderDashboardLeaveInnerCard(leave, variant) {
+function getLeaveCardClass(leave) {
+    return leave?.leave_type ? `leave-card-${String(leave.leave_type).toLowerCase()}` : "empty-leave-card";
+}
+
+function getEmptyLeaveCardHtml(variant, cardKind = "upcoming") {
+    const isLast = cardKind === "last";
+    const isFull = variant === "full";
+    const iconClass = isFull ? "icon-flag" : "icon-clock";
+    const icon = isFull ? "&#9873;" : "&#9719;";
+    const label = isFull ? "Sick / Earned / Unpaid" : "Short / Half";
+    const tag = isFull ? "Full Day" : "Time Based";
+    const title = isFull
+        ? (isLast ? "No full leave recorded" : "No full leave planned")
+        : (isLast ? "No time leave recorded" : "No time leave planned");
+    const text = isFull
+        ? (isLast ? "Your previous sick, earned, and unpaid leave history will appear here." : "Sick, earned, and unpaid approvals will appear here.")
+        : (isLast ? "Your previous short and half-day leave history will appear here." : "Short and half-day approvals will appear here.");
+
+    return `
+        <div class="card-top">
+            <div class="icon-badge-group">
+                <div class="icon-badge ${iconClass}">${icon}</div>
+                <span class="icon-label ${isFull ? "icon-label-full" : "icon-label-short"}">${label}</span>
+            </div>
+            <span class="type-tag">${tag}</span>
+        </div>
+        <div class="card-body">
+            <div class="dashboard-empty-state">
+                <span class="dashboard-empty-icon" aria-hidden="true">${isFull ? "&#9670;" : "&#9201;"}</span>
+                <strong>${title}</strong>
+                <p>${text}</p>
+            </div>
+        </div>
+    `;
+}
+
+function syncDashboardCardState(card, leave, variant, cardKind = "upcoming") {
+    if (!card) return;
+
+    card.classList.remove(
+        "leave-card-sick",
+        "leave-card-earned",
+        "leave-card-unpaid",
+        "leave-card-short",
+        "leave-card-half",
+        "empty-leave-card"
+    );
+
+    card.classList.add(getLeaveCardClass(leave));
+
+    if (leave) {
+        card.dataset.leaveType = leave.leave_type || "";
+        const startValue = leave.timeline_start || leave.countdown_start || leave.progress_from || "";
+        const endValue = leave.timeline_end || leave.countdown_end || leave.to_date || "";
+        if (startValue) card.dataset.start = startValue;
+        if (endValue) card.dataset.end = endValue;
+    } else {
+        delete card.dataset.leaveType;
+        delete card.dataset.start;
+        delete card.dataset.end;
+    }
+}
+
+function renderDashboardLeaveInnerCard(leave, variant, cardKind = "upcoming") {
     if (!leave) {
-        const emptyText = variant === "full"
-            ? (leave && leave.card_kind === "last" ? "No full leave recorded" : "No full leave planned")
-            : (leave && leave.card_kind === "last" ? "No short leave recorded" : "No short leave planned");
-        return `<p class="empty">${emptyText}</p>`;
+        return getEmptyLeaveCardHtml(variant, cardKind);
     }
 
     if (variant === "short") {
@@ -557,13 +705,9 @@ function renderDashboardLeaveInnerCard(leave, variant) {
             ? `
                 <div class="leave-progress">
                     <div class="progress-bar">
-                        <div class="progress-fill" data-from="${escapeHtml(leave.progress_from)}"></div>
+                        <div class="progress-fill" data-start="${escapeHtml(leave.timeline_start || leave.countdown_start || leave.progress_from)}" data-end="${escapeHtml(leave.timeline_end || leave.countdown_end)}"></div>
                     </div>
-                    <div class="progress-text">
-                        ${leave.is_today
-                            ? `<span class="live-countdown" data-start="${escapeHtml(leave.countdown_start)}" data-end="${escapeHtml(leave.countdown_end)}"></span>`
-                            : `${leave.days_left} days left`}
-                    </div>
+                    <div class="progress-text live-leave-status" data-kind="time" data-start="${escapeHtml(leave.timeline_start || leave.countdown_start || leave.progress_from)}" data-end="${escapeHtml(leave.timeline_end || leave.countdown_end)}"></div>
                 </div>
             `
             : "";
@@ -595,9 +739,9 @@ function renderDashboardLeaveInnerCard(leave, variant) {
         ? `
             <div class="leave-progress">
                 <div class="progress-bar">
-                    <div class="progress-fill" data-from="${escapeHtml(leave.progress_from)}"></div>
+                    <div class="progress-fill" data-start="${escapeHtml(leave.timeline_start || leave.progress_from)}" data-end="${escapeHtml(leave.timeline_end || leave.to_date)}" data-full-day="true"></div>
                 </div>
-                <div class="progress-text">${leave.days_left} days left</div>
+                <div class="progress-text live-leave-status" data-kind="full" data-start="${escapeHtml(leave.timeline_start || leave.progress_from)}" data-end="${escapeHtml(leave.timeline_end || leave.to_date)}"></div>
             </div>
         `
         : "";
@@ -623,13 +767,14 @@ function renderDashboardLeaveInnerCard(leave, variant) {
     `;
 }
 
-function updateDashboardCard(selector, leave, variant, emptyText) {
+function updateDashboardCard(selector, leave, variant, emptyText, cardKind = "upcoming") {
     const card = document.querySelector(selector);
     if (!card) return;
 
+    syncDashboardCardState(card, leave, variant, cardKind);
     card.innerHTML = leave
-        ? renderDashboardLeaveInnerCard(leave, variant)
-        : `<p class="empty">${emptyText}</p>`;
+        ? renderDashboardLeaveInnerCard(leave, variant, cardKind)
+        : getEmptyLeaveCardHtml(variant, cardKind);
 }
 
 function formatStatValue(value, decimals = 2) {
@@ -731,10 +876,10 @@ function refreshDashboardCards() {
     })
     .then(data => {
         updateDashboardSummary(data.summary || null);
-        updateDashboardCard(".main-leave-card.upcoming .inner-leave-card.short", data.upcoming?.short || null, "short", "No short leave planned");
-        updateDashboardCard(".main-leave-card.upcoming .inner-leave-card.full", data.upcoming?.full || null, "full", "No full leave planned");
-        updateDashboardCard(".main-leave-card.last .inner-leave-card.short", data.last?.short || null, "short", "No short leave recorded");
-        updateDashboardCard(".main-leave-card.last .inner-leave-card.full", data.last?.full || null, "full", "No full leave recorded");
+        updateDashboardCard(".main-leave-card.upcoming .inner-leave-card.short", data.upcoming?.short || null, "short", "No short leave planned", "upcoming");
+        updateDashboardCard(".main-leave-card.upcoming .inner-leave-card.full", data.upcoming?.full || null, "full", "No full leave planned", "upcoming");
+        updateDashboardCard(".main-leave-card.last .inner-leave-card.short", data.last?.short || null, "short", "No short leave recorded", "last");
+        updateDashboardCard(".main-leave-card.last .inner-leave-card.full", data.last?.full || null, "full", "No full leave recorded", "last");
 
         updateAppliedTimeElements();
 
@@ -973,6 +1118,7 @@ document.addEventListener("DOMContentLoaded", function() {
     updateNewBadges();
     animateLeaveProgress();
     startCountdown();
+    initDashboardDividerPointer();
 
     const nav = document.querySelector(".pagination");
     if (nav) {
@@ -1009,7 +1155,7 @@ function syncReasonMoreButtons() {
         
         // We detect overflow by comparing scrollHeight to clientHeight.
         const isClamped = el.scrollHeight > (el.clientHeight + 2); // Add small buffer
-        const shouldShowMore = isClamped || fullReason.length > 30;
+        const shouldShowMore = isClamped;
         
         if (shouldShowMore) {
             if (!moreBtn) {

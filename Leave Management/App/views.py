@@ -2615,6 +2615,8 @@ def dashboard(request):
             "created_at": localtime(leave.created_at).isoformat(),
             "updated_at": localtime(leave.updated_at).isoformat() if leave.updated_at else "",
             "progress_from": localtime(leave.from_datetime).strftime("%Y-%m-%d %H:%M:%S") if is_time_based and leave.from_datetime else leave.from_date.strftime("%Y-%m-%d"),
+            "timeline_start": localtime(leave.from_datetime).isoformat() if is_time_based and leave.from_datetime else leave.from_date.strftime("%Y-%m-%d"),
+            "timeline_end": localtime(leave.to_datetime).isoformat() if is_time_based and leave.to_datetime else leave.to_date.strftime("%Y-%m-%d"),
             "countdown_start": localtime(leave.from_datetime).isoformat() if leave.from_datetime else "",
             "countdown_end": localtime(leave.to_datetime).isoformat() if leave.to_datetime else "",
             "days_left": get_days_left(leave, today_value),
@@ -2634,9 +2636,9 @@ def dashboard(request):
 
     upcoming_leaves = Leave.objects.filter(
         user=request.user,
-        from_date__gte=today,
+        to_date__gte=today,
         status="Approved",
-    ).order_by("from_date")
+    ).order_by("from_date", "from_datetime")
 
     next_short_leave = upcoming_leaves.filter(leave_type__in=["Short", "Half"]).first()
     next_full_leave = upcoming_leaves.exclude(leave_type__in=["Short", "Half"]).first()

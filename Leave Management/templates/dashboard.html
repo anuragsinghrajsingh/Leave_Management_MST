@@ -4,7 +4,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20260511-overview-chip-align">
 {% endblock %}
 
 {% block page_skeleton %}
@@ -233,12 +233,12 @@
                         <p class="section-kicker section-kicker-simple">Leave overview</p>
                         <h2 class="hero-title">
                             <span class="hero-greeting-row">
-                                <span class="hero-title-mark" aria-hidden="true">✦</span>
+                                <span class="hero-title-mark" aria-hidden="true">&#128591;</span>
                                 <span class="hero-greeting-prefix">Welcome</span>
                                 <span class="hero-greeting-focus">back,</span>
                             </span>
                             <span class="hero-name-row">
-                                <span class="hero-name">{{ request.user.get_full_name }}</span>
+                                <span class="hero-name" data-name="{{ request.user.get_full_name }}">{{ request.user.get_full_name }}</span>
                             </span>
                         </h2>
                         <p class="hero-subtitle">Track your balance, review request status, and keep the next few days in view.</p>
@@ -317,7 +317,7 @@
             </section>
 
             <section class="right-panel">
-                <div class="global-line">
+                <div class="global-line" aria-hidden="true">
                     <div class="line-dot" id="activeDot"></div>
                 </div>
 
@@ -330,12 +330,12 @@
                         <div class="main-divider"></div>
 
                         <div class="inner-leave-container">
-                            <div class="inner-leave-card short" data-action="activate-line">
+                            <div class="inner-leave-card short {% if next_short_leave %}leave-card-{{ next_short_leave.leave_type|lower }}{% else %}empty-leave-card{% endif %}"{% if next_short_leave %} data-leave-type="{{ next_short_leave.leave_type }}" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"{% endif %}>
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-clock">&#9719;</div>
                                         <span class="icon-label {% if next_short_leave and next_short_leave.leave_type == 'Half' %}icon-label-half{% else %}icon-label-short{% endif %}">
-                                            {% if next_short_leave %}{{ next_short_leave.leave_type }}{% else %}Short{% endif %}
+                                            {% if next_short_leave %}{{ next_short_leave.leave_type }}{% else %}Short / Half{% endif %}
                                         </span>
                                     </div>
                                     <span class="type-tag">Time Based</span>
@@ -360,28 +360,26 @@
 
                                         <div class="leave-progress">
                                             <div class="progress-bar">
-                                                <div class="progress-fill" data-from="{{ next_short_leave.from_datetime|date:'Y-m-d H:i:s' }}"></div>
+                                                <div class="progress-fill" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"></div>
                                             </div>
-                                            <div class="progress-text">
-                                                {% if context_next_short_today %}
-                                                    <span class="live-countdown" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"></span>
-                                                {% else %}
-                                                    {{ next_short_days }} days left
-                                                {% endif %}
-                                            </div>
+                                            <div class="progress-text live-leave-status" data-kind="time" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"></div>
                                         </div>
                                     {% else %}
-                                        <p class="empty">No short leave planned</p>
+                                        <div class="dashboard-empty-state">
+                                            <span class="dashboard-empty-icon" aria-hidden="true">&#9201;</span>
+                                            <strong>No time leave planned</strong>
+                                            <p>Short and half-day approvals will appear here.</p>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <div class="inner-leave-card full" data-action="activate-line">
+                            <div class="inner-leave-card full {% if next_full_leave %}leave-card-{{ next_full_leave.leave_type|lower }}{% else %}empty-leave-card{% endif %}"{% if next_full_leave %} data-leave-type="{{ next_full_leave.leave_type }}" data-start="{{ next_full_leave.from_date|date:'Y-m-d' }}" data-end="{{ next_full_leave.to_date|date:'Y-m-d' }}"{% endif %}>
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-flag">&#9873;</div>
                                         <span class="icon-label icon-label-full">
-                                            {% if next_full_leave %}{{ next_full_leave.leave_type }}{% else %}Full{% endif %}
+                                            {% if next_full_leave %}{{ next_full_leave.leave_type }}{% else %}Sick / Earned / Unpaid{% endif %}
                                         </span>
                                     </div>
                                     <span class="type-tag">Full Day</span>
@@ -398,12 +396,16 @@
 
                                         <div class="leave-progress">
                                             <div class="progress-bar">
-                                                <div class="progress-fill" data-from="{{ next_full_leave.from_date|date:'Y-m-d' }}"></div>
+                                                <div class="progress-fill" data-start="{{ next_full_leave.from_date|date:'Y-m-d' }}" data-end="{{ next_full_leave.to_date|date:'Y-m-d' }}" data-full-day="true"></div>
                                             </div>
-                                            <div class="progress-text">{{ next_full_days }} days left</div>
+                                            <div class="progress-text live-leave-status" data-kind="full" data-start="{{ next_full_leave.from_date|date:'Y-m-d' }}" data-end="{{ next_full_leave.to_date|date:'Y-m-d' }}"></div>
                                         </div>
                                     {% else %}
-                                        <p class="empty">No full leave planned</p>
+                                        <div class="dashboard-empty-state">
+                                            <span class="dashboard-empty-icon" aria-hidden="true">&#9670;</span>
+                                            <strong>No full leave planned</strong>
+                                            <p>Sick, earned, and unpaid approvals will appear here.</p>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -418,12 +420,12 @@
                         <div class="main-divider"></div>
 
                         <div class="inner-leave-container">
-                            <div class="inner-leave-card short" data-action="activate-line">
+                            <div class="inner-leave-card short {% if last_short_leave %}leave-card-{{ last_short_leave.leave_type|lower }}{% else %}empty-leave-card{% endif %}"{% if last_short_leave %} data-leave-type="{{ last_short_leave.leave_type }}"{% endif %}>
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-clock">&#9719;</div>
                                         <span class="icon-label {% if last_short_leave and last_short_leave.leave_type == 'Half' %}icon-label-half{% else %}icon-label-short{% endif %}">
-                                            {% if last_short_leave %}{{ last_short_leave.leave_type }}{% else %}Short{% endif %}
+                                            {% if last_short_leave %}{{ last_short_leave.leave_type }}{% else %}Short / Half{% endif %}
                                         </span>
                                     </div>
                                     <span class="type-tag">Time Based</span>
@@ -446,17 +448,21 @@
                                             {% endif %}
                                         </p>
                                     {% else %}
-                                        <p class="empty">No short leave recorded</p>
+                                        <div class="dashboard-empty-state">
+                                            <span class="dashboard-empty-icon" aria-hidden="true">&#9201;</span>
+                                            <strong>No time leave recorded</strong>
+                                            <p>Your previous short and half-day leave history will appear here.</p>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <div class="inner-leave-card full" data-action="activate-line">
+                            <div class="inner-leave-card full {% if last_full_leave %}leave-card-{{ last_full_leave.leave_type|lower }}{% else %}empty-leave-card{% endif %}"{% if last_full_leave %} data-leave-type="{{ last_full_leave.leave_type }}"{% endif %}>
                                 <div class="card-top">
                                     <div class="icon-badge-group">
                                         <div class="icon-badge icon-flag">&#9873;</div>
                                         <span class="icon-label icon-label-full">
-                                            {% if last_full_leave %}{{ last_full_leave.leave_type }}{% else %}Full{% endif %}
+                                            {% if last_full_leave %}{{ last_full_leave.leave_type }}{% else %}Sick / Earned / Unpaid{% endif %}
                                         </span>
                                     </div>
                                     <span class="type-tag">Full Day</span>
@@ -474,7 +480,11 @@
                                             {{ last_full_leave.duration|default:1 }} day{% if last_full_leave.duration|default:1 > 1 %}s{% endif %}
                                         </p>
                                     {% else %}
-                                        <p class="empty">No full leave recorded</p>
+                                        <div class="dashboard-empty-state">
+                                            <span class="dashboard-empty-icon" aria-hidden="true">&#9670;</span>
+                                            <strong>No full leave recorded</strong>
+                                            <p>Your previous sick, earned, and unpaid leave history will appear here.</p>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -489,9 +499,10 @@
                     </div>
                     <div class="main-divider"></div>
 
-                    <div id="activityContainer" data-action="activate-line" class="activity-grid">
-                        {% for leave in recent_leaves|slice:":3" %}
-                            <div class="activity-card {{ leave.status|lower }} {% if leave.leave_type == 'Short' %}activity-short{% elif leave.leave_type == 'Half' %}activity-half{% endif %}">
+                    <div class="activity-viewport">
+                        <div id="activityContainer" class="activity-grid">
+                            {% for leave in recent_leaves|slice:":3" %}
+                                <div class="activity-card {{ leave.status|lower }} {% if leave.leave_type == 'Short' %}activity-short{% elif leave.leave_type == 'Half' %}activity-half{% endif %}">
                                 <div class="activity-header">
                                     <span class="leave-type {% if leave.leave_type == 'Short' or leave.leave_type == 'Half' %}leave-type-short{% elif leave.leave_type == 'Sick' %}leave-type-sick{% elif leave.leave_type == 'Unpaid' %}leave-type-unpaid{% elif leave.leave_type == 'Earned' %}leave-type-earned{% else %}leave-type-fulltype{% endif %}">{{ leave.leave_type }}</span>
                                     <span class="status {{ leave.status|lower }}">{{ leave.status }}</span>
@@ -550,10 +561,11 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                            </div>
-                        {% empty %}
-                            <p class="empty-state">No recent activity</p>
-                        {% endfor %}
+                                </div>
+                            {% empty %}
+                                <p class="empty-state">No recent activity</p>
+                            {% endfor %}
+                        </div>
                     </div>
 
                     <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
@@ -630,5 +642,5 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}?v=20260511-smooth-carousel-pagination"></script>
 {% endblock %}
