@@ -310,6 +310,31 @@ class CompanyHoliday(models.Model):
         return f"{self.name} - {self.date.strftime('%d %b %Y')}"
 
 
+class WorkFromHomeDay(models.Model):
+    WEEKDAY_CHOICES = [
+        (0, "Monday"),
+        (1, "Tuesday"),
+        (2, "Wednesday"),
+        (3, "Thursday"),
+        (4, "Friday"),
+        (5, "Saturday"),
+        (6, "Sunday"),
+    ]
+
+    weekday = models.PositiveSmallIntegerField(choices=WEEKDAY_CHOICES, unique=True)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["weekday"]
+        verbose_name = "Work From Home Day"
+        verbose_name_plural = "Work From Home Days"
+
+    def __str__(self):
+        status = "Active" if self.is_active else "Inactive"
+        return f"{self.get_weekday_display()} - {status}"
+
+
 
 
 

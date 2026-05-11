@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
-from .models import Leave, LeaveBalance, Profile, CustomUser
+from .models import Leave, LeaveBalance, Profile, CustomUser, WorkFromHomeDay
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth import get_user_model
 from .models import CompanyHoliday
@@ -479,6 +479,15 @@ class CompanyHolidayAdmin(admin.ModelAdmin):
             form = HolidayUploadForm()
 
         return render(request, "admin/holiday_upload.html", {"form": form})
+
+
+@login_required
+@never_cache
+@admin.register(WorkFromHomeDay)
+class WorkFromHomeDayAdmin(admin.ModelAdmin):
+    list_display = ("weekday", "is_active", "updated_at")
+    list_filter = ("is_active",)
+    ordering = ("weekday",)
     
     
 # Bulk Operation Do it Later

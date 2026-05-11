@@ -3332,7 +3332,7 @@ def apply_leave(request):
             messages.info(request, f"Excluded weekend days: {breakdown['weekend_days']}")
 
         if breakdown["included_wfh_days"] > 0:
-            messages.info(request, f"WFH rule applied: {breakdown['included_wfh_days']} Tuesday/Friday day(s) were automatically counted as leave.")
+            messages.info(request, f"WFH rule applied: {breakdown['included_wfh_days']} {breakdown['work_from_home_weekday_label']} day(s) were automatically counted as leave.")
 
         if breakdown["company_holiday_days"] > 0:
             messages.info(request, f"Company holiday day(s) counted in this leave: {breakdown['company_holiday_days']}")
@@ -4346,7 +4346,7 @@ def edit_leave(request, leave_id):
             messages.info(request, f"Excluded new weekend days: {breakdown['weekend_days']}")
 
         if breakdown["included_wfh_days"] > 0:
-            messages.info(request, f"WFH rule applied: {breakdown['included_wfh_days']} Tuesday/Friday day(s) were automatically counted as leave.")
+            messages.info(request, f"WFH rule applied: {breakdown['included_wfh_days']} {breakdown['work_from_home_weekday_label']} day(s) were automatically counted as leave.")
 
         if breakdown["company_holiday_days"] > 0:
             messages.info(request, f"Company holiday day(s) counted in this leave: {breakdown['company_holiday_days']}")

@@ -1,12 +1,23 @@
 from datetime import timedelta
 
+from django.db import OperationalError, ProgrammingError
+
 from App.models import CompanyHoliday
 from App.models import Leave
+from App.models import WorkFromHomeDay
 
 
 WEEKEND_WEEKDAYS = {5, 6}
-WORK_FROM_HOME_WEEKDAYS = {1, 4}  # Tuesday, Friday
 FULL_DAY_LEAVE_TYPES = {"Unpaid", "Sick", "Earned"}
+WEEKDAY_LABELS = {
+    0: "Monday",
+    1: "Tuesday",
+    2: "Wednesday",
+    3: "Thursday",
+    4: "Friday",
+    5: "Saturday",
+    6: "Sunday",
+}
 
 
 def _iter_dates(start_date, end_date):
@@ -16,8 +27,24 @@ def _iter_dates(start_date, end_date):
         current += timedelta(days=1)
 
 
+def get_work_from_home_weekdays():
+    try:
+        weekdays = set(
+            WorkFromHomeDay.objects.filter(is_active=True).values_list("weekday", flat=True)
+        )
+    except (OperationalError, ProgrammingError):
+        weekdays = set()
+
+    return weekdays
+
+
+def get_work_from_home_weekday_labels(weekdays=None):
+    weekdays = get_work_from_home_weekdays() if weekdays is None else set(weekdays)
+    return [WEEKDAY_LABELS[weekday] for weekday in sorted(weekdays) if weekday in WEEKDAY_LABELS]
+
+
 def _is_wfh_day(target_date, holidays):
-    return target_date not in holidays and target_date.weekday() in WORK_FROM_HOME_WEEKDAYS
+    return target_date not in holidays and target_date.weekday() in get_work_from_home_weekdays()
 
 
 def _is_bridge_day(target_date, holidays):
@@ -56,6 +83,7 @@ def expand_full_day_leave_range(user, start_date, end_date, exclude_id=None):
     adjusted_start = start_date
     adjusted_end = end_date
     auto_added_dates = set()
+    work_from_home_weekdays = get_work_from_home_weekdays()
     holidays = set(
         CompanyHoliday.objects.filter(date__range=(start_date - timedelta(days=10), end_date + timedelta(days=10))).values_list("date", flat=True)
     )
@@ -78,8 +106,13 @@ def expand_full_day_leave_range(user, start_date, end_date, exclude_id=None):
             gap_dates = list(_iter_dates(previous_leave.to_date + timedelta(days=1), adjusted_start - timedelta(days=1)))
             if (
                 gap_dates
-                and any(_is_wfh_day(current, holidays) for current in gap_dates)
-                and all(_is_bridge_day(current, holidays) for current in gap_dates)
+                and any(current not in holidays and current.weekday() in work_from_home_weekdays for current in gap_dates)
+                and all(
+                    current in holidays
+                    or current.weekday() in WEEKEND_WEEKDAYS
+                    or (current not in holidays and current.weekday() in work_from_home_weekdays)
+                    for current in gap_dates
+                )
             ):
                 auto_added_dates.update(gap_dates)
                 adjusted_start = gap_dates[0]
@@ -90,8 +123,13 @@ def expand_full_day_leave_range(user, start_date, end_date, exclude_id=None):
             gap_dates = list(_iter_dates(adjusted_end + timedelta(days=1), next_leave.from_date - timedelta(days=1)))
             if (
                 gap_dates
-                and any(_is_wfh_day(current, holidays) for current in gap_dates)
-                and all(_is_bridge_day(current, holidays) for current in gap_dates)
+                and any(current not in holidays and current.weekday() in work_from_home_weekdays for current in gap_dates)
+                and all(
+                    current in holidays
+                    or current.weekday() in WEEKEND_WEEKDAYS
+                    or (current not in holidays and current.weekday() in work_from_home_weekdays)
+                    for current in gap_dates
+                )
             ):
                 auto_added_dates.update(gap_dates)
                 adjusted_end = gap_dates[-1]
@@ -110,7 +148,7 @@ def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, r
 
     Rule order:
         A. Sandwich weekend rule
-        B. Work-from-home (Tuesday/Friday) informational rule
+        B. Work-from-home informational rule
     """
 
     total_days = (end_date - start_date).days + 1
@@ -130,6 +168,7 @@ def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, r
     company_holidays = set(
         CompanyHoliday.objects.filter(date__range=(start_date, end_date)).values_list("date", flat=True)
     )
+    work_from_home_weekdays = get_work_from_home_weekdays()
     all_dates = list(_iter_dates(start_date, end_date))
     requested_dates = list(_iter_dates(requested_start_date, requested_end_date))
 
@@ -145,9 +184,10 @@ def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, r
     included_wfh_dates = [
         current for current in all_dates
         if current not in company_holidays
-        and current.weekday() in WORK_FROM_HOME_WEEKDAYS
+        and current.weekday() in work_from_home_weekdays
         and (current in requested_dates or current < requested_start_date or current > requested_end_date)
     ]
+    work_from_home_weekday_labels = get_work_from_home_weekday_labels(work_from_home_weekdays)
 
     for current in all_dates:
         is_company_holiday = current in company_holidays
@@ -174,6 +214,8 @@ def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, r
         "included_weekend_dates": sorted(included_weekend_dates),
         "included_wfh_days": len(included_wfh_dates),
         "included_wfh_dates": included_wfh_dates,
+        "work_from_home_weekday_labels": work_from_home_weekday_labels,
+        "work_from_home_weekday_label": "/".join(work_from_home_weekday_labels),
     }
 
 
