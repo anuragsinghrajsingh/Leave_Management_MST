@@ -24,3 +24,10 @@ virtual_env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment variables (SECURITY CRITICAL)
+.env
+.env.local
+.env.dev
+.env.prod
+.env.*
