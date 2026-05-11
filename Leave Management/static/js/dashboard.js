@@ -427,7 +427,27 @@ function formatIndiaTime(value) {
     });
 }
 
-function loadLeaves(page) {
+function renderActivityLeaves(container, leaves) {
+    container.innerHTML = "";
+
+    if (!leaves || leaves.length === 0) {
+        container.innerHTML = "<p class='empty-state'>No recent activity</p>";
+        return;
+    }
+
+    leaves.forEach(leave => {
+        const isNew = isNewEntry(leave.created);
+        container.insertAdjacentHTML("beforeend", renderLeaveCard(leave, isNew));
+    });
+
+    updateAppliedTimeElements(container);
+    updateNewBadges();
+    syncReasonMoreButtons();
+}
+
+function loadLeaves(page, options = {}) {
+    const shouldAnimate = options.animate !== false;
+
     fetch(`/dashboard?page=${page}`, {
         headers: {
             "X-Requested-With": "XMLHttpRequest"
@@ -438,27 +458,16 @@ function loadLeaves(page) {
         const container = document.getElementById("activityContainer");
         if (!container) return;
 
-        animateSlide(container, direction, () => {
-            container.innerHTML = "";
-
-            if (!data.leaves || data.leaves.length === 0) {
-                container.innerHTML = "<p class='empty-state'>No recent activity</p>";
-                return;
-            }
-
-            data.leaves.forEach(leave => {
-                const isNew = isNewEntry(leave.created);
-                container.insertAdjacentHTML("beforeend", renderLeaveCard(leave, isNew));
-            });
-
-            updateAppliedTimeElements(container);
-            updateNewBadges();
-            syncReasonMoreButtons();
-        });
+        if (shouldAnimate) {
+            animateSlide(container, direction, () => renderActivityLeaves(container, data.leaves));
+        } else {
+            renderActivityLeaves(container, data.leaves);
+        }
 
         currentPage = data.current_page;
         totalPages = data.total_pages || 1;
-        document.getElementById("pageNumber").innerText = `Page ${data.current_page} of ${data.total_pages}`;
+        const pageNumber = document.getElementById("pageNumber");
+        if (pageNumber) pageNumber.innerText = `Page ${data.current_page} of ${data.total_pages}`;
         const firstBtn = document.querySelector(".first-btn");
         const prevBtn = document.querySelector(".prev-btn");
         const nextBtn = document.querySelector(".next-btn");
@@ -470,10 +479,12 @@ function loadLeaves(page) {
         if (lastBtn) lastBtn.dataset.totalPages = totalPages;
 
         const nav = document.querySelector(".pagination");
-        if (!data.has_next && !data.has_prev) {
-            nav.classList.add("hidden");
-        } else {
-            nav.classList.remove("hidden");
+        if (nav) {
+            if (!data.has_next && !data.has_prev) {
+                nav.classList.add("hidden");
+            } else {
+                nav.classList.remove("hidden");
+            }
         }
     })
     .catch(err => {
@@ -785,6 +796,25 @@ function formatStatValue(value, decimals = 2) {
     return numericValue.toFixed(decimals).replace(/\.00$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
 }
 
+function formatBalanceStatValue(value, decimals = 2) {
+    const formattedValue = formatStatValue(value, decimals);
+    if (formattedValue === "0") return "00";
+
+    const sign = formattedValue.startsWith("-") ? "-" : "";
+    const unsignedValue = sign ? formattedValue.slice(1) : formattedValue;
+    const [wholePart, decimalPart] = unsignedValue.split(".");
+    const paddedWhole = wholePart.padStart(2, "0");
+
+    return `${sign}${paddedWhole}${decimalPart ? `.${decimalPart}` : ""}`;
+}
+
+function normalizeBalanceCardNumbers() {
+    document.querySelectorAll(".overview-card .stat-card .count").forEach(el => {
+        const targetValue = el.dataset.balanceCountTarget || el.textContent;
+        el.textContent = formatBalanceStatValue(targetValue);
+    });
+}
+
 function updateDashboardSummary(summary) {
     if (!summary) return;
 
@@ -802,36 +832,51 @@ function updateDashboardSummary(summary) {
     if (earnedCard) {
         const countEl = earnedCard.querySelector(".count");
         const metaEl = earnedCard.querySelector("small");
-        if (countEl) countEl.textContent = formatStatValue(summary.earned_remaining);
-        if (metaEl) metaEl.textContent = `${formatStatValue(summary.earned_used)} used of ${formatStatValue(summary.earned_total)}`;
+        if (countEl) {
+            countEl.dataset.balanceCountTarget = String(summary.earned_remaining);
+            countEl.textContent = formatBalanceStatValue(summary.earned_remaining);
+        }
+        if (metaEl) metaEl.textContent = `${formatBalanceStatValue(summary.earned_used)} used of ${formatBalanceStatValue(summary.earned_total)}`;
     }
 
     const sickCard = document.querySelector(".sick-balance-card");
     if (sickCard) {
         const countEl = sickCard.querySelector(".count");
         const metaEl = sickCard.querySelector("small");
-        if (countEl) countEl.textContent = formatStatValue(summary.sick_remaining);
-        if (metaEl) metaEl.textContent = `${formatStatValue(summary.sick_used)} used of ${formatStatValue(summary.sick_total)}`;
+        if (countEl) {
+            countEl.dataset.balanceCountTarget = String(summary.sick_remaining);
+            countEl.textContent = formatBalanceStatValue(summary.sick_remaining);
+        }
+        if (metaEl) metaEl.textContent = `${formatBalanceStatValue(summary.sick_used)} used of ${formatBalanceStatValue(summary.sick_total)}`;
     }
 
     const unpaidCard = document.querySelector(".unpaid-balance-card");
     if (unpaidCard) {
         const countEl = unpaidCard.querySelector(".count");
         const metaEl = unpaidCard.querySelector("small");
-        if (countEl) countEl.textContent = formatStatValue(summary.unpaid_used);
-        if (metaEl) metaEl.textContent = `${formatStatValue(summary.unpaid_used)} used so far`;
+        if (countEl) {
+            countEl.dataset.balanceCountTarget = String(summary.unpaid_used);
+            countEl.textContent = formatBalanceStatValue(summary.unpaid_used);
+        }
+        if (metaEl) metaEl.textContent = "Used so far";
     }
 
     const approvedCard = document.querySelector(".approved-card");
     if (approvedCard) {
         const countEl = approvedCard.querySelector(".count");
-        if (countEl) countEl.textContent = String(summary.approved_count ?? 0);
+        if (countEl) {
+            countEl.dataset.balanceCountTarget = String(summary.approved_count ?? 0);
+            countEl.textContent = formatBalanceStatValue(summary.approved_count ?? 0, 0);
+        }
     }
 
     const pendingCard = document.querySelector(".pending-card");
     if (pendingCard) {
         const countEl = pendingCard.querySelector(".count");
-        if (countEl) countEl.textContent = String(summary.pending_count ?? 0);
+        if (countEl) {
+            countEl.dataset.balanceCountTarget = String(summary.pending_count ?? 0);
+            countEl.textContent = formatBalanceStatValue(summary.pending_count ?? 0, 0);
+        }
 
         const existingAlert = pendingCard.querySelector(".stat-alert");
         const existingSmall = pendingCard.querySelector("small");
@@ -858,7 +903,10 @@ function updateDashboardSummary(summary) {
     const rejectedCard = document.querySelector(".rejected-card");
     if (rejectedCard) {
         const countEl = rejectedCard.querySelector(".count");
-        if (countEl) countEl.textContent = String(summary.rejected_count ?? 0);
+        if (countEl) {
+            countEl.dataset.balanceCountTarget = String(summary.rejected_count ?? 0);
+            countEl.textContent = formatBalanceStatValue(summary.rejected_count ?? 0, 0);
+        }
     }
 }
 
@@ -893,6 +941,7 @@ function refreshDashboardCards() {
 
         animateLeaveProgress();
         startCountdown();
+        loadLeaves(currentPage, { animate: false });
     })
     .catch(err => {
         console.error("Dashboard card refresh error:", err);
@@ -1116,6 +1165,9 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     updateNewBadges();
+    normalizeBalanceCardNumbers();
+    setTimeout(normalizeBalanceCardNumbers, 1800);
+    setTimeout(normalizeBalanceCardNumbers, 2600);
     animateLeaveProgress();
     startCountdown();
     initDashboardDividerPointer();
@@ -1141,6 +1193,10 @@ document.addEventListener("DOMContentLoaded", function() {
         isPageLoaded = true;
         syncReasonMoreButtons();
     }, 300);
+});
+
+document.addEventListener("countup:refresh", function () {
+    setTimeout(normalizeBalanceCardNumbers, 360);
 });
 
 function syncReasonMoreButtons() {

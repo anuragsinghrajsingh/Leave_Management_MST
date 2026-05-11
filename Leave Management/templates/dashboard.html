@@ -4,7 +4,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20260511-overview-chip-align">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20260511-mobile-hero-balance-no-overflow">
 {% endblock %}
 
 {% block page_skeleton %}
@@ -230,7 +230,7 @@
             <section class="left-panel">
                 <article class="card hero-card">
                     <div class="hero-copy">
-                        <p class="section-kicker section-kicker-simple">Leave overview</p>
+                        <p class="section-kicker section-kicker-simple">Leave Overview</p>
                         <h2 class="hero-title">
                             <span class="hero-greeting-row">
                                 <span class="hero-title-mark" aria-hidden="true">&#128591;</span>
@@ -271,33 +271,33 @@
                         <div class="balance-type-grid">
                             <article class="stat-card balance-type-card earned-balance-card">
                                 <p class="stat-label">Earned</p>
-                                <p class="count" data-countup data-countup-target="{{ earned_remaining }}" data-countup-decimals="2">{{ earned_remaining }}</p>
+                                <p class="count" data-balance-count-target="{{ earned_remaining }}">{{ earned_remaining }}</p>
                                 <small>{{ earned_used|floatformat:"-2" }} used of {{ earned_total|floatformat:"-2" }}</small>
                             </article>
 
                             <article class="stat-card balance-type-card sick-balance-card">
                                 <p class="stat-label">Sick</p>
-                                <p class="count" data-countup data-countup-target="{{ sick_remaining }}" data-countup-decimals="2">{{ sick_remaining }}</p>
+                                <p class="count" data-balance-count-target="{{ sick_remaining }}">{{ sick_remaining }}</p>
                                 <small>{{ sick_used|floatformat:"-2" }} used of {{ sick_total|floatformat:"-2" }}</small>
                             </article>
 
                             <article class="stat-card balance-type-card unpaid-balance-card">
                                 <p class="stat-label">Unpaid</p>
-                                <p class="count" data-countup data-countup-target="{{ unpaid_used }}" data-countup-decimals="2">{{ unpaid_used }}</p>
-                                <small>{{ unpaid_used|floatformat:"-2" }} used so far</small>
+                                <p class="count" data-balance-count-target="{{ unpaid_used }}">{{ unpaid_used }}</p>
+                                <small>Used so far</small>
                             </article>
                         </div>
 
                         <div class="overview-stats">
                             <article class="stat-card approved-card">
                                 <p class="stat-label">Approved</p>
-                                <p class="count" data-countup data-countup-target="{{ approved_count }}">{{ approved_count }}</p>
+                                <p class="count" data-balance-count-target="{{ approved_count }}">{{ approved_count }}</p>
                                 <small>Requests accepted</small>
                             </article>
 
                             <article class="stat-card pending-card">
                                 <p class="stat-label">Pending</p>
-                                <p class="count" data-countup data-countup-target="{{ pending_count }}">{{ pending_count }}</p>
+                                <p class="count" data-balance-count-target="{{ pending_count }}">{{ pending_count }}</p>
                                 {% if pending_count > 2 %}
                                     <div class="warning-text stat-alert">Needs attention</div>
                                 {% else %}
@@ -307,7 +307,7 @@
 
                             <article class="stat-card rejected-card">
                                 <p class="stat-label">Rejected</p>
-                                <p class="count" data-countup data-countup-target="{{ rejected_count }}">{{ rejected_count }}</p>
+                                <p class="count" data-balance-count-target="{{ rejected_count }}">{{ rejected_count }}</p>
                                 <small>Requests declined</small>
                             </article>
                         </div>
@@ -325,7 +325,7 @@
                     <article class="main-leave-card upcoming">
                         <div class="section-head section-head-topcard">
                             <span class="corner-kicker corner-next">Next Up</span>
-                            <h2 class="main-heading">Upcoming leave</h2>
+                            <h2 class="main-heading">Upcoming Leave</h2>
                         </div>
                         <div class="main-divider"></div>
 
@@ -495,7 +495,7 @@
                 <article class="main-leave-card recent">
                     <div class="section-head section-head-topcard">
                         <span class="corner-kicker corner-recent">Recent</span>
-                        <h2 class="main-heading">Recent activity</h2>
+                        <h2 class="main-heading">Recent Activity</h2>
                     </div>
                     <div class="main-divider"></div>
 
@@ -642,5 +642,5 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{% static 'js/dashboard.js' %}?v=20260511-smooth-carousel-pagination"></script>
+    <script src="{% static 'js/dashboard.js' %}?v=20260511-balance-countup-disabled"></script>
 {% endblock %}
