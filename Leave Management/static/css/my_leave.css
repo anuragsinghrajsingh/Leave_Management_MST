@@ -846,6 +846,11 @@ main.my-leave-page a {
     display: block;
 }
 
+.my-leave-page .leave-table tbody tr[hidden],
+.my-leave-page .leave-table tbody tr.pagination-hidden {
+    display: none !important;
+}
+
 .leave-row.notification-highlight {
     position: relative;
 }

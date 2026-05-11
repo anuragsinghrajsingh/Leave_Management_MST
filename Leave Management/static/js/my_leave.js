@@ -57,6 +57,79 @@ function hydrateInlineReasons(root = document) {
     });
 }
 
+function formatRelativeLeaveAge(isoValue) {
+    if (!isoValue) {
+        return "-";
+    }
+    const target = new Date(isoValue);
+    if (Number.isNaN(target.getTime())) {
+        return "-";
+    }
+    const now = new Date();
+    const diffMs = Math.max(0, now.getTime() - target.getTime());
+    const diffMinutes = Math.floor(diffMs / (60 * 1000));
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const minuteRemainder = String(diffMinutes % 60).padStart(2, "0");
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.max(0, Math.floor((startOfToday - startOfTarget) / msPerDay));
+    if (diffMinutes <= 0) {
+        return "just now";
+    }
+    if (diffMinutes === 1) {
+        return "1 min ago";
+    }
+    if (diffMinutes <= 59) {
+        return `${diffMinutes} min ago`;
+    }
+    if (diffHours === 1) {
+        return `1 hour, ${minuteRemainder} min ago`;
+    }
+    if (diffHours <= 23) {
+        return `${diffHours} hour, ${minuteRemainder} min ago`;
+    }
+    if (diffDays <= 6) {
+        const dayUnit = diffDays === 1 ? "day" : "days";
+        return `${diffDays} ${dayUnit} ago`;
+    }
+    return target.toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric"
+    });
+}
+
+function hydrateRelativeDates() {
+    document.querySelectorAll("[data-relative-datetime]").forEach((node) => {
+        const formatted = formatRelativeLeaveAge(node.dataset.relativeDatetime);
+        const count = Number.parseInt(node.dataset.relativeCount || "0", 10);
+        if (formatted === "-") {
+            node.textContent = "-";
+            return;
+        }
+        node.textContent = count > 0 ? `${formatted} (${count})` : formatted;
+    });
+}
+
+function hydrateDayBlocks() {
+    document.querySelectorAll(".js-days-block").forEach((block) => {
+        const valueNode = block.querySelector(".js-days-value");
+        const labelNode = block.querySelector(".js-days-label");
+        if (!valueNode || !labelNode) {
+            return;
+        }
+        const targetValue = Number(block.dataset.daysTarget || "0");
+        const suffixText = block.dataset.daysSuffix || "";
+        const labelText = block.dataset.daysLabel || "";
+        if (!Number.isFinite(targetValue)) {
+            return;
+        }
+        valueNode.textContent = `${targetValue}${suffixText}`;
+        labelNode.textContent = labelText;
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
         const tabs = Array.from(document.querySelectorAll(".status-tab"));
         const panels = Array.from(document.querySelectorAll(".leave-panel"));
@@ -175,6 +248,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 const panel = wrapper.closest(".leave-panel");
                 const tbody = wrapper.querySelector("tbody");
                 if (!panel || !tbody) {
+                    return;
+                }
+                if (typeof refreshPanelPagination === "function") {
+                    refreshPanelPagination(panel.id);
                     return;
                 }
                 const pagination = panel.querySelector(`[data-pagination-for="${panel.id}"]`);
@@ -2578,7 +2655,6 @@ const exportWrapper = document.createElement("div");
         const tbody = panel?.querySelector("tbody");
         const pagination = panel?.querySelector(`[data-pagination-for="${panelId}"]`);
         if (!panel || !wrapper || !tbody || !pagination) return;
-        const rows = Array.from(tbody.querySelectorAll("tr.leave-row:not(.filter-hidden)"));
         let emptyRow = tbody.querySelector(".table-empty-row");
         const rowsPerPage = parseInt(wrapper.dataset.rowsPerPage || "5", 10);
         const firstBtn = pagination.querySelector('[data-page-action="first"]');
@@ -2586,6 +2662,48 @@ const exportWrapper = document.createElement("div");
         const nextBtn = pagination.querySelector('[data-page-action="next"]');
         const lastBtn = pagination.querySelector('[data-page-action="last"]');
         const status = pagination.querySelector(".pagination-status");
+        const getRows = () => Array.from(tbody.querySelectorAll("tr.leave-row:not(.filter-hidden)"));
+        const getTotalPages = () => Math.max(1, Math.ceil(getRows().length / rowsPerPage));
+        let currentPage = Number.parseInt(panel.dataset.paginationPage || "1", 10) || 1;
+        const renderPage = () =>
+        {
+            const rows = getRows();
+            if (rows.length === 0)
+            {
+                wrapper.classList.add("is-empty");
+                if (emptyRow) emptyRow.hidden = false;
+                pagination.hidden = true;
+                pagination.classList.add("is-hidden");
+                panel.dataset.paginationPage = "1";
+                return;
+            }
+            wrapper.classList.remove("is-empty");
+            tbody.querySelectorAll(".table-empty-row").forEach((row) =>
+            {
+                row.hidden = true;
+            });
+            const totalPages = getTotalPages();
+            currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+            panel.dataset.paginationPage = String(currentPage);
+            rows.forEach((row, index) =>
+            {
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                const shouldHide = !(index >= start && index < end);
+                row.hidden = shouldHide;
+                row.classList.toggle("pagination-hidden", shouldHide);
+            });
+            if (status) status.textContent = `Page ${currentPage} of ${totalPages}`;
+            if (firstBtn) firstBtn.disabled = currentPage === 1;
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+            if (lastBtn) lastBtn.disabled = currentPage === totalPages;
+            const hidePagination = totalPages <= 1;
+            pagination.hidden = hidePagination;
+            pagination.classList.toggle("is-hidden", hidePagination);
+            hydrateInlineReasons(panel);
+        };
+        const rows = getRows();
         if (rows.length === 0)
         {
             wrapper.classList.add("is-empty");
@@ -2661,33 +2779,10 @@ const exportWrapper = document.createElement("div");
             pagination.classList.add("is-hidden");
             return;
         }
-        wrapper.classList.remove("is-empty");
-        if (emptyRow) emptyRow.hidden = true;
-        const existingVisibleIndex = rows.findIndex((row) => !row.hidden);
-        const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
-        let currentPage = existingVisibleIndex >= 0 ? Math.floor(existingVisibleIndex / rowsPerPage) + 1 : 1;
-        currentPage = Math.min(currentPage, totalPages);
-        const renderPage = () =>
-        {
-            rows.forEach((row, index) =>
-            {
-                const start = (currentPage - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-                row.hidden = !(index >= start && index < end);
-            });
-            if (status) status.textContent = `Page ${currentPage} of ${totalPages}`;
-            if (firstBtn) firstBtn.disabled = currentPage === 1;
-            if (prevBtn) prevBtn.disabled = currentPage === 1;
-            if (nextBtn) nextBtn.disabled = currentPage === totalPages;
-            if (lastBtn) lastBtn.disabled = currentPage === totalPages;
-            const hidePagination = totalPages <= 1;
-            pagination.hidden = hidePagination;
-            pagination.classList.toggle("is-hidden", hidePagination);
-            hydrateInlineReasons(panel);
-        };
         panel._paginationController = {
             showRow(row)
             {
+                const rows = getRows();
                 const rowIndex = rows.indexOf(row);
                 if (rowIndex === -1) return;
                 currentPage = Math.floor(rowIndex / rowsPerPage) + 1;
@@ -2696,13 +2791,20 @@ const exportWrapper = document.createElement("div");
         };
         if (firstBtn) firstBtn.onclick = () => { if (currentPage !== 1) { currentPage = 1; renderPage(); } };
         if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage -= 1; renderPage(); } };
-        if (nextBtn) nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage += 1; renderPage(); } };
-        if (lastBtn) lastBtn.onclick = () => { if (currentPage !== totalPages) { currentPage = totalPages; renderPage(); } };
+        if (nextBtn) nextBtn.onclick = () => { const totalPages = getTotalPages(); if (currentPage < totalPages) { currentPage += 1; renderPage(); } };
+        if (lastBtn) lastBtn.onclick = () => { const totalPages = getTotalPages(); if (currentPage !== totalPages) { currentPage = totalPages; renderPage(); } };
         renderPage();
     }
     function refreshPendingPagination()
     {
         refreshPanelPagination("pending-panel");
+    }
+    function refreshAllMyLeavePanelPagination()
+    {
+        ["pending-panel", "approved-panel", "rejected-panel"].forEach((panelId) =>
+        {
+            refreshPanelPagination(panelId);
+        });
     }
     function updateMyLeaveCountElement(element, value)
     {
@@ -2918,10 +3020,10 @@ const exportWrapper = document.createElement("div");
             hydrateRelativeDates();
             hydrateDayBlocks();
             hydrateInlineReasons();
-            setupTablePagination();
             renumberPendingRows();
             updateMyLeavePanelCounts(payload.counts);
             applyAllMyLeaveFilters();
+            refreshAllMyLeavePanelPagination();
             syncMyLeavePanelCountsFromRows();
             syncMyLeaveTopBarCounts(payload.live_counts || payload.counts);
             syncMyLeaveStatusTabCounts(payload.live_counts || payload.counts);
