@@ -284,7 +284,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
     function getManageDirectoryPageSize()
     {
-        return window.matchMedia("(max-width: 640px)").matches ? 6 : 8;
+        return window.matchMedia("(max-width: 640px)").matches ? 9 : 8;
     }
 
     function getManageEmployeeDetailApiUrl(employeeId)
@@ -3447,20 +3447,6 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             return;
         }
 
-        const pageButtons = Array.from({ length: totalPages }, function (_, index)
-        {
-            const pageNumber = index + 1;
-            const isActive = pageNumber === manageDirectoryCurrentPage;
-            return `
-                <button
-                    type="button"
-                    class="directory-page-btn${isActive ? " is-active" : ""}"
-                    data-manage-page="${pageNumber}"
-                    aria-current="${isActive ? "page" : "false"}"
-                >${pageNumber}</button>
-            `;
-        });
-
         manageDirectoryPagination.hidden = false;
         window.setSafeHTML(manageDirectoryPagination, `
             <button
@@ -3469,29 +3455,29 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                 data-manage-nav="first"
                 ${manageDirectoryCurrentPage === 1 ? "disabled" : ""}
                 aria-label="First page"
-            >&laquo;</button>
+            ><span aria-hidden="true">&laquo;</span><span>First</span></button>
             <button
                 type="button"
                 class="directory-page-btn directory-page-nav"
                 data-manage-nav="prev"
                 ${manageDirectoryCurrentPage === 1 ? "disabled" : ""}
                 aria-label="Previous page"
-            >&lsaquo;</button>
-            ${pageButtons.join("")}
+            ><span aria-hidden="true">&lsaquo;</span><span>Prev</span></button>
+            <span class="directory-page-status">Page ${manageDirectoryCurrentPage} of ${totalPages}</span>
             <button
                 type="button"
                 class="directory-page-btn directory-page-nav"
                 data-manage-nav="next"
                 ${manageDirectoryCurrentPage === totalPages ? "disabled" : ""}
                 aria-label="Next page"
-            >&rsaquo;</button>
+            ><span>Next</span><span aria-hidden="true">&rsaquo;</span></button>
             <button
                 type="button"
                 class="directory-page-btn directory-page-nav"
                 data-manage-nav="last"
                 ${manageDirectoryCurrentPage === totalPages ? "disabled" : ""}
                 aria-label="Last page"
-            >&raquo;</button>
+            ><span>Last</span><span aria-hidden="true">&raquo;</span></button>
         `);
     }
 
@@ -3545,7 +3531,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             }
         }
 
-        renderManageDirectoryPagination(matchingCards.length > 0 ? totalPages : 0);
+        renderManageDirectoryPagination(matchingCards.length > 0 ? Math.max(1, totalPages) : 0);
         manageDirectoryLastPageSize = pageSize;
         animateEmployeeBellCounts();
 
@@ -4450,6 +4436,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
 
         if (popupTablePagination)
         {
+            popupTablePagination.dataset.context = activePopupHistoryStatus;
             if (filteredLeaves.length <= popupHistoryPageSize)
             {
                 popupTablePagination.hidden = true;

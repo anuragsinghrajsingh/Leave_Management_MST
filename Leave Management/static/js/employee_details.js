@@ -765,7 +765,7 @@
             const first = document.createElement("button");
             first.type = "button";
             first.className = "page-btn page-nav-btn";
-            first.textContent = "«";
+            first.innerHTML = '<span aria-hidden="true">&laquo;</span><span>First</span>';
             first.disabled = currentPage === 1;
             first.addEventListener("click", function ()
             {
@@ -781,7 +781,7 @@
             const prev = document.createElement("button");
             prev.type = "button";
             prev.className = "page-btn page-nav-btn";
-            prev.textContent = "‹";
+            prev.innerHTML = '<span aria-hidden="true">&lsaquo;</span><span>Prev</span>';
             prev.disabled = currentPage === 1;
             prev.addEventListener("click", function ()
             {
@@ -794,28 +794,15 @@
             });
             pagination.appendChild(prev);
 
-            for (let page = 1; page <= pageCount; page += 1)
-            {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "page-btn" + (page === currentPage ? " is-active" : "");
-                button.textContent = String(page);
-                button.addEventListener("click", function ()
-                {
-                    runRosterTransition(function ()
-                    {
-                        currentPage = page;
-                        renderPagination();
-                        animateDirectoryPageSwitch();
-                    });
-                });
-                pagination.appendChild(button);
-            }
+            const status = document.createElement("span");
+            status.className = "page-status";
+            status.textContent = "Page " + currentPage + " of " + pageCount;
+            pagination.appendChild(status);
 
             const next = document.createElement("button");
             next.type = "button";
             next.className = "page-btn page-nav-btn";
-            next.textContent = "›";
+            next.innerHTML = '<span>Next</span><span aria-hidden="true">&rsaquo;</span>';
             next.disabled = currentPage === pageCount;
             next.addEventListener("click", function ()
             {
@@ -831,7 +818,7 @@
             const last = document.createElement("button");
             last.type = "button";
             last.className = "page-btn page-nav-btn";
-            last.textContent = "»";
+            last.innerHTML = '<span>Last</span><span aria-hidden="true">&raquo;</span>';
             last.disabled = currentPage === pageCount;
             last.addEventListener("click", function ()
             {

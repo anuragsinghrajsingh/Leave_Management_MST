@@ -2900,6 +2900,97 @@ body {
     line-height: 1;
 }
 
+/* Employee details directory pagination: match My Leave pill pagination. */
+.directory-pagination {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    margin-top: 10px !important;
+    padding: 0 4px 2px !important;
+    flex-wrap: wrap !important;
+}
+
+.page-btn,
+.page-status {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    min-width: 0 !important;
+    padding: 0 20px !important;
+    border-radius: 999px !important;
+    font-size: 0.88rem !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.04em !important;
+    white-space: nowrap !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 8px 18px rgba(59, 130, 246, 0.14) !important;
+}
+
+.page-btn span,
+.page-status {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+}
+
+.directory-pagination .page-btn:nth-of-type(1) {
+    color: #2563eb !important;
+    border-color: rgba(59, 130, 246, 0.46) !important;
+    background: linear-gradient(135deg, rgba(239, 246, 255, 1), rgba(191, 219, 254, 0.9)) !important;
+}
+
+.directory-pagination .page-btn:nth-of-type(2) {
+    color: #7c3aed !important;
+    border-color: rgba(139, 92, 246, 0.42) !important;
+    background: linear-gradient(135deg, rgba(245, 243, 255, 1), rgba(221, 214, 254, 0.88)) !important;
+}
+
+.page-status {
+    color: #0f766e !important;
+    border: 1px solid rgba(20, 184, 166, 0.5) !important;
+    background: linear-gradient(135deg, rgba(240, 253, 250, 1), rgba(204, 251, 241, 0.9)) !important;
+    font-size: 0.78rem !important;
+    font-weight: 1000 !important;
+    font-variation-settings: "wght" 1000 !important;
+    text-shadow: 0 0 0 currentColor, 0.18px 0 currentColor, -0.18px 0 currentColor !important;
+    text-transform: uppercase !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 8px 18px rgba(20, 184, 166, 0.16) !important;
+}
+
+.directory-pagination .page-btn:nth-of-type(3) {
+    color: #c2410c !important;
+    border-color: rgba(251, 146, 60, 0.5) !important;
+    background: linear-gradient(135deg, rgba(255, 247, 237, 1), rgba(254, 215, 170, 0.88)) !important;
+}
+
+.directory-pagination .page-btn:nth-of-type(4) {
+    color: #db2777 !important;
+    border-color: rgba(244, 114, 182, 0.48) !important;
+    background: linear-gradient(135deg, rgba(253, 242, 248, 1), rgba(251, 207, 232, 0.88)) !important;
+}
+
+.page-btn:hover:not(:disabled) {
+    transform: translateY(-1px) !important;
+    filter: saturate(1.08);
+}
+
+.page-btn:disabled {
+    color: #94a3b8 !important;
+    border-color: rgba(203, 213, 225, 0.72) !important;
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.72)) !important;
+    opacity: 1 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
 @keyframes employeeDirectoryCardSwap {
     0% {
         opacity: 0;
@@ -4050,9 +4141,27 @@ body.address-modal-open {
     }
 
     .directory-pagination {
-        flex-wrap: wrap;
+        flex-wrap: nowrap !important;
         justify-content: center;
-        gap: 6px;
+        gap: 9px !important;
+        overflow-x: visible !important;
+        padding-inline: 0 !important;
+    }
+
+    .page-btn,
+    .page-status {
+        height: 30px !important;
+        min-height: 30px !important;
+        padding-inline: 5px !important;
+        font-size: 0.6rem !important;
+        letter-spacing: 0.01em !important;
+        gap: 3px !important;
+    }
+
+    .page-status {
+        flex: 0 0 auto !important;
+        padding-inline: 8px !important;
+        font-size: 0.6rem !important;
     }
 
     .hero-metric span {
