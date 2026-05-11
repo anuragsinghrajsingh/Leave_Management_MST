@@ -776,7 +776,8 @@
                 grid.appendChild(dayButton);
             }
 
-            const cellsToAdd = 42 - grid.children.length;
+            const remainder = grid.children.length % 7;
+            const cellsToAdd = remainder === 0 ? 0 : 7 - remainder;
             for (let day = 1; day <= cellsToAdd; day += 1) {
                 const dayButton = document.createElement("button");
                 dayButton.type = "button";
@@ -1072,22 +1073,83 @@
             });
         }
 
+        function parseTimelineDate(value, { endOfFullDay = false } = {}) {
+            if (!value) {
+                return null;
+            }
+
+            const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+            if (dateOnlyMatch) {
+                const [, year, month, day] = dateOnlyMatch.map(Number);
+                const parsed = new Date(year, month - 1, day);
+                if (endOfFullDay) {
+                    parsed.setDate(parsed.getDate() + 1);
+                }
+                return parsed;
+            }
+
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function formatClockTime(date) {
+            return date.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: true
+            });
+        }
+
+        function getDurationParts(milliseconds) {
+            const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            return { days, hours, minutes, seconds };
+        }
+
+        function formatDuration(milliseconds, { includeDays = true } = {}) {
+            const { days, hours, minutes, seconds } = getDurationParts(milliseconds);
+            const timeText = `${hours}h ${minutes}m ${seconds}s`;
+
+            if (includeDays && days > 0) {
+                return `${days}d ${timeText}`;
+            }
+
+            return timeText;
+        }
+
         function animateLeaveProgress() {
             document.querySelectorAll(".leave-progress .progress-fill").forEach((bar) => {
-                const fromValue = bar.dataset.from;
-                if (!fromValue) {
+                const startValue = bar.dataset.start || bar.dataset.from;
+                const endValue = bar.dataset.end;
+                if (!startValue) {
                     return;
                 }
 
-                const fromDate = new Date(fromValue);
-                if (Number.isNaN(fromDate.getTime())) {
+                const startDate = parseTimelineDate(startValue);
+                if (!startDate) {
                     return;
                 }
 
-                const today = new Date();
-                const totalDays = 30;
-                const diff = (fromDate - today) / (1000 * 60 * 60 * 24);
-                const percent = Math.max(0, Math.min(100, 100 - (diff * 100 / totalDays)));
+                const endDate = endValue
+                    ? parseTimelineDate(endValue, { endOfFullDay: bar.dataset.fullDay === "true" })
+                    : null;
+                const now = new Date();
+                let percent = 0;
+
+                if (endDate && endDate > startDate) {
+                    percent = ((now - startDate) / (endDate - startDate)) * 100;
+                } else {
+                    const totalDays = 30;
+                    const diff = (startDate - now) / (1000 * 60 * 60 * 24);
+                    percent = 100 - (diff * 100 / totalDays);
+                }
+
+                percent = Math.max(0, Math.min(100, percent));
 
                 requestAnimationFrame(() => {
                     bar.style.width = `${percent}%`;
@@ -1095,32 +1157,46 @@
             });
         }
 
-        function startCountdown() {
-            document.querySelectorAll(".live-countdown").forEach((el) => {
-                const target = new Date(el.dataset.time);
-                if (Number.isNaN(target.getTime())) {
-                    el.innerText = "Invalid time";
+        function updateLeaveTimelineStatus() {
+            document.querySelectorAll(".leave-live-status").forEach((el) => {
+                const isFullDay = el.dataset.kind === "full";
+                const start = parseTimelineDate(el.dataset.start);
+                const end = parseTimelineDate(el.dataset.end, { endOfFullDay: isFullDay });
+
+                if (!start || !end) {
+                    el.innerText = "";
                     return;
                 }
 
-                function update() {
-                    const now = new Date();
-                    const diff = target - now;
+                const now = new Date();
 
-                    if (diff <= 0) {
-                        el.innerText = "Today";
-                        return;
-                    }
-
-                    const hours = Math.floor(diff / (1000 * 60 * 60));
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-                    el.innerText = `${hours}h ${minutes}m left`;
+                if (now < start) {
+                    const diff = start - now;
+                    el.innerText = diff < 86400000
+                        ? `Starts in ${formatDuration(diff, { includeDays: false })}`
+                        : `${formatDuration(diff)} to start`;
+                    el.dataset.state = "upcoming";
+                    return;
                 }
 
-                update();
-                setInterval(update, 60000);
+                if (now >= end) {
+                    el.innerText = `Ended.. at ${formatClockTime(end)}`;
+                    el.dataset.state = "ended";
+                    return;
+                }
+
+                el.innerText = `Started.. ${formatDuration(end - now)} left`;
+                el.dataset.state = "started";
             });
+        }
+
+        function startLeaveTimelineStatus() {
+            updateLeaveTimelineStatus();
+            animateLeaveProgress();
+            setInterval(() => {
+                updateLeaveTimelineStatus();
+                animateLeaveProgress();
+            }, 1000);
         }
 
         toggleBtn.addEventListener("click", () => {
@@ -1238,8 +1314,7 @@
             el.innerText = "Applied: " + formatAppliedDateTime(el.dataset.time);
         });
 
-        animateLeaveProgress();
-        startCountdown();
+        startLeaveTimelineStatus();
 
         form.addEventListener("submit", (event) => {
             clearAllInlineWarnings();

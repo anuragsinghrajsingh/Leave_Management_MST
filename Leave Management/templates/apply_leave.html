@@ -497,7 +497,7 @@
                         </div>
 
                         <div class="upcoming-grid">
-                            <div class="mini-tile short-tile">
+                            <div class="mini-tile short-tile {% if next_short_leave %}leave-tile-{{ next_short_leave.leave_type|lower }}{% else %}empty-tile{% endif %}"{% if next_short_leave %} data-leave-type="{{ next_short_leave.leave_type }}" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"{% endif %}>
                                 <div class="tile-top">
                                     <div class="tile-top-left">
                                         <span class="tile-icon">⚡</span>
@@ -523,23 +523,21 @@
                                         </p>
                                         <div class="leave-progress">
                                             <div class="progress-bar">
-                                                <div class="progress-fill" data-from="{{ next_short_leave.from_datetime|date:'Y-m-d H:i:s' }}"></div>
+                                                <div class="progress-fill" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"></div>
                                             </div>
-                                            <div class="progress-text">
-                                                {% if context_next_short_today %}
-                                                    <span class="live-countdown" data-time="{{ next_short_leave.from_datetime|date:'c' }}"></span>
-                                                {% else %}
-                                                    {{ next_short_days }} days left
-                                                {% endif %}
-                                            </div>
+                                            <div class="progress-text leave-live-status" data-kind="time" data-start="{{ next_short_leave.from_datetime|date:'c' }}" data-end="{{ next_short_leave.to_datetime|date:'c' }}"></div>
                                         </div>
                                     {% else %}
-                                        <p>No short leave planned</p>
+                                        <div class="empty-state empty-leave-state">
+                                            <span class="empty-state-icon" aria-hidden="true">&#9201;</span>
+                                            <strong>No time leave planned</strong>
+                                            <p>Short and half-day approvals will appear here.</p>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <div class="mini-tile full-tile">
+                            <div class="mini-tile full-tile {% if next_full_leave %}leave-tile-{{ next_full_leave.leave_type|lower }}{% else %}empty-tile{% endif %}"{% if next_full_leave %} data-leave-type="{{ next_full_leave.leave_type }}" data-start="{{ next_full_leave.from_date|date:'Y-m-d' }}" data-end="{{ next_full_leave.to_date|date:'Y-m-d' }}"{% endif %}>
                                 <div class="tile-top">
                                     <div class="tile-top-left">
                                         <span class="tile-icon">🌿</span>
@@ -547,7 +545,7 @@
                                     </div>
                                     <span class="type-tag">Full Day</span>
                                 </div>
-                                <div class="tile-main">
+                                <div class="tile-main {% if not next_full_leave %}empty-main{% endif %}">
                                     {% if next_full_leave %}
                                         <div class="date-range">
                                             <span>{{ next_full_leave.from_date|date:"F j, Y" }}</span>
@@ -557,12 +555,16 @@
                                         <p class="leave-meta applied-time" data-time="{{ next_full_leave.created_at|date:'c' }}"></p>
                                         <div class="leave-progress">
                                             <div class="progress-bar">
-                                                <div class="progress-fill" data-from="{{ next_full_leave.from_date|date:'Y-m-d' }}"></div>
+                                                <div class="progress-fill" data-start="{{ next_full_leave.from_date|date:'Y-m-d' }}" data-end="{{ next_full_leave.to_date|date:'Y-m-d' }}" data-full-day="true"></div>
                                             </div>
-                                            <div class="progress-text">{{ next_full_days }} days left</div>
+                                            <div class="progress-text leave-live-status" data-kind="full" data-start="{{ next_full_leave.from_date|date:'Y-m-d' }}" data-end="{{ next_full_leave.to_date|date:'Y-m-d' }}"></div>
                                         </div>
                                     {% else %}
-                                        <p>No full leave planned</p>
+                                        <div class="empty-state empty-leave-state">
+                                            <span class="empty-state-icon" aria-hidden="true">&#9670;</span>
+                                            <strong>No full leave planned</strong>
+                                            <p>Sick, earned, and unpaid approvals will appear here.</p>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -618,7 +620,8 @@
                             {% else %}
                             <div class="empty-holiday">
                                 <span class="empty-icon">📅</span>
-                                <p>No upcoming holidays</p>
+                                <strong>No upcoming holidays</strong>
+                                <p>Your company holiday calendar is clear for now.</p>
                             </div>
                             {% endif %}
                         </article>
