@@ -17,24 +17,52 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def env_bool(name, default=False):
+    return os.environ.get(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=None):
+    value = os.environ.get(name)
+    if not value:
+        return default or []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def env_required(name):
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        raise RuntimeError(f"{name} must be set when DJANGO_DEBUG is false.")
+    return value
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x$=n50=tof7$a2512+dm!@qd2ul!$l))ymr3e6(#y)lhp5koi6'
+# SECURITY WARNING: keep the secret key used in production secret.
+DEFAULT_DEV_SECRET_KEY = "django-insecure-local-development-only-change-in-production"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", DEFAULT_DEV_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", True)
+IS_PRODUCTION = not DEBUG
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1"] if DEBUG else [])
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+if IS_PRODUCTION and SECRET_KEY == DEFAULT_DEV_SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is false.")
+
+if IS_PRODUCTION and not ALLOWED_HOSTS:
+    raise RuntimeError("DJANGO_ALLOWED_HOSTS must be set when DJANGO_DEBUG is false.")
 
 # CSRF Cookie Settings
-CSRF_COOKIE_SECURE = True        # ✅ only HTTPS
-CSRF_COOKIE_HTTPONLY = True      # ✅ JS cannot access cookies
+CSRF_COOKIE_SECURE = IS_PRODUCTION
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Session Cookie Settings
-SESSION_COOKIE_HTTPONLY = True   # ✅ JS cannot access cookies
+SESSION_COOKIE_SECURE = IS_PRODUCTION
+SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Security Headers
@@ -43,13 +71,12 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
 
 
-if not DEBUG:
-    SESSION_COOKIE_SECURE = True       # ✅ only HTTPS
-    CSRF_COOKIE_SECURE = True          # ✅ only HTTPS
-else:
-    SESSION_COOKIE_SECURE = False      # ❌ allow HTTP for development
-    CSRF_COOKIE_SECURE = False         # ❌ allow HTTP for development    
-    
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", IS_PRODUCTION)
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "31536000" if IS_PRODUCTION else "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = IS_PRODUCTION
+SECURE_HSTS_PRELOAD = IS_PRODUCTION
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if IS_PRODUCTION else None
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -104,23 +131,37 @@ WSGI_APPLICATION = 'leave_management.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DB_ENGINE = os.environ.get("DB_ENGINE", "postgresql" if IS_PRODUCTION else "sqlite").strip().lower()
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'leave_management',
-#         'USER': 'anurag',
-#         'PASSWORD': 'MstSrv@05',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
+if DB_ENGINE == "postgresql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env_required("DB_NAME") if IS_PRODUCTION else os.environ.get("DB_NAME", "leave_management"),
+            "USER": env_required("DB_USER") if IS_PRODUCTION else os.environ.get("DB_USER", ""),
+            "PASSWORD": env_required("DB_PASSWORD") if IS_PRODUCTION else os.environ.get("DB_PASSWORD", ""),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+        }
+    }
+elif DB_ENGINE == "mysql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": env_required("DB_NAME") if IS_PRODUCTION else os.environ.get("DB_NAME", "leave_management"),
+            "USER": env_required("DB_USER") if IS_PRODUCTION else os.environ.get("DB_USER", ""),
+            "PASSWORD": env_required("DB_PASSWORD") if IS_PRODUCTION else os.environ.get("DB_PASSWORD", ""),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "3306"),
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.environ.get("SQLITE_NAME", BASE_DIR / "db.sqlite3"),
+        }
+    }
 
 
 # Password validation
@@ -170,17 +211,12 @@ STORAGES = {
     },
 }
 
-if not DEBUG:
+if IS_PRODUCTION:
     STORAGES["staticfiles"]["BACKEND"] = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
 LOGIN_URL = '/'
 # LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
-
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
-
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")

@@ -295,7 +295,7 @@ class WorkFromHomeDay(models.Model):
 
 class Profile(models.Model):
     # --- Production Level ID Configuration ---
-    ID_PREFIX = "MST-"
+    EMPLOYEE_ID_PREFIX = "MST"
     ID_PADDING = 4
 
     ROLE_CHOICES = (
@@ -331,9 +331,9 @@ class Profile(models.Model):
         role_map = {
             "Admin": "MST_Admin-",
             "HR": "MST_HR-",
-            "EMPLOYEE": "MST_EMP-",
+            "EMPLOYEE": cls.EMPLOYEE_ID_PREFIX,
         }
-        prefix = role_map.get(role, "MST_EMP-")
+        prefix = role_map.get(role, cls.EMPLOYEE_ID_PREFIX)
         
         with transaction.atomic():
             # Get existing IDs ONLY for this specific role's prefix
