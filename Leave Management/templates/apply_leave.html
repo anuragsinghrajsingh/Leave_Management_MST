@@ -674,6 +674,6 @@
     {{ company_holidays_json|json_script:"company-holidays-data" }}
     {{ existing_leaves_json|json_script:"existing-leaves-data" }}
     <div id="apply-leave-js-config" data-initial-leave-type="{{ form_data.leave_type|default:'' }}" hidden></div>
-    <script src="{% static 'js/apply_leave.js' %}?v=20260506"></script>
+    <script src="{% static 'js/apply_leave.js' %}"></script>
 {% endblock %}
 

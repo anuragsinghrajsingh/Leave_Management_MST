@@ -4,7 +4,7 @@
 {% block title %}Manage All Leaves{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/manage_all.css' %}?v=20260510-mobile-actions-right-corner">
+    <link rel="stylesheet" href="{% static 'css/manage_all.css' %}">
     <link rel="stylesheet" href="{% static 'css/hr_notification_shared.css' %}">
 {% endblock %}
 
@@ -892,7 +892,7 @@
         data-today="{% now 'Y-m-d' %}"
         hidden
     ></div>
-<script src="{% static 'js/manage_all.js' %}?v=20260510-count-separator-mobile-single"></script>
+<script src="{% static 'js/manage_all.js' %}"></script>
 {% endblock %}
 
 

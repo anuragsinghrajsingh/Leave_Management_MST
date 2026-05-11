@@ -1,7 +1,7 @@
 {% load static %}
 
 {% if not user.is_authenticated %}
-<script src="{% static 'js/auth_redirect.js' %}?v=20260506" data-login-url="{% url 'login' %}"></script>
+<script src="{% static 'js/auth_redirect.js' %}" data-login-url="{% url 'login' %}"></script>
 {% endif %}
 
 <!DOCTYPE html>
@@ -14,8 +14,8 @@
         <title>{% block title %} I am ASRS {% endblock %}</title>
 
         <!-- GLOBAL CSS -->
-        <link rel="stylesheet" href="{% static 'css/header.css' %}?v=20260510-header-profile">
-        <link rel="stylesheet" href="{% static 'css/base.css' %}?v=20260510-theme-alerts">
+        <link rel="stylesheet" href="{% static 'css/header.css' %}">
+        <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
         <!-- PAGE-SPECIFIC CSS -->
         {% block extra_css %}{% endblock %}
@@ -73,10 +73,10 @@
         </div>
 
         <div id="export-user" data-username="{{ request.user.username }}" style="display: none;"></div>
-        <script src="{% static 'js/hr_notifications.js' %}?v=20260509-retain-read"></script>
-        <script src="{% static 'js/communication_panel.js' %}?v=20260407c"></script>
-        <script src="{% static 'js/base.js' %}?v=20260510-theme-alerts"></script>
-        <script src="{% static 'js/template_events.js' %}?v=20260510-theme-alerts"></script>
+        <script src="{% static 'js/hr_notifications.js' %}"></script>
+        <script src="{% static 'js/communication_panel.js' %}"></script>
+        <script src="{% static 'js/base.js' %}"></script>
+        <script src="{% static 'js/template_events.js' %}"></script>
 
         {% block scripts %}
 

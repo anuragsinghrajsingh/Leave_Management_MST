@@ -2884,22 +2884,28 @@ textarea {
     margin: 0 auto;
     min-width: 170px;
     padding-bottom: 2px;
-    font-size: 1.2rem;
-    font-weight: 800;
+    font-size: 1.44rem;
+    font-weight: 1000;
     text-align: center;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
+    background: linear-gradient(90deg, #2563eb 0%, #06b6d4 45%, #db2777 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    transform: translateY(-3px);
 }
 
 .upcoming-card .panel-header h3::after {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: 0;
-    width: 240px;
+    bottom: -3px;
+    width: 90%;
     height: 4px;
     transform: translateX(-50%);
     border-radius: 999px;
@@ -4166,18 +4172,19 @@ textarea {
 
     .upcoming-card .panel-header h3 {
         font-size: 1.05rem;
-        padding-bottom: 8px;
+        padding-bottom: 5px;
     }
 
     .upcoming-card .panel-header h3::after {
+        bottom: 3px;
         height: 2px;
-        width: 180px;
+        width: 90%;
     }
 
     .upcoming-grid,
     .bottom-grid {
         gap: 6px;
-        margin-top: 0;
+        margin-top: -8px;
     }
 
     .mini-tile,
@@ -4634,4 +4641,126 @@ textarea {
     color: #4f46e5;
     font-size: 18px;
     opacity: 1;
+}
+
+@media (max-width: 640px) {
+    .upcoming-card .mini-tile,
+    .upcoming-card .mini-tile * {
+        font-weight: 1000 !important;
+    }
+
+    .upcoming-card .tile-badge,
+    .upcoming-card .type-tag {
+        font-size: 11px !important;
+    }
+
+    .upcoming-card .tile-main p,
+    .upcoming-card .leave-meta {
+        font-size: 13px !important;
+        line-height: 1.22 !important;
+    }
+
+    .upcoming-card .leave-date,
+    .upcoming-card .date-range,
+    .upcoming-card .time-block {
+        font-size: 15px !important;
+        line-height: 1.22 !important;
+    }
+
+    .upcoming-card .tile-main strong {
+        font-size: 1.08rem !important;
+    }
+
+    .upcoming-card .progress-text,
+    .upcoming-card .live-leave-status {
+        font-size: 13.5px !important;
+    }
+
+    .holiday-card,
+    .holiday-card * {
+        font-weight: 1000 !important;
+    }
+
+    .holiday-card p,
+    .holiday-card span,
+    .empty-holiday p {
+        font-size: 14px !important;
+        line-height: 1.22 !important;
+        font-weight: 1000 !important;
+    }
+
+    .holiday-date,
+    .holiday-name,
+    .empty-holiday strong {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+        font-weight: 1000 !important;
+    }
+
+    .days-num {
+        font-size: 1.7rem !important;
+        font-weight: 1000 !important;
+    }
+
+    .holiday-card .holiday-badge,
+    .holiday-card .badge-text {
+        font-size: 14px !important;
+        font-weight: 1000 !important;
+    }
+
+    .holiday-card .date-row,
+    .holiday-card .holiday-date {
+        font-size: 17px !important;
+        font-weight: 1000 !important;
+        line-height: 1.18 !important;
+    }
+
+    .holiday-card .name-row,
+    .holiday-card .holiday-name {
+        font-size: 18px !important;
+        font-weight: 1000 !important;
+        line-height: 1.18 !important;
+    }
+
+    .holiday-card .days-num {
+        font-size: 1.55rem !important;
+        font-weight: 1000 !important;
+    }
+
+    .holiday-card .days-label {
+        font-size: 14px !important;
+        font-weight: 1000 !important;
+    }
+
+    .holiday-card .empty-holiday strong {
+        font-size: 18px !important;
+        font-weight: 1000 !important;
+    }
+
+    .holiday-card .empty-holiday p {
+        font-size: 14px !important;
+        font-weight: 1000 !important;
+    }
+
+    .balance-card,
+    .balance-card * {
+        font-weight: 1000 !important;
+    }
+
+    .balance-card .balance-value {
+        font-size: 1.95rem !important;
+    }
+
+    .balance-card .balance-label,
+    .balance-card .status-pill,
+    .balance-card .badge-text {
+        font-size: 0.9rem !important;
+    }
+
+    .balance-card .progress-stats,
+    .balance-card .stat-used,
+    .balance-card .stat-total {
+        font-size: 0.76rem !important;
+        line-height: 1.18 !important;
+    }
 }

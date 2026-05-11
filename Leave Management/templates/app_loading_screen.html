@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
-    <script src="{% static 'js/history_navigation_redirect.js' %}?v=20260506" data-target-url="{{ target_url }}"></script>
+    <script src="{% static 'js/history_navigation_redirect.js' %}" data-target-url="{{ target_url }}"></script>
     <link rel="stylesheet" href="{% static 'css/loading_screen.css' %}">
 </head>
 <body class="loading-page {{ theme_class }}" data-duration="{{ duration }}" data-target-url="{{ target_url }}">
@@ -136,6 +136,6 @@
         </section>
     </main>
 
-    <script src="{% static 'js/portal_loading_transition.js' %}?v=20260506"></script>
+    <script src="{% static 'js/portal_loading_transition.js' %}"></script>
 </body>
 </html>
