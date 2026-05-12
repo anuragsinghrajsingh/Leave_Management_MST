@@ -235,6 +235,7 @@
 .theme-alert-card-success .theme-alert-symbol::before { content: "!"; }
 .theme-alert-card-delete .theme-alert-symbol::before { content: "X"; }
 .theme-alert-card-export .theme-alert-symbol::before { content: "\2193"; }
+.theme-alert-card-update .theme-alert-symbol::before { content: "\2713"; }
 
 .theme-alert-eyebrow {
     margin: 0 0 2px;
@@ -336,6 +337,19 @@
     border-color: rgba(239, 68, 68, 0.52);
     background: linear-gradient(135deg, rgba(254, 226, 226, 0.98), rgba(255, 237, 213, 0.94));
     color: #dc2626;
+}
+
+.theme-alert-card-update .theme-alert-symbol,
+.theme-alert-card-update .theme-alert-message-icon {
+    border-color: rgba(20, 184, 166, 0.56);
+    background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+    color: #0f766e;
+}
+
+.theme-alert-card-update .theme-alert-confirm {
+    border-color: rgba(20, 184, 166, 0.56);
+    background: linear-gradient(135deg, rgba(219, 234, 254, 0.98), rgba(204, 251, 241, 0.96));
+    color: #0f766e;
 }
 
 .theme-alert-card-success .theme-alert-symbol,

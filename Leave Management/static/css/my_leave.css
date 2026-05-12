@@ -43,8 +43,9 @@
 
 .page-kicker::before {
     content: "\25C8";
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
     margin-right: 0;
     background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #2dd4bf 100%);
     -webkit-background-clip: text;
@@ -8049,6 +8050,17 @@ textarea:focus {
         0 16px 30px rgba(59, 130, 246, 0.22);
 }
 
+#edit-leave-form .apply-btn:disabled,
+#edit-leave-form .apply-btn.is-disabled-by-no-change {
+    cursor: not-allowed;
+    opacity: 0.52;
+    filter: saturate(0.72);
+    transform: none !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 8px 16px rgba(100, 116, 139, 0.12);
+}
+
 .edit-modal-actions button:hover {
     transform: translateY(-2px);
     filter: saturate(1.06) brightness(1.02);
@@ -8377,13 +8389,22 @@ textarea:focus {
 
 .my-leave-page .leave-table .edit-btn,
 .my-leave-page .leave-table .delete-btn {
+    min-height: 30px !important;
+    padding-inline: 8px !important;
     font-size: 0.84rem !important;
     font-weight: 1000 !important;
 }
 
+@media (min-width: 769px) {
+    .my-leave-page .page-kicker {
+        min-width: 390px;
+        padding-inline: 16px;
+    }
+}
+
 .my-leave-page .table-pagination {
     gap: 10px;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 .my-leave-page .table-pagination .pagination-btn,

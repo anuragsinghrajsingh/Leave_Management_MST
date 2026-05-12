@@ -3548,6 +3548,8 @@ def leave_calendar_data(request):
             "type": l.leave_type,
             "status": l.status,
             "reason": l.reason,
+            "from_datetime": localtime(l.from_datetime).isoformat() if l.from_datetime else "",
+            "to_datetime": localtime(l.to_datetime).isoformat() if l.to_datetime else "",
             "created_at": l.created_at.isoformat() if l.created_at else "",
             "updated_at": l.updated_at.isoformat() if l.updated_at else "",
             "approved_at": l.approved_at.isoformat() if l.approved_at else "",
@@ -3719,12 +3721,14 @@ def _build_my_leave_context(request):
     short_taken = Leave.objects.filter(
         user=request.user,
         leave_type="Short",
+        status__in=["Pending", "Approved"],
         from_date__month=current_date.month,
         from_date__year=current_date.year,
     ).count()
     half_taken = Leave.objects.filter(
         user=request.user,
         leave_type="Half",
+        status__in=["Pending", "Approved"],
         from_date__month=current_date.month,
         from_date__year=current_date.year,
     ).count()

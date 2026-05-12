@@ -1398,43 +1398,89 @@ const exportWrapper = document.createElement("div");
         URL.revokeObjectURL(url);
     }
     
+    function getCalendarLeaveTypeClass(leaveType)
+    {
+        const normalized = String(leaveType || "").toLowerCase();
+        return ["sick", "unpaid", "earned", "short", "half"].includes(normalized) ? normalized : "default";
+    }
+    function formatCalendarDetailDate(dateValue)
+    {
+        if (!dateValue) return "-";
+        const parsed = new Date(`${dateValue}T00:00:00`);
+        if (Number.isNaN(parsed.getTime())) return dateValue;
+        return parsed.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+    }
+    function formatCalendarDetailTimeRange(leave)
+    {
+        if (leave?.from_datetime && leave?.to_datetime)
+        {
+            const start = new Date(leave.from_datetime);
+            const end = new Date(leave.to_datetime);
+            if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()))
+            {
+                return `${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
+            }
+        }
+        return "Full day";
+    }
+    function restoreEditLeaveTemplateHome()
+    {
+        const formHome = document.getElementById("form-home");
+        const template = document.getElementById("edit-leave-template");
+        if (formHome && template && template.parentElement !== formHome)
+        {
+            template.classList.remove("calendar-inline-edit-template");
+            formHome.appendChild(template);
+        }
+    }
     function openCalendarDetail(leave)
     {
+        restoreEditLeaveTemplateHome();
         const overlay = document.getElementById("calendar-detail-overlay");
         const content = document.getElementById("calendar-detail-content");
+        overlay?.querySelector(".detail-box")?.classList.remove("is-calendar-editing");
         const safeLeaveId = encodeURIComponent(String(leave.id ?? ""));
         const safeLeaveType = escapeHtml(leave.type);
-        const safeLeaveFrom = escapeHtml(leave.from);
-        const safeLeaveTo = escapeHtml(leave.to);
         const safeLeaveReason = escapeHtml(leave.reason || "-");
         const safeLeaveStatus = escapeHtml(leave.status);
+        const typeClass = getCalendarLeaveTypeClass(leave.type);
+        const hasPendingActions = leave.status === "Pending";
+        const appliedText = formatAjaxRelativeLeaveAge(leave.created_at);
+        const updatedText = leave.updated_at ? formatAjaxRelativeLeaveAge(leave.updated_at) : "Not updated";
         window.setSafeHTML(content, `
-            <h4 style="text-align:center; margin-bottom:12px;">Leave Details</h4>
-            <table class="leave-table">
-
-<tr>
-                    <th>Type</th>
-                    <td>${safeLeaveType}</td>
-                </tr>
-                <tr>
-                    <th>From</th>
-                    <td>${safeLeaveFrom}</td>
-                </tr>
-                <tr>
-                    <th>To</th>
-                    <td>${safeLeaveTo}</td>
-                </tr>
-                <tr>
-                    <th>Reason</th>
-                    <td><textarea readonly>${safeLeaveReason}</textarea></td>
-                </tr>
-                <tr>
-                    <th>Status</th>
-                    <td>${safeLeaveStatus}</td>
-                </tr>
-            </table>
+            <section class="calendar-detail-card calendar-detail-${typeClass} ${hasPendingActions ? "has-detail-actions" : "has-no-detail-actions"}">
+                <div class="calendar-detail-head">
+                    <span class="calendar-detail-symbol" aria-hidden="true"></span>
+                    <div>
+                        <p>Leave detail</p>
+                        <h4><span class="calendar-detail-type-chip">${safeLeaveType} Leave</span></h4>
+                    </div>
+                    <span class="calendar-detail-status calendar-detail-status-${safeLeaveStatus.toLowerCase()}">${safeLeaveStatus}</span>
+                </div>
+                <div class="calendar-detail-grid">
+                    <div class="calendar-detail-metric">
+                        <span>Schedule</span>
+                        <strong>${escapeHtml(formatCalendarDetailDate(leave.from))} - ${escapeHtml(formatCalendarDetailDate(leave.to))}</strong>
+                        <small>${escapeHtml(formatCalendarDetailTimeRange(leave))}</small>
+                    </div>
+                    <div class="calendar-detail-metric">
+                        <span>Applied</span>
+                        <strong>${escapeHtml(appliedText)}</strong>
+                        <small>${escapeHtml(leave.created_at ? new Date(leave.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "-")}</small>
+                    </div>
+                    <div class="calendar-detail-metric">
+                        <span>Updated</span>
+                        <strong>${escapeHtml(updatedText)}</strong>
+                        <small>${escapeHtml(leave.updated_at ? new Date(leave.updated_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "-")}</small>
+                    </div>
+                </div>
+                <div class="calendar-detail-reason">
+                    <span>Reason</span>
+                    <p>${safeLeaveReason}</p>
+                </div>
+            </section>
             
-            ${leave.status === "Pending" ? `
+            ${hasPendingActions ? `
                 <div class="detail-actions">
                     
                     <button class="edit-btn" type="button" data-calendar-edit-leave> &#9998; Edit </button>
@@ -1457,7 +1503,10 @@ const exportWrapper = document.createElement("div");
     }
     function closeCalendarDetail()
     {
+        restoreEditLeaveTemplateHome();
         const overlay = document.getElementById("calendar-detail-overlay");
+        if (!overlay) return;
+        overlay.querySelector(".detail-box")?.classList.remove("is-calendar-editing");
         overlay.classList.remove("show");
         setTimeout(() => overlay.style.display = "none", 300);
     }
@@ -1465,60 +1514,21 @@ const exportWrapper = document.createElement("div");
     function openInlineEdit(leave)
     {
         const content = document.getElementById("calendar-detail-content");
-        const safeLeaveId = encodeURIComponent(String(leave.id ?? ""));
-        const safeLeaveType = String(leave.type ?? "");
-        const safeLeaveFrom = escapeHtml(leave.from);
-        const safeLeaveTo = escapeHtml(leave.to);
-        const safeLeaveReason = escapeHtml(leave.reason || "");
-        window.setSafeHTML(content, `
-            <center> <h4>Edit Leave</h4> </center>
-            <form method="post" action="/edit-leave/${safeLeaveId}/" class="modal-form">
-                
-                <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrfToken)}">
-                <label>Type</label>
-                <select name="leave_type" required>
-                    <option value="">Select type</option>
-                    <option ${safeLeaveType==="Short"?"selected":""}>Short</option>
-                    <option ${safeLeaveType==="Half Day"?"selected":""}>Half Day</option>
-                    <option ${safeLeaveType==="Sick"?"selected":""}>Sick</option>
-                    <option ${safeLeaveType==="Earned"?"selected":""}>Earned</option>
-                    <option ${safeLeaveType==="Unpaid"?"selected":""}>Unpaid</option>
-                </select>
-                <label>From</label>
-                <input type="date" name="from_date" id="from_date" value="${safeLeaveFrom}" required>
-                <label>To</label>
-                <input type="date" name="to_date" id="to_date" value="${safeLeaveTo}" required>
-                <label>Reason</label>
-                <textarea name="reason" required>${safeLeaveReason}</textarea>
-                <div class="detail-actions">
-                    <button type="submit" class="apply-btn">&#10004; Update</button>
-                    <button type="button" class="cancel-btn" data-action="close-calendar-detail">&#10006; Cancel</button>
-                </div>
-            </form>
-        `);
-        
-        const now = new Date();
-        const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
-        const fromDateInput = content.querySelector("#from_date");
-        const toDateInput = content.querySelector("#to_date");
-        // Set minimum selectable date
-        fromDateInput.min = today;
-        toDateInput.min = today;  
-        
-        // Ensure "To date" is never before "From date"
-        fromDateInput.addEventListener("change", () => 
-        {
-            if (fromDateInput.value) 
-            {
-                // Block all dates before from_date
-                toDateInput.min = fromDateInput.value;
-                // If already selected to_date is invalid, clear it
-                if (toDateInput.value && toDateInput.value < fromDateInput.value) 
-                {
-                    toDateInput.value = "";
-                }
-            }
-        }); 
+        if (!content) return;
+        document.querySelector("#calendar-detail-overlay .detail-box")?.classList.add("is-calendar-editing");
+        const fakeButton = document.createElement("button");
+        fakeButton.dataset.id = String(leave.id ?? "");
+        fakeButton.dataset.type = String(leave.type ?? "");
+        fakeButton.dataset.from = String(leave.from ?? "");
+        fakeButton.dataset.to = String(leave.to ?? "");
+        fakeButton.dataset.reason = String(leave.reason || "");
+        fakeButton.dataset.fromdatetime = String(leave.from_datetime || "");
+        fakeButton.dataset.todatetime = String(leave.to_datetime || "");
+        openEditLeave(fakeButton, {
+            inlineHost: content,
+            calendarInline: true,
+            afterSuccessfulEdit: () => closeCalendarDetail()
+        });
     }
     function getCSRFToken() 
     {
@@ -3184,6 +3194,17 @@ const exportWrapper = document.createElement("div");
         form.onsubmit = async function (event)
         {
             event.preventDefault();
+            const shouldUpdate = typeof window.showThemeConfirm === "function"
+                ? await window.showThemeConfirm("Update this leave request?", {
+                    title: "Confirm update",
+                    confirmText: "Update",
+                    variant: "update"
+                })
+                : window.confirm("Update this leave request?");
+            if (!shouldUpdate)
+            {
+                return false;
+            }
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn) submitBtn.disabled = true;
             const payload = await submitPendingLeaveAjax(form.action, new FormData(form));
@@ -3197,7 +3218,11 @@ const exportWrapper = document.createElement("div");
                 targetPanel: "pending-panel",
                 highlightLeaveId: payload.leave.id
             });
-            if (typeof closeModal === "function")
+            if (typeof form._afterSuccessfulEdit === "function")
+            {
+                form._afterSuccessfulEdit(payload);
+            }
+            else if (typeof closeModal === "function")
             {
                 closeModal();
             }
@@ -3463,16 +3488,19 @@ const exportWrapper = document.createElement("div");
         if (leaveType.value === "Short")
         {
             value.textContent = "2 Hours";
+            syncEditSubmitState(fromDate.form);
             return;
         }
         if (leaveType.value === "Half")
         {
             value.textContent = "4 Hours";
+            syncEditSubmitState(fromDate.form);
             return;
         }
         if (!fromDate.value || !toDate.value)
         {
             value.textContent = "-";
+            syncEditSubmitState(fromDate.form);
             return;
         }
         const start = new Date(`${fromDate.value}T00:00:00`);
@@ -3480,10 +3508,47 @@ const exportWrapper = document.createElement("div");
         if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start)
         {
             value.textContent = "-";
+            syncEditSubmitState(fromDate.form);
             return;
         }
         const dayCount = Math.floor((end - start) / (24 * 60 * 60 * 1000)) + 1;
         value.textContent = `${dayCount} ${dayCount === 1 ? "Day" : "Days"}`;
+        syncEditSubmitState(fromDate.form);
+    }
+    function getEditFormSnapshot(form)
+    {
+        if (!form) return {};
+        return {
+            type: form.querySelector("#edit-leave-type")?.value || "",
+            from: form.querySelector("#edit-from")?.value || "",
+            to: form.querySelector("#edit-to")?.value || "",
+            reason: (form.querySelector("#edit-reason")?.value || "").trim(),
+            fromDatetime: form.querySelector("#edit_from_datetime")?.value || "",
+            toDatetime: form.querySelector("#edit_to_datetime")?.value || "",
+        };
+    }
+    function syncEditSubmitState(form)
+    {
+        if (!form) return;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (!submitBtn) return;
+        const original = form.dataset.originalSnapshot || "";
+        const current = JSON.stringify(getEditFormSnapshot(form));
+        submitBtn.disabled = !!original && current === original;
+        submitBtn.classList.toggle("is-disabled-by-no-change", submitBtn.disabled);
+    }
+    function storeEditOriginalSnapshot(form)
+    {
+        if (!form) return;
+        form.dataset.originalSnapshot = JSON.stringify(getEditFormSnapshot(form));
+        syncEditSubmitState(form);
+    }
+    function bindEditChangeTracking(form)
+    {
+        if (!form || form.dataset.changeTrackingBound === "true") return;
+        form.addEventListener("input", () => syncEditSubmitState(form));
+        form.addEventListener("change", () => window.setTimeout(() => syncEditSubmitState(form), 0));
+        form.dataset.changeTrackingBound = "true";
     }
     function refreshEditDatePickers()
     {
@@ -3639,20 +3704,47 @@ const exportWrapper = document.createElement("div");
     // =======================================
     // OPEN EDIT LEAVE
     // =======================================
-    function openEditLeave(btn)
+    function openEditLeave(btn, options = {})
     {
         const formTemplate = document.getElementById("edit-leave-template");
         const sharedModal = document.getElementById("modal");
         const modalBox = document.querySelector(".modal-box");
-        sharedModal?.classList.remove("popup-filter-modal-host");
-        sharedModal?.classList.add("popup-edit-modal-host");
-        if (modalBox) {
-            modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-filter-modal-box", "popup-edit-modal-box");
-            modalBox.classList.add("popup-edit-modal-box");
+        const inlineHost = options.inlineHost || null;
+        if (!inlineHost)
+        {
+            sharedModal?.classList.remove("popup-filter-modal-host");
+            sharedModal?.classList.add("popup-edit-modal-host");
+            if (modalBox) {
+                modalBox.classList.remove("reason-modal", "compact-calendar", "expanded-calendar", "popup-filter-modal-box", "popup-edit-modal-box");
+                modalBox.classList.add("popup-edit-modal-box");
+            }
+            modalContent.replaceChildren();
+            modalContent.appendChild(formTemplate);
         }
-        modalContent.replaceChildren();
-        modalContent.appendChild(formTemplate);
+        else
+        {
+            inlineHost.replaceChildren();
+            inlineHost.appendChild(formTemplate);
+            formTemplate.classList.add("calendar-inline-edit-template");
+        }
         const form = document.getElementById("edit-leave-form");
+        const title = formTemplate.querySelector(".edit-template-title-copy h3");
+        const titleText = formTemplate.querySelector(".edit-template-title-copy p");
+        const cancelBtn = form.querySelector(".edit-cancel-btn");
+        form.classList.toggle("calendar-inline-edit-form", !!options.calendarInline);
+        if (options.calendarInline)
+        {
+            if (title) title.textContent = "Edit from Calendar";
+            if (titleText) titleText.hidden = true;
+            if (cancelBtn) cancelBtn.dataset.action = "close-calendar-detail";
+        }
+        else
+        {
+            if (title) title.textContent = "Edit Leave";
+            if (titleText) titleText.hidden = false;
+            if (cancelBtn) cancelBtn.dataset.action = "close-modal";
+            formTemplate.classList.remove("calendar-inline-edit-template");
+        }
         buildMyLeavePopupFilterLeaveType(form.querySelector(".popup-filter-leave-shell"));
         form.querySelectorAll(".popup-filter-date-shell").forEach((shell) => buildMyLeavePopupFilterDatePicker(shell));
         form.reset(); // ?? clears previous values
@@ -3665,6 +3757,7 @@ const exportWrapper = document.createElement("div");
         {
             window.bindPendingLeaveEditAjax(form);
         }
+        form._afterSuccessfulEdit = typeof options.afterSuccessfulEdit === "function" ? options.afterSuccessfulEdit : null;
         form.dataset.editLeaveId = btn.dataset.id || "";
         form.dataset.originalLeaveType = btn.dataset.type || "";
         const leaveType = document.getElementById("edit-leave-type");
@@ -3809,7 +3902,16 @@ const exportWrapper = document.createElement("div");
             restoreEditTimeForType(type);
         };
         toDate.onchange = updateEditDurationSummary;
-        openModal();
+        bindEditChangeTracking(form);
+        window.setTimeout(() =>
+        {
+            storeEditOriginalSnapshot(form);
+            syncEditSubmitState(form);
+        }, 20);
+        if (!inlineHost)
+        {
+            openModal();
+        }
     }
     // =======================================
     // GENERATE HOURS & MINUTES
@@ -4096,6 +4198,7 @@ const exportWrapper = document.createElement("div");
         fromHidden.value = start.toISOString();
         toHidden.value = end.toISOString();
         updateEditDurationSummary();
+        syncEditSubmitState(fromHidden.form);
     }
     let reasonModalCloseTimer = null;
     let activeReasonAnchor = null;
@@ -4253,6 +4356,8 @@ const exportWrapper = document.createElement("div");
             reasonModalCloseTimer = null;
         }
         activeReasonAnchor = reasonText.closest(".reason-box") || reasonText;
+        modal.dataset.sourceLeaveId = reasonText.closest("tr.leave-row")?.dataset.leaveId || "";
+        modal.dataset.sourceReasonTitle = reasonText.dataset.title || "";
         if (activeReasonAnchor && typeof activeReasonAnchor.getBoundingClientRect === "function")
         {
             const anchorRect = activeReasonAnchor.getBoundingClientRect();
@@ -4356,6 +4461,8 @@ const exportWrapper = document.createElement("div");
             updatedTime.textContent = "-";
             if (decision) decision.textContent = "-";
             if (decisionTime) decisionTime.textContent = "-";
+            modal.dataset.sourceLeaveId = "";
+            modal.dataset.sourceReasonTitle = "";
             modal.classList.remove(
                 "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half",
                 "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
@@ -4365,6 +4472,45 @@ const exportWrapper = document.createElement("div");
             reasonModalCloseTimer = null;
         });
     }
+    function getActiveReasonModalSource(modal)
+    {
+        const anchoredReason = activeReasonAnchor?.matches?.(".reason-text")
+            ? activeReasonAnchor
+            : activeReasonAnchor?.querySelector?.(".reason-text");
+        if (anchoredReason && document.contains(anchoredReason)) return anchoredReason;
+        const leaveId = modal?.dataset.sourceLeaveId || "";
+        if (!leaveId) return null;
+        const row = Array.from(document.querySelectorAll("tr.leave-row"))
+            .find((candidate) => candidate.dataset.leaveId === leaveId);
+        if (!row) return null;
+        const sourceTitle = modal?.dataset.sourceReasonTitle || "";
+        return Array.from(row.querySelectorAll(".reason-text")).find((node) => node.dataset.title === sourceTitle)
+            || row.querySelector(".reason-text");
+    }
+    function refreshOpenReasonModalRelativeDates()
+    {
+        const modal = document.getElementById("reasonModal");
+        if (!modal || modal.getAttribute("aria-hidden") !== "false") return;
+        const reasonText = getActiveReasonModalSource(modal);
+        if (!reasonText) return;
+        const meta = getReasonModalRowMeta(reasonText);
+        const applied = document.getElementById("reasonModalApplied");
+        const updated = document.getElementById("reasonModalUpdated");
+        const decision = document.getElementById("reasonModalDecision");
+        if (applied) applied.textContent = formatReasonModalRelativeAge(meta.appliedIso) || meta.applied || "-";
+        if (updated) updated.textContent = meta.updatedIso ? (formatReasonModalRelativeAge(meta.updatedIso) || "-") : "Not updated";
+        if (decision && meta.decisionIso) decision.textContent = formatReasonModalRelativeAge(meta.decisionIso) || meta.decision || "-";
+    }
+    function refreshLiveRelativeDates()
+    {
+        hydrateRelativeDates();
+        refreshOpenReasonModalRelativeDates();
+    }
+    window.setInterval(refreshLiveRelativeDates, 60 * 1000);
+    document.addEventListener("visibilitychange", function ()
+    {
+        if (!document.hidden) refreshLiveRelativeDates();
+    });
     document.addEventListener("keydown", function (event)
     {
         if (event.key !== "Escape") return;
