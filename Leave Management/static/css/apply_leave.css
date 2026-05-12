@@ -3641,6 +3641,19 @@ textarea {
     background-clip: text;
 }
 
+@media (min-width: 641px) {
+    .holiday-card .date-row,
+    .holiday-card .holiday-date {
+        font-size: 0.98rem;
+        line-height: 1.2;
+    }
+
+    .holiday-card .holiday-name {
+        font-size: 1.18rem;
+        line-height: 1.2;
+    }
+}
+
 .holiday-footer {
     background: #f0fdfa;
     border-radius: 10px;
