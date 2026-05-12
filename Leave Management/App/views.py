@@ -20,6 +20,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.html import escape
 from django.template.loader import render_to_string
+from django.core.mail import EmailMessage
+from django.conf import settings
 import base64
 from urllib.parse import quote
 
@@ -2127,6 +2129,28 @@ def approve_leave(request, leave_id):
     leave.rejected_at = None
     leave.save()
 
+    # --- Notify Employee (Approved) ---
+    subject = f"Leave Request APPROVED: {leave.leave_type}"
+    portal_link = request.build_absolute_uri('/')
+    message = (
+        f"Hello {leave.user.first_name or leave.user.username},\n\n"
+        f"Your leave request has been APPROVED.\n"
+        f"Type: {leave.leave_type}\n"
+        f"Date: {leave.from_date.strftime('%d %b %Y')}\n\n"
+        "------------------------------------------\n"
+        "🌐 MS TECHNOLOGY PORTAL\n"
+        f"For more details, check here: {portal_link}\n"
+        "------------------------------------------"
+    )
+    email = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
+        to=[leave.user.email],
+        reply_to=[request.user.email]
+    )
+    email.send(fail_silently=True)
+
     # =====================================
     # MESSAGE LOGIC
     # =====================================
@@ -2243,6 +2267,30 @@ def reject_leave(request, leave_id):
         leave.rejected_at = timezone.now()
         leave.approved_at = None
         leave.save()
+
+        # --- Notify Employee (Rejected) ---
+        subject = f"Leave Request REJECTED: {leave.leave_type}"
+        rejection_reason = leave.rejection_reason or "No specific reason provided."
+        portal_link = request.build_absolute_uri('/')
+        message = (
+            f"Hello {leave.user.first_name or leave.user.username},\n\n"
+            f"Your leave request has been REJECTED.\n"
+            f"Type: {leave.leave_type}\n"
+            f"Date: {leave.from_date.strftime('%d %b %Y')}\n"
+            f"Reason for rejection: {rejection_reason}\n\n"
+            "------------------------------------------\n"
+            "🌐 MS TECHNOLOGY PORTAL\n"
+            f"For more details, check here: {portal_link}\n"
+            "------------------------------------------"
+        )
+        email = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
+            to=[leave.user.email],
+            reply_to=[request.user.email]
+        )
+        email.send(fail_silently=True)
 
     # =====================================
     # SUCCESS MESSAGE
@@ -3055,7 +3103,7 @@ def apply_leave(request):
             with transaction.atomic():
                 balance.save()
 
-                Leave.objects.create(
+                leave_obj = Leave.objects.create(
                     user=user,
                     leave_type=leave_type,
                     from_date=from_date,
@@ -3066,6 +3114,29 @@ def apply_leave(request):
                     status="Pending",
                     deducted_from=deducted_from
                 )
+
+                # --- Notify Managers (New Request) ---
+                hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+                if hr_emails:
+                    subject = f"New Leave Request: {user.get_full_name() or user.username}"
+                    portal_link = request.build_absolute_uri('/')
+                    message = (
+                        f"A new {leave_type} leave request has been submitted by {user.get_full_name() or user.username}.\n"
+                        f"Date: {from_date.strftime('%d %b %Y')}\n"
+                        f"Reason: {reason}\n\n"
+                        "------------------------------------------\n"
+                        "🌐 MS TECHNOLOGY PORTAL\n"
+                        f"For more details, check here: {portal_link}\n"
+                        "------------------------------------------"
+                    )
+                    email = EmailMessage(
+                        subject=subject,
+                        body=message,
+                        from_email=f"{user.get_full_name() or user.username} <{settings.DEFAULT_FROM_EMAIL}>",
+                        to=hr_emails,
+                        reply_to=[user.email]
+                    )
+                    email.send(fail_silently=True)
 
             messages.success(request, f"{leave_type} Leave applied successfully.")
             messages.info(request, f"Applied for {from_date.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
@@ -3296,7 +3367,7 @@ def apply_leave(request):
             balance.total_leave_remaining = max(0, total_leaves)
             balance.save()
             
-            Leave.objects.create(
+            leave_obj = Leave.objects.create(
                 user=user,
                 leave_type=leave_type,
                 from_date=from_date,
@@ -3309,6 +3380,29 @@ def apply_leave(request):
                 status="Pending",
                 deducted_from=deducted_from
             )
+
+            # --- Notify Managers (New Full-Day Request) ---
+            hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+            if hr_emails:
+                subject = f"New Leave Request: {user.get_full_name() or user.username}"
+                portal_link = request.build_absolute_uri('/')
+                message = (
+                    f"A new {leave_type} leave request has been submitted by {user.get_full_name() or user.username}.\n"
+                    f"Dates: {from_date.strftime('%d %b %Y')} to {to_date.strftime('%d %b %Y')}\n"
+                    f"Reason: {reason}\n\n"
+                    "------------------------------------------\n"
+                    "🌐 MS TECHNOLOGY PORTAL\n"
+                    f"For more details, check here: {portal_link}\n"
+                    "------------------------------------------"
+                )
+                email = EmailMessage(
+                    subject=subject,
+                    body=message,
+                    from_email=f"{user.get_full_name() or user.username} <{settings.DEFAULT_FROM_EMAIL}>",
+                    to=hr_emails,
+                    reply_to=[user.email]
+                )
+                email.send(fail_silently=True)
             
         # -------- SUCCESS --------
         messages.success(request, f"'{leave_type}' Leave applied Successfully.")
@@ -4330,6 +4424,30 @@ def edit_leave(request, leave_id):
         leave.no_of_times_updated = (leave.no_of_times_updated or 0) + 1
         refresh_pending_leave_notification(leave)
         leave.save()
+
+        # --- Notify Managers (Updated Request) ---
+        hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+        if hr_emails:
+            subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
+            portal_link = request.build_absolute_uri('/')
+            message = (
+                f"{request.user.get_full_name() or request.user.username} has updated their pending leave request.\n\n"
+                f"New Type: {new_type}\n"
+                f"New Dates: {new_from.strftime('%d %b %Y')} to {new_to.strftime('%d %b %Y')}\n"
+                f"Reason: {new_reason}\n\n"
+                "------------------------------------------\n"
+                "🌐 MS TECHNOLOGY PORTAL\n"
+                f"For more details, check here: {portal_link}\n"
+                "------------------------------------------"
+            )
+            email = EmailMessage(
+                subject=subject,
+                body=message,
+                from_email=f"{request.user.get_full_name() or request.user.username} <{settings.DEFAULT_FROM_EMAIL}>",
+                to=hr_emails,
+                reply_to=[request.user.email]
+            )
+            email.send(fail_silently=True)
 
     messages.success(request, "ℹ Leave updated successfully.")
     
