@@ -3327,6 +3327,45 @@
         opacity: 1 !important;
         transform: none !important;
     }
+
+    .detail-box:has(.calendar-detail-card.has-detail-actions) {
+        width: min(430px, calc(100vw - 28px)) !important;
+        padding: 8px !important;
+        border-radius: 16px !important;
+    }
+
+    .detail-box:has(.calendar-detail-card.has-detail-actions) .calendar-detail-grid {
+        gap: 6px !important;
+    }
+
+    .detail-box:has(.calendar-detail-card.has-detail-actions) .calendar-detail-head {
+        padding: 8px 34px 8px 8px !important;
+    }
+
+    .detail-box:has(.calendar-detail-card.has-detail-actions) .calendar-detail-metric,
+    .detail-box:has(.calendar-detail-card.has-detail-actions) .calendar-detail-reason {
+        padding: 7px !important;
+    }
+
+    .detail-box:has(.calendar-detail-card.has-detail-actions) .detail-actions {
+        margin-top: 6px !important;
+    }
+
+    #calendar-detail-content .calendar-inline-edit-template #edit-leave-form {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+    }
+
+    #calendar-detail-content .calendar-inline-edit-template .edit-template-title {
+        padding-left: 20px !important;
+        padding-right: 42px !important;
+        justify-items: start !important;
+    }
+
+    #calendar-detail-content .calendar-inline-edit-template .edit-template-title-copy {
+        justify-items: start !important;
+        transform: translateX(-4px);
+    }
 }
 
 /* Final calendar inline edit spacing overrides. */
@@ -3432,4 +3471,79 @@
 #calendar-detail-content .detail-actions .edit-btn span:first-child,
 #calendar-detail-content .detail-actions .delete-btn::first-letter {
     font-weight: 1000 !important;
+}
+
+@media (max-width: 640px) {
+    #calendar-detail-overlay .detail-box:has(.calendar-detail-card.has-detail-actions) {
+        width: min(360px, calc(100vw - 48px)) !important;
+        max-width: calc(100vw - 48px) !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template #edit-leave-form {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #calendar-detail-overlay .detail-box.is-calendar-editing {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+    }
+
+    #calendar-detail-overlay .detail-box.is-calendar-editing #calendar-detail-content {
+        margin-left: -2px !important;
+        margin-right: -2px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-template-title {
+        padding-left: 12px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-template-title-copy {
+        transform: translateX(-8px) !important;
+    }
+
+    #calendar-detail-overlay .calendar-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    #calendar-detail-overlay .calendar-detail-grid .calendar-detail-metric:first-child {
+        grid-column: 1 / -1;
+    }
+
+    #calendar-detail-overlay .calendar-detail-card.has-detail-actions .calendar-detail-reason p {
+        max-height: calc(1.45em * 3) !important;
+        overflow-y: auto !important;
+    }
+
+    #calendar-detail-overlay .calendar-detail-card.has-detail-actions {
+        gap: 3px !important;
+    }
+
+    #calendar-detail-overlay .calendar-detail-card.has-detail-actions + .detail-actions {
+        margin-top: -3px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .field .edit-field-label {
+        display: grid !important;
+        grid-template-columns: auto auto minmax(18px, 1fr) !important;
+        align-items: center !important;
+        column-gap: 4px !important;
+        min-width: 0 !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .field .edit-field-label-icon,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .field .edit-field-label-text,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .field .edit-field-label-line {
+        min-width: 0 !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .field .edit-field-label-text {
+        white-space: nowrap !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .field .edit-field-label-line {
+        width: auto !important;
+        min-width: 18px !important;
+        margin-left: 0 !important;
+    }
 }
