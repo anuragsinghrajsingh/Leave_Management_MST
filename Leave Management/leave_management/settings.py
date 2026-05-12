@@ -92,9 +92,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'leave_management.middleware.NoCacheMiddleware',  # 👈 ADD THIS
+    'leave_management.middleware.NoCacheMiddleware',
     'leave_management.middleware.YearEndCarryForwardMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # 👈 Added for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -212,7 +213,7 @@ STORAGES = {
 }
 
 if IS_PRODUCTION:
-    STORAGES["staticfiles"]["BACKEND"] = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    STORAGES["staticfiles"]["BACKEND"] = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 LOGIN_URL = '/'
 # LOGIN_REDIRECT_URL = '/dashboard/'
