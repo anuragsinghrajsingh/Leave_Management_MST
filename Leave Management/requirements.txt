@@ -4,3 +4,4 @@ ics
 Pillow
 requests
 whitenoise
+django-environ

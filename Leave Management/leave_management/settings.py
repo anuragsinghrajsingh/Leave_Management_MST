@@ -12,27 +12,21 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Initialize environment variables
+env = environ.Env(
+    # set casting, default value
+    DJANGO_DEBUG=(bool, True),
+    DJANGO_SECURE_SSL_REDIRECT=(bool, False),
+    DJANGO_SECURE_HSTS_SECONDS=(int, 0),
+)
 
-def env_bool(name, default=False):
-    return os.environ.get(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
-
-
-def env_list(name, default=None):
-    value = os.environ.get(name)
-    if not value:
-        return default or []
-    return [item.strip() for item in value.split(",") if item.strip()]
-
-
-def env_required(name):
-    value = os.environ.get(name)
-    if value is None or value.strip() == "":
-        raise RuntimeError(f"{name} must be set when DJANGO_DEBUG is false.")
-    return value
+# Reading .env file
+environ.Env.read_env(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -40,14 +34,14 @@ def env_required(name):
 
 # SECURITY WARNING: keep the secret key used in production secret.
 DEFAULT_DEV_SECRET_KEY = "django-insecure-local-development-only-change-in-production"
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", DEFAULT_DEV_SECRET_KEY)
+SECRET_KEY = env("DJANGO_SECRET_KEY", default=DEFAULT_DEV_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env_bool("DJANGO_DEBUG", True)
+DEBUG = env("DJANGO_DEBUG")
 IS_PRODUCTION = not DEBUG
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1"] if DEBUG else [])
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"] if DEBUG else [])
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
 if IS_PRODUCTION and SECRET_KEY == DEFAULT_DEV_SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is false.")
@@ -71,8 +65,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
 
 
-SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", IS_PRODUCTION)
-SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "31536000" if IS_PRODUCTION else "0"))
+SECURE_SSL_REDIRECT = env("DJANGO_SECURE_SSL_REDIRECT", default=IS_PRODUCTION)
+SECURE_HSTS_SECONDS = env("DJANGO_SECURE_HSTS_SECONDS", default=31536000 if IS_PRODUCTION else 0)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = IS_PRODUCTION
 SECURE_HSTS_PRELOAD = IS_PRODUCTION
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if IS_PRODUCTION else None
@@ -132,28 +126,28 @@ WSGI_APPLICATION = 'leave_management.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DB_ENGINE = os.environ.get("DB_ENGINE", "postgresql" if IS_PRODUCTION else "sqlite").strip().lower()
+DB_ENGINE = env("DB_ENGINE", default="postgresql" if IS_PRODUCTION else "sqlite").strip().lower()
 
 if DB_ENGINE == "postgresql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": env_required("DB_NAME") if IS_PRODUCTION else os.environ.get("DB_NAME", "leave_management"),
-            "USER": env_required("DB_USER") if IS_PRODUCTION else os.environ.get("DB_USER", ""),
-            "PASSWORD": env_required("DB_PASSWORD") if IS_PRODUCTION else os.environ.get("DB_PASSWORD", ""),
-            "HOST": os.environ.get("DB_HOST", "localhost"),
-            "PORT": os.environ.get("DB_PORT", "5432"),
+            "NAME": env("DB_NAME") if IS_PRODUCTION else env("DB_NAME", default="leave_management"),
+            "USER": env("DB_USER") if IS_PRODUCTION else env("DB_USER", default=""),
+            "PASSWORD": env("DB_PASSWORD") if IS_PRODUCTION else env("DB_PASSWORD", default=""),
+            "HOST": env("DB_HOST", default="localhost"),
+            "PORT": env("DB_PORT", default="5432"),
         }
     }
 elif DB_ENGINE == "mysql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": env_required("DB_NAME") if IS_PRODUCTION else os.environ.get("DB_NAME", "leave_management"),
-            "USER": env_required("DB_USER") if IS_PRODUCTION else os.environ.get("DB_USER", ""),
-            "PASSWORD": env_required("DB_PASSWORD") if IS_PRODUCTION else os.environ.get("DB_PASSWORD", ""),
-            "HOST": os.environ.get("DB_HOST", "localhost"),
-            "PORT": os.environ.get("DB_PORT", "3306"),
+            "NAME": env("DB_NAME") if IS_PRODUCTION else env("DB_NAME", default="leave_management"),
+            "USER": env("DB_USER") if IS_PRODUCTION else env("DB_USER", default=""),
+            "PASSWORD": env("DB_PASSWORD") if IS_PRODUCTION else env("DB_PASSWORD", default=""),
+            "HOST": env("DB_HOST", default="localhost"),
+            "PORT": env("DB_PORT", default="3306"),
         }
     }
 else:
@@ -220,7 +214,7 @@ LOGIN_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Logging Configuration
 # https://docs.djangoproject.com/en/6.0/topics/logging/
