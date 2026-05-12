@@ -1,0 +1,32 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+    <div class="status-badge status-{{ status_class }}">
+        {{ status_label }}
+    </div>
+    
+    <h2 style="margin: 0 0 15px 0; color: #0f172a;">{{ title }}</h2>
+    
+    <p>{{ intro_text }}</p>
+    
+    <div class="details-box">
+        <div class="details-row">
+            <div class="details-label">Employee:</div>
+            <div class="details-value">{{ employee_name }}</div>
+        </div>
+        <div class="details-row">
+            <div class="details-label">Type:</div>
+            <div class="details-value">{{ leave_type }}</div>
+        </div>
+        <div class="details-row">
+            <div class="details-label">Dates:</div>
+            <div class="details-value">{{ date_range }}</div>
+        </div>
+        {% if reason %}
+        <div class="details-row">
+            <div class="details-label">Reason:</div>
+            <div class="details-value">{{ reason }}</div>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

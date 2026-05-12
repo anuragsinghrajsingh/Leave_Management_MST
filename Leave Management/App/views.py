@@ -22,8 +22,40 @@ from django.utils.html import escape
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
 from django.conf import settings
+import os
 import base64
 from urllib.parse import quote
+
+def send_branded_email(subject, template_name, context, to_email, reply_to=None):
+    """Helper to send a branded HTML email with an embedded logo."""
+    html_content = render_to_string(template_name, context)
+    
+    # Ensure to_email is a list
+    if isinstance(to_email, str):
+        to_email = [to_email]
+        
+    email = EmailMessage(
+        subject=subject,
+        body=html_content,
+        from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
+        to=to_email,
+    )
+    if reply_to:
+        email.reply_to = [reply_to]
+        
+    email.content_subtype = "html"
+    
+    # Attach the logo as a CID
+    logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ms-technology-logo.png')
+    if os.path.exists(logo_path):
+        with open(logo_path, 'rb') as f:
+            from email.mime.image import MIMEImage
+            img = MIMEImage(f.read())
+            img.add_header('Content-ID', '<logo_image>')
+            img.add_header('Content-Disposition', 'inline', filename='logo.png')
+            email.attach(img)
+            
+    email.send(fail_silently=True)
 
 
 def _get_leave_day_display(leave):
@@ -2132,24 +2164,17 @@ def approve_leave(request, leave_id):
     # --- Notify Employee (Approved) ---
     subject = f"Leave Request APPROVED: {leave.leave_type}"
     portal_link = request.build_absolute_uri('/')
-    message = (
-        f"Hello {leave.user.first_name or leave.user.username},\n\n"
-        f"Your leave request has been APPROVED.\n"
-        f"Type: {leave.leave_type}\n"
-        f"Date: {leave.from_date.strftime('%d %b %Y')}\n\n"
-        "------------------------------------------\n"
-        "🌐 MS TECHNOLOGY PORTAL\n"
-        f"For more details, check here: {portal_link}\n"
-        "------------------------------------------"
-    )
-    email = EmailMessage(
-        subject=subject,
-        body=message,
-        from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
-        to=[leave.user.email],
-        reply_to=[request.user.email]
-    )
-    email.send(fail_silently=True)
+    context = {
+        'title': 'Leave Approved',
+        'intro_text': f"Hello {leave.user.first_name or leave.user.username}, your leave request has been approved.",
+        'employee_name': leave.user.get_full_name() or leave.user.username,
+        'leave_type': leave.leave_type,
+        'date_range': f"{leave.from_date.strftime('%d %b %Y')}",
+        'status_label': 'Approved',
+        'status_class': 'approved',
+        'portal_link': portal_link
+    }
+    send_branded_email(subject, 'emails/notification.html', context, leave.user.email, reply_to=request.user.email)
 
     # =====================================
     # MESSAGE LOGIC
@@ -2272,25 +2297,18 @@ def reject_leave(request, leave_id):
         subject = f"Leave Request REJECTED: {leave.leave_type}"
         rejection_reason = leave.rejection_reason or "No specific reason provided."
         portal_link = request.build_absolute_uri('/')
-        message = (
-            f"Hello {leave.user.first_name or leave.user.username},\n\n"
-            f"Your leave request has been REJECTED.\n"
-            f"Type: {leave.leave_type}\n"
-            f"Date: {leave.from_date.strftime('%d %b %Y')}\n"
-            f"Reason for rejection: {rejection_reason}\n\n"
-            "------------------------------------------\n"
-            "🌐 MS TECHNOLOGY PORTAL\n"
-            f"For more details, check here: {portal_link}\n"
-            "------------------------------------------"
-        )
-        email = EmailMessage(
-            subject=subject,
-            body=message,
-            from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
-            to=[leave.user.email],
-            reply_to=[request.user.email]
-        )
-        email.send(fail_silently=True)
+        context = {
+            'title': 'Leave Rejected',
+            'intro_text': f"Hello {leave.user.first_name or leave.user.username}, your leave request has been rejected.",
+            'employee_name': leave.user.get_full_name() or leave.user.username,
+            'leave_type': leave.leave_type,
+            'date_range': f"{leave.from_date.strftime('%d %b %Y')}",
+            'reason': rejection_reason,
+            'status_label': 'Rejected',
+            'status_class': 'rejected',
+            'portal_link': portal_link
+        }
+        send_branded_email(subject, 'emails/notification.html', context, leave.user.email, reply_to=request.user.email)
 
     # =====================================
     # SUCCESS MESSAGE
@@ -3120,23 +3138,18 @@ def apply_leave(request):
                 if hr_emails:
                     subject = f"New Leave Request: {user.get_full_name() or user.username}"
                     portal_link = request.build_absolute_uri('/')
-                    message = (
-                        f"A new {leave_type} leave request has been submitted by {user.get_full_name() or user.username}.\n"
-                        f"Date: {from_date.strftime('%d %b %Y')}\n"
-                        f"Reason: {reason}\n\n"
-                        "------------------------------------------\n"
-                        "🌐 MS TECHNOLOGY PORTAL\n"
-                        f"For more details, check here: {portal_link}\n"
-                        "------------------------------------------"
-                    )
-                    email = EmailMessage(
-                        subject=subject,
-                        body=message,
-                        from_email=f"{user.get_full_name() or user.username} <{settings.DEFAULT_FROM_EMAIL}>",
-                        to=hr_emails,
-                        reply_to=[user.email]
-                    )
-                    email.send(fail_silently=True)
+                    context = {
+                        'title': 'New Leave Request',
+                        'intro_text': f"A new leave request has been submitted by {user.get_full_name() or user.username}.",
+                        'employee_name': user.get_full_name() or user.username,
+                        'leave_type': leave_type,
+                        'date_range': f"{from_date.strftime('%d %b %Y')}",
+                        'reason': reason,
+                        'status_label': 'Pending Action',
+                        'status_class': 'pending',
+                        'portal_link': portal_link
+                    }
+                    send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=user.email)
 
             messages.success(request, f"{leave_type} Leave applied successfully.")
             messages.info(request, f"Applied for {from_date.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
@@ -3386,23 +3399,18 @@ def apply_leave(request):
             if hr_emails:
                 subject = f"New Leave Request: {user.get_full_name() or user.username}"
                 portal_link = request.build_absolute_uri('/')
-                message = (
-                    f"A new {leave_type} leave request has been submitted by {user.get_full_name() or user.username}.\n"
-                    f"Dates: {from_date.strftime('%d %b %Y')} to {to_date.strftime('%d %b %Y')}\n"
-                    f"Reason: {reason}\n\n"
-                    "------------------------------------------\n"
-                    "🌐 MS TECHNOLOGY PORTAL\n"
-                    f"For more details, check here: {portal_link}\n"
-                    "------------------------------------------"
-                )
-                email = EmailMessage(
-                    subject=subject,
-                    body=message,
-                    from_email=f"{user.get_full_name() or user.username} <{settings.DEFAULT_FROM_EMAIL}>",
-                    to=hr_emails,
-                    reply_to=[user.email]
-                )
-                email.send(fail_silently=True)
+                context = {
+                    'title': 'New Leave Request',
+                    'intro_text': f"A new leave request has been submitted by {user.get_full_name() or user.username}.",
+                    'employee_name': user.get_full_name() or user.username,
+                    'leave_type': leave_type,
+                    'date_range': f"{from_date.strftime('%d %b %Y')} to {to_date.strftime('%d %b %Y')}",
+                    'reason': reason,
+                    'status_label': 'Pending Action',
+                    'status_class': 'pending',
+                    'portal_link': portal_link
+                }
+                send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=user.email)
             
         # -------- SUCCESS --------
         messages.success(request, f"'{leave_type}' Leave applied Successfully.")
@@ -4430,24 +4438,18 @@ def edit_leave(request, leave_id):
         if hr_emails:
             subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
             portal_link = request.build_absolute_uri('/')
-            message = (
-                f"{request.user.get_full_name() or request.user.username} has updated their pending leave request.\n\n"
-                f"New Type: {new_type}\n"
-                f"New Dates: {new_from.strftime('%d %b %Y')} to {new_to.strftime('%d %b %Y')}\n"
-                f"Reason: {new_reason}\n\n"
-                "------------------------------------------\n"
-                "🌐 MS TECHNOLOGY PORTAL\n"
-                f"For more details, check here: {portal_link}\n"
-                "------------------------------------------"
-            )
-            email = EmailMessage(
-                subject=subject,
-                body=message,
-                from_email=f"{request.user.get_full_name() or request.user.username} <{settings.DEFAULT_FROM_EMAIL}>",
-                to=hr_emails,
-                reply_to=[request.user.email]
-            )
-            email.send(fail_silently=True)
+            context = {
+                'title': 'Leave Request Updated',
+                'intro_text': f"{request.user.get_full_name() or request.user.username} has updated their pending leave request.",
+                'employee_name': request.user.get_full_name() or request.user.username,
+                'leave_type': new_type,
+                'date_range': f"{new_from.strftime('%d %b %Y')} to {new_to.strftime('%d %b %Y')}",
+                'reason': new_reason,
+                'status_label': 'Updated',
+                'status_class': 'updated',
+                'portal_link': portal_link
+            }
+            send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=request.user.email)
 
     messages.success(request, "ℹ Leave updated successfully.")
     
