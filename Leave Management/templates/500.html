@@ -1,0 +1,195 @@
+<!-- v2.1.2 - Restored Desktop HUD Panels -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - System Critical | MS Technology</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --danger: #f43f5e; --warning: #fbbf24; --info: #0ea5e9; --success: #10b981;
+            --bg-dark: #020617; --glass: rgba(15, 23, 42, 0.95); --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: default; }
+
+        body {
+            font-family: 'Outfit', sans-serif; background: var(--bg-dark); color: #fff;
+            height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; position: relative; perspective: 1200px;
+        }
+
+        .immersive-bg {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1;
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(244, 63, 94, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(14, 165, 233, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(251, 191, 36, 0.15) 0%, transparent 60%);
+        }
+
+        /* HUD PANELS */
+        .hud-side {
+            position: fixed; top: 2vh; bottom: 2vh; width: 340px; background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border); border-radius: 32px; padding: 20px; z-index: 5;
+            display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(15px); overflow: hidden;
+        }
+        @media (max-width: 1400px) { .hud-side { display: none; } }
+        .hud-left { left: 40px; border-left: 4px solid var(--danger); }
+        .hud-right { right: 40px; border-right: 4px solid var(--info); }
+
+        .hud-header { font-size: 11px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 10px; }
+        .metric-box { background: rgba(255,255,255,0.03); padding: 12px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 15px; }
+        .metric-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255,255,255,0.05); color: var(--danger); }
+        .hud-right .metric-icon { color: var(--info); }
+        .metric-label { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .metric-val { font-size: 19px; font-weight: 900; color: #fff; letter-spacing: 1px; }
+
+        /* FAILURE CARD */
+        .failure-card {
+            background: var(--glass); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
+            border: 1px solid var(--glass-border); border-radius: 64px; 
+            padding: 3vh 50px; text-align: center; max-width: 680px; width: 95%; 
+            max-height: 96vh; z-index: 10;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.6); transform-style: preserve-3d; transition: transform 0.1s ease-out;
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+        }
+
+        /* MOBILE FIXES */
+        @media (max-width: 768px) {
+            .failure-card { border-radius: 40px; padding: 5vh 15px; width: 94%; height: 96vh; justify-content: space-around; }
+            .user-id-bar { padding: 8px 15px; font-size: 9px; }
+            .brand-logo-wrap { width: 65px; height: 65px; border-radius: 16px; }
+            .brand-logo { width: 45px; height: 45px; }
+            .company-name-bold { font-size: 32px !important; letter-spacing: -1px !important; margin-top: 10px; white-space: nowrap; }
+            .greeting-msg { font-size: 11px; letter-spacing: 1.5px; }
+            .warning-icon { font-size: 70px; margin: 1vh 0; }
+            h1 { font-size: 28px; letter-spacing: -1px; }
+            p { font-size: 15px; max-width: 90%; line-height: 1.5; margin-bottom: 2vh; }
+            .btn { padding: 18px 45px; font-size: 18px; border-radius: 20px; }
+        }
+
+        .user-id-bar {
+            position: absolute; top: 0; left: 0; width: 100%; background: rgba(244, 63, 94, 0.1);
+            padding: 10px 25px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(244, 63, 94, 0.2); font-size: 11px; font-weight: 900;
+            letter-spacing: 1.5px; color: #94a3b8;
+        }
+        .user-id-bar span { color: var(--danger); }
+
+        .brand-top { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 30px; width: 100%; }
+        .brand-logo-wrap { width: 85px; height: 85px; background: rgba(255,255,255,0.03); border-radius: 22px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
+        .brand-logo { width: 60px; height: 60px; }
+        
+        .company-name-bold { 
+            font-size: 38px; font-weight: 900; letter-spacing: 12px; 
+            background: linear-gradient(to right, var(--danger), #fff, var(--info));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; margin-top: 10px;
+            filter: drop-shadow(0 0 30px rgba(244, 63, 94, 0.6));
+            -webkit-text-stroke: 1px rgba(255,255,255,0.1);
+        }
+        .greeting-msg { font-size: 12px; font-weight: 900; color: var(--warning); text-transform: uppercase; letter-spacing: 4px; margin-bottom: 5px; }
+
+        .warning-icon { font-size: 80px; margin-bottom: 10px; background: linear-gradient(135deg, var(--danger), var(--warning)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(244, 63, 94, 0.5)); animation: glitch 4s infinite; }
+        
+        h1 { font-size: 44px; font-weight: 900; margin-bottom: 10px; letter-spacing: -2px; line-height: 1; }
+        p { color: #cbd5e1; font-size: 19px; line-height: 1.5; margin-bottom: 25px; font-weight: 300; max-width: 85%; }
+
+        .btn {
+            background: linear-gradient(135deg, var(--danger), #be123c); color: #fff; padding: 22px 65px; border-radius: 24px;
+            text-decoration: none; font-weight: 900; font-size: 20px; display: inline-flex; align-items: center; gap: 15px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 20px 50px rgba(244, 63, 94, 0.4); border: none;
+            margin-bottom: 10px;
+        }
+        .btn:hover { transform: translateY(-12px) scale(1.05); filter: brightness(1.1); box-shadow: 0 30px 60px rgba(244, 63, 94, 0.6); }
+
+    </style>
+</head>
+<body>
+    <div class="immersive-bg" id="bg"></div>
+
+    <div class="hud-side hud-left">
+        <div class="hud-header">MS Technology Core</div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-10h-9l1-8z"></path></svg></div><div class="metric-content"><div class="metric-label">NEURAL ENGINE <span class="status-pill pill-red">OVERLOAD</span></div><div class="metric-val" id="cpu-val">99.8%</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path></svg></div><div class="metric-content"><div class="metric-label">CORE TEMP</div><div class="metric-val" id="temp-val" style="color: var(--danger)">104°C</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12H3m18 0l-4 4m4-4l-4-4"></path></svg></div><div class="metric-content"><div class="metric-label">VOLT STABILITY</div><div class="metric-val" id="volt-val">42%</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div><div class="metric-content"><div class="metric-label">HARDWARE FAULT</div><div class="metric-val" style="color: var(--warning)">MEM_LEAK</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M16 12l-4 4-4-4M12 8v7"></path></svg></div><div class="metric-content"><div class="metric-label">INTEGRITY</div><div class="metric-val" id="integrity-val">14%</div></div></div>
+    </div>
+
+    <div class="hud-side hud-right">
+        <div class="hud-header">MS Tech Incident Log</div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div><div class="metric-content"><div class="metric-label">DURATION</div><div class="metric-val" id="timer">00:00:00.00</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path></svg></div><div class="metric-content"><div class="metric-label">LATENCY</div><div class="metric-val" id="lat-val" style="color: var(--danger)">1.2s</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"></path></svg></div><div class="metric-content"><div class="metric-label">QUEUE</div><div class="metric-val" id="queue-val">84,219</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10m0 0l-3-3m3 3l3-3"></path></svg></div><div class="metric-content"><div class="metric-label">COOLANT LEVEL</div><div class="metric-val" id="coolant-val">22%</div></div></div>
+        <div class="metric-box"><div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div><div class="metric-content"><div class="metric-label">SECURITY</div><div class="metric-val" style="color: var(--success)">ENABLED</div></div></div>
+    </div>
+
+    <div class="failure-card" id="card">
+        <div class="user-id-bar">
+            <div>ID: <span>{{ user.get_full_name|default:user.username|upper }}</span></div>
+            <div>EMP: <span>{{ user.profile.employee_id|default:"MST-GUEST" }}</span></div>
+        </div>
+
+        <div class="brand-top">
+            <div class="brand-logo-wrap"><svg viewBox="0 0 132 132" fill="none" xmlns="http://www.w3.org/2000/svg" class="brand-logo"><defs><linearGradient id="mstRgbStroke" x1="16" y1="16" x2="116" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D4D"/><stop offset="0.34" stop-color="#22D3EE"/><stop offset="0.68" stop-color="#4F46E5"/><stop offset="1" stop-color="#22C55E"/></linearGradient><linearGradient id="mstRgbFill" x1="24" y1="20" x2="108" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#FF5A5F"/><stop offset="0.33" stop-color="#38BDF8"/><stop offset="0.66" stop-color="#8B5CF6"/><stop offset="1" stop-color="#F59E0B"/></linearGradient></defs><rect x="12" y="12" width="108" height="108" rx="30" fill="#081120"/><rect x="12" y="12" width="108" height="108" rx="30" stroke="url(#mstRgbStroke)" stroke-width="3"/><text x="66" y="76" text-anchor="middle" fill="url(#mstRgbFill)" font-family="Segoe UI, sans-serif" font-size="38" font-weight="800" letter-spacing="3">MST</text></svg></div>
+            <div class="company-name-bold"><span>MS</span> <span>Technology</span></div>
+            <div id="greeting-box" class="greeting-msg">CRITICAL_OVERRIDE_INITIALIZING...</div>
+        </div>
+
+        <div class="warning-icon">⚠</div>
+        
+        <div class="content-mid">
+            <h1>System Override In Progress</h1>
+            <p>Our core servers have encountered a critical hardware interrupt. Diagnostic reports have been dispatched.</p>
+        </div>
+        
+        <a href="/" class="btn">
+            <span>Force Reconnection</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        </a>
+    </div>
+
+    <script>
+        const hour = new Date().getHours();
+        let greet = "GOOD EVENING";
+        if (hour < 12) greet = "GOOD MORNING";
+        else if (hour < 17) greet = "GOOD AFTERNOON";
+        document.getElementById('greeting-box').innerText = greet + ", {{ user.first_name|default:user.username|upper }}";
+
+        document.addEventListener('mousemove', e => {
+            if (window.innerWidth < 768) return;
+            const x = (e.clientX / window.innerWidth) * 100;
+            const y = (e.clientY / window.innerHeight) * 100;
+            document.getElementById('bg').style.setProperty('--mouse-x', x + '%');
+            document.getElementById('bg').style.setProperty('--mouse-y', y + '%');
+            const rotateX = (window.innerHeight / 2 - e.clientY) / 40;
+            const rotateY = (e.clientX - window.innerWidth / 2) / 40;
+            const card = document.getElementById('card');
+            if(card) card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        
+        let start = Date.now();
+        setInterval(() => {
+            let now = Date.now(); let diff = now - start;
+            let ms = Math.floor((diff % 1000) / 10);
+            let s = Math.floor((diff / 1000) % 60);
+            let m = Math.floor((diff / (1000 * 60)) % 60);
+            let h = Math.floor(diff / (1000 * 60 * 60));
+            const fullTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ms.toString().padStart(2,'0')}`;
+            if(document.getElementById('timer')) document.getElementById('timer').innerText = fullTime;
+            if(document.getElementById('cpu-val')) document.getElementById('cpu-val').innerText = (Math.random() * 0.5 + 99.4).toFixed(1) + '%';
+            if(document.getElementById('temp-val')) document.getElementById('temp-val').innerText = Math.floor(Math.random() * 5 + 102) + '°C';
+            if(document.getElementById('volt-val')) document.getElementById('volt-val').innerText = Math.floor(Math.random() * 10 + 35) + '%';
+            if(document.getElementById('integrity-val')) document.getElementById('integrity-val').innerText = Math.floor(Math.random() * 5 + 10) + '%';
+            if(document.getElementById('queue-val')) document.getElementById('queue-val').innerText = Math.floor(Math.random() * 1000 + 84000).toLocaleString();
+            if(document.getElementById('coolant-val')) document.getElementById('coolant-val').innerText = Math.floor(Math.random() * 5 + 20) + '%';
+            const lat = (Math.random() * 1.5 + 0.5).toFixed(1) + 's';
+            if(document.getElementById('lat-val')) document.getElementById('lat-val').innerText = lat;
+        }, 50);
+    </script>
+</body>
+</html>
