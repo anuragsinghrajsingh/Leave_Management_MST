@@ -46,7 +46,7 @@ def send_branded_email(subject, template_name, context, to_email, reply_to=None)
     email.content_subtype = "html"
     
     # Attach the logo as a CID
-    logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ms-technology-logo.png')
+    logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'lms-logo.png')
     if os.path.exists(logo_path):
         with open(logo_path, 'rb') as f:
             from email.mime.image import MIMEImage
@@ -358,7 +358,7 @@ def app_loading(request):
         kicker="Initializing Workspace",
         headline="Starting Leave Management...",
         description="Loading your workspace and preparing everything you need for a smooth start.",
-        center_label="MST",
+        center_label="LMS",
         duration=10,
         target_url=reverse("role_select"),
         info_items=[
@@ -421,14 +421,14 @@ def employee_workspace_loading(request):
 
     return _render_loading_screen(
         request,
-        page_title="MST Employee Workspace",
+        page_title="LMS Employee Workspace",
         theme_class="theme-employee",
-        company_product="MST Employee Workspace",
+        company_product="LMS Employee Workspace",
         subtitle="Your leave dashboard is being prepared with account-specific data and controls.",
         kicker="Entering Workspace",
         headline="Signing you into the employee dashboard",
         description="We are loading leave balances, request actions, and your latest status widgets so the dashboard is ready as soon as it opens.",
-        center_label="MST",
+        center_label="LMS",
         duration=5,
         target_url=reverse("dashboard"),
         info_items=[
@@ -576,14 +576,14 @@ def hr_workspace_loading(request):
 
     return _render_loading_screen(
         request,
-        page_title="MST HR Workspace",
+        page_title="LMS HR Workspace",
         theme_class="theme-hr",
-        company_product="MST HR Workspace",
+        company_product="LMS HR Workspace",
         subtitle="Approval tools and leave oversight panels are being initialized for your session.",
         kicker="Entering Workspace",
         headline="Signing you into the HR dashboard",
         description="We are loading employee leave queues, review tools, and approval-ready information so your HR workspace opens prepared.",
-        center_label="MST",
+        center_label="LMS",
         duration=5,
         target_url=reverse("hr_dashboard"),
         info_items=[
@@ -604,14 +604,14 @@ def admin_workspace_loading(request):
 
     return _render_loading_screen(
         request,
-        page_title="MST Admin Workspace",
+        page_title="LMS Admin Workspace",
         theme_class="theme-admin",
-        company_product="MST Admin Workspace",
+        company_product="LMS Admin Workspace",
         subtitle="Administrative tools and system control panels are being prepared for secure access.",
         kicker="Entering Workspace",
         headline="Signing you into the admin control area",
         description="We are loading protected admin controls, elevated settings access, and system management tools for your current session.",
-        center_label="MST",
+        center_label="LMS",
         duration=5,
         target_url=reverse("admin:index"),
         info_items=[

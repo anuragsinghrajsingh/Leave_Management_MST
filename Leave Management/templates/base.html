@@ -12,6 +12,7 @@
         <meta name="csrf-token" content="{{ csrf_token }}">
 
         <title>{% block title %} I am ASRS {% endblock %}</title>
+        {% include "includes/favicon.html" %}
 
         <!-- GLOBAL CSS -->
         <link rel="stylesheet" href="{% static 'css/header.css' %}">

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
+
+    {% include "includes/favicon.html" %}
     <script src="{% static 'js/history_navigation_redirect.js' %}" data-target-url="{{ target_url }}"></script>
     <link rel="stylesheet" href="{% static 'css/admin_login_loading.css' %}">
 </head>
@@ -60,7 +62,7 @@
                     <div class="portal-loading__topbar">
                         <div class="portal-loading__brand-lockup">
                             <div class="portal-loading__logo">
-                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
+                                <img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo">
                             </div>
                             <h1 class="portal-loading__title"><span class="accent">MS</span> <span class="plain">Technology</span></h1>
                         </div>

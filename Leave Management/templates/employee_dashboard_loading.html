@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
+
+    {% include "includes/favicon.html" %}
     <link rel="stylesheet" href="{% static 'css/employee_dashboard_loading.css' %}">
 </head>
 <body class="transition-page transition-page--employee" data-duration="{{ duration }}" data-target-url="{{ target_url }}" data-target-percent="92">
@@ -22,7 +24,7 @@
         <header class="brand-bar">
             <div class="brand-lockup">
                 <div class="brand-logo">
-                    <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
+                    <img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo">
                 </div>
                 <div>
                     <h1><span>MS</span> Technology</h1>

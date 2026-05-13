@@ -1,5 +1,10 @@
 {% extends "admin/base.html" %}
 
+{% block extrahead %}
+    {{ block.super }}
+    {% include "includes/favicon.html" %}
+{% endblock %}
+
 {% block userlinks %}
     <a href="{% url 'admin_logout_custom' %}">Logout</a>
 {% endblock %}

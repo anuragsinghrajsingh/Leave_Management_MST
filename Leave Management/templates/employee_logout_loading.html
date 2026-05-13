@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
+
+    {% include "includes/favicon.html" %}
     <link rel="stylesheet" href="{% static 'css/employee_logout_loading.css' %}">
 </head>
 <body data-duration="{{ duration }}" data-target-url="{{ target_url }}" data-target-percent="85">
@@ -12,7 +14,7 @@
         <div class="shape shape--left" aria-hidden="true"></div>
         <div class="shape shape--right" aria-hidden="true"></div>
         <header class="topbar">
-            <div class="brand"><div class="logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div><div><h1><span>MS</span> Technology</h1></div><div class="system-chip">Leave Management System</div></div>
+            <div class="brand"><div class="logo"><img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo"></div><div><h1><span>MS</span> Technology</h1></div><div class="system-chip">Leave Management System</div></div>
             <div class="chip">&#128100; Employee Portal</div>
         </header>
         <section class="card">

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
+
+    {% include "includes/favicon.html" %}
     <link rel="stylesheet" href="{% static 'css/hr_dashboard_loading.css' %}">
 </head>
 <body class="transition-page transition-page--hr" data-duration="{{ duration }}" data-target-url="{{ target_url }}" data-target-percent="85">
@@ -21,7 +23,7 @@
 
         <header class="topbar">
             <div class="brand">
-                <div class="brand__logo"><img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo"></div>
+                <div class="brand__logo"><img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo"></div>
                 <div><h1><span>MS</span> Technology</h1></div>
                 <div class="system-chip">Leave Management System</div>
             </div>
