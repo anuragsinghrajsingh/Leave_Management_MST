@@ -1526,6 +1526,1460 @@ input[readonly]
     to {opacity:1; transform:translateY(0);}
 }
 
+/* =====================================================
+   MODERN PASSWORD MODAL
+===================================================== */
+
+#passwordModal
+{
+    background:
+        radial-gradient(circle at 20% 18%, rgba(20, 184, 166, 0.24), transparent 28%),
+        radial-gradient(circle at 78% 22%, rgba(99, 102, 241, 0.22), transparent 30%),
+        rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(7px);
+}
+
+#passwordModal .password-modal-content
+{
+    width: 440px;
+    max-width: 90%;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+/* =====================================================
+   FINAL PROFILE CHIP + METRIC POLISH
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    padding: 7px 12px !important;
+    border: 1px solid rgba(96, 165, 250, 0.45) !important;
+    border-radius: 999px !important;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.92), rgba(239,246,255,0.86)) padding-box,
+        linear-gradient(90deg, rgba(20,184,166,0.45), rgba(59,130,246,0.5), rgba(168,85,247,0.45)) border-box !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.10) !important;
+    color: #16304f !important;
+    -webkit-text-fill-color: initial !important;
+}
+
+body.profile-page .profile-page-shell .masthead-chip-text
+{
+    display: inline-block !important;
+    line-height: 1.18 !important;
+    padding-bottom: 2px !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 38%, #7c3aed 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    line-height: 1.18 !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    justify-self: center !important;
+    padding: 6px 11px !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    justify-self: start !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(0.86rem, 1.28vw, 1.08rem) !important;
+    line-height: 1.05 !important;
+    padding: 3px 7px !important;
+    border-radius: 13px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.68rem, 0.86vw, 0.78rem) !important;
+    line-height: 1.05 !important;
+    padding: 2px 6px !important;
+    border-radius: 12px !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        transform: translateY(8px) !important;
+    }
+}
+
+body.profile-page .profile-page-shell .detail-headline
+{
+    position: relative !important;
+    padding-bottom: 10px !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline::after
+{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 90% !important;
+    height: 4px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #a855f7, #f97316) !important;
+    box-shadow: 0 3px 8px rgba(59, 130, 246, 0.18) !important;
+}
+
+body.profile-page .profile-page-shell .insight-stat span,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child,
+body.profile-page .profile-page-shell .chart-label,
+body.profile-page .profile-page-shell .chart-legend .legend-label,
+body.profile-page .profile-page-shell .legend-label
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.total .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.total .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important;
+}
+
+.profile-header-dropdown .dropdown-content .pass,
+.profile-dropdown .dropdown-content .pass
+{
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 16px !important;
+    font-weight: 850 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .masthead-title,
+    body.profile-page .profile-page-shell .profile-masthead-copy h2,
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        padding: 5px 8px !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.76rem !important;
+        padding: 2px 5px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.62rem !important;
+        padding: 2px 5px !important;
+    }
+}
+
+/* =====================================================
+   TRUE LAST VISIBLE MASTHEAD GRADIENT CHIPS
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    border: 1px solid rgba(96, 165, 250, 0.45) !important;
+    border-radius: 999px !important;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.94), rgba(239,246,255,0.88)) padding-box,
+        linear-gradient(90deg, rgba(20,184,166,0.45), rgba(59,130,246,0.5), rgba(168,85,247,0.45)) border-box !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.10) !important;
+    color: #16304f !important;
+    -webkit-text-fill-color: initial !important;
+}
+
+body.profile-page .profile-page-shell .masthead-chip-text
+{
+    display: inline-block !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 38%, #7c3aed 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    justify-self: center !important;
+    padding: 6px 11px !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    justify-self: start !important;
+    font-size: clamp(0.86rem, 1.28vw, 1.08rem) !important;
+    line-height: 1.05 !important;
+    padding: 3px 7px !important;
+    border-radius: 13px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    justify-self: start !important;
+    font-size: clamp(0.68rem, 0.86vw, 0.78rem) !important;
+    line-height: 1.05 !important;
+    padding: 2px 6px !important;
+    border-radius: 12px !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        transform: translateY(14px) !important;
+    }
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.76rem !important;
+        padding: 2px 5px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.62rem !important;
+        padding: 2px 5px !important;
+    }
+}
+
+/* =====================================================
+   FINAL MASTHEAD READABILITY TUNE
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-chip-text
+{
+    display: inline-block !important;
+    line-height: 1.18 !important;
+    padding-bottom: 1px !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #075985 0%, #1d4ed8 36%, #7e22ce 68%, #be123c 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 0 0.35px rgba(15, 23, 42, 0.65)) !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(0.98rem, 1.5vw, 1.22rem) !important;
+    font-weight: 950 !important;
+    line-height: 1.12 !important;
+    padding: 4px 9px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.78rem, 1vw, 0.9rem) !important;
+    font-weight: 950 !important;
+    line-height: 1.12 !important;
+    padding: 3px 8px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    line-height: 1.18 !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        transform: translateY(0) !important;
+    }
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.88rem !important;
+        padding: 3px 7px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.7rem !important;
+        padding: 2px 7px !important;
+    }
+}
+
+/* =====================================================
+   TRUE LAST MASTHEAD CHIP SIZE
+===================================================== */
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(1.05rem, 1.8vw, 1.42rem) !important;
+    padding: 5px 9px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.82rem, 1.05vw, 0.98rem) !important;
+    padding: 4px 8px !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        top: 8px !important;
+    }
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.94rem !important;
+        padding: 4px 7px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.76rem !important;
+        padding: 3px 7px !important;
+    }
+}
+
+/* =====================================================
+   TRUE LAST COMPACT MASTHEAD CHIPS
+===================================================== */
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(0.92rem, 1.45vw, 1.2rem) !important;
+    padding: 4px 8px !important;
+    border-radius: 14px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.72rem, 0.95vw, 0.86rem) !important;
+    padding: 3px 7px !important;
+    border-radius: 13px !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        transform: translateY(14px) !important;
+    }
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.82rem !important;
+        padding: 3px 6px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.68rem !important;
+        padding: 2px 6px !important;
+    }
+}
+
+/* =====================================================
+   PROFILE DETAILS TYPOGRAPHY BOOST
+===================================================== */
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.55rem, 2.6vw, 2.18rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    color: #0f223a !important;
+    -webkit-text-fill-color: #0f223a !important;
+    letter-spacing: 0 !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.04rem, 1.5vw, 1.24rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    color: #294667 !important;
+    -webkit-text-fill-color: #294667 !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .section-kicker.insight-kicker > span:last-child
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline h3
+{
+    font-size: 1.42rem !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 45%, #7c3aed 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell #detailStatusChip
+{
+    font-size: 0.84rem !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .detail-item .detail-label
+{
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    letter-spacing: 0 !important;
+}
+
+body.profile-page .profile-page-shell .detail-item .detail-value,
+body.profile-page .profile-page-shell .detail-item #addressText,
+body.profile-page .profile-page-shell .detail-item #bioText
+{
+    font-size: 1rem !important;
+    line-height: 1.25 !important;
+    font-weight: 900 !important;
+    color: #314966 !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(1) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(2) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(3) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(4) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(5) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(6) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(7) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(8) .detail-label
+{
+    background: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item .detail-label
+{
+    background: transparent !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text
+{
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #2563eb, #0891b2) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(1) .detail-label-text { background-image: linear-gradient(90deg, #2563eb, #0891b2) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(2) .detail-label-text { background-image: linear-gradient(90deg, #4f46e5, #a855f7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(3) .detail-label-text { background-image: linear-gradient(90deg, #7c3aed, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(4) .detail-label-text { background-image: linear-gradient(90deg, #0891b2, #0d9488) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(5) .detail-label-text { background-image: linear-gradient(90deg, #9333ea, #2563eb) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(6) .detail-label-text { background-image: linear-gradient(90deg, #1d4ed8, #0284c7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(7) .detail-label-text { background-image: linear-gradient(90deg, #ea580c, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(8) .detail-label-text { background-image: linear-gradient(90deg, #16a34a, #65a30d) !important; }
+
+body.profile-page .profile-page-shell .leave-header span:last-child,
+body.profile-page .profile-page-shell .chart-card h3,
+body.profile-page .profile-page-shell .insight-copy h3
+{
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #a855f7 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header span:last-child { background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important; }
+body.profile-page .profile-page-shell .leave-card.total .leave-header span:last-child { background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important; }
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header span:last-child { background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important; }
+body.profile-page .profile-page-shell .leave-card.short .leave-header span:last-child { background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important; }
+body.profile-page .profile-page-shell .leave-card.half .leave-header span:last-child { background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important; }
+
+body.profile-page .profile-page-shell .detail-item .detail-symbol,
+body.profile-page .profile-page-shell .detail-item .edit-icon,
+body.profile-page .profile-page-shell .detail-item .edit-icon-btn
+{
+    -webkit-text-fill-color: initial !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 1.08rem !important;
+        font-weight: 950 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.86rem !important;
+        font-weight: 900 !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-headline h3
+    {
+        font-size: 1.12rem !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-item .detail-label
+    {
+        font-size: 0.86rem !important;
+        font-weight: 950 !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-label-text
+    {
+        font-size: 0.86rem !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-item .detail-value,
+    body.profile-page .profile-page-shell .detail-item #addressText,
+    body.profile-page .profile-page-shell .detail-item #bioText
+    {
+        font-size: 0.82rem !important;
+        font-weight: 900 !important;
+    }
+}
+
+/* =====================================================
+   TRUE FINAL PROFILE CHIP + METRIC POLISH
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    padding: 7px 12px !important;
+    border: 1px solid rgba(96, 165, 250, 0.45) !important;
+    border-radius: 999px !important;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.92), rgba(239,246,255,0.86)) padding-box,
+        linear-gradient(90deg, rgba(20,184,166,0.45), rgba(59,130,246,0.5), rgba(168,85,247,0.45)) border-box !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.10) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    justify-self: center !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    justify-self: start !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline
+{
+    position: relative !important;
+    padding-bottom: 10px !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline::after
+{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 90% !important;
+    height: 4px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #a855f7, #f97316) !important;
+    box-shadow: 0 3px 8px rgba(59, 130, 246, 0.18) !important;
+}
+
+body.profile-page .profile-page-shell .insight-stat span,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child,
+body.profile-page .profile-page-shell .chart-label,
+body.profile-page .profile-page-shell .chart-legend .legend-label,
+body.profile-page .profile-page-shell .legend-label
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.total .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.total .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important;
+}
+
+.profile-header-dropdown .dropdown-content .pass,
+.profile-dropdown .dropdown-content .pass
+{
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 16px !important;
+    font-weight: 850 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .masthead-title,
+    body.profile-page .profile-page-shell .profile-masthead-copy h2,
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        padding: 5px 8px !important;
+    }
+}
+
+/* =====================================================
+   TRUE FINAL PROFILE GRADIENT OVERRIDES
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .section-kicker.insight-kicker > span:last-child
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.55rem, 2.6vw, 2.18rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    color: #0f223a !important;
+    -webkit-text-fill-color: #0f223a !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.04rem, 1.5vw, 1.24rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    color: #294667 !important;
+    -webkit-text-fill-color: #294667 !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item .detail-label
+{
+    background: transparent !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text
+{
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #2563eb, #0891b2) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(1) .detail-label-text { background-image: linear-gradient(90deg, #2563eb, #0891b2) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(2) .detail-label-text { background-image: linear-gradient(90deg, #4f46e5, #a855f7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(3) .detail-label-text { background-image: linear-gradient(90deg, #7c3aed, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(4) .detail-label-text { background-image: linear-gradient(90deg, #0891b2, #0d9488) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(5) .detail-label-text { background-image: linear-gradient(90deg, #9333ea, #2563eb) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(6) .detail-label-text { background-image: linear-gradient(90deg, #1d4ed8, #0284c7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(7) .detail-label-text { background-image: linear-gradient(90deg, #ea580c, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(8) .detail-label-text { background-image: linear-gradient(90deg, #16a34a, #65a30d) !important; }
+
+body.profile-page .profile-page-shell .leave-header span:last-child,
+body.profile-page .profile-page-shell .chart-card h3,
+body.profile-page .profile-page-shell .insight-copy h3
+{
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #a855f7 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header span:last-child { background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important; }
+body.profile-page .profile-page-shell .leave-card.total .leave-header span:last-child { background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important; }
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header span:last-child { background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important; }
+body.profile-page .profile-page-shell .leave-card.short .leave-header span:last-child { background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important; }
+body.profile-page .profile-page-shell .leave-card.half .leave-header span:last-child { background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important; }
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 1.12rem !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.88rem !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-label-text
+    {
+        font-size: 0.86rem !important;
+    }
+}
+
+/* =====================================================
+   FINAL GRADIENT TEXT FIXES
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .masthead-text,
+body.profile-page .profile-page-shell .section-kicker.insight-kicker span:last-child
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.55rem, 2.6vw, 2.18rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    color: #0f223a !important;
+    -webkit-text-fill-color: #0f223a !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.04rem, 1.5vw, 1.24rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    color: #294667 !important;
+    -webkit-text-fill-color: #294667 !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item .detail-label
+{
+    background: transparent !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text
+{
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #2563eb, #0891b2) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(1) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #2563eb, #0891b2) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(2) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #4f46e5, #a855f7) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(3) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #7c3aed, #db2777) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(4) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #0891b2, #0d9488) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(5) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #9333ea, #2563eb) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(6) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #1d4ed8, #0284c7) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(7) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #ea580c, #db2777) !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(8) .detail-label-text
+{
+    background-image: linear-gradient(90deg, #16a34a, #65a30d) !important;
+}
+
+body.profile-page .profile-page-shell .leave-header span:last-child,
+body.profile-page .profile-page-shell .chart-card h3,
+body.profile-page .profile-page-shell .insight-copy h3
+{
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #a855f7 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header span:last-child
+{
+    background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.total .leave-header span:last-child
+{
+    background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header span:last-child
+{
+    background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-header span:last-child
+{
+    background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-header span:last-child
+{
+    background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 1.12rem !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.88rem !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-label-text
+    {
+        font-size: 0.86rem !important;
+    }
+}
+
+#passwordModal .password-modal-content
+{
+    border-top-color: transparent;
+    border-right-color: transparent;
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+}
+
+#passwordModal .password-modal-content::before
+{
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #f97316);
+}
+
+#passwordModal .password-modal-content::after
+{
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #14b8a6, #3b82f6, #f97316);
+}
+
+#passwordModal .password-modal-form::before,
+#passwordModal .password-modal-form::after
+{
+    content: "";
+    position: absolute;
+    pointer-events: none;
+}
+
+#passwordModal .password-modal-form::before
+{
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #14b8a6, #3b82f6, #f97316);
+}
+
+#passwordModal .password-modal-form::after
+{
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #f97316);
+}
+
+.password-modal-header
+{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 26px 14px;
+    background:
+        linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(59, 130, 246, 0.10)),
+        #ffffff;
+    border-bottom: 1px solid #e8eef7;
+}
+
+.password-modal-icon
+{
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0f766e, #2563eb);
+    color: #ffffff;
+    font-size: 20px;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24);
+}
+
+.password-modal-header h2
+{
+    margin: 0;
+    color: #0f172a;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 38%, #7c3aed 68%, #f97316 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 23px;
+    line-height: 1.15;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.password-modal-header p
+{
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 12.5px;
+    line-height: 1.35;
+    font-weight: 600;
+}
+
+#passwordModal .password-modal-form
+{
+    position: relative;
+    padding: 12px 18px 4px;
+}
+
+#passwordModal .form-group
+{
+    gap: 7px;
+    margin-bottom: 13px;
+}
+
+#passwordModal .form-group label
+{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    color: #7c3aed;
+    font-size: 14.5px;
+    font-weight: 950;
+    letter-spacing: 0;
+    background: linear-gradient(90deg, #7c3aed 0%, #db2777 42%, #ea580c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#passwordModal .form-group label::after
+{
+    content: "";
+    height: 4px;
+    width: 46px;
+    flex: 0 0 46px;
+    margin-top: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #7c3aed, #db2777, #ea580c);
+    box-shadow: 0 3px 8px rgba(219, 39, 119, 0.18);
+}
+
+#passwordModal .form-group:nth-of-type(1) label
+{
+    background: linear-gradient(90deg, #0f766e 0%, #0891b2 52%, #2563eb 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+#passwordModal .form-group:nth-of-type(1) label::after
+{
+    background: linear-gradient(90deg, #14b8a6, #06b6d4, #2563eb);
+}
+
+#passwordModal .form-group:nth-of-type(2) label
+{
+    background: linear-gradient(90deg, #7c3aed 0%, #db2777 52%, #f97316 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+#passwordModal .form-group:nth-of-type(2) label::after
+{
+    background: linear-gradient(90deg, #8b5cf6, #ec4899, #f97316);
+}
+
+#passwordModal .form-group:nth-of-type(3) label
+{
+    background: linear-gradient(90deg, #16a34a 0%, #65a30d 44%, #ca8a04 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+#passwordModal .form-group:nth-of-type(3) label::after
+{
+    background: linear-gradient(90deg, #22c55e, #84cc16, #eab308);
+}
+
+#passwordModal .password-wrapper
+{
+    min-height: 42px;
+    border: 1px solid #dbe6f3;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+#passwordModal .password-wrapper:focus-within
+{
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.14), 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+#passwordModal .password-wrapper.input-error
+{
+    border-color: #ef4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.10);
+}
+
+#passwordModal .password-wrapper input
+{
+    height: 40px;
+    padding: 10px 74px 10px 12px;
+    border: 0;
+    background: transparent;
+    color: #0f172a;
+    font-weight: 800;
+    outline: none;
+}
+
+#passwordModal input[readonly]
+{
+    background: linear-gradient(90deg, #f8fafc, #eef2ff);
+    color: #77839a;
+}
+
+#passwordModal .toggle-pass,
+#passwordModal .clear-pass
+{
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-top: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    line-height: 1;
+    transform: translateY(-50%);
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+#passwordModal .toggle-pass
+{
+    right: 8px;
+    color: #2563eb;
+    font-size: 15px;
+}
+
+#passwordModal .clear-pass
+{
+    right: 40px;
+    color: #94a3b8;
+    font-size: 20px;
+}
+
+#passwordModal .toggle-pass:hover,
+#passwordModal .clear-pass:hover
+{
+    background: #eef6ff;
+    transform: translateY(-50%);
+}
+
+#passwordModal .clear-pass:hover
+{
+    color: #ef4444;
+}
+
+#passwordModal .password-strength-wrapper
+{
+    margin-top: 1px;
+}
+
+#passwordModal .password-rules
+{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 2px;
+    color: #64748b;
+}
+
+#passwordModal .password-rules div
+{
+    min-height: 26px;
+    padding: 5px 8px;
+    border-radius: 7px;
+    background: #f8fafc;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#passwordModal .password-rules .rule-valid
+{
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+#passwordModal .password-rules .rule-invalid
+{
+    background: rgba(239, 68, 68, 0.10);
+    color: #dc2626;
+}
+
+#passwordModal .strength-bar
+{
+    height: 7px;
+    background: #e2e8f0;
+}
+
+#passwordModal .password-strength-text,
+#passwordModal .password-match,
+#passwordModal .password-warning,
+#passwordModal .field-error
+{
+    font-size: 12.5px;
+    font-weight: 800;
+}
+
+#passwordModal .password-warning::after,
+#passwordModal .field-error::after,
+#passwordModal .password-match::after
+{
+    content: "";
+    display: block;
+    height: 3px;
+    margin-top: 5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.85), rgba(249, 115, 22, 0.7), rgba(59, 130, 246, 0.5));
+}
+
+#passwordModal .password-match:empty::after
+{
+    display: none;
+}
+
+#passwordModal .password-warning,
+#passwordModal .field-error,
+#passwordModal .match-error
+{
+    color: #dc2626;
+}
+
+#passwordModal .match-success
+{
+    color: #059669;
+}
+
+#passwordModal .modal-buttons
+{
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 8px;
+}
+
+#passwordModal .modal-buttons .update-btn,
+#passwordModal .modal-buttons .cancel-btn
+{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 1;
+    min-height: 40px;
+    margin: 0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 900;
+    -webkit-text-stroke: 0.35px currentColor;
+    text-shadow: 0 0 0 currentColor;
+    white-space: nowrap;
+}
+
+#passwordModal .modal-buttons .update-btn span,
+#passwordModal .modal-buttons .cancel-btn span
+{
+    font-size: 18px;
+    font-weight: 1000;
+    line-height: 1;
+}
+
+#passwordModal .modal-buttons .update-btn
+{
+    background: linear-gradient(135deg, #14b8a6, #2563eb);
+}
+
+#passwordModal .modal-buttons .update-btn:hover
+{
+    background: linear-gradient(135deg, #0f9f8f, #1d4ed8);
+}
+
+#passwordModal .modal-buttons .cancel-btn
+{
+    flex: 0 0 118px;
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+}
+
+#passwordModal .modal-buttons .cancel-btn:hover
+{
+    background: #ffe4e6;
+}
+
+#passwordModal .modal-buttons .update-btn:disabled
+{
+    background: #cbd5e1;
+    color: #ffffff;
+}
+
+#passwordModal .modal-close
+{
+    top: 7px;
+    right: 8px;
+    z-index: 2;
+    border: 0;
+    background: rgba(255, 255, 255, 0.92);
+    color: #475569;
+    font-size: 28px;
+    font-weight: 900;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.10);
+}
+
+#passwordModal .modal-close:hover
+{
+    background: rgba(255, 255, 255, 0.92);
+    color: #dc2626;
+    transform: scale(1.04);
+}
+
+@media (max-width: 520px)
+{
+    #passwordModal .password-modal-form
+    {
+        padding: 10px 14px 4px;
+    }
+
+    #passwordModal .modal-buttons
+    {
+        gap: 8px;
+    }
+
+    #passwordModal .modal-buttons .update-btn
+    {
+        flex: 1 1 auto;
+        padding-left: 10px;
+        padding-right: 10px;
+        font-size: 14px;
+    }
+
+    #passwordModal .modal-buttons .cancel-btn
+    {
+        flex: 0 0 82px;
+        padding-left: 8px;
+        padding-right: 8px;
+        font-size: 14px;
+    }
+}
+
 
 
 /* =====================================================
@@ -6431,5 +7885,1163 @@ body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-legend
     body.profile-page .profile-page-shell .chart-legend .legend-item.is-hidden {
         opacity: 0.35 !important;
         filter: grayscale(1) !important;
+    }
+}
+
+/* =====================================================
+   FINAL PROFILE GRADIENT OVERRIDES
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .section-kicker.insight-kicker > span:last-child
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.55rem, 2.6vw, 2.18rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    color: #0f223a !important;
+    -webkit-text-fill-color: #0f223a !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.04rem, 1.5vw, 1.24rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    color: #294667 !important;
+    -webkit-text-fill-color: #294667 !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item .detail-label
+{
+    background: transparent !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text
+{
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #2563eb, #0891b2) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(1) .detail-label-text { background-image: linear-gradient(90deg, #2563eb, #0891b2) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(2) .detail-label-text { background-image: linear-gradient(90deg, #4f46e5, #a855f7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(3) .detail-label-text { background-image: linear-gradient(90deg, #7c3aed, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(4) .detail-label-text { background-image: linear-gradient(90deg, #0891b2, #0d9488) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(5) .detail-label-text { background-image: linear-gradient(90deg, #9333ea, #2563eb) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(6) .detail-label-text { background-image: linear-gradient(90deg, #1d4ed8, #0284c7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(7) .detail-label-text { background-image: linear-gradient(90deg, #ea580c, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(8) .detail-label-text { background-image: linear-gradient(90deg, #16a34a, #65a30d) !important; }
+
+body.profile-page .profile-page-shell .leave-header span:last-child,
+body.profile-page .profile-page-shell .chart-card h3,
+body.profile-page .profile-page-shell .insight-copy h3
+{
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #a855f7 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header span:last-child { background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important; }
+body.profile-page .profile-page-shell .leave-card.total .leave-header span:last-child { background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important; }
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header span:last-child { background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important; }
+body.profile-page .profile-page-shell .leave-card.short .leave-header span:last-child { background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important; }
+body.profile-page .profile-page-shell .leave-card.half .leave-header span:last-child { background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important; }
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 1.12rem !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.88rem !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-label-text
+    {
+        font-size: 0.86rem !important;
+    }
+}
+
+/* =====================================================
+   FINAL PROFILE GRADIENT TYPOGRAPHY
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .section-kicker.insight-kicker > span:last-child
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.55rem, 2.6vw, 2.18rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    color: #0f223a !important;
+    -webkit-text-fill-color: #0f223a !important;
+    letter-spacing: 0 !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: clamp(1.04rem, 1.5vw, 1.24rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    color: #294667 !important;
+    -webkit-text-fill-color: #294667 !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline h3
+{
+    font-size: 1.42rem !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 45%, #7c3aed 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell #detailStatusChip
+{
+    font-size: 0.84rem !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item .detail-label
+{
+    background: transparent !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit !important;
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    letter-spacing: 0 !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text
+{
+    font-size: 1.08rem !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #2563eb, #0891b2) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(1) .detail-label-text { background-image: linear-gradient(90deg, #2563eb, #0891b2) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(2) .detail-label-text { background-image: linear-gradient(90deg, #4f46e5, #a855f7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(3) .detail-label-text { background-image: linear-gradient(90deg, #7c3aed, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(4) .detail-label-text { background-image: linear-gradient(90deg, #0891b2, #0d9488) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(5) .detail-label-text { background-image: linear-gradient(90deg, #9333ea, #2563eb) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(6) .detail-label-text { background-image: linear-gradient(90deg, #1d4ed8, #0284c7) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(7) .detail-label-text { background-image: linear-gradient(90deg, #ea580c, #db2777) !important; }
+body.profile-page .profile-page-shell .detail-grid .detail-item:nth-child(8) .detail-label-text { background-image: linear-gradient(90deg, #16a34a, #65a30d) !important; }
+
+body.profile-page .profile-page-shell .detail-item .detail-value,
+body.profile-page .profile-page-shell .detail-item #addressText,
+body.profile-page .profile-page-shell .detail-item #bioText
+{
+    font-size: 1rem !important;
+    line-height: 1.25 !important;
+    font-weight: 900 !important;
+    color: #314966 !important;
+}
+
+body.profile-page .profile-page-shell .detail-item .detail-symbol,
+body.profile-page .profile-page-shell .detail-item .edit-icon,
+body.profile-page .profile-page-shell .detail-item .edit-icon-btn
+{
+    -webkit-text-fill-color: initial !important;
+}
+
+body.profile-page .profile-page-shell .leave-header span:last-child,
+body.profile-page .profile-page-shell .chart-card h3,
+body.profile-page .profile-page-shell .insight-copy h3
+{
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #a855f7 70%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header span:last-child { background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important; }
+body.profile-page .profile-page-shell .leave-card.total .leave-header span:last-child { background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important; }
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header span:last-child { background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important; }
+body.profile-page .profile-page-shell .leave-card.short .leave-header span:last-child { background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important; }
+body.profile-page .profile-page-shell .leave-card.half .leave-header span:last-child { background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important; }
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 1.12rem !important;
+        font-weight: 950 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.88rem !important;
+        font-weight: 950 !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-headline h3
+    {
+        font-size: 1.12rem !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-grid .detail-item .detail-label,
+    body.profile-page .profile-page-shell .detail-label-text
+    {
+        font-size: 0.86rem !important;
+        font-weight: 950 !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-item .detail-value,
+    body.profile-page .profile-page-shell .detail-item #addressText,
+    body.profile-page .profile-page-shell .detail-item #bioText
+    {
+        font-size: 0.82rem !important;
+        font-weight: 900 !important;
+    }
+}
+/* =====================================================
+   TRUE LAST PROFILE CHIP + METRIC POLISH
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    padding: 7px 12px !important;
+    border: 1px solid rgba(96, 165, 250, 0.45) !important;
+    border-radius: 999px !important;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.92), rgba(239,246,255,0.86)) padding-box,
+        linear-gradient(90deg, rgba(20,184,166,0.45), rgba(59,130,246,0.5), rgba(168,85,247,0.45)) border-box !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.10) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    justify-self: center !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    justify-self: start !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline
+{
+    position: relative !important;
+    padding-bottom: 10px !important;
+}
+
+body.profile-page .profile-page-shell .detail-headline::after
+{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 90% !important;
+    height: 4px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #a855f7, #f97316) !important;
+    box-shadow: 0 3px 8px rgba(59, 130, 246, 0.18) !important;
+}
+
+body.profile-page .profile-page-shell .insight-stat span,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child,
+body.profile-page .profile-page-shell .chart-label,
+body.profile-page .profile-page-shell .chart-legend .legend-label,
+body.profile-page .profile-page-shell .legend-label
+{
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 40%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #ef4444, #f97316, #db2777) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.total .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.total .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #2563eb, #4f46e5, #8b5cf6) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #d97706, #ea580c, #0891b2) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #eab308, #f97316, #2563eb) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-label,
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-label > span:last-child
+{
+    background-image: linear-gradient(90deg, #f97316, #db2777, #7c3aed) !important;
+}
+
+.profile-header-dropdown .dropdown-content .pass,
+.profile-dropdown .dropdown-content .pass
+{
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 16px !important;
+    font-weight: 850 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .masthead-title,
+    body.profile-page .profile-page-shell .profile-masthead-copy h2,
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        padding: 5px 8px !important;
+    }
+}
+/* =====================================================
+   ABSOLUTE FINAL MASTHEAD VISIBILITY FIX
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title,
+body.profile-page .profile-page-shell .profile-masthead-copy h2,
+body.profile-page .profile-page-shell .masthead-handle
+{
+    color: #16304f !important;
+    -webkit-text-fill-color: initial !important;
+}
+
+body.profile-page .profile-page-shell .masthead-chip-text
+{
+    display: inline-block !important;
+    line-height: 1.18 !important;
+    padding-bottom: 1px !important;
+    font-weight: 950 !important;
+    background: linear-gradient(90deg, #075985 0%, #1d4ed8 36%, #7e22ce 68%, #be123c 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 0 0.35px rgba(15, 23, 42, 0.65)) !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(0.98rem, 1.5vw, 1.22rem) !important;
+    font-weight: 950 !important;
+    line-height: 1.12 !important;
+    padding: 4px 9px !important;
+    border-radius: 13px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.78rem, 1vw, 0.9rem) !important;
+    font-weight: 950 !important;
+    line-height: 1.12 !important;
+    padding: 3px 8px !important;
+    border-radius: 12px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    line-height: 1.18 !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        transform: translateY(0) !important;
+    }
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.88rem !important;
+        padding: 3px 7px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.7rem !important;
+        padding: 2px 7px !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL PROFILE HEADER + METRIC CELLS
+===================================================== */
+
+body.profile-page .profile-page-shell .leave-row > div
+{
+    min-height: 66px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2 .masthead-chip-text
+{
+    background: linear-gradient(90deg, #0f172a 0%, #1d4ed8 34%, #7e22ce 66%, #be123c 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: none !important;
+    filter: drop-shadow(0 0 0.45px rgba(15, 23, 42, 0.9)) !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    min-height: 0 !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    line-height: 1.12 !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title .masthead-chip-text
+{
+    line-height: 1.12 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div
+{
+    min-height: 62px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div > span:last-child,
+body.profile-page .profile-page-shell .insight-stat strong
+{
+    display: inline-block !important;
+    transform: translateY(5px) !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2,
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        transform: translateY(8px) !important;
+    }
+
+    body.profile-page .profile-page-shell #detailStatusChip
+    {
+        font-size: 0.42rem !important;
+        padding: 2px 4px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div
+    {
+        min-height: 54px !important;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div > span:last-child,
+    body.profile-page .profile-page-shell .insight-stat strong
+    {
+        transform: translateY(4px) !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL DETAIL LABEL DIVIDERS + METRIC TUNE
+===================================================== */
+
+body.profile-page .profile-page-shell .detail-item .detail-label
+{
+    position: relative !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 2px !important;
+}
+
+body.profile-page .profile-page-shell .detail-item .detail-label::after
+{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 88% !important;
+    height: 3px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, rgba(20,184,166,0.9), rgba(59,130,246,0.85), rgba(168,85,247,0.75), rgba(249,115,22,0.65)) !important;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.14) !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+body.profile-page .profile-page-shell .detail-label-text::after
+{
+    content: "" !important;
+    width: 28px !important;
+    height: 4px !important;
+    flex: 0 0 28px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #f97316) !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div
+{
+    min-height: 58px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div > span:last-child,
+body.profile-page .profile-page-shell .insight-stat strong
+{
+    display: inline-block !important;
+    transform: translateY(8px) !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .detail-item .detail-label
+    {
+        padding-bottom: 6px !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-item .detail-label::after
+    {
+        height: 2px !important;
+        width: 84% !important;
+    }
+
+    body.profile-page .profile-page-shell .detail-label-text::after
+    {
+        width: 18px !important;
+        height: 3px !important;
+        flex-basis: 18px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div
+    {
+        min-height: 50px !important;
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div > span:last-child,
+    body.profile-page .profile-page-shell .insight-stat strong
+    {
+        transform: translateY(6px) !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL PROFILE LABEL ACCENTS
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    padding-top: 2px !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title .masthead-chip-text
+{
+    background: linear-gradient(90deg, #be123c 0%, #ea580c 34%, #7c3aed 68%, #2563eb 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell #detailStatusChip
+{
+    background: linear-gradient(90deg, rgba(37,99,235,0.14), rgba(20,184,166,0.12), rgba(249,115,22,0.12)) !important;
+    border-color: rgba(37, 99, 235, 0.28) !important;
+    color: #1d4ed8 !important;
+    -webkit-text-fill-color: #1d4ed8 !important;
+}
+
+body.profile-page .profile-page-shell .leave-header
+{
+    position: relative !important;
+    padding-bottom: 8px !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .leave-header::after
+{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 82% !important;
+    height: 3px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #a855f7, #f97316) !important;
+}
+
+body.profile-page .profile-page-shell .leave-header > span:last-child
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .leave-header > span:last-child::after
+{
+    content: "" !important;
+    width: 30px !important;
+    height: 4px !important;
+    flex: 0 0 30px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #f97316) !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div,
+body.profile-page .profile-page-shell .insight-stat
+{
+    position: relative !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div::after,
+body.profile-page .profile-page-shell .insight-stat::after
+{
+    content: "" !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 30px !important;
+    width: calc(100% - 24px) !important;
+    height: 2px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, rgba(20,184,166,0.7), rgba(59,130,246,0.65), rgba(249,115,22,0.55)) !important;
+}
+
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child,
+body.profile-page .profile-page-shell .insight-stat span
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-weight: 950 !important;
+}
+
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child::after,
+body.profile-page .profile-page-shell .insight-stat span::after
+{
+    content: "" !important;
+    width: 20px !important;
+    height: 3px !important;
+    flex: 0 0 20px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, #14b8a6, #3b82f6, #f97316) !important;
+}
+
+body.profile-page .profile-page-shell .leave-row > div > span:last-child,
+body.profile-page .profile-page-shell .insight-stat strong
+{
+    font-size: 1.34rem !important;
+    font-weight: 950 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell #detailStatusChip
+    {
+        font-size: 0.5rem !important;
+        font-weight: 950 !important;
+        padding: 3px 5px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-header::after
+    {
+        height: 2px !important;
+        width: 76% !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-header > span:last-child::after
+    {
+        width: 18px !important;
+        height: 3px !important;
+        flex-basis: 18px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div::after,
+    body.profile-page .profile-page-shell .insight-stat::after
+    {
+        top: 25px !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-row > div > span:last-child,
+    body.profile-page .profile-page-shell .insight-stat strong
+    {
+        font-size: 1.04rem !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL REMOVE LEAVE/METRIC ACCENTS
+===================================================== */
+
+body.profile-page .profile-page-shell .leave-header::after,
+body.profile-page .profile-page-shell .leave-header > span:last-child::after,
+body.profile-page .profile-page-shell .leave-row > div::after,
+body.profile-page .profile-page-shell .insight-stat::after,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child::after,
+body.profile-page .profile-page-shell .insight-stat span::after
+{
+    content: none !important;
+    display: none !important;
+}
+
+body.profile-page .profile-page-shell .leave-header
+{
+    padding-bottom: 0 !important;
+}
+
+body.profile-page .profile-page-shell .leave-header-icon,
+body.profile-page .profile-page-shell .leave-metric-icon,
+body.profile-page .profile-page-shell .insight-badge,
+body.profile-page .profile-page-shell .section-badge,
+body.profile-page .profile-page-shell .legend-dot
+{
+    color: inherit !important;
+    -webkit-text-fill-color: initial !important;
+    background-clip: border-box !important;
+    -webkit-background-clip: border-box !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+body.profile-page .profile-page-shell .leave-header-icon
+{
+    color: #2563eb !important;
+    -webkit-text-fill-color: #2563eb !important;
+}
+
+body.profile-page .profile-page-shell .leave-metric-icon
+{
+    color: #14b8a6 !important;
+    -webkit-text-fill-color: #14b8a6 !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header-icon,
+body.profile-page .profile-page-shell .leave-card.sick .leave-metric-icon
+{
+    color: #ef4444 !important;
+    -webkit-text-fill-color: #ef4444 !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header-icon,
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-metric-icon
+{
+    color: #d97706 !important;
+    -webkit-text-fill-color: #d97706 !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-header-icon,
+body.profile-page .profile-page-shell .leave-card.short .leave-metric-icon
+{
+    color: #eab308 !important;
+    -webkit-text-fill-color: #eab308 !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-header-icon,
+body.profile-page .profile-page-shell .leave-card.half .leave-metric-icon
+{
+    color: #f97316 !important;
+    -webkit-text-fill-color: #f97316 !important;
+}
+
+/* =====================================================
+   ABSOLUTE FINAL ICON TEXT GAP
+===================================================== */
+
+body.profile-page .profile-page-shell .leave-header,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .insight-kicker,
+body.profile-page .profile-page-shell .detail-label,
+body.profile-page .profile-page-shell .section-kicker
+{
+    gap: 4px !important;
+}
+
+body.profile-page .profile-page-shell .leave-header > span:last-child,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child
+{
+    gap: 4px !important;
+}
+
+/* =====================================================
+   ABSOLUTE FINAL TIGHT ICON TEXT GAP
+===================================================== */
+
+body.profile-page .profile-page-shell .leave-header,
+body.profile-page .profile-page-shell .leave-header > span:last-child,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child,
+body.profile-page .profile-page-shell .insight-kicker,
+body.profile-page .profile-page-shell .detail-label,
+body.profile-page .profile-page-shell .section-kicker
+{
+    gap: 2px !important;
+}
+
+/* =====================================================
+   ABSOLUTE FINAL PROFILE TEXT + SHORT/HALF USED WIDTH
+===================================================== */
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(1.08rem, 1.65vw, 1.32rem) !important;
+    font-weight: 1000 !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.86rem, 1.12vw, 1rem) !important;
+    font-weight: 1000 !important;
+}
+
+body.profile-page .profile-page-shell .section-kicker.insight-kicker > span:last-child
+{
+    font-size: 1.34rem !important;
+    line-height: 1.05 !important;
+    font-weight: 1000 !important;
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .leave-card.short .leave-row,
+    body.profile-page .profile-page-shell .leave-card.half .leave-row
+    {
+        grid-template-columns: 1.12fr 0.72fr 1.12fr !important;
+    }
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.94rem !important;
+        font-weight: 1000 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.76rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL MOBILE UNPAID + MASTHEAD FIX
+===================================================== */
+
+body.profile-page .profile-page-shell .total-unpaid-mobile
+{
+    display: none !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    line-height: 1.24 !important;
+    padding-top: 5px !important;
+    padding-bottom: 8px !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title .masthead-chip-text
+{
+    line-height: 1.24 !important;
+    padding-top: 1px !important;
+    padding-bottom: 3px !important;
+}
+
+body.profile-page .profile-page-shell .profile-masthead-copy h2
+{
+    font-size: clamp(1.16rem, 1.78vw, 1.42rem) !important;
+    font-weight: 1000 !important;
+}
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: clamp(0.92rem, 1.2vw, 1.08rem) !important;
+    font-weight: 1000 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .leave-card.unpaid
+    {
+        display: none !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-card.total .total-unpaid-mobile
+    {
+        display: flex !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-card.total .leave-row
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 1rem !important;
+        font-weight: 1000 !important;
+    }
+
+body.profile-page .profile-page-shell .masthead-handle
+{
+    font-size: 0.82rem !important;
+    font-weight: 1000 !important;
+}
+}
+
+/* =====================================================
+   ABSOLUTE FINAL EMPLOYEE PROFILE CHIP HEIGHT
+===================================================== */
+
+body.profile-page .profile-page-shell .masthead-title
+{
+    min-height: 0 !important;
+    height: auto !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+    line-height: 1 !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .masthead-title .masthead-chip-text
+{
+    display: inline-block !important;
+    line-height: 1.22 !important;
+    padding-top: 0 !important;
+    padding-bottom: 2px !important;
+    margin-bottom: -1px !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .masthead-title
+    {
+        padding-top: 1px !important;
+        padding-bottom: 1px !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL MOBILE EMPLOYEE PROFILE TEXT
+===================================================== */
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .masthead-title .masthead-chip-text
+    {
+        font-size: 1.04rem !important;
+        font-weight: 1000 !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL INSIGHT / UNPAID VISIBILITY
+===================================================== */
+
+body.profile-page .profile-page-shell .total-unpaid-mobile
+{
+    display: none !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .leave-card.unpaid
+    {
+        display: block !important;
+    }
+
+    body.profile-page .profile-page-shell .leave-card.total .leave-row
+    {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL CHART HEADING SPACING
+===================================================== */
+
+body.profile-page .profile-page-shell .chart-card
+{
+    padding-top: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-card .section-headline,
+body.profile-page .profile-page-shell .chart-headline
+{
+    margin-top: 0 !important;
+    margin-bottom: -2px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-card .headline-with-badge
+{
+    margin-top: -5px !important;
+    margin-bottom: -3px !important;
+}
+
+body.profile-page .profile-page-shell .chart-card h3
+{
+    margin-top: 0 !important;
+    margin-bottom: -2px !important;
+    line-height: 1.14 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .chart-body
+{
+    margin-top: 7px !important;
+}
+
+/* =====================================================
+   ABSOLUTE FINAL OVERVIEW + CHART DIVIDER TIGHTENING
+===================================================== */
+
+body.profile-page .profile-page-shell .overview-heading
+{
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    text-align: center !important;
+    font-size: clamp(1.08rem, 1.65vw, 1.42rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 1000 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .overview-heading .section-badge
+{
+    -webkit-text-fill-color: #0f766e !important;
+}
+
+body.profile-page .profile-page-shell .chart-headline::after
+{
+    bottom: 0 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .chart-card
+    {
+        padding-top: 2px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-card .section-headline,
+    body.profile-page .profile-page-shell .chart-headline
+    {
+        margin-bottom: 0 !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-card .headline-with-badge
+    {
+        margin-top: -1px !important;
+        margin-bottom: 0 !important;
+        align-items: flex-start !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-card h3
+    {
+        margin-bottom: 0 !important;
+        line-height: 1.2 !important;
+        padding-top: 2px !important;
+        padding-bottom: 1px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-body
+    {
+        margin-top: 4px !important;
     }
 }

@@ -2456,10 +2456,25 @@ def profile_view(request):
     total_used = balance.sick_used + balance.earned_used
     
         
-    current_month = now().month
+    current_date = now()
+    current_month = current_date.month
+    current_year = current_date.year
+    active_leave_statuses = ["Pending", "Approved"]
 
-    short_taken = Leave.objects.filter( user=request.user, leave_type="Short", from_date__month=current_month ).count()
-    half_taken = Leave.objects.filter( user=request.user, leave_type="Half", from_date__month=current_month ).count()
+    short_taken = Leave.objects.filter(
+        user=request.user,
+        leave_type="Short",
+        from_date__month=current_month,
+        from_date__year=current_year,
+        status__in=active_leave_statuses,
+    ).count()
+    half_taken = Leave.objects.filter(
+        user=request.user,
+        leave_type="Half",
+        from_date__month=current_month,
+        from_date__year=current_year,
+        status__in=active_leave_statuses,
+    ).count()
 
     short_remaining = max(0, 2 - short_taken)
     half_remaining = max(0, 1 - half_taken)

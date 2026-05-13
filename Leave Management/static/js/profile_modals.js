@@ -44,7 +44,14 @@ document.addEventListener("DOMContentLoaded", function()
                 {
                     event.preventDefault();
                     event.stopPropagation();
-                    openModalElement("passwordModal");
+                    if (typeof openPasswordModal === "function")
+                    {
+                        openPasswordModal();
+                    }
+                    else
+                    {
+                        openModalElement("passwordModal");
+                    }
                 });
             }
 
@@ -152,7 +159,14 @@ document.addEventListener("DOMContentLoaded", function()
                 {
                     event.preventDefault();
                     event.stopPropagation();
-                    closeModalElement("passwordModal");
+                    if (typeof closePasswordModal === "function")
+                    {
+                        closePasswordModal();
+                    }
+                    else
+                    {
+                        closeModalElement("passwordModal");
+                    }
                 });
             }
         });

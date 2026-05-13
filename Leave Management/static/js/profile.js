@@ -1097,6 +1097,7 @@ launchConfetti();
         function openPasswordModal()
         {
             const modal = document.getElementById("passwordModal");
+            if(!modal) return;
             modal.style.display = "flex";
 
             document.body.style.overflow = "hidden";
@@ -1105,9 +1106,12 @@ launchConfetti();
         function closePasswordModal()
         {
             const modal = document.getElementById("passwordModal");
+            if(!modal) return;
             modal.style.display = "none";
+            document.body.style.overflow = "";
 
             const form = modal.querySelector("form");
+            if(!form) return;
 
 // only clear inputs manually (safe)
             form.querySelectorAll("input").forEach(input =>
@@ -1133,6 +1137,10 @@ launchConfetti();
             document.querySelectorAll(".toggle-pass").forEach(icon =>
             {
                 icon.innerText = "👁️";
+            });
+            document.querySelectorAll(".toggle-pass").forEach(icon =>
+            {
+                icon.innerHTML = "&#128065;";
             });
 
             form.querySelectorAll("input").forEach(input =>
@@ -1230,6 +1238,12 @@ launchConfetti();
         function togglePassword(icon)
         {
             const input = icon.parentElement.querySelector("input");
+            if(!input) return;
+
+            const isHidden = input.type === "password";
+            input.type = isHidden ? "text" : "password";
+            icon.innerHTML = isHidden ? "&#128584;" : "&#128065;";
+            return;
 
             if(input.type === "password")
             {
@@ -1484,7 +1498,7 @@ launchConfetti();
 
                 if(newPass.value.trim() !== "")
                 {
-                    rules.style.display = "block";
+                    rules.style.display = "grid";
                     strengthBox.style.display = "block";
                 }
                 else

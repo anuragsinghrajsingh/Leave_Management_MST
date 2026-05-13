@@ -223,9 +223,9 @@
                     </div>
 
                     <div class="profile-masthead-text">
-                        <h1 class="masthead-title">Employee Profile</h1>
-                        <h2>{{ request.user.get_full_name }}</h2>
-                        <p class="masthead-handle">@ {{ request.user.username }}</p>
+                        <h1 class="masthead-title"><span class="masthead-chip-text">Employee Profile</span></h1>
+                        <h2><span class="masthead-chip-text">{{ request.user.get_full_name }}</span></h2>
+                        <p class="masthead-handle"><span class="masthead-chip-text">@ {{ request.user.username }}</span></p>
                     </div>
                 </div>
             </div>
@@ -259,32 +259,32 @@
                         <div class="detail-grid">
 
                             <div class="detail-item">
-                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">#</span>Employee ID</div>
+                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">#</span><span class="detail-label-text">Employee ID</span></div>
                                 <div class="detail-value">{{ profile.employee_id }}</div>
                             </div>
 
                             <div class="detail-item">
-                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9638;</span>Department</div>
+                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9638;</span><span class="detail-label-text">Department</span></div>
                                 <div class="detail-value">{{ profile.department }}</div>
                             </div>
 
                             <div class="detail-item">
-                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9670;</span>Role</div>
+                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9670;</span><span class="detail-label-text">Role</span></div>
                                 <div class="detail-value">{{ profile.role }}</div>
                             </div>
 
                             <div class="detail-item">
-                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9687;</span>Date of Joining</div>
+                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9687;</span><span class="detail-label-text">Date of Joining</span></div>
                                 <div class="detail-value">{{ profile.date_of_joining }}</div>
                             </div>
 
                             <div class="detail-item">
-                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9993;</span>Email</div>
+                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9993;</span><span class="detail-label-text">Email</span></div>
                                 <div class="detail-value">{{ request.user.email }}</div>
                             </div>
 
                             <div class="detail-item">
-                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9742;</span>Phone</div>
+                                <div class="detail-label"><span class="detail-symbol" aria-hidden="true">&#9742;</span><span class="detail-label-text">Phone</span></div>
                                 <div class="detail-value">{{ profile.phone }}</div>
                             </div>
 
@@ -292,7 +292,7 @@
 
                             <div class="detail-item full-width">
                                 <div class="detail-label">
-                                    <span class="detail-symbol" aria-hidden="true">&#8962;</span>Address
+                                    <span class="detail-symbol" aria-hidden="true">&#8962;</span><span class="detail-label-text">Address</span>
                                     <span class="edit-icon" data-action="edit-profile-field" data-field="address">✎</span>
                                     <span id="addressDirty" class="unsaved-dot hidden">●</span>
                                 </div>
@@ -315,7 +315,7 @@
 
                             <div class="detail-item full-width">
                                 <div class="detail-label">
-                                    <span class="detail-symbol" aria-hidden="true">&#10022;</span>About Me
+                                    <span class="detail-symbol" aria-hidden="true">&#10022;</span><span class="detail-label-text">About Me</span>
                                     <span class="edit-icon" data-action="edit-profile-field" data-field="bio">✎</span>
                                     <span id="bioDirty" class="unsaved-dot hidden">●</span>
                                 </div>
@@ -359,19 +359,7 @@
             <div class="right-profile">
                 <div class="insight-banner">
                     <div class="insight-copy">
-                        <p class="section-kicker insight-kicker"><span class="section-badge insight-badge">◔</span><span>Overview</span></p>
-                        <h3>Leave insights at a glance</h3>
-                        <p>Track totals, usage patterns, and short-form leave behavior without leaving this page.</p>
-                    </div>
-                    <div class="insight-stats">
-                        <div class="insight-stat">
-                            <span>Total leave</span>
-                            <strong data-countup data-countup-target="{{ balance.total_leave_balance }}" data-countup-decimals="2">{{ balance.total_leave_balance }}</strong>
-                        </div>
-                        <div class="insight-stat">
-                            <span>Total used</span>
-                            <strong data-countup data-countup-target="{{ total_used }}" data-countup-decimals="2">{{ total_used }}</strong>
-                        </div>
+                        <h3 class="overview-heading"><span class="section-badge insight-badge" aria-hidden="true">&#9684;</span><span>Leave Overview Insights</span></h3>
                     </div>
                 </div>
 
@@ -379,15 +367,15 @@
 
                 <div class="leave-stats-grid">
 
-                    <div class="leave-card earned">
+                    <div class="leave-card total">
                         <div class="leave-card-head">
-                            <div class="leave-card-badge">EL</div>
-                            <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#10047;</span><span>Earned Leave</span></div>
+                            <div class="leave-card-badge">TL</div>
+                            <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#8801;</span><span>All Leave</span></div>
                         </div>
                         <div class="leave-row">
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9679;</span><span>Total</span></span><span data-countup data-countup-target="{{ balance.earned_total }}" data-countup-decimals="2">{{ balance.earned_total }}</span></div>
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#10003;</span><span>Used</span></span><span data-countup data-countup-target="{{ balance.earned_used }}" data-countup-decimals="2">{{ balance.earned_used }}</span></div>
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9711;</span><span>Remaining</span></span><span data-countup data-countup-target="{{ earned_remaining }}" data-countup-decimals="2">{{ earned_remaining }}</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9679;</span><span>Total</span></span><span data-countup data-countup-target="{{ balance.total_leave_balance }}" data-countup-decimals="2">{{ balance.total_leave_balance }}</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#10003;</span><span>Used</span></span><span data-countup data-countup-target="{{ total_used }}" data-countup-decimals="2">{{ total_used }}</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9711;</span><span>Remaining</span></span><span data-countup data-countup-target="{{ total_remaining }}" data-countup-decimals="2">{{ total_remaining }}</span></div>
                         </div>
                     </div>
 
@@ -403,15 +391,15 @@
                         </div>
                     </div>
 
-                    <div class="leave-card total">
+                    <div class="leave-card earned">
                         <div class="leave-card-head">
-                            <div class="leave-card-badge">TL</div>
-                            <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#8801;</span><span>All Leave</span></div>
+                            <div class="leave-card-badge">EL</div>
+                            <div class="leave-header"><span class="leave-header-icon" aria-hidden="true">&#10047;</span><span>Earned Leave</span></div>
                         </div>
                         <div class="leave-row">
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9679;</span><span>Total</span></span><span data-countup data-countup-target="{{ balance.total_leave_balance }}" data-countup-decimals="2">{{ balance.total_leave_balance }}</span></div>
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#10003;</span><span>Used</span></span><span data-countup data-countup-target="{{ total_used }}" data-countup-decimals="2">{{ total_used }}</span></div>
-                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9711;</span><span>Remaining</span></span><span data-countup data-countup-target="{{ total_remaining }}" data-countup-decimals="2">{{ total_remaining }}</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9679;</span><span>Total</span></span><span data-countup data-countup-target="{{ balance.earned_total }}" data-countup-decimals="2">{{ balance.earned_total }}</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#10003;</span><span>Used</span></span><span data-countup data-countup-target="{{ balance.earned_used }}" data-countup-decimals="2">{{ balance.earned_used }}</span></div>
+                            <div><span class="leave-metric-label"><span class="leave-metric-icon" aria-hidden="true">&#9711;</span><span>Remaining</span></span><span data-countup data-countup-target="{{ earned_remaining }}" data-countup-decimals="2">{{ earned_remaining }}</span></div>
                         </div>
                     </div>
 
@@ -564,14 +552,20 @@
         ===================================================== -->
 
         <div id="passwordModal" class="modal">
-            <div class="modal-content">
+            <div class="modal-content password-modal-content">
 
                 <!-- CLOSE BUTTON -->
-                <span class="modal-close" id="passwordModalClose" data-action="close-password-modal" title="Close">&times;</span>
+                <button type="button" class="modal-close" id="passwordModalClose" data-action="close-password-modal" title="Close" aria-label="Close password modal">&times;</button>
 
-                <center><h2>Change Password</h2></center>
+                <div class="password-modal-header">
+                    <span class="password-modal-icon" aria-hidden="true">&#128274;</span>
+                    <div>
+                        <h2>Change Password</h2>
+                        <p>Update your sign-in credentials securely.</p>
+                    </div>
+                </div>
 
-                <form method="POST">
+                <form method="POST" class="password-modal-form">
 
                     {% csrf_token %}
 
@@ -579,7 +573,7 @@
 
                     <!-- CURRENT PASSWORD -->
                     <div class="form-group">
-                        <label>Current Password</label>
+                        <label for="id_old_password">Current Password</label>
 
                         <div class="password-wrapper {% if password_form.old_password.errors %}input-error{% endif %}">
                             {{ password_form.old_password }}
@@ -602,7 +596,7 @@
 
                     <!-- NEW PASSWORD -->
                     <div class="form-group">
-                        <label>New Password</label>
+                        <label for="id_new_password1">New Password</label>
 
                         <div class="password-wrapper {% if password_form.new_password1.errors %}input-error{% endif %}">
                             {{ password_form.new_password1 }}
@@ -632,7 +626,7 @@
 
                     <!-- CONFIRM PASSWORD -->
                     <div class="form-group">
-                        <label>Confirm Password</label>
+                        <label for="id_new_password2">Confirm Password</label>
 
                         <div class="password-wrapper {% if password_form.new_password2.errors %}input-error{% endif %}">
                             {{ password_form.new_password2 }}
@@ -649,8 +643,8 @@
                     </div>
 
                     <div class="modal-buttons">
-                        <button type="submit" id="updatePasswordBtn" class="update-btn" disabled> Update Password </button>
-                        <button type="button" data-action="close-password-modal" class="cancel-btn"> Cancel </button>
+                        <button type="submit" id="updatePasswordBtn" class="update-btn" disabled><span aria-hidden="true">&#10003;</span> Update Password</button>
+                        <button type="button" data-action="close-password-modal" class="cancel-btn"><span aria-hidden="true">&times;</span> Cancel</button>
                     </div>
                 </form>
             </div>
