@@ -2706,7 +2706,8 @@ def dashboard(request):
         }
 
     # 🔥 BASE QUERY
-    leaves_qs = Leave.objects.filter(user=request.user).order_by("-created_at")
+    recent_cutoff = now() - timedelta(days=30)
+    leaves_qs = Leave.objects.filter(user=request.user, created_at__gte=recent_cutoff).order_by("-created_at")
 
     # 🔥 PAGINATION
     page_number = request.GET.get("page", 1)

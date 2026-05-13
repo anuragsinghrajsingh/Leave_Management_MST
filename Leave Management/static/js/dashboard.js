@@ -1053,8 +1053,8 @@ function openReasonModal(sourceElement) {
     const typeClass = getReasonModalTypeClass(type);
     const context = getReasonModalContext(status);
     const contextLabels = {
-        pending: { title: "Pending Reason", label: "Pending Reason", icon: "&#9203;" },
-        approved: { title: "Approved Reason", label: "Approved Reason", icon: "&#10003;" },
+        pending: { title: "Pending Leave Reason", label: "Pending Reason", icon: "&#9203;" },
+        approved: { title: "Approved Leave Reason", label: "Approved Reason", icon: "&#10003;" },
         "rejected-employee": { title: "Rejected Leave Reason", label: "Employee Reason", icon: "&#128221;" }
     };
     const contextCopy = contextLabels[context] || contextLabels.pending;
