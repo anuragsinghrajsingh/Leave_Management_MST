@@ -4296,6 +4296,24 @@ def edit_leave(request, leave_id):
             refresh_pending_leave_notification(leave)
             leave.save()
 
+            # --- Notify Managers (Updated Request) ---
+            hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+            if hr_emails:
+                subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
+                portal_link = request.build_absolute_uri('/')
+                context = {
+                    'title': 'Leave Request Updated',
+                    'intro_text': f"{request.user.get_full_name() or request.user.username} has updated their pending {new_type} leave request.",
+                    'employee_name': request.user.get_full_name() or request.user.username,
+                    'leave_type': new_type,
+                    'date_range': f"{new_from.strftime('%d %b %Y')} ({start.strftime('%I:%M %p')} → {end.strftime('%I:%M %p')})",
+                    'reason': new_reason,
+                    'status_label': 'Updated',
+                    'status_class': 'updated',
+                    'portal_link': portal_link
+                }
+                send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=request.user.email)
+
         messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
         messages.success(request, f"Leave date: From {new_from.strftime('%d %b %Y')} → {new_to.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
         
