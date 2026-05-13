@@ -8788,12 +8788,18 @@ body.profile-page .profile-page-shell .section-kicker.insight-kicker > span:last
     body.profile-page .profile-page-shell .leave-card.short .leave-row,
     body.profile-page .profile-page-shell .leave-card.half .leave-row
     {
-        grid-template-columns: 1.12fr 0.72fr 1.12fr !important;
+        grid-template-columns: 1.16fr 0.58fr 1.16fr !important;
     }
 }
 
 @media (max-width: 700px)
 {
+    body.profile-page .profile-page-shell .leave-card.short .leave-row,
+    body.profile-page .profile-page-shell .leave-card.half .leave-row
+    {
+        grid-template-columns: 1.18fr 0.64fr 1.18fr !important;
+    }
+
     body.profile-page .profile-page-shell .profile-masthead-copy h2
     {
         font-size: 0.94rem !important;
@@ -8993,7 +8999,7 @@ body.profile-page .profile-page-shell .overview-heading
     margin: 0 auto !important;
     width: 100% !important;
     text-align: center !important;
-    font-size: clamp(1.08rem, 1.65vw, 1.42rem) !important;
+    font-size: clamp(1.16rem, 1.78vw, 1.52rem) !important;
     line-height: 1.05 !important;
     font-weight: 1000 !important;
     background: linear-gradient(90deg, #0f766e 0%, #2563eb 42%, #7c3aed 72%, #f97316 100%) !important;
@@ -9009,7 +9015,108 @@ body.profile-page .profile-page-shell .overview-heading .section-badge
 
 body.profile-page .profile-page-shell .chart-headline::after
 {
-    bottom: 0 !important;
+    bottom: 2px !important;
+}
+
+body.profile-page .profile-page-shell .chart-card .headline-with-badge
+{
+    margin-bottom: -4px !important;
+}
+
+body.profile-page .profile-page-shell .chart-card h3
+{
+    margin-bottom: -3px !important;
+}
+
+/* =====================================================
+   ABSOLUTE FINAL LEAVE SYMBOL COLORS
+===================================================== */
+
+body.profile-page .profile-page-shell .leave-card-badge
+{
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.earned .leave-card-badge
+{
+    background: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.total .leave-card-badge
+{
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-card-badge
+{
+    background: linear-gradient(135deg, #fb7185 0%, #ef4444 100%) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-card-badge
+{
+    background: linear-gradient(135deg, #f59e0b 0%, #06b6d4 100%) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-card-badge
+{
+    background: linear-gradient(135deg, #facc15 0%, #f97316 100%) !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-card-badge
+{
+    background: linear-gradient(135deg, #fb923c 0%, #ec4899 100%) !important;
+}
+
+body.profile-page .profile-page-shell .leave-header-icon
+{
+    background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.sick .leave-header-icon
+{
+    background: linear-gradient(135deg, #ef4444 0%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.profile-page .profile-page-shell .leave-header
+{
+    font-size: 1.3rem !important;
+    font-weight: 1000 !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.total .leave-header-icon
+{
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.unpaid .leave-header-icon
+{
+    background: linear-gradient(135deg, #d97706 0%, #0891b2 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.short .leave-header-icon
+{
+    background: linear-gradient(135deg, #eab308 0%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.profile-page .profile-page-shell .leave-card.half .leave-header-icon
+{
+    background: linear-gradient(135deg, #f97316 0%, #db2777 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
 }
 
 @media (max-width: 700px)
@@ -9043,5 +9150,208 @@ body.profile-page .profile-page-shell .chart-headline::after
     body.profile-page .profile-page-shell .chart-body
     {
         margin-top: 4px !important;
+    }
+}
+
+/* =====================================================
+   ABSOLUTE FINAL CHART BADGE COLOR
+===================================================== */
+
+body.profile-page .profile-page-shell .chart-card .section-badge
+{
+    background: linear-gradient(135deg, #14b8a6 0%, #2563eb 45%, #7c3aed 100%) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-color: rgba(59, 130, 246, 0.26) !important;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.14) !important;
+}
+
+body.profile-page .profile-page-shell .chart-card:nth-of-type(2) .section-badge
+{
+    background: linear-gradient(135deg, #f97316 0%, #db2777 48%, #7c3aed 100%) !important;
+    border-color: rgba(217, 70, 239, 0.24) !important;
+    box-shadow: 0 6px 14px rgba(217, 70, 239, 0.14) !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .leave-header
+    {
+        font-size: 1.02rem !important;
+    }
+}
+
+body.profile-page .profile-page-shell .leave-row .leave-metric-label,
+body.profile-page .profile-page-shell .leave-row .leave-metric-label > span:last-child
+{
+    font-size: 0.84rem !important;
+    font-weight: 950 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead
+    {
+        background: linear-gradient(135deg, #0f223d 0%, #173d68 46%, #2354b7 100%) !important;
+        grid-template-columns: minmax(0, 1fr) 68px !important;
+    }
+
+    body.profile-page header .profile-header-dropdown .dropdown-content,
+    body.profile-page header .profile-dropdown .dropdown-content
+    {
+        width: min(210px, calc(100vw - 24px)) !important;
+        min-width: min(210px, calc(100vw - 24px)) !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion .circular-chart
+    {
+        transform: none !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion-card
+    {
+        width: 68px !important;
+        min-width: 68px !important;
+        max-width: 68px !important;
+        justify-content: center !important;
+        overflow: visible !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion
+    {
+        width: 64px !important;
+        min-width: 64px !important;
+        justify-content: center !important;
+        overflow: visible !important;
+    }
+}
+
+@media (min-width: 701px)
+{
+    body.profile-page .profile-page-shell .chart-card h3
+    {
+        font-size: 1.34rem !important;
+        font-weight: 1000 !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion .circular-chart
+    {
+        width: 100px !important;
+        height: 100px !important;
+        transform: translate(-4px, 14px) !important;
+    }
+}
+
+body.profile-page .profile-page-shell .chart-label,
+body.profile-page .profile-page-shell .chart-legend .legend-label,
+body.profile-page .profile-page-shell .legend-label
+{
+    font-size: 0.92rem !important;
+    font-weight: 1000 !important;
+}
+
+@media (max-width: 700px)
+{
+    body.profile-page .profile-page-shell .profile-masthead
+    {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 74px !important;
+        align-items: center !important;
+        padding: 6px 8px 5px !important;
+        overflow: hidden !important;
+        background: linear-gradient(135deg, #0f223d 0%, #173d68 46%, #2354b7 100%) !important;
+        background-color: #173d68 !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead-main
+    {
+        padding-top: 5px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-avatar,
+    body.profile-page .profile-page-shell .masthead-avatar:hover,
+    body.profile-page .profile-page-shell .profile-avatar-container.masthead-avatar:hover
+    {
+        position: relative !important;
+        top: 2.5px !important;
+        transform: none !important;
+    }
+
+    body.profile-page .profile-page-shell #mastheadAvatarCard
+    {
+        position: relative !important;
+        top: 2.5px !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion-card
+    {
+        width: 74px !important;
+        min-width: 74px !important;
+        max-width: 74px !important;
+        height: 74px !important;
+        min-height: 74px !important;
+        max-height: 74px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion
+    {
+        width: 74px !important;
+        min-width: 74px !important;
+        height: 74px !important;
+        min-height: 74px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        background: transparent !important;
+        background-image: none !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion::before,
+    body.profile-page .profile-page-shell .masthead-completion::after,
+    body.profile-page .profile-page-shell .masthead-completion-card::before,
+    body.profile-page .profile-page-shell .masthead-completion-card::after
+    {
+        display: none !important;
+        content: none !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion .circular-chart
+    {
+        width: 72px !important;
+        height: 72px !important;
+        margin: 0 !important;
+        transform: translateX(-3px) !important;
+        flex: 0 0 auto !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-completion .chart-label
+    {
+        display: none !important;
+    }
+
+    body.profile-page .profile-page-shell .profile-masthead-copy h2
+    {
+        font-size: 0.86rem !important;
+        line-height: 1.12 !important;
+        transform: translateY(13px) !important;
+    }
+
+    body.profile-page .profile-page-shell .masthead-handle
+    {
+        font-size: 0.68rem !important;
+        line-height: 1.12 !important;
+        transform: translateY(13px) !important;
     }
 }
