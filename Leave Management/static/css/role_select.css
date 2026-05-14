@@ -132,24 +132,55 @@ body {
 .hero-kicker {
     display: inline-flex;
     align-items: center;
+    position: relative;
     padding: 10px 18px;
     border-radius: 999px;
     font-size: 1.12rem;
     font-weight: 1000;
+    font-family: "Arial Black", "Segoe UI", "Trebuchet MS", sans-serif;
     letter-spacing: 0.10em;
     text-transform: uppercase;
-    color: #eef7ff;
     line-height: 1.15;
-    background: rgba(255, 255, 255, 0.09);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(90deg, #67e8f9 0%, #7dd3fc 24%, #c4b5fd 56%, #f9a8d4 78%, #fde68a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     transform: translate(10px, -38px);
-    background-image:
-        linear-gradient(90deg, #8be9ff 0%, #7dd3fc 26%, #c4b5fd 58%, #fde68a 100%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
-    -webkit-background-clip: text, border-box;
-    background-clip: text, border-box;
+}
+
+.hero-kicker::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(90deg, #67e8f9 0%, #7dd3fc 24%, #c4b5fd 56%, #f9a8d4 78%, #fde68a 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.hero-kicker::after {
+    content: attr(data-label);
+    position: absolute;
+    inset: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    line-height: inherit;
+    background: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
+    color: transparent;
+    transform: translateX(0.55px);
+    pointer-events: none;
 }
 
 .hero-copy {
@@ -289,9 +320,11 @@ body {
 .role-card__body h2 {
     margin: 0;
     font-size: clamp(1.8rem, 1.2vw + 1.3rem, 2.35rem);
-    line-height: 1.1;
-    font-weight: 900;
+    line-height: 1.14;
+    font-weight: 1000;
     color: #f8f7fb;
+    padding-bottom: 0.08em;
+    overflow: visible;
 }
 
 .employee .role-card__body h2 {
@@ -333,7 +366,7 @@ body {
     padding: 0 clamp(18px, 1.2vw, 24px);
     border-radius: 999px;
     color: #fdfcff;
-    font-size: clamp(1rem, 0.35vw + 0.96rem, 1.12rem);
+    font-size: clamp(1.08rem, 0.42vw + 0.98rem, 1.22rem);
     font-weight: 1000;
     letter-spacing: 0.02em;
     background:
@@ -350,6 +383,36 @@ body {
     grid-column: 2;
     justify-self: center;
     text-align: center;
+    white-space: nowrap;
+}
+
+.role-action__label {
+    display: inline-block;
+    position: relative;
+    font-family: "Arial Black", "Segoe UI", "Trebuchet MS", sans-serif;
+    font-weight: 1000;
+    letter-spacing: 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    transform: scaleX(1.045);
+    transform-origin: left center;
+}
+
+.role-action__label::before {
+    content: attr(data-label);
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    font: inherit;
+    letter-spacing: inherit;
+    background: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    transform: translateX(0.55px);
 }
 
 .role-action__arrow {
@@ -415,6 +478,10 @@ body {
         rgba(18, 32, 54, 0.92);
 }
 
+.employee .role-action__label {
+    background-image: linear-gradient(90deg, #7dd3fc 0%, #93c5fd 48%, #f0abfc 100%);
+}
+
 .employee .role-action__arrow {
     color: #7dd3fc;
     background:
@@ -459,6 +526,10 @@ body {
         rgba(22, 58, 62, 0.9);
 }
 
+.hr .role-action__label {
+    background-image: linear-gradient(90deg, #bef264 0%, #6ee7b7 48%, #7dd3fc 100%);
+}
+
 .hr .role-action__arrow {
     color: #86efac;
     background:
@@ -501,6 +572,10 @@ body {
     background:
         linear-gradient(180deg, rgba(255, 172, 155, 0.12), rgba(255, 255, 255, 0.04)),
         rgba(75, 55, 59, 0.9);
+}
+
+.admin .role-action__label {
+    background-image: linear-gradient(90deg, #fb7185 0%, #f9a8d4 48%, #a5b4fc 100%);
 }
 
 .admin .role-action__arrow {
@@ -605,7 +680,7 @@ body {
     .role-action {
         min-height: 50px;
         margin-top: 18px;
-        font-size: 0.96rem;
+        font-size: 1rem;
     }
 }
 
@@ -685,7 +760,7 @@ body {
     .role-action {
         min-height: 46px;
         padding: 0 14px;
-        font-size: 0.9rem;
+        font-size: 0.92rem;
     }
 
     .role-action__arrow {

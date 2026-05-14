@@ -151,9 +151,9 @@ body.loading-page {
         rgba(11, 13, 28, 0.88);
     background-clip: padding-box;
     color: transparent;
-    font-size: 2.95rem;
+    font-size: clamp(3.25rem, 4.2vw, 4.25rem);
     line-height: 1;
-    letter-spacing: 0.11em;
+    letter-spacing: 0.09em;
     font-weight: 1000;
     font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
     text-transform: uppercase;
@@ -163,6 +163,7 @@ body.loading-page {
         linear-gradient(90deg, #ff8aa0 0%, #ff5b7f 22%, #d36aff 54%, #7e8cff 78%, #74f0ea 100%);
     -webkit-background-clip: padding-box, text;
     background-clip: padding-box, text;
+    -webkit-text-stroke: 0.45px rgba(255, 255, 255, 0.34);
 }
 
 .loading-header {

@@ -310,10 +310,12 @@ body.portal-loading {
     align-items: center;
     gap: 18px;
     color: color-mix(in srgb, var(--portal-accent-a) 76%, white 24%);
-    font-size: 0.82rem;
-    letter-spacing: 0.22em;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    font-weight: 900;
+    font-weight: 1000;
+    font-family: "Arial Black", "Trebuchet MS", "Segoe UI", sans-serif;
+    -webkit-text-stroke: 0.25px rgba(255, 255, 255, 0.3);
 }
 
 .portal-loading__subtitle::before,
@@ -702,7 +704,9 @@ body.portal-loading {
 
     .portal-loading__auth-chip {
         top: 8px;
-        right: 12px;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
     .portal-loading__badge {
@@ -839,7 +843,9 @@ body.portal-loading {
 
     .portal-loading--employee .portal-loading__auth-chip {
         top: 6px;
-        right: 100px;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
         margin: 0;
     }
 

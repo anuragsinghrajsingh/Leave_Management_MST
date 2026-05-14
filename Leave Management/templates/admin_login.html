@@ -1207,6 +1207,18 @@
             font-weight: 800 !important;
             letter-spacing: 0.02em;
         }
+
+        .welcome-emoji {
+            display: inline-block;
+            background: none !important;
+            -webkit-background-clip: border-box !important;
+            background-clip: border-box !important;
+            -webkit-text-fill-color: initial !important;
+            color: initial !important;
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif !important;
+            font-weight: 400 !important;
+            text-shadow: none !important;
+        }
 </style>
 </head>
 <body class="login-page admin-theme">
@@ -1217,7 +1229,7 @@
                     <div class="admin-brand-row">
                         <div class="admin-brand-lockup">
                             <div class="admin-logo-badge">
-                                <img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo">
+                                <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
                             </div>
                             <div class="admin-brand-text">
                                 <h1>MS Technology</h1>
@@ -1244,7 +1256,7 @@
                     </div>
 
                     <div class="admin-hero-copy">
-                        <h2>Welcome back</h2>
+                        <h2><span class="welcome-emoji">🙏</span> Welcome back <span class="welcome-emoji">🙏</span></h2>
                         <p>
                             Access and manage the entire platform with powerful tools,
                             insightful analytics, and complete control.

@@ -549,6 +549,18 @@
             line-height: 1.08 !important;
         }
 
+        .welcome-emoji {
+            display: inline-block;
+            background: none !important;
+            -webkit-background-clip: border-box !important;
+            background-clip: border-box !important;
+            -webkit-text-fill-color: initial !important;
+            color: initial !important;
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif !important;
+            font-weight: 400 !important;
+            text-shadow: none !important;
+        }
+
         .employee-theme .login-card__header-icon {
             width: 44px !important;
             height: 44px !important;
@@ -1256,7 +1268,7 @@
             <div class="brand-banner">
                 <div class="brand-banner__main">
                     <div class="brand-banner__logo-shell">
-                        <img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo" class="brand-logo">
+                        <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
                     </div>
                     <div class="brand-banner__title-shell">
                         <p class="brand-name">MS Technology</p>
@@ -1284,7 +1296,7 @@
                     </span>
                 </div>
             </div>
-            <h1>Welcome back</h1>
+            <h1><span class="welcome-emoji">🙏</span> Welcome back <span class="welcome-emoji">🙏</span></h1>
             <p>
                 Sign in to apply for leave, review your balances, and stay updated on request status
                 from your phone or desktop.

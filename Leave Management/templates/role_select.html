@@ -17,12 +17,12 @@
             <header class="portal-header">
                 <div class="portal-header__row">
                     <div class="brand-lockup">
-                        <img src="{% static 'images/lms-logo.svg' %}" alt="LMS logo" class="brand-logo">
+                        <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo" class="brand-logo">
                         <div class="brand-copy">
                             <p class="brand-name">MS Technology</p>
                         </div>
                     </div>
-                    <span class="hero-kicker">Leave Management Portal</span>
+                    <span class="hero-kicker" data-label="Leave Management Portal">Leave Management Portal</span>
                 </div>
             </header>
 
@@ -60,7 +60,7 @@
                         <p>Continue to the employee login page to apply, track, and manage leave smoothly.</p>
                     </div>
                     <a href="{% url 'employee_login' %}" class="role-action">
-                        <span>Go to employee login</span>
+                        <span>Go to <span class="role-action__label" data-label="Employee Login">Employee Login</span></span>
                         <span class="role-action__arrow" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
                                 <path d="m9 6 6 6-6 6"/>
@@ -102,7 +102,7 @@
                         <p>Continue to the HR login page to review approvals, oversee records, and support teams.</p>
                     </div>
                     <a href="{% url 'hr_login' %}" class="role-action">
-                        <span>Go to HR login</span>
+                        <span>Go to <span class="role-action__label" data-label="HR Login">HR Login</span></span>
                         <span class="role-action__arrow" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
                                 <path d="m9 6 6 6-6 6"/>
@@ -137,7 +137,7 @@
                         <p>Continue to the admin login page for configuration, policies, and full system access.</p>
                     </div>
                     <a href="{% url 'admin_login' %}" class="role-action">
-                        <span>Go to admin login</span>
+                        <span>Go to <span class="role-action__label" data-label="Admin Login">Admin Login</span></span>
                         <span class="role-action__arrow" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
                                 <path d="m9 6 6 6-6 6"/>
