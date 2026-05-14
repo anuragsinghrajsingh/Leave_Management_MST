@@ -33,5 +33,5 @@ Thumbs.db
 .env.*
 
 # System Artifacts (SECURITY CRITICAL)
-"Leave Management/backups/"
-"Leave Management/logs/"
+Leave\ Management/backups/
+Leave\ Management/logs/
