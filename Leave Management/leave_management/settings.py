@@ -222,7 +222,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOG_BASE_DIR = BASE_DIR / "logs" / ("prod" if IS_PRODUCTION else "dev")
 
 # Ensure directories exist
-for sub in ["auth", "leave", "analytics", "email", "master", "profile"]:
+for sub in ["auth", "leave", "analytics", "email", "master", "profile", "security"]:
     (LOG_BASE_DIR / sub).mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
@@ -354,6 +354,16 @@ LOGGING = {
             "formatter": "verbose",
             "filters": ["request_id_filter"],
         },
+        # --- Security Audit ---
+        "security_auth": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "security" / "unauthorized.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
         # --- Django Default Errors ---
         "django_file": {
             "level": "ERROR",
@@ -387,6 +397,7 @@ LOGGING = {
         # Analytics & Profile
         "lms_analytics": {"handlers": ["analytics_nav", "master"], "level": "INFO", "propagate": False},
         "lms_profile": {"handlers": ["profile_audit", "master"], "level": "INFO", "propagate": False},
+        "lms_security": {"handlers": ["security_auth", "master"], "level": "INFO", "propagate": False},
 
         # Django Default
         "django": {"handlers": ["django_file", "master"], "level": "ERROR", "propagate": True},

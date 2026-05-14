@@ -30,6 +30,16 @@ class CorrelationMiddleware:
         request.request_id = _thread_locals.request_id
         
         response = self.get_response(request)
+
+        # 403 Forbidden Security Listener
+        if response.status_code == 403:
+            import logging
+            logger = logging.getLogger('lms_security')
+            username = request.user.username if request.user.is_authenticated else "Anonymous"
+            logger.info(
+                f"UNAUTHORIZED_ACCESS_ATTEMPT | User: {username} | "
+                f"Path: {request.path} | Method: {request.method}"
+            )
         
         # Clean up
         if hasattr(_thread_locals, 'request_id'):

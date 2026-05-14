@@ -3654,13 +3654,13 @@ def leave_calendar_data(request):
         
     if not holidays:
         holidays = []
+        current_year = date.today().year
         try:
             res = requests.get(
                 "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics",
                 timeout=10
             )
             calendar = Calendar(res.text)
-            current_year = date.today().year
 
             for event in calendar.events:
                 if event.begin.year == current_year:
