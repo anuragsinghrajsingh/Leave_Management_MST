@@ -36,9 +36,12 @@ environ.Env.read_env(BASE_DIR / '.env')
 DEFAULT_DEV_SECRET_KEY = "django-insecure-local-development-only-change-in-production"
 SECRET_KEY = env("DJANGO_SECRET_KEY", default=DEFAULT_DEV_SECRET_KEY)
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# Security Configuration
 DEBUG = env("DJANGO_DEBUG")
 IS_PRODUCTION = not DEBUG
+
+ADMINS = [('Admin', env("ADMIN_EMAIL", default="admin@example.com"))]
+MANAGERS = ADMINS
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"] if DEBUG else [])
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
@@ -97,6 +100,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'App.middleware.CorrelationMiddleware',
+    'App.middleware.APILoggingMiddleware',
     'App.middleware.UserAnalyticsMiddleware',
 ]
 
@@ -357,6 +361,15 @@ LOGGING = {
             "formatter": "verbose",
             "filters": ["request_id_filter"],
         },
+        "email_system": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "email" / "system.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
         # --- Profile Audit ---
         "profile_audit": {
             "level": "INFO",
@@ -372,6 +385,33 @@ LOGGING = {
             "level": "INFO",
             "class": "logging.handlers.RotatingFileHandler",
             "filename": LOG_BASE_DIR / "security" / "unauthorized.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "backup_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "backups" / "activity.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "scheduler_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "scheduler" / "tasks.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "api_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "api" / "requests.log",
             "maxBytes": 100 * 1024 * 1024,
             "backupCount": 30,
             "formatter": "verbose",
@@ -406,6 +446,10 @@ LOGGING = {
         "lms_email_employee": {"handlers": ["email_employee", "master", "console"], "level": "INFO", "propagate": False},
         "lms_email_hr": {"handlers": ["email_hr", "master", "console"], "level": "INFO", "propagate": False},
         "lms_email_admin": {"handlers": ["email_admin", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_email_system": {"handlers": ["email_system", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_backups": {"handlers": ["backup_file", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_scheduler": {"handlers": ["scheduler_file", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_api": {"handlers": ["api_file", "master", "console"], "level": "INFO", "propagate": False},
 
         # Analytics & Profile
         "lms_analytics": {"handlers": ["analytics_nav", "master", "console"], "level": "INFO", "propagate": False},
@@ -427,5 +471,6 @@ EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=True)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_SUBJECT_PREFIX = "[MS Technology Leave] "
 EMAIL_TIMEOUT = 10  # Seconds

@@ -2,12 +2,13 @@ import os
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore, register_events
-from manage_backups import run_backup
-from App.services.year_end_service import run_year_end_carry_forward_if_due
 
-logger = logging.getLogger('lms_master')
+logger = logging.getLogger('lms_scheduler')
 
 def start_scheduler():
+    from manage_backups import run_backup
+    from App.services.year_end_service import run_year_end_carry_forward_if_due
+
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
 

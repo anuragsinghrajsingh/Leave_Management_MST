@@ -5,3 +5,6 @@ Pillow
 requests
 whitenoise
 django-environ
+django-apscheduler
+psycopg2-binary
+gunicorn

@@ -57,10 +57,30 @@ class CorrelationMiddleware:
                 f"Path: {request.path} | Method: {request.method}"
             )
         
-        # Clean up
+        # Cleanup after request
         if hasattr(_thread_locals, 'request_id'):
             del _thread_locals.request_id
-            
+
+        return response
+
+
+class APILoggingMiddleware:
+    """
+    Middleware that logs all /api/ requests to the specialized lms_api logger.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.logger = logging.getLogger('lms_api')
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        # Log only /api/ paths to the dedicated API log
+        if request.path.startswith('/api/'):
+            status_code = response.status_code
+            user = request.user if request.user.is_authenticated else "Anonymous"
+            self.logger.info(f"API | {request.method} {request.path} | Status: {status_code} | User: {user}")
+
         return response
 
 class UserAnalyticsMiddleware:
