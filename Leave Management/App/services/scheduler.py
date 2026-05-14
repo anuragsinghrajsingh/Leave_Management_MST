@@ -3,12 +3,24 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore, register_events
 from manage_backups import run_backup
+from App.services.year_end_service import run_year_end_carry_forward_if_due
 
 logger = logging.getLogger('lms_master')
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
+
+    # Schedule the year-end carry forward at 1:00 AM every night
+    scheduler.add_job(
+        run_year_end_carry_forward_if_due,
+        trigger="cron",
+        hour=1,
+        minute=0,
+        id="year_end_carry_forward",
+        max_instances=1,
+        replace_existing=True,
+    )
 
     # Schedule the backup job at 2:00 AM every night
     scheduler.add_job(

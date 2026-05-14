@@ -88,7 +88,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'leave_management.middleware.NoCacheMiddleware',
-    'leave_management.middleware.YearEndCarryForwardMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # 👈 Added for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
