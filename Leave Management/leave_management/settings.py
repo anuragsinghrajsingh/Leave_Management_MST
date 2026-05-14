@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     
     'App',
     "django_extensions",
+    'django_apscheduler',
 ]
 
 MIDDLEWARE = [
