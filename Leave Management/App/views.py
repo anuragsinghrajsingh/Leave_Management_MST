@@ -7,6 +7,7 @@ from ics import Calendar
 from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.shortcuts import render, redirect, get_object_or_404
+from App.utils.logger_utils import log_leave_action, log_profile_update
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
@@ -56,6 +57,11 @@ def send_branded_email(subject, template_name, context, to_email, reply_to=None)
             email.attach(img)
             
     email.send(fail_silently=True)
+    
+    # Log the email communication
+    from App.utils.logger_utils import log_email_sent_by_email
+    for addr in to_email:
+        log_email_sent_by_email(addr, subject, success=True)
 
 
 def _get_leave_day_display(leave):
@@ -2002,16 +2008,20 @@ def update_employee_contact_field(request, user_id):
         if Profile.objects.filter(phone=field_value).exclude(user=employee).exists():
             return JsonResponse({"detail": "This phone number is already linked to another employee."}, status=400)
 
+        old_phone = profile.phone
         profile.phone = field_value
         profile.save(update_fields=["phone"])
+        log_profile_update(profile.user, request.user, "phone", old_phone, field_value)
         return JsonResponse({
             "status": "success",
             "field": "phone",
             "value": profile.phone,
         })
 
+    old_address = profile.address
     profile.address = field_value
     profile.save(update_fields=["address"])
+    log_profile_update(profile.user, request.user, "address", old_address, field_value)
     return JsonResponse({
         "status": "success",
         "field": "address",
@@ -2160,6 +2170,7 @@ def approve_leave(request, leave_id):
     leave.approved_at = timezone.now()
     leave.rejected_at = None
     leave.save()
+    log_leave_action(request.user, "APPROVE", leave.id, f"Employee: {leave.user.username}")
 
     # --- Notify Employee (Approved) ---
     subject = f"Leave Request APPROVED: {leave.leave_type}"
@@ -2292,6 +2303,7 @@ def reject_leave(request, leave_id):
         leave.rejected_at = timezone.now()
         leave.approved_at = None
         leave.save()
+        log_leave_action(request.user, "REJECT", leave.id, f"Employee: {leave.user.username} | Reason: {leave.rejection_reason}")
 
         # --- Notify Employee (Rejected) ---
         subject = f"Leave Request REJECTED: {leave.leave_type}"
@@ -2359,6 +2371,7 @@ def edit_employee_profile(request, user_id):
         profile.date_of_joining = request.POST.get("date_of_joining")
 
         profile.save()
+        log_profile_update(profile.user, request.user, "Multiple Fields (HR Edit)", "N/A", "Updated")
         messages.success(request, "Employee profile updated.")
         return redirect("manage_employees")
 
@@ -2504,16 +2517,20 @@ def profile_view(request):
                     if len(value) < 5:
                         return JsonResponse({"error":"Address too short"})
 
+                    old_address = profile.address
                     profile.address = value
                     profile.save(update_fields=["address"])
+                    log_profile_update(profile.user, request.user, "address", old_address, value)
 
                 elif field == "bio":
 
                     if len(value.split()) > 50:
                         return JsonResponse({"error":"Max 50 words allowed"})
 
+                    old_bio = profile.bio
                     profile.bio = value
                     profile.save(update_fields=["bio"])
+                    log_profile_update(profile.user, request.user, "bio", old_bio, value)
 
                 fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]
 
@@ -3409,6 +3426,7 @@ def apply_leave(request):
                 status="Pending",
                 deducted_from=deducted_from
             )
+            log_leave_action(request.user, "APPLY", leave_obj.id, f"Type: {leave_type} | Dates: {from_date} to {to_date}")
 
             # --- Notify Managers (New Full-Day Request) ---
             hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
@@ -3997,6 +4015,7 @@ def delete_leave(request, leave_id):
             messages.info(request, f"Company holiday day(s) restored in balance: {company_holiday_days}")
 
         deleted_leave_id = leave.id
+        log_leave_action(request.user, "DELETE", leave.id, f"Type: {leave.leave_type}")
         leave.delete()
         
         live_counts = {
@@ -4295,6 +4314,7 @@ def edit_leave(request, leave_id):
             leave.no_of_times_updated = (leave.no_of_times_updated or 0) + 1
             refresh_pending_leave_notification(leave)
             leave.save()
+            log_leave_action(request.user, "EDIT", leave.id, f"Changes: {old_type} to {new_type} (Short/Half)")
 
             # --- Notify Managers (Updated Request) ---
             hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
@@ -4470,6 +4490,7 @@ def edit_leave(request, leave_id):
         leave.no_of_times_updated = (leave.no_of_times_updated or 0) + 1
         refresh_pending_leave_notification(leave)
         leave.save()
+        log_leave_action(request.user, "EDIT", leave.id, f"Changes: {old_type} to {new_type}")
 
         # --- Notify Managers (Updated Request) ---
         hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))

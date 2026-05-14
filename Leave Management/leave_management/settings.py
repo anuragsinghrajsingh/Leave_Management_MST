@@ -96,6 +96,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'App.middleware.CorrelationMiddleware',
+    'App.middleware.UserAnalyticsMiddleware',
 ]
 
 ROOT_URLCONF = 'leave_management.urls'
@@ -216,32 +218,178 @@ LOGOUT_REDIRECT_URL = '/'
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Logging Configuration
-# https://docs.djangoproject.com/en/6.0/topics/logging/
+# Logging Infrastructure
+LOG_BASE_DIR = BASE_DIR / "logs" / ("prod" if IS_PRODUCTION else "dev")
 
-LOGS_DIR = BASE_DIR / "logs"
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+# Ensure directories exist
+for sub in ["auth", "leave", "analytics", "email", "master", "profile"]:
+    (LOG_BASE_DIR / sub).mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "[{levelname}] {asctime} | ReqID: {request_id} | {module} | {message}",
             "style": "{",
         },
     },
-    "handlers": {
-        "file": {
-            "level": "ERROR",
-            "class": "logging.FileHandler",
-            "filename": LOGS_DIR / "django.log",
-            "formatter": "verbose",
+    "filters": {
+        "request_id_filter": {
+            "()": "App.middleware.CorrelationIDFilter",
         },
     },
-    "root": {
-        "handlers": ["file"],
-        "level": "ERROR",
+    "handlers": {
+        # --- Master Log ---
+        "master": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "master" / "system_master.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        # --- Auth Handlers ---
+        "auth_employee": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "auth" / "employee.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "auth_hr": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "auth" / "hr.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "auth_admin": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "auth" / "admin.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        # --- Leave Handlers ---
+        "leave_employee": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "leave" / "employee.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "leave_hr": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "leave" / "hr.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "leave_admin": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "leave" / "admin.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        # --- Analytics Handler ---
+        "analytics_nav": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "analytics" / "navigation.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        # --- Email Handlers ---
+        "email_employee": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "email" / "employee.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "email_hr": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "email" / "hr.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        "email_admin": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "email" / "admin.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        # --- Profile Audit ---
+        "profile_audit": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "profile" / "updates.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+        # --- Django Default Errors ---
+        "django_file": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "django_errors.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
+    },
+    "loggers": {
+        # Master
+        "lms_master": {"handlers": ["master"], "level": "INFO", "propagate": False},
+        
+        # Auth Loggers
+        "lms_auth_employee": {"handlers": ["auth_employee", "master"], "level": "INFO", "propagate": False},
+        "lms_auth_hr": {"handlers": ["auth_hr", "master"], "level": "INFO", "propagate": False},
+        "lms_auth_admin": {"handlers": ["auth_admin", "master"], "level": "INFO", "propagate": False},
+
+        # Leave Loggers
+        "lms_leave_employee": {"handlers": ["leave_employee", "master"], "level": "INFO", "propagate": False},
+        "lms_leave_hr": {"handlers": ["leave_hr", "master"], "level": "INFO", "propagate": False},
+        "lms_leave_admin": {"handlers": ["leave_admin", "master"], "level": "INFO", "propagate": False},
+
+        # Email Loggers
+        "lms_email_employee": {"handlers": ["email_employee", "master"], "level": "INFO", "propagate": False},
+        "lms_email_hr": {"handlers": ["email_hr", "master"], "level": "INFO", "propagate": False},
+        "lms_email_admin": {"handlers": ["email_admin", "master"], "level": "INFO", "propagate": False},
+
+        # Analytics & Profile
+        "lms_analytics": {"handlers": ["analytics_nav", "master"], "level": "INFO", "propagate": False},
+        "lms_profile": {"handlers": ["profile_audit", "master"], "level": "INFO", "propagate": False},
+
+        # Django Default
+        "django": {"handlers": ["django_file", "master"], "level": "ERROR", "propagate": True},
     },
 }
 
