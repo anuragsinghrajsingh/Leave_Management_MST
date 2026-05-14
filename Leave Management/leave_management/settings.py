@@ -233,14 +233,27 @@ LOGGING = {
             "format": "[{levelname}] {asctime} | ReqID: {request_id} | {module} | {message}",
             "style": "{",
         },
+        "simple": {
+            "format": "[{levelname}] {message}",
+            "style": "{",
+        },
     },
     "filters": {
         "request_id_filter": {
             "()": "App.middleware.CorrelationIDFilter",
         },
+        "noise_filter": {
+            "()": "App.middleware.SuppressNoiseFilter",
+        },
     },
     "handlers": {
         # --- Master Log ---
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "filters": ["noise_filter"],
+        },
         "master": {
             "level": "INFO",
             "class": "logging.handlers.RotatingFileHandler",
@@ -248,7 +261,7 @@ LOGGING = {
             "maxBytes": 100 * 1024 * 1024,
             "backupCount": 30,
             "formatter": "verbose",
-            "filters": ["request_id_filter"],
+            "filters": ["request_id_filter", "noise_filter"],
         },
         # --- Auth Handlers ---
         "auth_employee": {
@@ -380,27 +393,27 @@ LOGGING = {
         "lms_master": {"handlers": ["master"], "level": "INFO", "propagate": False},
         
         # Auth Loggers
-        "lms_auth_employee": {"handlers": ["auth_employee", "master"], "level": "INFO", "propagate": False},
-        "lms_auth_hr": {"handlers": ["auth_hr", "master"], "level": "INFO", "propagate": False},
-        "lms_auth_admin": {"handlers": ["auth_admin", "master"], "level": "INFO", "propagate": False},
+        "lms_auth_employee": {"handlers": ["auth_employee", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_auth_hr": {"handlers": ["auth_hr", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_auth_admin": {"handlers": ["auth_admin", "master", "console"], "level": "INFO", "propagate": False},
 
         # Leave Loggers
-        "lms_leave_employee": {"handlers": ["leave_employee", "master"], "level": "INFO", "propagate": False},
-        "lms_leave_hr": {"handlers": ["leave_hr", "master"], "level": "INFO", "propagate": False},
-        "lms_leave_admin": {"handlers": ["leave_admin", "master"], "level": "INFO", "propagate": False},
+        "lms_leave_employee": {"handlers": ["leave_employee", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_leave_hr": {"handlers": ["leave_hr", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_leave_admin": {"handlers": ["leave_admin", "master", "console"], "level": "INFO", "propagate": False},
 
         # Email Loggers
-        "lms_email_employee": {"handlers": ["email_employee", "master"], "level": "INFO", "propagate": False},
-        "lms_email_hr": {"handlers": ["email_hr", "master"], "level": "INFO", "propagate": False},
-        "lms_email_admin": {"handlers": ["email_admin", "master"], "level": "INFO", "propagate": False},
+        "lms_email_employee": {"handlers": ["email_employee", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_email_hr": {"handlers": ["email_hr", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_email_admin": {"handlers": ["email_admin", "master", "console"], "level": "INFO", "propagate": False},
 
         # Analytics & Profile
-        "lms_analytics": {"handlers": ["analytics_nav", "master"], "level": "INFO", "propagate": False},
-        "lms_profile": {"handlers": ["profile_audit", "master"], "level": "INFO", "propagate": False},
-        "lms_security": {"handlers": ["security_auth", "master"], "level": "INFO", "propagate": False},
+        "lms_analytics": {"handlers": ["analytics_nav", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_profile": {"handlers": ["profile_audit", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_security": {"handlers": ["security_auth", "master", "console"], "level": "INFO", "propagate": False},
 
         # Django Default
-        "django": {"handlers": ["django_file", "master"], "level": "ERROR", "propagate": True},
+        "django": {"handlers": ["django_file", "master", "console"], "level": "INFO", "propagate": True},
     },
 }
 

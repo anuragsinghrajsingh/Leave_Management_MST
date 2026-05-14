@@ -8,6 +8,22 @@ from django.urls import resolve
 # Thread-local storage for request IDs
 _thread_locals = threading.local()
 
+class SuppressNoiseFilter(logging.Filter):
+    """
+    Filters out high-frequency polling API calls to keep logs clean.
+    """
+    def filter(self, record):
+        noise_paths = [
+            '/api/hr-notifications/', 
+            '/api/employee-notifications/',
+            '/api/notifications/seen/',
+            '/api/notifications/read/',
+            '/api/communications/seen/',
+            '/api/communications/read/'
+        ]
+        msg = record.getMessage()
+        return not any(path in msg for path in noise_paths)
+
 class CorrelationIDFilter(logging.Filter):
     """
     Filter that injects the current request's Correlation ID into the log record.

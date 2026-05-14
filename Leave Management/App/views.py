@@ -3665,8 +3665,8 @@ def leave_calendar_data(request):
             for event in calendar.events:
                 if event.begin.year == current_year:
                     holidays.append({
-                        "date": event.begin.format("YYYY-MM-DD"),
-                        "name": event.name,
+                        "date": event.begin.strftime("%Y-%m-%d"),
+                        "name": event.summary,
                         "type": "Public"
                     })
 
