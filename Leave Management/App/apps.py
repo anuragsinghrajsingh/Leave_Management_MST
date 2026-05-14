@@ -5,7 +5,8 @@ class AppConfig(AppConfig):
     name = 'App'
 
     def ready(self):
-        import App.signals
+        import App.signals.db_signals
+        import App.signals.logging_signals
 
 
 
