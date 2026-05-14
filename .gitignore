@@ -6,7 +6,10 @@ __pycache__/
 local_settings.py
 *.sqlite3
 *.sqlite3-journal
-Leave Management/media/
+
+# Project Media
+media/
+Leave\ Management/media/
 
 # Backup files
 *.bak
@@ -33,5 +36,7 @@ Thumbs.db
 .env.*
 
 # System Artifacts (SECURITY CRITICAL)
-"Leave Management/backups/"
-"Leave Management/logs/"
+backups/
+logs/
+**/backups/
+**/logs/
