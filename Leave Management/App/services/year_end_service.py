@@ -12,7 +12,7 @@ def process_year_end_carry_forward(user, today=None, balance=None):
 
     balance = balance or user.leavebalance
 
-    today = today or date.today()
+    today = today or timezone.localdate()
     processing_year = today.year
 
     if balance.last_year_end_processed == processing_year:

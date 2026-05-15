@@ -1,7 +1,7 @@
 import logging
 import os
+from django.utils import timezone
 from datetime import timedelta
-from django.utils.timezone import now, localdate
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
@@ -16,8 +16,8 @@ def send_weekly_hr_report():
     Compiles data for the 'Human Capital Operational Snapshot' and sends it to all HR users.
     """
     User = get_user_model()
-    today = localdate()
-    start_date = today - timedelta(days=7)
+    today = timezone.localdate()
+    start_date = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())) - timedelta(days=7)
     
     # 1. Fetch HR Recipients
     hr_emails = list(User.objects.filter(role="HR", is_active=True).values_list("email", flat=True))
