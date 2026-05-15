@@ -4,7 +4,7 @@
 {% block title %}Apply Leave{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/apply_leave.css' %}">
+    <link rel="stylesheet" href="{% static 'css/apply_leave.css' %}?v=responsive-upcoming-variants">
 {% endblock %}
 
 {% block page_skeleton %}
@@ -507,7 +507,11 @@
                                 </div>
                                 <div class="tile-main {% if not next_short_leave %}empty-main{% endif %}">
                                     {% if next_short_leave %}
-                                        <p class="leave-date">{{ next_short_leave.from_date|date:"F j, Y" }}</p>
+                                        <p class="leave-date responsive-date-text">
+                                            <span class="responsive-date-variant responsive-date-variant-full">{{ next_short_leave.from_date|date:"F j, Y" }}</span>
+                                            <span class="responsive-date-variant responsive-date-variant-short">{{ next_short_leave.from_date|date:"M j, Y" }}</span>
+                                            <span class="responsive-date-variant responsive-date-variant-compact">{{ next_short_leave.from_date|date:"M j" }}</span>
+                                        </p>
                                         <div class="time-block">
                                             <span>{{ next_short_leave.from_datetime|time:"h:i A" }}</span>
                                             <span class="arrow">→</span>
@@ -547,10 +551,10 @@
                                 </div>
                                 <div class="tile-main {% if not next_full_leave %}empty-main{% endif %}">
                                     {% if next_full_leave %}
-                                        <div class="date-range">
-                                            <span>{{ next_full_leave.from_date|date:"F j, Y" }}</span>
-                                            <span class="arrow">→</span>
-                                            <span>{{ next_full_leave.to_date|date:"F j, Y" }}</span>
+                                        <div class="date-range responsive-date-text">
+                                            <span class="responsive-date-variant responsive-date-variant-full">{{ next_full_leave.from_date|date:"F j, Y" }} <span class="arrow">→</span> {{ next_full_leave.to_date|date:"F j, Y" }}</span>
+                                            <span class="responsive-date-variant responsive-date-variant-short">{{ next_full_leave.from_date|date:"M j, Y" }} <span class="arrow">→</span> {{ next_full_leave.to_date|date:"M j, Y" }}</span>
+                                            <span class="responsive-date-variant responsive-date-variant-compact">{{ next_full_leave.from_date|date:"M j" }} <span class="arrow">→</span> {{ next_full_leave.to_date|date:"M j" }}</span>
                                         </div>
                                         <p class="leave-meta applied-time" data-time="{{ next_full_leave.created_at|date:'c' }}"></p>
                                         <div class="leave-progress">
@@ -674,6 +678,6 @@
     {{ company_holidays_json|json_script:"company-holidays-data" }}
     {{ existing_leaves_json|json_script:"existing-leaves-data" }}
     <div id="apply-leave-js-config" data-initial-leave-type="{{ form_data.leave_type|default:'' }}" hidden></div>
-    <script src="{% static 'js/apply_leave.js' %}"></script>
+    <script src="{% static 'js/apply_leave.js' %}?v=responsive-upcoming-variants"></script>
 {% endblock %}
 

@@ -657,7 +657,8 @@ function getEmptyLeaveCardHtml(variant, cardKind = "upcoming") {
         : (isLast ? "No time leave recorded" : "No time leave planned");
     const text = isFull
         ? (isLast ? "Your previous sick, earned, and unpaid leave history will appear here." : "Sick, earned, and unpaid approvals will appear here.")
-        : (isLast ? "Your previous short and half-day leave history will appear here." : "Short and half-day approvals will appear here.");
+        : (isLast ? "<span class=\"dashboard-empty-short-history-line\">Your previous short and half-day</span><span class=\"dashboard-empty-short-history-line\">leave history will appear here.</span>" : "Short and half-day approvals will appear here.");
+    const textClass = !isFull && isLast ? " class=\"dashboard-empty-short-history\"" : "";
 
     return `
         <div class="card-top">
@@ -671,7 +672,7 @@ function getEmptyLeaveCardHtml(variant, cardKind = "upcoming") {
             <div class="dashboard-empty-state">
                 <span class="dashboard-empty-icon" aria-hidden="true">${isFull ? "&#9670;" : "&#9201;"}</span>
                 <strong>${title}</strong>
-                <p>${text}</p>
+                <p${textClass}>${text}</p>
             </div>
         </div>
     `;

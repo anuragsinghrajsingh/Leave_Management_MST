@@ -460,6 +460,113 @@
             return `${year}-${month}-${day}`;
         }
 
+        function formatUpcomingDate(value, formatStyle = "long") {
+            const date = parseValueDate(value);
+            if (!date) {
+                return "";
+            }
+
+            if (formatStyle === "compact") {
+                return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric"
+                });
+            }
+
+            return date.toLocaleDateString("en-US", {
+                month: formatStyle,
+                day: "numeric",
+                year: "numeric"
+            });
+        }
+
+        function setUpcomingDates(formatStyle = "long") {
+            document.querySelectorAll(".upcoming-card [data-responsive-date]").forEach((el) => {
+                const text = formatUpcomingDate(el.dataset.dateValue, formatStyle);
+                if (text) {
+                    el.textContent = text;
+                }
+            });
+        }
+
+        function formatResponsiveAppliedDateTime(value, formatStyle = "long") {
+            const appliedDate = new Date(value);
+            if (Number.isNaN(appliedDate.getTime())) {
+                return "Unknown";
+            }
+
+            if (formatStyle === "compact") {
+                return appliedDate.toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                });
+            }
+
+            return formatAppliedDateTime(value, formatStyle);
+        }
+
+        function setUpcomingAppliedTimes(formatStyle = "long") {
+            document.querySelectorAll(".upcoming-card .applied-time[data-time]").forEach((el) => {
+                el.innerHTML = `
+                    <span class="responsive-date-variant responsive-date-variant-full">Applied: ${formatResponsiveAppliedDateTime(el.dataset.time, "long")}</span>
+                    <span class="responsive-date-variant responsive-date-variant-short">Applied: ${formatResponsiveAppliedDateTime(el.dataset.time, "short")}</span>
+                    <span class="responsive-date-variant responsive-date-variant-compact">Applied: ${formatResponsiveAppliedDateTime(el.dataset.time, "compact")}</span>
+                `;
+            });
+        }
+
+        function getUpcomingRowAvailableWidth(target) {
+            const tile = target.closest(".mini-tile") || target.parentElement;
+            if (!tile) {
+                return target.clientWidth;
+            }
+
+            const tileRect = tile.getBoundingClientRect();
+            return Math.max(0, tileRect.width - 16);
+        }
+
+        function upcomingRowOverflows(target) {
+            const availableWidth = getUpcomingRowAvailableWidth(target);
+            if (!availableWidth) {
+                return target.scrollWidth > target.clientWidth + 1;
+            }
+
+            const targetRect = target.getBoundingClientRect();
+
+            return (
+                target.scrollWidth > target.clientWidth + 1 ||
+                targetRect.width > availableWidth + 1
+            );
+        }
+
+        function setUpcomingRowFormat(target, formatStyle) {
+            if (target.matches(".applied-time[data-time]")) {
+                target.innerText = "Applied: " + formatResponsiveAppliedDateTime(target.dataset.time, formatStyle);
+                return;
+            }
+
+            target.querySelectorAll("[data-responsive-date]").forEach((el) => {
+                const text = formatUpcomingDate(el.dataset.dateValue, formatStyle);
+                if (text) {
+                    el.textContent = text;
+                }
+            });
+
+            if (target.matches("[data-responsive-date]")) {
+                const text = formatUpcomingDate(target.dataset.dateValue, formatStyle);
+                if (text) {
+                    target.textContent = text;
+                }
+            }
+        }
+
+        function applyResponsiveUpcomingRows() {
+            setUpcomingAppliedTimes("long");
+        }
+
         function getCompanyHoliday(date) {
             return companyHolidayMap.get(formatValueDate(date)) || null;
         }
@@ -1057,14 +1164,14 @@
             syncTimeSelect(dropdown);
         }
 
-        function formatAppliedDateTime(value) {
+        function formatAppliedDateTime(value, monthStyle = "long") {
             const appliedDate = new Date(value);
             if (Number.isNaN(appliedDate.getTime())) {
                 return "Unknown";
             }
 
             return appliedDate.toLocaleString("en-US", {
-                month: "long",
+                month: monthStyle,
                 day: "numeric",
                 year: "numeric",
                 hour: "numeric",
@@ -1256,7 +1363,10 @@
                 }
             }
         });
-        window.addEventListener("resize", repositionOpenDatePickers);
+        window.addEventListener("resize", () => {
+            repositionOpenDatePickers();
+            applyResponsiveUpcomingRows();
+        });
         window.addEventListener("scroll", repositionOpenDatePickers, true);
 
         fromDate.addEventListener("change", () => handleDateChange(fromDate));
@@ -1311,9 +1421,17 @@
         });
 
         document.querySelectorAll(".applied-time").forEach((el) => {
+            if (el.closest(".upcoming-card")) {
+                return;
+            }
+
             el.innerText = "Applied: " + formatAppliedDateTime(el.dataset.time);
         });
 
+        applyResponsiveUpcomingRows();
+        if (document.fonts?.ready) {
+            document.fonts.ready.then(applyResponsiveUpcomingRows);
+        }
         startLeaveTimelineStatus();
 
         form.addEventListener("submit", (event) => {

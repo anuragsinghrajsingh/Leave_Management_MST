@@ -4220,6 +4220,12 @@ body {
     line-height: 1.2 !important;
 }
 
+.dashboard-empty-short-history span,
+.dashboard-empty-short-history-line {
+    display: block;
+    white-space: nowrap;
+}
+
 .hero-card {
     min-height: 248px !important;
     padding: 18px 18px 18px 22px !important;
