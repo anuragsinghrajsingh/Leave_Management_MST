@@ -2411,22 +2411,27 @@ def approve_leave(request, leave_id):
             return JsonResponse({"detail": "HR access required."}, status=403)
         return redirect("role_selection")
 
-    leave = get_object_or_404(Leave, id=leave_id)
     from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
 
-    # Only pending can be approved
-    if leave.status != "Pending":
-        if is_ajax_request:
-            return JsonResponse({"detail": "Leave is not pending anymore."}, status=409)
-        messages.warning(request, "Leave is not pending anymore.")
-        return redirect("hr_dashboard")
+    with transaction.atomic():
+        leave = get_object_or_404(
+            Leave.objects.select_for_update().select_related("user", "user__profile"),
+            id=leave_id,
+        )
 
-    # Just change status (balance already deducted at apply time)
-    leave.status = "Approved"
-    leave.approved_at = timezone.now()
-    leave.rejected_at = None
-    leave.save()
-    log_leave_action(request.user, "APPROVE", leave.id, f"Employee: {leave.user.username}")
+        # Only pending can be approved
+        if leave.status != "Pending":
+            if is_ajax_request:
+                return JsonResponse({"detail": "Leave is not pending anymore."}, status=409)
+            messages.warning(request, "Leave is not pending anymore.")
+            return redirect("hr_dashboard")
+
+        # Just change status (balance already deducted at apply time)
+        leave.status = "Approved"
+        leave.approved_at = timezone.now()
+        leave.rejected_at = None
+        leave.save(update_fields=["status", "approved_at", "rejected_at"])
+        log_leave_action(request.user, "APPROVE", leave.id, f"Employee: {leave.user.username}")
 
     # --- Notify Employee (Approved) ---
     subject = f"Leave Request APPROVED: {leave.leave_type}"
@@ -2493,19 +2498,21 @@ def reject_leave(request, leave_id):
             return JsonResponse({"detail": "HR access required."}, status=403)
         return redirect("role_selection")
         
-    leave = get_object_or_404(Leave, id=leave_id)
-
-    # Only pending leaves can be rejected
-    if leave.status != "Pending":
-        if is_ajax_request:
-            return JsonResponse({"detail": "Only pending leave can be rejected."}, status=409)
-        messages.warning(request, "Leave is not pending anymore.")
-        messages.warning(request, "Only pending leave can be rejected.")
-        return redirect("hr_dashboard")
-
-    balance = LeaveBalance.objects.select_for_update().get(user=leave.user)
-
     with transaction.atomic():
+        leave = get_object_or_404(
+            Leave.objects.select_for_update().select_related("user", "user__profile"),
+            id=leave_id,
+        )
+
+        # Only pending leaves can be rejected
+        if leave.status != "Pending":
+            if is_ajax_request:
+                return JsonResponse({"detail": "Only pending leave can be rejected."}, status=409)
+            messages.warning(request, "Leave is not pending anymore.")
+            messages.warning(request, "Only pending leave can be rejected.")
+            return redirect("hr_dashboard")
+
+        balance = LeaveBalance.objects.select_for_update().get(user=leave.user)
 
         # =====================================
         # DETERMINE LEAVE VALUE
@@ -2558,25 +2565,25 @@ def reject_leave(request, leave_id):
         leave.rejection_reason = request.POST.get("rejection_reason", "").strip()
         leave.rejected_at = timezone.now()
         leave.approved_at = None
-        leave.save()
+        leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at"])
         log_leave_action(request.user, "REJECT", leave.id, f"Employee: {leave.user.username} | Reason: {leave.rejection_reason}")
 
-        # --- Notify Employee (Rejected) ---
-        subject = f"Leave Request REJECTED: {leave.leave_type}"
-        rejection_reason = leave.rejection_reason or "No specific reason provided."
-        portal_link = request.build_absolute_uri('/')
-        context = {
-            'title': 'Leave Rejected',
-            'intro_text': f"Hello {leave.user.first_name or leave.user.username}, your leave request has been rejected.",
-            'employee_name': leave.user.get_full_name() or leave.user.username,
-            'leave_type': leave.leave_type,
-            'date_range': f"{leave.from_date.strftime('%d %b %Y')}",
-            'reason': rejection_reason,
-            'status_label': 'Rejected',
-            'status_class': 'rejected',
-            'portal_link': portal_link
-        }
-        send_branded_email(subject, 'emails/notification.html', context, leave.user.email, reply_to=request.user.email)
+    # --- Notify Employee (Rejected) ---
+    subject = f"Leave Request REJECTED: {leave.leave_type}"
+    rejection_reason = leave.rejection_reason or "No specific reason provided."
+    portal_link = request.build_absolute_uri('/')
+    context = {
+        'title': 'Leave Rejected',
+        'intro_text': f"Hello {leave.user.first_name or leave.user.username}, your leave request has been rejected.",
+        'employee_name': leave.user.get_full_name() or leave.user.username,
+        'leave_type': leave.leave_type,
+        'date_range': f"{leave.from_date.strftime('%d %b %Y')}",
+        'reason': rejection_reason,
+        'status_label': 'Rejected',
+        'status_class': 'rejected',
+        'portal_link': portal_link
+    }
+    send_branded_email(subject, 'emails/notification.html', context, leave.user.email, reply_to=request.user.email)
 
     # =====================================
     # SUCCESS MESSAGE
