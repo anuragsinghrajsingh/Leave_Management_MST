@@ -63,9 +63,11 @@ def log_email_sent(recipient_user, subject, success=True, details=""):
     """
     logger = get_logger_for_role('lms_email', recipient_user)
     status = "SUCCESS" if success else "FAILED"
+    # Strip emojis for terminal logging safety
+    safe_subject = str(subject).encode('ascii', 'ignore').decode('ascii').strip()
     logger.info(
         f"EMAIL | To: {recipient_user.username} | Status: {status} | "
-        f"Subject: {subject} | Details: {details}"
+        f"Subject: {safe_subject} | Details: {details}"
     )
 
 def log_email_sent_by_email(email_address, subject, success=True, details=""):
@@ -79,7 +81,9 @@ def log_email_sent_by_email(email_address, subject, success=True, details=""):
     
     logger = get_logger_for_role('lms_email', user)
     status = "SUCCESS" if success else "FAILED"
+    # Strip emojis for terminal logging safety
+    safe_subject = str(subject).encode('ascii', 'ignore').decode('ascii').strip()
     logger.info(
         f"EMAIL | To: {email_address} | Status: {status} | "
-        f"Subject: {subject} | Details: {details}"
+        f"Subject: {safe_subject} | Details: {details}"
     )

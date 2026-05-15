@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Health Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #334155; background-color: #f8fafc; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+        .logo { font-size: 24px; font-weight: 900; color: #1e293b; letter-spacing: 1px; }
+        .logo span { color: #38bdf8; }
+        .title { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 10px; }
+        .content { font-size: 16px; color: #475569; margin-bottom: 30px; }
+        .highlight { font-weight: 700; color: #4f46e5; }
+        .footer { text-align: center; font-size: 13px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        .btn { display: inline-block; background-color: #4f46e5; color: #ffffff !important; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: 800; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+            <img src="cid:logo_image" alt="Logo" style="height: 45px; margin-right: 15px; vertical-align: middle;">
+            <div class="logo" style="display: inline-block; vertical-align: middle;">
+                <span style="color: #4f46e5;">MS</span> <span style="color: #06b6d4;">TECHNOLOGY</span>
+            </div>
+        </div>
+        <div class="title" style="color: #4f46e5; background: linear-gradient(to right, #4f46e5, #3b82f6); -webkit-background-clip: text; color: #4338ca;">Human Capital Operational Snapshot</div>
+    </div>
+    
+    <div class="content">
+        <p>Hello HR Team,</p>
+        <p>Your Weekly Operational Snapshot for the period of <span class="highlight">{{ period_start }} to {{ period_end }}</span> is ready.</p>
+        
+        <p>To preserve the high-fidelity executive dashboard experience, we have generated this report as a secure, pixel-perfect PDF document.</p>
+        
+        <p><strong>Please find the snapshot attached to this email.</strong></p>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ portal_link }}" class="btn">Access Live HR Portal</a>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated system notification from the MS Technology HR Portal.<br>Do not reply directly to this email.</p>
+    </div>
+</div>
+
+</body>
+</html>

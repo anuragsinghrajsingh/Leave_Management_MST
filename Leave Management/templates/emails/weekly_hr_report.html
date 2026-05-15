@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Health Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.4; color: #334155; width: 100%; margin: 0; padding: 0; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); font-weight: 900; }
+        .report-container { background: white; padding: 0; border-radius: 0; box-shadow: none; overflow: hidden; border: none; width: 100%; }
+        
+        /* Main Header with Deep Navy Slate */
+        .main-header { 
+            background: #1e293b; 
+            color: #f8fafc; 
+            padding: 10px 20px; 
+            text-align: center;
+            border-bottom: 3px solid #334155;
+        }
+        
+        /* Summary Row */
+        .summary-wrapper { padding: 5px 10px 0 10px; }
+        .summary-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+        .summary-card { flex: 1; padding: 8px 10px; border-radius: 12px; text-align: center; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 10px rgba(0,0,0,0.03); min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        .summary-card .card-label { font-size: 14px; font-weight: 900; display: block; margin-bottom: 2px; }
+        .summary-card .card-value { font-size: 28px; font-weight: 900; display: block; }
+        
+        .card-total { background: #f5f3ff; color: #4338ca; border-bottom: 4px solid #4338ca; }
+        .card-approved { background: #f0fdf4; color: #059669; border-bottom: 4px solid #059669; flex: 0.85; }
+        .card-rejected { background: #fef2f2; color: #dc2626; border-bottom: 4px solid #dc2626; flex: 0.85; }
+        .card-pending { background: #fffbeb; color: #d97706; border-bottom: 4px solid #d97706; }
+        .card-employees { background: #ecfeff; color: #0891b2; border-bottom: 4px solid #06b6d4; }
+        
+        /* Section Heading */
+        .section-title { font-size: 28px; font-weight: 900; margin: 15px 20px 8px 20px; display: flex; align-items: center; background: linear-gradient(to right, #4f46e5, #3b82f6, #06b6d4, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .section-title i { margin-right: 10px; }
+        
+        /* Employee Card */
+        .employee-list { padding: 0 20px 20px 20px; }
+        .employee-card { 
+            background-image: linear-gradient(white, white), linear-gradient(135deg, #4f46e5, #3b82f6, #06b6d4); 
+            background-origin: border-box; 
+            background-clip: padding-box, border-box; 
+            border: 2px solid transparent;
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            overflow: hidden; 
+            background-color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .employee-header { background: linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%); border-bottom: 1px solid #e2e8f0; padding: 10px 20px; position: relative; min-height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; overflow: visible; }
+        .employee-avatar { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); width: 105px; height: 105px; border-radius: 50%; border: 3px solid #e0f2fe; box-shadow: 0 4px 15px rgba(0,0,0,0.15); object-fit: cover; z-index: 10; }
+        .employee-info { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+        .employee-name { font-size: 22px; color: #1e293b; display: block; text-align: center; font-weight: 900; width: 100%; letter-spacing: 0.5px; }
+        .employee-stats { 
+            font-size: 13px; 
+            background-image: linear-gradient(white, white), linear-gradient(to right, #ff4d4d, #22d3ee, #4f46e5, #22c55e); 
+            background-origin: border-box; 
+            background-clip: padding-box, border-box; 
+            padding: 4px 16px; 
+            border-radius: 20px; 
+            border: 2px solid transparent; 
+            font-weight: 900; 
+            color: #334155; 
+            margin-top: 2px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .employee-balance { 
+            position: absolute; 
+            right: 10px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            text-align: left;
+            width: fit-content;
+        }
+        .balance-item { 
+            background: #fff; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            border: 1.2px solid #e2e8f0; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            min-width: 95px;
+        }
+        .balance-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 2px; }
+        .balance-value { font-size: 11px; font-weight: 900; display: block; }
+
+        .employee-body { padding: 6px 10px; background: white; }
+
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; }
+        table th { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 8px; text-align: left; border-top: 4px solid #4f46e5; white-space: nowrap; }
+        .th-timeline { color: #4f46e5; background: #eef2ff; border-bottom: 3px solid #4f46e5; border-top: 4px solid #4f46e5; } /* Indigo */
+        .th-duration { color: #3b82f6; background: #eff6ff; border-bottom: 3px solid #3b82f6; border-top: 4px solid #3b82f6; } /* Blue */
+        .th-type { color: #0891b2; background: #ecfeff; border-bottom: 3px solid #0891b2; border-top: 4px solid #0891b2; }     /* Cyan */
+        .th-status { color: #8b5cf6; background: #f5f3ff; border-bottom: 3px solid #8b5cf6; border-top: 4px solid #8b5cf6; }   /* Violet */
+        
+        table td { padding: 8px 10px; font-size: 15px; vertical-align: middle; font-weight: 900; color: #475569; border-bottom: 2px solid #e2e8f0; border-right: 1.5px solid #f1f5f9; }
+        table tr:last-child td { border-bottom: none; }
+        
+        /* Specific Column Colors & Borders */
+        .col-timeline { width: 25%; color: #4f46e5 !important; border-bottom: 2px solid #4f46e5 !important; border-right: 1.5px solid #eef2ff !important; }
+        .col-duration { width: 30%; color: #3b82f6 !important; border-bottom: 2px solid #3b82f6 !important; border-right: 1.5px solid #eff6ff !important; }
+        .col-type { width: 20%; color: #0891b2 !important; border-bottom: 2px solid #0891b2 !important; border-right: 1.5px solid #ecfeff !important; }
+        .col-status { border-bottom: 2px solid #8b5cf6 !important; }
+
+        .status-pill { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 800; display: inline-block; }
+        .pill-approved { background: #dcfce7; color: #166534; }
+        .pill-rejected { background: #fee2e2; color: #991b1b; }
+        .pill-pending { background: #fef3c7; color: #92400e; }
+
+        /* Mission Control Footer */
+        .footer-section { 
+            break-before: page;
+            margin: 50px 20px 10px 20px; 
+            padding: 40px 25px 30px 25px; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+            border-radius: 16px; 
+            color: #f8fafc;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            border: 1px solid #334155;
+            position: relative;
+            overflow: hidden;
+        }
+        .footer-section::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .footer-title { 
+            font-size: 32px; 
+            font-weight: 900; 
+            margin-bottom: 15px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #f8fafc;
+            padding-bottom: 0;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+        }
+        .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .health-card { 
+            background: rgba(255, 255, 255, 0.03); 
+            border: 2px solid rgba(255, 255, 255, 0.1); 
+            padding: 15px; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s;
+        }
+        .health-icon-wrapper {
+            width: 45px;
+            height: 45px;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .health-info h4 { margin: 0; font-size: 14px; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; font-weight: 900; }
+        .health-info p { margin: 2px 0 0 0; font-size: 16px; font-weight: 900; color: #f8fafc; }
+        .status-glow { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 10px currentColor; }
+    </style>
+</head>
+<body>
+
+<div class="report-container">
+    <div style="height: 6px; background: linear-gradient(to right, #ff4d4d, #22d3ee, #4f46e5, #22c55e); width: 100%;"></div>
+    <div class="main-header">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
+            <img src="{{ portal_link }}/static/images/ms-technology-logo.svg" alt="Logo" style="height: 65px; margin-right: 20px; border-radius: 15px; box-shadow: 0 6px 15px rgba(0,0,0,0.3);">
+            <span style="font-size: 42px; font-weight: 900; background: linear-gradient(to right, #FF4D4D, #22D3EE, #4F46E5, #22C55E); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;">MS TECHNOLOGY</span>
+        </div>
+        <h1 style="margin:0; font-size: 28px;">📊 <span style="background: linear-gradient(to right, #06b6d4, #8b5cf6, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900;">Human Capital Operational Snapshot</span></h1>
+        <p style="margin-top: 10px; font-size: 16px;">📅 <span style="background: linear-gradient(to right, #facc15, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900;">Period: {{ period_start }} - {{ period_end }}</span></p>
+    </div>
+
+    <div class="summary-wrapper">
+        <!-- 1. OVERALL SUMMARY -->
+        <div class="summary-row">
+            <div class="summary-card card-total">
+                <span class="card-label">📁 Total Requests</span>
+                <span class="card-value">{{ total_requests }}</span>
+            </div>
+            <div class="summary-card card-approved">
+                <span class="card-label">✅ Approved</span>
+                <span class="card-value">{{ approved_total }}</span>
+            </div>
+            <div class="summary-card card-rejected">
+                <span class="card-label">❌ Rejected</span>
+                <span class="card-value">{{ rejected_total }}</span>
+            </div>
+            <div class="summary-card card-pending">
+                <span class="card-label">⏳ No Decision</span>
+                <span class="card-value">{{ pending_total }}</span>
+            </div>
+            <div class="summary-card card-employees">
+                <span class="card-label">👥 Emp. Applied</span>
+                <span class="card-value">{{ employee_count }}</span>
+            </div>
+        </div>
+        <!-- Refined Wide Dotted Luxury Divider -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 40px 0; padding: 0 10px;">
+            <div style="width: 4px; height: 4px; border-radius: 50%; background: #FF4D4D; opacity: 0.1;"></div>
+            <div style="width: 5px; height: 5px; border-radius: 50%; background: #22D3EE; opacity: 0.2;"></div>
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #4F46E5; opacity: 0.3;"></div>
+            <div style="width: 7px; height: 7px; border-radius: 50%; background: #22C55E; opacity: 0.4;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #FF4D4D; opacity: 0.5;"></div>
+            <div style="width: 9px; height: 9px; border-radius: 50%; background: #22D3EE; opacity: 0.6;"></div>
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: #4F46E5; opacity: 0.7;"></div>
+            <div style="width: 11px; height: 11px; border-radius: 50%; background: #22C55E; opacity: 0.8;"></div>
+            <div style="width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(135deg, #0062ff, #6100ff); box-shadow: 0 4px 10px rgba(0,0,0,0.2);"></div>
+            <div style="width: 11px; height: 11px; border-radius: 50%; background: #22C55E; opacity: 0.8;"></div>
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: #4F46E5; opacity: 0.7;"></div>
+            <div style="width: 9px; height: 9px; border-radius: 50%; background: #22D3EE; opacity: 0.6;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #FF4D4D; opacity: 0.5;"></div>
+            <div style="width: 7px; height: 7px; border-radius: 50%; background: #22C55E; opacity: 0.4;"></div>
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #4F46E5; opacity: 0.3;"></div>
+            <div style="width: 5px; height: 5px; border-radius: 50%; background: #22D3EE; opacity: 0.2;"></div>
+            <div style="width: 4px; height: 4px; border-radius: 50%; background: #FF4D4D; opacity: 0.1;"></div>
+        </div>
+    </div>
+
+    <div class="section-title">
+        <span style="background: linear-gradient(to right, #4f46e5, #3b82f6, #06b6d4, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">👤 Employee Detailed Activity</span>
+        <div style="flex: 1; height: 3px; background: linear-gradient(to right, #3b82f6, transparent); margin-left: 20px; border-radius: 10px; max-width: 150px;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin: 0 20px 25px 20px;">
+        <div style="flex: 1; height: 1.5px; background: linear-gradient(to left, #4f46e5, transparent);"></div>
+        <div style="width: 10px; height: 10px; background: #3b82f6; transform: rotate(45deg); margin: 0 15px; border: 2px solid #06b6d4;"></div>
+        <div style="flex: 1; height: 1.5px; background: linear-gradient(to right, #4f46e5, transparent);"></div>
+    </div>
+
+    <div class="employee-list">
+        {% for report in reports %}
+        <div class="employee-card">
+            <div style="height: 5px; background: linear-gradient(to right, #4f46e5, #3b82f6, #06b6d4, #8b5cf6); width: 100%;"></div>
+            <div class="employee-header">
+                {% if report.profile.profile_photo %}
+                    <img src="{{ portal_link }}{{ report.profile.profile_photo.url }}" class="employee-avatar" alt="Avatar">
+                {% else %}
+                    <div class="employee-avatar" style="background: #e2e8f0; color: #64748b; line-height: 105px; text-align: center; font-size: 40px; display: inline-block;">👤</div>
+                {% endif %}
+                <div class="employee-info">
+                    <div class="employee-name">
+                        <div style="background-image: linear-gradient(white, white), linear-gradient(to right, #4f46e5, #3b82f6, #06b6d4); background-origin: border-box; background-clip: padding-box, border-box; padding: 5px 20px; border-radius: 50px; display: inline-block; font-size: 18px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 2.5px solid transparent;">
+                            <span style="background: linear-gradient(to right, #4f46e5, #3b82f6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                {{ report.full_name }} - {{ report.profile.employee_id }}
+                            </span>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 12px; font-weight: 900;">
+                            <span style="color: #475569;">🏢 {{ report.profile.department }}</span> | 
+                            <span style="color: #2563eb;">📱 {{ report.profile.phone|default:"N/A" }}</span> | 
+                            <span style="color: #0891b2;">📅 Joined: {{ report.profile.date_of_joining|date:"d M Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="employee-stats">
+                        <span style="color: #4338ca;">📝 Applied: {{ report.total }}</span> | 
+                        <span style="color: #059669;">✅ Approved: {{ report.approved }}</span> | 
+                        <span style="color: #dc2626;">❌ Rejected: {{ report.rejected }}</span> | 
+                        <span style="color: #d97706;">⏳ Pending: {{ report.pending }}</span>
+                    </div>
+                </div>
+                <div class="employee-balance">
+                    <div class="balance-item" style="border-left: 4px solid #ef4444;">
+                        <span class="balance-label">🤒 Sick</span>
+                        <span class="balance-value" style="color: #ef4444;">{{ report.sick_used|floatformat:1 }}/12 Used</span>
+                    </div>
+                    <div class="balance-item" style="border-left: 4px solid #22c55e;">
+                        <span class="balance-label">🌟 Earned</span>
+                        <span class="balance-value" style="color: #22c55e;">{{ report.earned_used|floatformat:1 }}/15 Used</span>
+                    </div>
+                    <div class="balance-item" style="border-left: 4px solid #f59e0b;">
+                        <span class="balance-label">💸 Unpaid</span>
+                        <span class="balance-value" style="color: #f59e0b;">{{ report.unpaid_used|floatformat:1 }} Taken</span>
+                    </div>
+                </div>
+            </div>
+            <div class="employee-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="th-timeline">🕒 Application Timeline</th>
+                            <th class="th-duration">📅 Leave Duration</th>
+                            <th class="th-type">📝 Leave Type</th>
+                            <th class="th-status">⚖️ Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in report.leaves %}
+                        <tr>
+                            <td class="col-timeline">
+                                <div style="color: #475569; font-weight: 900; font-size: 16px;">📝 Applied</div>
+                                <div style="font-size: 13px; margin-top: 4px; color: #2563eb;">🕒 {{ leave.created_at|date:"D, M d, h:i A" }}</div>
+                            </td>
+                            <td class="col-duration">
+                                📅 {{ leave.from_date|date:"M d" }} - {{ leave.to_date|date:"M d" }}<br>
+                                <span style="font-size: 13px; color: #475569; font-weight: 800;">⏳ Full Day</span>
+                            </td>
+                            <td class="col-type">{{ leave.leave_type }}</td>
+                            <td>
+                                <span class="status-pill {% if leave.status == 'Approved' %}pill-approved{% elif leave.status == 'Rejected' %}pill-rejected{% else %}pill-pending{% endif %}">
+                                    {% if leave.status == 'Approved' %}✅{% elif leave.status == 'Rejected' %}❌{% else %}⏳{% endif %} {{ leave.status|upper }}
+                                </span>
+                                {% if leave.status != 'Pending' %}
+                                <div style="font-size: 13px; color: #8b5cf6; margin-top: 6px; font-weight: 900;">⚖️ {{ leave.updated_at|date:"D, M d, h:i A" }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" align="center" style="padding: 20px; color: #94a3b8; font-weight: 900;">NO RECENT ACTIVITY DETECTED</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% if not forloop.last %}
+        <div style="height: 15px; background: linear-gradient(to bottom, #f8fafc, #eff6ff, #f8fafc); margin: 15px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;"></div>
+        {% endif %}
+        
+        {% endfor %}
+    </div>
+
+    <div class="footer-section">
+        <div class="footer-title">
+            🚀 <span style="background: linear-gradient(to right, #f59e0b, #10b981, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">System & Security Oversight</span>
+        </div>
+        <div class="health-grid">
+            <div class="health-card" style="border-color: rgba(34, 197, 94, 0.4);">
+                <div class="health-icon-wrapper" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.2); color: #22c55e;">💾</div>
+                <div class="health-info">
+                    <h4 style="color: #4ade80; font-weight: 900;">Weekly Backup Status</h4>
+                    <p style="font-weight: 900; margin: 2px 0;">
+                        <span style="background: linear-gradient(to right, #22c55e, #10b981, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            <span class="status-glow" style="color: #22c55e; background: #22c55e;"></span> {{ system_health.backups }}
+                        </span>
+                    </p>
+                    <div style="font-size: 12px; color: #34d399; margin-top: 2px; font-weight: 900; opacity: 0.8;">Last Backup: {{ system_health.last_backup }}</div>
+                </div>
+            </div>
+            <div class="health-card" style="border-color: rgba(239, 68, 68, 0.4);">
+                <div class="health-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">🚨</div>
+                <div class="health-info">
+                    <h4 style="color: #fca5a5; font-weight: 900;">Security Audit</h4>
+                    <p style="font-weight: 900; margin: 2px 0;">
+                        <span style="background: linear-gradient(to right, #ef4444, #f43f5e, #fb7185); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            <span class="status-glow" style="color: #ef4444; background: #ef4444;"></span> {{ system_health.security }}
+                        </span>
+                    </p>
+                    <div style="font-size: 12px; color: #f43f5e; margin-top: 2px; font-weight: 900; opacity: 0.8;">All logs clear for the past 7 days.</div>
+                </div>
+            </div>
+            <div class="health-card" style="border-color: rgba(59, 130, 246, 0.4);">
+                <div class="health-icon-wrapper" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); color: #3b82f6;">⚡</div>
+                <div class="health-info">
+                    <h4 style="color: #93c5fd; font-weight: 900;">Server Performance</h4>
+                    <p style="font-weight: 900; margin: 2px 0;">
+                        <span style="background: linear-gradient(to right, #3b82f6, #06b6d4, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            <span class="status-glow" style="color: #3b82f6; background: #3b82f6;"></span> {{ system_health.uptime }}
+                        </span>
+                    </p>
+                    <div style="font-size: 12px; color: #06b6d4; margin-top: 2px; font-weight: 900; opacity: 0.8;">Response Time: {{ system_health.perf }}</div>
+                </div>
+            </div>
+            <div class="health-card" style="border-color: rgba(168, 85, 247, 0.4);">
+                <div class="health-icon-wrapper" style="background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.2); color: #a855f7;">📡</div>
+                <div class="health-info">
+                    <h4 style="color: #d8b4fe; font-weight: 900;">Notification Engine</h4>
+                    <p style="font-weight: 900; margin: 2px 0;">
+                        <span style="background: linear-gradient(to right, #a855f7, #8b5cf6, #d8b4fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            <span class="status-glow" style="color: #a855f7; background: #a855f7;"></span> {{ system_health.notifications }}
+                        </span>
+                    </p>
+                    <div style="font-size: 12px; color: #c084fc; margin-top: 2px; font-weight: 900; opacity: 0.8;">Email & SMS Gateway: ONLINE</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 20px; font-size: 16px; text-align: center; font-weight: 900; letter-spacing: 1px; border-top: 1.5px solid rgba(255, 255, 255, 0.1); padding-top: 15px; white-space: nowrap;">
+            🛡️ <span style="background: linear-gradient(to right, #4f46e5, #22d3ee, #22c55e, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));">
+                ALL SYSTEMS NOMINAL - EXECUTIVE SECURITY PROTOCOL ACTIVE
+            </span> 🛡️
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
