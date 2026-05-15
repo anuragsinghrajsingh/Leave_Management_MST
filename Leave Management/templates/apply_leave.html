@@ -194,7 +194,10 @@
                 </div>
             </div>
 
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            <form method="post" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
         </div>
     </div>
     </div>

@@ -1339,7 +1339,7 @@
                                         data-clear-on="{% if 'clear-password' in message.tags %}password{% else %}username{% endif %}"
                                     >
                                         <strong>Try again</strong>
-                                        <span>{{ message }}</span>
+                                        <span>{{ message|linebreaksbr }}</span>
                                     </div>
                                 {% endfor %}
                             </div>

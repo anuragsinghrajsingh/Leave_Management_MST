@@ -6,5 +6,8 @@
 {% endblock %}
 
 {% block userlinks %}
-    <a href="{% url 'admin_logout_custom' %}">Logout</a>
+    <form method="post" action="{% url 'admin_logout_custom' %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to log out?');">
+        {% csrf_token %}
+        <button type="submit" style="background: none; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0;">Logout</button>
+    </form>
 {% endblock %}

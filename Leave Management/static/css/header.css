@@ -850,6 +850,12 @@ header .profile-dropdown .logout-btn::before
     transition: all 0.25s ease;
 }
 
+.logout-form
+{
+    width: 100%;
+    margin: 0;
+}
+
 /* Hover */
 .logout-btn:hover 
 {

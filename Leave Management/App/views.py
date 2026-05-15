@@ -3,6 +3,9 @@ from django.utils.timezone import localtime, localdate, now
 from django.utils import timezone
 from calendar import monthrange
 import os,json, requests
+import hashlib
+import logging
+import time as time_module
 from ics import Calendar
 from django.contrib import messages
 from django.contrib.messages import get_messages
@@ -26,6 +29,8 @@ from django.conf import settings
 import os
 import base64
 from urllib.parse import quote
+
+security_logger = logging.getLogger("lms_security")
 
 def send_branded_email(subject, template_name, context, to_email, reply_to=None):
     """Helper to send a branded HTML email with an embedded logo."""
@@ -289,35 +294,275 @@ def role_select(request):
 
 
 def _show_login_failure_message(request, username, expected_role, portal_label):
-    User = get_user_model()
-    username = (username or "").strip()
+    _set_login_error_message(request)
 
-    if not username:
-        messages.error(request, "Please enter your username.", extra_tags="clear-username")
-        return
 
-    user = User.objects.filter(username=username).first()
+LOGIN_RATE_LIMITS = {
+    "ADMIN": {"max_attempts": 5, "window": 15 * 60, "lockout": 30 * 60},
+    "HR": {"max_attempts": 5, "window": 15 * 60, "lockout": 15 * 60},
+    "EMPLOYEE": {"max_attempts": 5, "window": 15 * 60, "lockout": 15 * 60},
+}
+LOGIN_PROGRESSIVE_DELAYS = {
+    3: 5,
+    4: 10,
+}
+LOGIN_BULK_IP_ALERT_ATTEMPTS = 10
 
-    if user is None:
-        messages.error(request, f"No account found for username '{username}'.", extra_tags="clear-username")
-        return
 
-    if not user.is_active:
-        messages.warning(request, "This account is inactive. Please contact HR or the administrator.", extra_tags="clear-username")
-        return
+def _get_client_ip(request):
+    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "unknown")
 
-    if expected_role == "ADMIN":
-        if not user.is_superuser:
-            messages.warning(request, "This account does not have admin access. Please use the correct portal.", extra_tags="clear-username")
+
+def _login_cache_token(value):
+    normalized = str(value or "blank").strip().lower()
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _login_cache_key(kind, portal, value):
+    return f"login_rate:{portal.lower()}:{kind}:{_login_cache_token(value)}"
+
+
+def _get_login_rate_config(portal):
+    return LOGIN_RATE_LIMITS.get(portal, LOGIN_RATE_LIMITS["EMPLOYEE"])
+
+
+def _safe_login_username(username):
+    return (username or "").strip()
+
+
+def _format_retry_after(seconds):
+    seconds = max(int(seconds or 0), 0)
+    if seconds <= 0:
+        return "later"
+
+    minutes = (seconds + 59) // 60
+    if minutes < 60:
+        return f"after {minutes} minute{'s' if minutes != 1 else ''}"
+
+    hours = minutes // 60
+    remaining_minutes = minutes % 60
+    if remaining_minutes:
+        return f"after {hours} hour{'s' if hours != 1 else ''} {remaining_minutes} minute{'s' if remaining_minutes != 1 else ''}"
+    return f"after {hours} hour{'s' if hours != 1 else ''}"
+
+
+def _set_login_error_message(request, locked=False, remaining_seconds=None, attempts_remaining=None):
+    if locked:
+        retry_after = _format_retry_after(remaining_seconds)
+        messages.error(request, f"Too many login attempts. Please try again {retry_after}.", extra_tags="clear-password")
+    else:
+        if attempts_remaining is None:
+            messages.error(request, "Invalid username or password.", extra_tags="clear-password")
         else:
-            messages.error(request, "Incorrect admin password. Please try again.", extra_tags="clear-password")
+            messages.error(
+                request,
+                f"Invalid username or password.\n{attempts_remaining} attempt{'s' if attempts_remaining != 1 else ''} remaining before temporary lockout.",
+                extra_tags="clear-password",
+            )
+
+
+def _get_login_lock_status(portal, username, ip_address):
+    user_lock_until = cache.get(_login_cache_key("lock_user", portal, username))
+    ip_lock_until = cache.get(_login_cache_key("lock_ip", portal, ip_address))
+    lock_until = max(float(user_lock_until or 0), float(ip_lock_until or 0))
+    remaining = int(lock_until - timezone.now().timestamp())
+    return remaining if remaining > 0 else 0
+
+
+def _clear_login_rate_state(portal, username, ip_address):
+    cache.delete_many([
+        _login_cache_key("fail_user", portal, username),
+        _login_cache_key("fail_ip", portal, ip_address),
+        _login_cache_key("lock_user", portal, username),
+        _login_cache_key("lock_ip", portal, ip_address),
+    ])
+
+
+def _increment_login_counter(key, timeout):
+    current = int(cache.get(key, 0) or 0) + 1
+    cache.set(key, current, timeout)
+    return current
+
+
+def _maybe_delay_failed_login(attempt_count):
+    delay_seconds = LOGIN_PROGRESSIVE_DELAYS.get(attempt_count, 0)
+    if delay_seconds <= 0:
+        return
+    time_module.sleep(delay_seconds)
+
+
+def _get_login_alert_account_user(portal, username):
+    username = _safe_login_username(username)
+    if not username:
+        return None
+
+    User = get_user_model()
+    queryset = User.objects.filter(username__iexact=username, is_active=True).exclude(email="")
+
+    if portal == "ADMIN":
+        return queryset.filter(is_superuser=True).first()
+    if portal == "HR":
+        return queryset.filter(role="HR").first()
+    if portal == "EMPLOYEE":
+        return queryset.filter(role="EMPLOYEE").first()
+    return None
+
+
+def _get_login_alert_recipients(portal, username):
+    recipients = []
+
+    for _, email_address in getattr(settings, "ADMINS", []):
+        if email_address:
+            recipients.append(email_address)
+
+    account_user = _get_login_alert_account_user(portal, username)
+    if account_user and account_user.email:
+        recipients.append(account_user.email)
+
+    unique_recipients = []
+    seen = set()
+    for email_address in recipients:
+        normalized = str(email_address or "").strip()
+        key = normalized.lower()
+        if normalized and key not in seen:
+            unique_recipients.append(normalized)
+            seen.add(key)
+
+    return unique_recipients
+
+
+def _send_login_security_alert(portal, username, ip_address, reason, attempts):
+    alert_key = _login_cache_key("alert", portal, f"{reason}:{username}:{ip_address}")
+    if not cache.add(alert_key, "sent", 60 * 30):
         return
 
-    if user.role != expected_role:
-        messages.warning(request, f"This account belongs to the {user.role.title()} portal. Please use the correct login page.", extra_tags="clear-username")
+    recipients = _get_login_alert_recipients(portal, username)
+    if not recipients:
+        security_logger.warning(
+            "LOGIN_ALERT_EMAIL_SKIPPED | portal=%s | username=%s | ip=%s | reason=%s | details=no_recipients",
+            portal,
+            username or "(blank)",
+            ip_address,
+            reason,
+        )
         return
 
-    messages.error(request, f"Incorrect {portal_label.lower()} password. Please try again.", extra_tags="clear-password")
+    subject = f"Login security alert: {portal}"
+    message = (
+        f"Portal: {portal}\n"
+        f"Username attempted: {username or '(blank)'}\n"
+        f"IP address: {ip_address}\n"
+        f"Reason: {reason}\n"
+        f"Attempts: {attempts}\n"
+        f"Time: {localtime(now()).strftime('%d %b %Y, %I:%M %p')}"
+    )
+    try:
+        EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=getattr(settings, "SERVER_EMAIL", settings.DEFAULT_FROM_EMAIL),
+            to=recipients,
+        ).send(fail_silently=False)
+        security_logger.info(
+            "LOGIN_ALERT_EMAIL_SENT | portal=%s | username=%s | ip=%s | reason=%s | recipients=%s",
+            portal,
+            username or "(blank)",
+            ip_address,
+            reason,
+            ",".join(recipients),
+        )
+    except Exception:
+        security_logger.exception(
+            "LOGIN_ALERT_EMAIL_FAILED | portal=%s | username=%s | ip=%s | reason=%s",
+            portal,
+            username or "(blank)",
+            ip_address,
+            reason,
+        )
+
+
+def _register_login_failure(request, portal, username):
+    config = _get_login_rate_config(portal)
+    ip_address = _get_client_ip(request)
+    username = _safe_login_username(username)
+
+    user_attempts = _increment_login_counter(
+        _login_cache_key("fail_user", portal, username),
+        config["window"],
+    )
+    ip_attempts = _increment_login_counter(
+        _login_cache_key("fail_ip", portal, ip_address),
+        config["window"],
+    )
+    attempts = max(user_attempts, ip_attempts)
+
+    security_logger.warning(
+        "LOGIN_FAILED | portal=%s | username=%s | ip=%s | user_attempts=%s | ip_attempts=%s",
+        portal,
+        username or "(blank)",
+        ip_address,
+        user_attempts,
+        ip_attempts,
+    )
+
+    locked = attempts >= config["max_attempts"]
+    if locked:
+        lock_until = timezone.now().timestamp() + config["lockout"]
+        cache.set(_login_cache_key("lock_user", portal, username), lock_until, config["lockout"])
+        cache.set(_login_cache_key("lock_ip", portal, ip_address), lock_until, config["lockout"])
+        security_logger.warning(
+            "LOGIN_LOCKOUT | portal=%s | username=%s | ip=%s | attempts=%s | lockout_seconds=%s",
+            portal,
+            username or "(blank)",
+            ip_address,
+            attempts,
+            config["lockout"],
+        )
+        _send_login_security_alert(portal, username, ip_address, "lockout", attempts)
+    elif ip_attempts >= LOGIN_BULK_IP_ALERT_ATTEMPTS:
+        _send_login_security_alert(portal, username, ip_address, "bulk_failed_attempts", ip_attempts)
+
+    attempts_remaining = max(config["max_attempts"] - attempts, 0)
+
+    if not locked:
+        _maybe_delay_failed_login(attempts)
+    return {
+        "lockout_seconds": config["lockout"] if locked else 0,
+        "attempts_remaining": attempts_remaining,
+    }
+
+
+def _login_blocked_response(request, portal, username, redirect_name):
+    ip_address = _get_client_ip(request)
+    remaining = _get_login_lock_status(portal, username, ip_address)
+    if remaining <= 0:
+        return None
+
+    security_logger.warning(
+        "LOGIN_BLOCKED | portal=%s | username=%s | ip=%s | remaining_seconds=%s",
+        portal,
+        _safe_login_username(username) or "(blank)",
+        ip_address,
+        remaining,
+    )
+    _set_login_error_message(request, locked=True, remaining_seconds=remaining)
+    request.session[f"{portal.lower()}_login_username"] = username or ""
+    return redirect(redirect_name)
+
+
+def _record_successful_login(request, portal, user, username):
+    ip_address = _get_client_ip(request)
+    _clear_login_rate_state(portal, username, ip_address)
+    security_logger.info(
+        "LOGIN_SUCCESS | portal=%s | user_id=%s | username=%s | ip=%s",
+        portal,
+        user.id,
+        user.username,
+        ip_address,
+    )
 
 
 def _render_loading_screen(request, *, page_title, theme_class, company_product, subtitle, kicker,
@@ -705,14 +950,25 @@ def hr_login(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
+        blocked_response = _login_blocked_response(request, "HR", username, "hr_login_form")
+        if blocked_response:
+            return blocked_response
+
         user = authenticate(request, username=username, password=password)
         
         # 🔥 Security Hardening: Check if user exists, is HR, AND is active
         if user is not None and user.role == "HR" and user.is_active:
+            _record_successful_login(request, "HR", user, username)
             login(request, user)
             return redirect("hr_dashboard_loading_page")
         else:
-            _show_login_failure_message(request, username, "HR", "HR")
+            failure_state = _register_login_failure(request, "HR", username)
+            _set_login_error_message(
+                request,
+                locked=bool(failure_state["lockout_seconds"]),
+                remaining_seconds=failure_state["lockout_seconds"],
+                attempts_remaining=failure_state["attempts_remaining"],
+            )
             request.session["hr_login_username"] = username or ""
             return redirect("hr_login_form")
 
@@ -2392,16 +2648,27 @@ def admin_login(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
+        blocked_response = _login_blocked_response(request, "ADMIN", username, "admin_login_form")
+        if blocked_response:
+            return blocked_response
+
         user = authenticate(request, username=username, password=password)
 
         if user and user.is_superuser:
+            _record_successful_login(request, "ADMIN", user, username)
             login(request, user)
 
             # 🔥 Redirect to Django Admin
             return redirect("admin_dashboard_loading_page")
 
         else:
-            _show_login_failure_message(request, username, "ADMIN", "Admin")
+            failure_state = _register_login_failure(request, "ADMIN", username)
+            _set_login_error_message(
+                request,
+                locked=bool(failure_state["lockout_seconds"]),
+                remaining_seconds=failure_state["lockout_seconds"],
+                attempts_remaining=failure_state["attempts_remaining"],
+            )
             request.session["admin_login_username"] = username or ""
             return redirect("admin_login_form")
 
@@ -2651,15 +2918,26 @@ def employee_login(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
+        blocked_response = _login_blocked_response(request, "EMPLOYEE", username, "employee_login_form")
+        if blocked_response:
+            return blocked_response
+
         user = authenticate(request, username=username, password=password)
 
         # 🔥 Security Hardening: Check if user exists, is EMPLOYEE, AND is active
         if user is not None and user.role == "EMPLOYEE" and user.is_active:
+            _record_successful_login(request, "EMPLOYEE", user, username)
             login(request, user)
             return redirect("employee_dashboard_loading_page")
         
         else:
-            _show_login_failure_message(request, username, "EMPLOYEE", "Employee")
+            failure_state = _register_login_failure(request, "EMPLOYEE", username)
+            _set_login_error_message(
+                request,
+                locked=bool(failure_state["lockout_seconds"]),
+                remaining_seconds=failure_state["lockout_seconds"],
+                attempts_remaining=failure_state["attempts_remaining"],
+            )
             request.session["employee_login_username"] = username or ""
             return redirect("employee_login_form")
 
@@ -4538,7 +4816,9 @@ def edit_leave(request, leave_id):
 
 
 
+@login_required
 @never_cache
+@require_POST
 def logout_view(request):
   
     # 🔹 Store role before logout
@@ -4575,6 +4855,8 @@ def logout_view(request):
         return redirect("role_select")
 
 
+@login_required
+@never_cache
 def get_next_id_api(request, role):
     """
     AJAX endpoint for getting the next available Employee ID for a given role.

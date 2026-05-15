@@ -136,6 +136,33 @@ const modal = document.getElementById("modal");
                 }, options || {}));
             };
 
+            document.addEventListener("submit", function (event)
+            {
+                const form = event.target.closest(".logout-form");
+                if (!form || form.dataset.logoutConfirmed === "true")
+                {
+                    return;
+                }
+
+                event.preventDefault();
+
+                window.showThemeConfirm("Are you sure you want to log out?", {
+                    title: "Confirm logout",
+                    confirmText: "Logout",
+                    cancelText: "Stay signed in",
+                    variant: "delete"
+                }).then(function (confirmed)
+                {
+                    if (!confirmed)
+                    {
+                        return;
+                    }
+
+                    form.dataset.logoutConfirmed = "true";
+                    form.submit();
+                });
+            });
+
             window.addEventListener("pageshow", function (event)
             {
                 const isAuthenticatedPage = document.body && document.body.dataset.authenticated === "true";
