@@ -42,6 +42,10 @@ REJECTION_REASON_MAX_LENGTH = 500
 EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS = 5 * 60
 
 
+def get_portal_link():
+    return f"{settings.PORTAL_BASE_URL}/"
+
+
 def _sanitize_profile_photo_upload(photo):
     from PIL import Image, ImageOps
 
@@ -2543,7 +2547,7 @@ def approve_leave(request, leave_id):
 
     # --- Notify Employee (Approved) ---
     subject = f"Leave Request APPROVED: {leave.leave_type}"
-    portal_link = request.build_absolute_uri('/')
+    portal_link = get_portal_link()
     context = {
         'title': 'Leave Approved',
         'intro_text': f"Hello {leave.user.first_name or leave.user.username}, your leave request has been approved.",
@@ -2692,7 +2696,7 @@ def reject_leave(request, leave_id):
     # --- Notify Employee (Rejected) ---
     subject = f"Leave Request REJECTED: {leave.leave_type}"
     rejection_reason = leave.rejection_reason or "No specific reason provided."
-    portal_link = request.build_absolute_uri('/')
+    portal_link = get_portal_link()
     context = {
         'title': 'Leave Rejected',
         'intro_text': f"Hello {leave.user.first_name or leave.user.username}, your leave request has been rejected.",
@@ -3589,7 +3593,7 @@ def apply_leave(request):
                 hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
                 if hr_emails:
                     subject = f"New Leave Request: {user.get_full_name() or user.username}"
-                    portal_link = request.build_absolute_uri('/')
+                    portal_link = get_portal_link()
                     context = {
                         'title': 'New Leave Request',
                         'intro_text': f"A new leave request has been submitted by {user.get_full_name() or user.username}.",
@@ -3851,7 +3855,7 @@ def apply_leave(request):
             hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
             if hr_emails:
                 subject = f"New Leave Request: {user.get_full_name() or user.username}"
-                portal_link = request.build_absolute_uri('/')
+                portal_link = get_portal_link()
                 context = {
                     'title': 'New Leave Request',
                     'intro_text': f"A new leave request has been submitted by {user.get_full_name() or user.username}.",
@@ -4745,7 +4749,7 @@ def edit_leave(request, leave_id):
             hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
             if hr_emails:
                 subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
-                portal_link = request.build_absolute_uri('/')
+                portal_link = get_portal_link()
                 context = {
                     'title': 'Leave Request Updated',
                     'intro_text': f"{request.user.get_full_name() or request.user.username} has updated their pending {new_type} leave request.",
@@ -4921,7 +4925,7 @@ def edit_leave(request, leave_id):
         hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
         if hr_emails:
             subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
-            portal_link = request.build_absolute_uri('/')
+            portal_link = get_portal_link()
             context = {
                 'title': 'Leave Request Updated',
                 'intro_text': f"{request.user.get_full_name() or request.user.username} has updated their pending leave request.",

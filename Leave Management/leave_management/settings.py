@@ -45,12 +45,19 @@ MANAGERS = ADMINS
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"] if DEBUG else [])
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
+PORTAL_BASE_URL = env(
+    "PORTAL_BASE_URL",
+    default="http://localhost:8000" if DEBUG else "",
+).rstrip("/")
 
 if IS_PRODUCTION and SECRET_KEY == DEFAULT_DEV_SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is false.")
 
 if IS_PRODUCTION and not ALLOWED_HOSTS:
     raise RuntimeError("DJANGO_ALLOWED_HOSTS must be set when DJANGO_DEBUG is false.")
+
+if IS_PRODUCTION and not PORTAL_BASE_URL:
+    raise RuntimeError("PORTAL_BASE_URL must be set when DJANGO_DEBUG is false.")
 
 # CSRF Cookie Settings
 CSRF_COOKIE_SECURE = IS_PRODUCTION
