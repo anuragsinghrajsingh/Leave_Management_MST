@@ -2709,11 +2709,32 @@ table {
     box-shadow: -3px 5px 0 #2563eb, 3px 10px 0 #2563eb;
 }
 
-.badge a {
+.badge a,
+.badge-clear-btn {
     color: var(--rejected);
     text-decoration: none;
     font-size: 0.95rem;
     line-height: 1;
+}
+
+.badge-clear-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.badge-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.badge-clear-btn:hover {
+    color: #b91c1c;
 }
 
 .filter-form,

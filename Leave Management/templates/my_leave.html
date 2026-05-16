@@ -272,18 +272,27 @@
                         {% if f.leave_type %}
                             <span class="badge">
                                 &#127991; {{ f.leave_type }}
-                                <a href="{% url 'clear_status_filter_field' 'Pending' 'leave_type' %}">&#10006;</a>
+                                <form method="post" action="{% url 'clear_status_filter_field' 'Pending' 'leave_type' %}" class="badge-clear-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="badge-clear-btn" data-filter-status="Pending" data-filter-field="leave_type" aria-label="Clear leave type filter">&#10006;</button>
+                                </form>
                             </span>
                         {% endif %}
                         {% if f.month %}
                             <span class="badge">
                                 &#128467; {{ f.month }}
-                                <a href="{% url 'clear_status_filter_field' 'Pending' 'month' %}">&#10006;</a>
+                                <form method="post" action="{% url 'clear_status_filter_field' 'Pending' 'month' %}" class="badge-clear-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="badge-clear-btn" data-filter-status="Pending" data-filter-field="month" aria-label="Clear month filter">&#10006;</button>
+                                </form>
                             </span>
                         {% elif f.from_date or f.to_date %}
                             <span class="badge">
                                 &#128197; {{ f.from_date|default:"..." }} &rarr; {{ f.to_date|default:"..." }}
-                                <a href="{% url 'clear_status_filter_field' 'Pending' 'date_range' %}">&#10006;</a>
+                                <form method="post" action="{% url 'clear_status_filter_field' 'Pending' 'date_range' %}" class="badge-clear-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="badge-clear-btn" data-filter-status="Pending" data-filter-field="date_range" aria-label="Clear date range filter">&#10006;</button>
+                                </form>
                             </span>
                         {% endif %}
                     </div>
@@ -360,18 +369,27 @@
                         {% if f.leave_type %}
                         <span class="badge">
                             &#127991; {{ f.leave_type }}
-                            <a href="{% url 'clear_status_filter_field' 'Approved' 'leave_type' %}">&#10006;</a>
+                            <form method="post" action="{% url 'clear_status_filter_field' 'Approved' 'leave_type' %}" class="badge-clear-form">
+                                {% csrf_token %}
+                                <button type="submit" class="badge-clear-btn" data-filter-status="Approved" data-filter-field="leave_type" aria-label="Clear leave type filter">&#10006;</button>
+                            </form>
                         </span>
                         {% endif %}
                         {% if f.month %}
                         <span class="badge">
                             &#128467; {{ f.month }}
-                            <a href="{% url 'clear_status_filter_field' 'Approved' 'month' %}">&#10006;</a>
+                            <form method="post" action="{% url 'clear_status_filter_field' 'Approved' 'month' %}" class="badge-clear-form">
+                                {% csrf_token %}
+                                <button type="submit" class="badge-clear-btn" data-filter-status="Approved" data-filter-field="month" aria-label="Clear month filter">&#10006;</button>
+                            </form>
                         </span>
                         {% elif f.from_date or f.to_date %}
                         <span class="badge">
                             &#128197; {{ f.from_date|default:"..." }} &rarr; {{ f.to_date|default:"..." }}
-                            <a href="{% url 'clear_status_filter_field' 'Approved' 'date_range' %}">&#10006;</a>
+                            <form method="post" action="{% url 'clear_status_filter_field' 'Approved' 'date_range' %}" class="badge-clear-form">
+                                {% csrf_token %}
+                                <button type="submit" class="badge-clear-btn" data-filter-status="Approved" data-filter-field="date_range" aria-label="Clear date range filter">&#10006;</button>
+                            </form>
                         </span>
                         {% endif %}
                     </div>
@@ -445,18 +463,27 @@
                         {% if f.leave_type %}
                         <span class="badge">
                             &#127991; {{ f.leave_type }}
-                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'leave_type' %}">&#10006;</a>
+                            <form method="post" action="{% url 'clear_status_filter_field' 'Rejected' 'leave_type' %}" class="badge-clear-form">
+                                {% csrf_token %}
+                                <button type="submit" class="badge-clear-btn" data-filter-status="Rejected" data-filter-field="leave_type" aria-label="Clear leave type filter">&#10006;</button>
+                            </form>
                         </span>
                         {% endif %}
                         {% if f.month %}
                         <span class="badge">
                             &#128467; {{ f.month }}
-                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'month' %}">&#10006;</a>
+                            <form method="post" action="{% url 'clear_status_filter_field' 'Rejected' 'month' %}" class="badge-clear-form">
+                                {% csrf_token %}
+                                <button type="submit" class="badge-clear-btn" data-filter-status="Rejected" data-filter-field="month" aria-label="Clear month filter">&#10006;</button>
+                            </form>
                         </span>
                         {% elif f.from_date or f.to_date %}
                         <span class="badge">
                             &#128197; {{ f.from_date|default:"..." }} &rarr; {{ f.to_date|default:"..." }}
-                            <a href="{% url 'clear_status_filter_field' 'Rejected' 'date_range' %}">&#10006;</a>
+                            <form method="post" action="{% url 'clear_status_filter_field' 'Rejected' 'date_range' %}" class="badge-clear-form">
+                                {% csrf_token %}
+                                <button type="submit" class="badge-clear-btn" data-filter-status="Rejected" data-filter-field="date_range" aria-label="Clear date range filter">&#10006;</button>
+                            </form>
                         </span>
                         {% endif %}
                     </div>

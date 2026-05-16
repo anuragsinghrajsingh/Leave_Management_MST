@@ -46,6 +46,7 @@ EMPLOYEE_PHONE_MAX_LENGTH = 14
 EMPLOYEE_ADDRESS_MAX_LENGTH = 500
 EMPLOYEE_PHONE_PATTERN = re.compile(r"^(?:\+91[\s-]?|91)?([6-9]\d{9})$")
 ALLOWED_LEAVE_TYPES = {choice[0] for choice in Leave.LEAVE_TYPES}
+ALLOWED_PROFILE_ID_ROLES = {choice[0] for choice in Profile.ROLE_CHOICES}
 
 
 def get_portal_link():
@@ -90,6 +91,20 @@ def validate_employee_address(address):
 def get_valid_leave_type(raw_leave_type):
     leave_type = (raw_leave_type or "").strip()
     return leave_type if leave_type in ALLOWED_LEAVE_TYPES else None
+
+
+def store_apply_leave_form_state(request):
+    leave_type = get_valid_leave_type(request.POST.get("leave_type"))
+    safe_form_data = {
+        "leave_type": leave_type or "",
+        "from_date": (request.POST.get("from_date") or "").strip(),
+        "to_date": (request.POST.get("to_date") or "").strip(),
+        "from_datetime": (request.POST.get("from_datetime") or "").strip(),
+        "to_datetime": (request.POST.get("to_datetime") or "").strip(),
+        "to_date_hidden": (request.POST.get("to_date_hidden") or "").strip(),
+        "reason": (request.POST.get("reason") or "").strip()[:1000],
+    }
+    request.session["apply_leave_form"] = safe_form_data
 
 
 def _sanitize_profile_photo_upload(photo):
@@ -3462,7 +3477,7 @@ def apply_leave(request):
                 (request.POST.get("leave_type") or "").strip()[:80],
             )
             messages.error(request, "Invalid leave type.")
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
         reason = request.POST.get("reason", "").strip()
@@ -3485,14 +3500,14 @@ def apply_leave(request):
                     messages.error(request, "Only one Short leave allowed per day.")
                     
                     # ✅ STORE FORM DATA TEMPORARILY
-                    request.session["apply_leave_form"] = request.POST.dict()
+                    store_apply_leave_form_state(request)
                     return redirect("apply_leave")
                 
                 if short_half_same_day_check:
                     messages.error(request, "Only one either Short or Half leave allowed per day.")
                     
                     # ✅ STORE FORM DATA TEMPORARILY
-                    request.session["apply_leave_form"] = request.POST.dict()
+                    store_apply_leave_form_state(request)
                     return redirect("apply_leave")
 
             if leave_type == "Half":            
@@ -3506,14 +3521,14 @@ def apply_leave(request):
                     messages.error(request, "Only one Half leave allowed per day.")
                     
                     # ✅ STORE FORM DATA TEMPORARILY
-                    request.session["apply_leave_form"] = request.POST.dict()
+                    store_apply_leave_form_state(request)
                     return redirect("apply_leave")
                 
                 if short_half_same_day_check:
                     messages.error(request, "Only one either Short or Half leave allowed per day.")
                     
                     # ✅ STORE FORM DATA TEMPORARILY
-                    request.session["apply_leave_form"] = request.POST.dict()
+                    store_apply_leave_form_state(request)
                     return redirect("apply_leave")  
                 
             
@@ -3528,7 +3543,7 @@ def apply_leave(request):
                 messages.error(request, "Invalid date format.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             today = localdate()
@@ -3537,27 +3552,27 @@ def apply_leave(request):
                 messages.error(request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
             
             if from_date < today or to_date < today:
                 messages.error(request, "Leave date cannot be in the past.")
                 
                  # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             company_holiday = _get_blocking_company_holiday(from_date)
             if company_holiday:
                 messages.error(request, f"Leave cannot be applied only on company holiday: {company_holiday.name}.")
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             if to_date != from_date:
                 messages.error(request, "Invalid date range: Short/Half Day Leave should be on same date.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
 
@@ -3568,7 +3583,7 @@ def apply_leave(request):
                 messages.error(request, "Invalid time selection.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             try:
@@ -3578,7 +3593,7 @@ def apply_leave(request):
                 messages.error(request, "Invalid datetime format.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             # STRICT BUSINESS HOURS
@@ -3597,7 +3612,7 @@ def apply_leave(request):
                 messages.error(request, "Invalid start time.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
             
             
@@ -3612,7 +3627,7 @@ def apply_leave(request):
                     messages.error(request, "7 minutes of grace period is also passed.")
                     
                     # ✅ STORE FORM DATA TEMPORARILY
-                    request.session["apply_leave_form"] = request.POST.dict()
+                    store_apply_leave_form_state(request)
                     return redirect("apply_leave")
                 
             
@@ -3624,14 +3639,14 @@ def apply_leave(request):
                 messages.error(request, "Invalid leave duration.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
             
             if end <= start:
                 messages.error(request, "Invalid time range.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
             
             
@@ -3660,14 +3675,14 @@ def apply_leave(request):
                 messages.error(request, "Maximum 2 short leaves allowed per month.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             if leave_type == "Half" and half_count >= 1:
                 messages.error(request, "Only 1 half-day allowed per month.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")        
             
             # Checking working days in the selected range
@@ -3680,14 +3695,14 @@ def apply_leave(request):
                 messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")            
 
             if days < 0:
                 messages.error(request, " ℹInvalid leave duration.")
             
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")        
 
             # ===== Overlap Check (Datetime) =====
@@ -3703,7 +3718,7 @@ def apply_leave(request):
                 messages.error(request, "Overlaps with existing leave.")
                                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
 
@@ -3728,7 +3743,7 @@ def apply_leave(request):
                 messages.error(request, "Not enough leave balance.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             balance.total_leave_remaining -= leave_value
@@ -3797,7 +3812,7 @@ def apply_leave(request):
             messages.error(request, "Invalid date format.")
             
             # ✅ STORE FORM DATA TEMPORARILY
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
         today = localdate()
@@ -3807,7 +3822,7 @@ def apply_leave(request):
         # ❌ Reverse Date Range check
         if from_date > to_date:
             messages.error(request, "From date cannot be after To date.")
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
         # ❌ Backward date range check
@@ -3815,13 +3830,13 @@ def apply_leave(request):
             messages.error(request, "Leave date cannot be in the past.")
             
             # ✅ STORE FORM DATA TEMPORARILY
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
         single_day_company_holiday = from_date == to_date and _get_blocking_company_holiday(from_date)
         if single_day_company_holiday:
             messages.error(request, f"Leave cannot be applied only on company holiday: {single_day_company_holiday.name}.")
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
         from App.services.leave_breakdown import calculate_leave_breakdown, expand_full_day_leave_range
@@ -3854,14 +3869,14 @@ def apply_leave(request):
             messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
             
             # ✅ STORE FORM DATA TEMPORARILY
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")            
 
         if days < 0:
             messages.error(request, " ℹInvalid leave duration.")
             
             # ✅ STORE FORM DATA TEMPORARILY
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
         
         
@@ -3885,7 +3900,7 @@ def apply_leave(request):
                 )
 
             # ✅ STORE FORM DATA TEMPORARILY
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
 
@@ -3914,7 +3929,7 @@ def apply_leave(request):
                 if current_time >= time(8, 0):
                     messages.error( request, "Sick leave cannot be applied after 8:00 AM for the same day.")
                     
-                    request.session["apply_leave_form"] = request.POST.dict()
+                    store_apply_leave_form_state(request)
                     return redirect("apply_leave")
 
             # 🔒 BALANCE CHECK
@@ -3922,7 +3937,7 @@ def apply_leave(request):
                 messages.error(request, "ℹ Insufficient 'Sick' Leave balance.")
                 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             sick_used += days
@@ -3938,7 +3953,7 @@ def apply_leave(request):
                 messages.error(request, "ℹ Insufficient earned leave balance.")
 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
             
             elif days_before < 15:
@@ -3947,7 +3962,7 @@ def apply_leave(request):
                 messages.error(request, "ℹ Admissible advance period is 21 days.")
 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
             elif days_before >= 15 and days_before < 21:
@@ -3970,7 +3985,7 @@ def apply_leave(request):
                 messages.error(request, "ℹ Admissible advance period is 21 days.")
 
                 # ✅ STORE FORM DATA TEMPORARILY
-                request.session["apply_leave_form"] = request.POST.dict()
+                store_apply_leave_form_state(request)
                 return redirect("apply_leave")
             
             elif days_before >= 15 and days_before < 21:
@@ -3990,7 +4005,7 @@ def apply_leave(request):
             messages.error(request, "Invalid leave type.")
             
             # ✅ STORE FORM DATA TEMPORARILY
-            request.session["apply_leave_form"] = request.POST.dict()
+            store_apply_leave_form_state(request)
             return redirect("apply_leave")
 
         # -------- STEP 6: ATOMIC SAVE --------
@@ -4476,38 +4491,45 @@ def my_leave(request):
 
 @login_required
 @never_cache
+@require_POST
 def apply_status_filter(request, status):
-    if request.method == "POST":
-        filters = request.session.get("filters", {})
+    if request.user.role != "EMPLOYEE":
+        return redirect("role_select")
 
-        leave_type = request.POST.get("leave_type") or None
-        month = request.POST.get("month") or None
-        from_date = request.POST.get("from_date") or None
-        to_date = request.POST.get("to_date") or None
+    filters = request.session.get("filters", {})
 
-        # mutual exclusivity
-        if month:
-            from_date = None
-            to_date = None
-        elif from_date or to_date:
-            month = None
+    leave_type = request.POST.get("leave_type") or None
+    month = request.POST.get("month") or None
+    from_date = request.POST.get("from_date") or None
+    to_date = request.POST.get("to_date") or None
 
-        filters[status] = {
-            "leave_type": leave_type,
-            "month": month,
-            "from_date": from_date,
-            "to_date": to_date,
-        }
+    # mutual exclusivity
+    if month:
+        from_date = None
+        to_date = None
+    elif from_date or to_date:
+        month = None
 
-        request.session["filters"] = filters
-        
-        messages.success(request, "Filter has been applied !")   
+    filters[status] = {
+        "leave_type": leave_type,
+        "month": month,
+        "from_date": from_date,
+        "to_date": to_date,
+    }
+
+    request.session["filters"] = filters
+    
+    messages.success(request, "Filter has been applied !")   
 
     return _my_leave_response(request, filter_status=status)
 
 @login_required
 @never_cache
+@require_POST
 def clear_status_filter(request, status):
+    if request.user.role != "EMPLOYEE":
+        return redirect("role_select")
+
     filters = request.session.get("filters", {})
     filters.pop(status, None)
     request.session["filters"] = filters
@@ -4518,7 +4540,11 @@ def clear_status_filter(request, status):
 
 @login_required
 @never_cache
+@require_POST
 def clear_status_filter_field(request, status, field):
+    if request.user.role != "EMPLOYEE":
+        return redirect("role_select")
+
     filters = request.session.get("filters", {})
 
     if status in filters:
@@ -4572,6 +4598,12 @@ def delete_leave(request, leave_id):
             messages.info( request, f"Date: {leave.from_date.strftime('%d %b')} ({leave.from_datetime.strftime('%H:%M')} → {leave.to_datetime.strftime('%H:%M')})" )         
 
             deleted_leave_id = leave.id
+            log_leave_action(
+                request.user,
+                "DELETE",
+                leave.id,
+                f"Type: {leave.leave_type} | Date: {leave.from_date} | Deducted From: {leave.deducted_from}",
+            )
             leave.delete()
             pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
             return _my_leave_response(request, deleted_id=deleted_leave_id, pending_count=pending_count)
@@ -5216,6 +5248,16 @@ def get_next_id_api(request, role):
     """
     if not request.user.is_staff:
         return JsonResponse({"error": "Unauthorized"}, status=403)
-        
-    next_id = Profile.generate_next_id(role)
+
+    normalized_role = (role or "").strip()
+    if normalized_role not in ALLOWED_PROFILE_ID_ROLES:
+        security_logger.warning(
+            "INVALID_NEXT_ID_ROLE | user_id=%s | ip=%s | submitted=%s",
+            request.user.id,
+            _get_client_ip(request),
+            normalized_role[:80],
+        )
+        return JsonResponse({"error": "Invalid role."}, status=400)
+
+    next_id = Profile.generate_next_id(normalized_role)
     return JsonResponse({"next_id": next_id})

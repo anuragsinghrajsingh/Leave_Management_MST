@@ -2588,15 +2588,15 @@ const exportWrapper = document.createElement("div");
         const badgeParts = [];
         if (filterState.leave_type)
         {
-            badgeParts.push(`<span class="badge">&#127991; ${escapeHtml(filterState.leave_type)} <a href="#" data-filter-status="${escapeHtml(status)}" data-filter-field="leave_type">&#10006;</a></span>`);
+            badgeParts.push(`<span class="badge">&#127991; ${escapeHtml(filterState.leave_type)} <button type="button" class="badge-clear-btn" data-filter-status="${escapeHtml(status)}" data-filter-field="leave_type" aria-label="Clear leave type filter">&#10006;</button></span>`);
         }
         if (filterState.month)
         {
-            badgeParts.push(`<span class="badge">&#128467; ${escapeHtml(filterState.month)} <a href="#" data-filter-status="${escapeHtml(status)}" data-filter-field="month">&#10006;</a></span>`);
+            badgeParts.push(`<span class="badge">&#128467; ${escapeHtml(filterState.month)} <button type="button" class="badge-clear-btn" data-filter-status="${escapeHtml(status)}" data-filter-field="month" aria-label="Clear month filter">&#10006;</button></span>`);
         }
         else if (filterState.from_date || filterState.to_date)
         {
-            badgeParts.push(`<span class="badge">&#128197; ${escapeHtml(filterState.from_date || "...")} &rarr; ${escapeHtml(filterState.to_date || "...")} <a href="#" data-filter-status="${escapeHtml(status)}" data-filter-field="date_range">&#10006;</a></span>`);
+            badgeParts.push(`<span class="badge">&#128197; ${escapeHtml(filterState.from_date || "...")} &rarr; ${escapeHtml(filterState.to_date || "...")} <button type="button" class="badge-clear-btn" data-filter-status="${escapeHtml(status)}" data-filter-field="date_range" aria-label="Clear date range filter">&#10006;</button></span>`);
         }
         window.setSafeHTML(badges, badgeParts.join(""));
     }
@@ -3282,12 +3282,13 @@ const exportWrapper = document.createElement("div");
         });
         document.addEventListener("click", async (event) =>
         {
-            const clearLink = event.target.closest('.filter-badges a[data-filter-field], .filter-badges a[href*="clear-status-filter-field"]');
-            if (!clearLink) return;
+            const clearControl = event.target.closest('.filter-badges [data-filter-field], .filter-badges form[action*="clear-status-filter-field"] button');
+            if (!clearControl) return;
             event.preventDefault();
-            const panel = clearLink.closest(".leave-panel");
-            const normalizedStatus = clearLink.dataset.filterStatus || (panel ? getPanelStatusLabel(panel.id) : "");
-            const filterField = clearLink.dataset.filterField || "";
+            const panel = clearControl.closest(".leave-panel");
+            const clearForm = clearControl.closest("form");
+            const normalizedStatus = clearControl.dataset.filterStatus || (panel ? getPanelStatusLabel(panel.id) : "");
+            const filterField = clearControl.dataset.filterField || "";
             if (!normalizedStatus) return;
             const nextState = { ...currentFilterState };
             const current = normalizeFilterState(nextState[normalizedStatus] || {});
@@ -3310,12 +3311,14 @@ const exportWrapper = document.createElement("div");
             }
             setCurrentFilterState(nextState);
             applyFilterStateToPanel(normalizedStatus);
-            const requestUrl = clearLink.dataset.filterField
+            const requestUrl = filterField
                 ? `/clear-status-filter-field/${normalizedStatus}/${filterField}/`
-                : clearLink.href;
+                : clearForm?.action;
             const response = await fetch(requestUrl, {
+                method: "POST",
                 headers: {
                     "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": getCSRFToken(),
                     "Cache-Control": "no-cache"
                 },
                 credentials: "same-origin",
