@@ -3277,7 +3277,6 @@ def apply_leave(request):
 
     if request.method == "POST":
 
-        print(request.POST)
         leave_type = request.POST.get("leave_type")
         reason = request.POST.get("reason", "").strip()
         user = request.user
@@ -4056,6 +4055,11 @@ def leave_calendar_data(request):
                 "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics",
                 timeout=10
             )
+            res.raise_for_status()
+
+            if "BEGIN:VCALENDAR" not in res.text:
+                raise ValueError("Holiday feed did not return calendar data.")
+
             calendar = Calendar(res.text)
 
             for event in calendar.events:
