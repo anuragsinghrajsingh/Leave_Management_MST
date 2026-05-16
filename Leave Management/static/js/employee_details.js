@@ -51,6 +51,103 @@
         const employeeCards = employeeGrid ? Array.from(employeeGrid.querySelectorAll("[data-employee-card]")) : [];
         const employeePlaceholderCards = employeeGrid ? Array.from(employeeGrid.querySelectorAll(".employee-card-placeholder")) : [];
 
+        function ensureFlashMessagesContainer()
+        {
+            let container = document.getElementById("flash-messages");
+
+            if (!container)
+            {
+                container = document.createElement("div");
+                container.id = "flash-messages";
+                document.body.appendChild(container);
+            }
+
+            return container;
+        }
+
+        function dismissFlashMessage(flash)
+        {
+            if (!flash || flash.dataset.closing === "true")
+            {
+                return;
+            }
+
+            flash.dataset.closing = "true";
+            flash.classList.add("flash-exit");
+            setTimeout(function ()
+            {
+                if (flash.parentNode)
+                {
+                    flash.parentNode.removeChild(flash);
+                }
+            }, 220);
+        }
+
+        function renderFlashMessages(messages)
+        {
+            if (!Array.isArray(messages) || !messages.length)
+            {
+                return;
+            }
+
+            const container = ensureFlashMessagesContainer();
+
+            messages.forEach(function (message, index)
+            {
+                const tags = String(message && message.tags ? message.tags : "").trim();
+                const title = String(message && message.title ? message.title : "Update");
+                const text = String(message && message.text ? message.text : "").trim();
+
+                if (!text)
+                {
+                    return;
+                }
+
+                const flash = document.createElement("div");
+                flash.className = "flash" + (tags ? " flash-" + tags : "");
+                flash.setAttribute("data-flash", "");
+                flash.innerHTML = [
+                    '<span class="flash-accent" aria-hidden="true"></span>',
+                    '<span class="flash-icon" aria-hidden="true"></span>',
+                    '<div class="flash-copy">',
+                    '<strong class="flash-title"></strong>',
+                    '<p></p>',
+                    '</div>',
+                    '<button type="button" class="flash-dismiss" aria-label="Dismiss message">&times;</button>'
+                ].join("");
+
+                flash.querySelector(".flash-title").textContent = title;
+                flash.querySelector("p").textContent = text;
+
+                const dismissBtn = flash.querySelector(".flash-dismiss");
+                if (dismissBtn)
+                {
+                    dismissBtn.addEventListener("click", function ()
+                    {
+                        dismissFlashMessage(flash);
+                    });
+                }
+
+                container.appendChild(flash);
+
+                setTimeout(function ()
+                {
+                    dismissFlashMessage(flash);
+                }, 4200 + index * 250);
+            });
+        }
+
+        function showEmployeeDetailsToast(title, text, tags)
+        {
+            renderFlashMessages([
+                {
+                    title: title || "Update failed",
+                    text: text || "Unable to save changes.",
+                    tags: tags || "error"
+                }
+            ]);
+        }
+
         function getCardsPerPage()
         {
             return window.matchMedia("(max-width: 640px)").matches ? 6 : 10;
@@ -240,7 +337,7 @@
                 setInlineEditState(container, false);
             }).catch(function (error)
             {
-                window.alert(error.message || "Unable to save changes.");
+                showEmployeeDetailsToast("Unable to save", error.message || "Unable to save changes.", "error");
             }).finally(function ()
             {
                 delete container.dataset.inlineEditSaving;
@@ -1423,7 +1520,7 @@
                     addressModalEditButton.hidden = false;
                 }).catch(function (error)
                 {
-                    window.alert(error.message || "Unable to save address.");
+                    showEmployeeDetailsToast("Unable to save", error.message || "Unable to save address.", "error");
                 });
             });
 

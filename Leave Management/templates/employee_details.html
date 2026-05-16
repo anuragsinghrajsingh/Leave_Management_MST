@@ -357,7 +357,7 @@
                                         <label class="field field-address">
                                             <span>Address</span>
                                             <div class="input-shell">
-                                                <textarea name="address" rows="3" aria-invalid="{% if field_errors.address %}true{% else %}false{% endif %}">{{ form_values.address }}</textarea>
+                                                <textarea name="address" rows="3" maxlength="500" aria-invalid="{% if field_errors.address %}true{% else %}false{% endif %}">{{ form_values.address }}</textarea>
                                             </div>
                                             {% if field_errors.address %}<div class="field-feedback">{% for error in field_errors.address %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
                                         </label>
@@ -513,7 +513,7 @@
                                             {% endif %}
                                         </p>
                                         <form class="inline-edit-form inline-edit-form-address" data-inline-edit-form hidden>
-                                            <textarea name="address" rows="3">{{ employee.address }}</textarea>
+                                            <textarea name="address" rows="3" maxlength="500">{{ employee.address }}</textarea>
                                         </form>
                                     </div>
                                 </div>
@@ -606,7 +606,7 @@
                     </div>
                     <p id="addressModalText"></p>
                     <form class="inline-edit-form inline-edit-form-address" id="addressModalEditForm" hidden>
-                        <textarea name="address" id="addressModalTextarea" rows="4"></textarea>
+                        <textarea name="address" id="addressModalTextarea" rows="4" maxlength="500"></textarea>
                     </form>
                 </div>
             </div>

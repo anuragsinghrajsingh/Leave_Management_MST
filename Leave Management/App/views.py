@@ -5,6 +5,7 @@ from calendar import monthrange
 import os,json, requests
 import hashlib
 import logging
+import re
 import time as time_module
 from django.core import signing
 from ics import Calendar
@@ -40,6 +41,10 @@ PROFILE_PHOTO_MAX_PIXELS = 16_000_000
 PROFILE_PHOTO_MAX_SIDE = 2048
 REJECTION_REASON_MAX_LENGTH = 500
 EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS = 5 * 60
+MAX_READ_SEEN_ACTION_IDS = 5
+EMPLOYEE_PHONE_MAX_LENGTH = 14
+EMPLOYEE_ADDRESS_MAX_LENGTH = 500
+EMPLOYEE_PHONE_PATTERN = re.compile(r"^(?:\+91[\s-]?|91)?([6-9]\d{9})$")
 
 
 def get_portal_link():
@@ -55,6 +60,30 @@ def get_leave_alert_recipients():
         .values_list("email", flat=True)
     )
     return list(dict.fromkeys(email for email in recipients if email))
+
+
+def normalize_employee_phone(phone):
+    phone = (phone or "").strip()
+    if len(phone) > 25:
+        raise ValueError("Phone number is too long.")
+
+    compact_phone = re.sub(r"[\s-]+", "", phone)
+    match = EMPLOYEE_PHONE_PATTERN.fullmatch(compact_phone)
+    if not match:
+        raise ValueError("Phone must be a valid 10-digit Indian mobile number.")
+
+    return f"+91 {match.group(1)}"
+
+
+def validate_employee_address(address):
+    address = (address or "").strip().replace("\r\n", "\n").replace("\r", "\n")
+    if len(address) > EMPLOYEE_ADDRESS_MAX_LENGTH:
+        raise ValueError(f"Address must be {EMPLOYEE_ADDRESS_MAX_LENGTH} characters or less.")
+
+    if any(ord(character) < 32 and character not in "\n\t" for character in address):
+        raise ValueError("Address contains unsupported characters.")
+
+    return address
 
 
 def _sanitize_profile_photo_upload(photo):
@@ -1088,10 +1117,50 @@ def get_leave_type_class(leave_type):
 
 
 def parse_json_request_body(request):
-    try:
-        return json.loads(request.body.decode("utf-8") or "{}")
-    except Exception:
+    raw_body = request.body or b""
+    if not raw_body.strip():
         return {}
+
+    try:
+        return json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        user = getattr(request, "user", None)
+        security_logger.warning(
+            "INVALID_JSON_REQUEST | path=%s | method=%s | user_id=%s | role=%s | ip=%s | content_type=%s | body_bytes=%s | error=%s",
+            request.path,
+            request.method,
+            getattr(user, "id", None) if getattr(user, "is_authenticated", False) else None,
+            getattr(user, "role", "") if getattr(user, "is_authenticated", False) else "",
+            _get_client_ip(request),
+            request.META.get("CONTENT_TYPE", ""),
+            len(raw_body),
+            str(exc),
+        )
+        return None
+
+
+def get_limited_action_ids(request, payload):
+    raw_ids = payload.get("ids") or []
+    ids = [str(value) for value in raw_ids if str(value).strip()]
+
+    if len(ids) > MAX_READ_SEEN_ACTION_IDS:
+        user = getattr(request, "user", None)
+        security_logger.warning(
+            "READ_SEEN_ID_LIMIT_EXCEEDED | path=%s | method=%s | user_id=%s | role=%s | ip=%s | ids_count=%s | max_ids=%s",
+            request.path,
+            request.method,
+            getattr(user, "id", None) if getattr(user, "is_authenticated", False) else None,
+            getattr(user, "role", "") if getattr(user, "is_authenticated", False) else "",
+            _get_client_ip(request),
+            len(ids),
+            MAX_READ_SEEN_ACTION_IDS,
+        )
+        return None, JsonResponse(
+            {"error": f"Too many IDs in one request. Maximum allowed is {MAX_READ_SEEN_ACTION_IDS}."},
+            status=400,
+        )
+
+    return ids, None
 
 
 def get_notification_read_ids_for_user(user, leaves):
@@ -1520,7 +1589,13 @@ def communications_feed(request):
 @require_POST
 def communications_mark_read(request):
     payload = parse_json_request_body(request)
-    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    ids, limit_response = get_limited_action_ids(request, payload)
+    if limit_response:
+        return limit_response
+
     target_type = str(payload.get("target_type") or "").strip().upper()
 
     queryset = get_communication_queryset(request.user).exclude(sender=request.user)
@@ -1640,7 +1715,13 @@ def communications_send(request):
 @require_POST
 def communications_mark_seen(request):
     payload = parse_json_request_body(request)
-    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    ids, limit_response = get_limited_action_ids(request, payload)
+    if limit_response:
+        return limit_response
+
     queryset = get_communication_queryset(request.user).exclude(sender=request.user)
 
     if ids:
@@ -1707,7 +1788,13 @@ def employee_notifications(request):
 @require_POST
 def notifications_mark_read(request):
     payload = parse_json_request_body(request)
-    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    ids, limit_response = get_limited_action_ids(request, payload)
+    if limit_response:
+        return limit_response
+
     mark_all = bool(payload.get("all"))
 
     if request.user.role == "HR":
@@ -1758,7 +1845,12 @@ def notifications_mark_read(request):
 @require_POST
 def notifications_mark_seen(request):
     payload = parse_json_request_body(request)
-    ids = [str(value) for value in (payload.get("ids") or []) if str(value).strip()]
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    ids, limit_response = get_limited_action_ids(request, payload)
+    if limit_response:
+        return limit_response
 
     if request.user.role == "HR":
         allowed_leaves = list(Leave.objects.filter(status="Pending").values_list("id", flat=True))
@@ -2139,6 +2231,17 @@ def employee_details(request):
         if not form_values["phone"]:
             add_field_error("phone", "Phone number is required.")
 
+        try:
+            if form_values["phone"]:
+                form_values["phone"] = normalize_employee_phone(form_values["phone"])
+        except ValueError as exc:
+            add_field_error("phone", str(exc))
+
+        try:
+            form_values["address"] = validate_employee_address(form_values["address"])
+        except ValueError as exc:
+            add_field_error("address", str(exc))
+
         if form_values["username"] and User.objects.filter(username__iexact=form_values["username"]).exists():
             add_field_error("username", "This username is already in use.")
 
@@ -2388,23 +2491,33 @@ def update_employee_contact_field(request, user_id):
         if not field_value:
             return JsonResponse({"detail": "Phone number is required."}, status=400)
 
-        if Profile.objects.filter(phone=field_value).exclude(user=employee).exists():
+        try:
+            normalized_phone = normalize_employee_phone(field_value)
+        except ValueError as exc:
+            return JsonResponse({"detail": str(exc)}, status=400)
+
+        if Profile.objects.filter(phone=normalized_phone).exclude(user=employee).exists():
             return JsonResponse({"detail": "This phone number is already linked to another employee."}, status=400)
 
         old_phone = profile.phone
-        profile.phone = field_value
+        profile.phone = normalized_phone
         profile.save(update_fields=["phone"])
-        log_profile_update(profile.user, request.user, "phone", old_phone, field_value)
+        log_profile_update(profile.user, request.user, "phone", old_phone, normalized_phone)
         return JsonResponse({
             "status": "success",
             "field": "phone",
             "value": profile.phone,
         })
 
+    try:
+        normalized_address = validate_employee_address(field_value)
+    except ValueError as exc:
+        return JsonResponse({"detail": str(exc)}, status=400)
+
     old_address = profile.address
-    profile.address = field_value
+    profile.address = normalized_address
     profile.save(update_fields=["address"])
-    log_profile_update(profile.user, request.user, "address", old_address, field_value)
+    log_profile_update(profile.user, request.user, "address", old_address, normalized_address)
     return JsonResponse({
         "status": "success",
         "field": "address",
