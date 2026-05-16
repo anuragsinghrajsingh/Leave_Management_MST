@@ -46,6 +46,17 @@ def get_portal_link():
     return f"{settings.PORTAL_BASE_URL}/"
 
 
+def get_leave_alert_recipients():
+    recipients = [settings.LEAVE_RECORD_EMAIL] if settings.LEAVE_RECORD_EMAIL else []
+    recipients.extend(
+        get_user_model().objects
+        .filter(role="HR", is_active=True)
+        .exclude(email="")
+        .values_list("email", flat=True)
+    )
+    return list(dict.fromkeys(email for email in recipients if email))
+
+
 def _sanitize_profile_photo_upload(photo):
     from PIL import Image, ImageOps
 
@@ -94,7 +105,7 @@ def _sanitize_profile_photo_upload(photo):
     filename_root = os.path.splitext(os.path.basename(photo.name or "profile-photo"))[0] or "profile-photo"
     return ContentFile(output.read(), name=f"{filename_root}.{extension}")
 
-def send_branded_email(subject, template_name, context, to_email, reply_to=None):
+def send_branded_email(subject, template_name, context, to_email, reply_to=None, from_email=None):
     """Helper to send a branded HTML email with an embedded logo."""
     html_content = render_to_string(template_name, context)
     
@@ -105,7 +116,7 @@ def send_branded_email(subject, template_name, context, to_email, reply_to=None)
     email = EmailMessage(
         subject=subject,
         body=html_content,
-        from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
+        from_email=f"HR Portal <{from_email or settings.DEFAULT_FROM_EMAIL}>",
         to=to_email,
     )
     if reply_to:
@@ -2562,7 +2573,14 @@ def approve_leave(request, leave_id):
         'status_class': 'approved',
         'portal_link': portal_link
     }
-    send_branded_email(subject, 'emails/notification.html', context, leave.user.email, reply_to=request.user.email)
+    send_branded_email(
+        subject,
+        'emails/notification.html',
+        context,
+        leave.user.email,
+        reply_to=settings.LEAVE_RECORD_EMAIL or request.user.email,
+        from_email=settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL,
+    )
 
     # =====================================
     # MESSAGE LOGIC
@@ -2712,7 +2730,14 @@ def reject_leave(request, leave_id):
         'status_class': 'rejected',
         'portal_link': portal_link
     }
-    send_branded_email(subject, 'emails/notification.html', context, leave.user.email, reply_to=request.user.email)
+    send_branded_email(
+        subject,
+        'emails/notification.html',
+        context,
+        leave.user.email,
+        reply_to=settings.LEAVE_RECORD_EMAIL or request.user.email,
+        from_email=settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL,
+    )
 
     # =====================================
     # SUCCESS MESSAGE
@@ -3594,7 +3619,7 @@ def apply_leave(request):
                 )
 
                 # --- Notify Managers (New Request) ---
-                hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+                hr_emails = get_leave_alert_recipients()
                 if hr_emails:
                     subject = f"New Leave Request: {user.get_full_name() or user.username}"
                     portal_link = get_portal_link()
@@ -3609,7 +3634,14 @@ def apply_leave(request):
                         'status_class': 'pending',
                         'portal_link': portal_link
                     }
-                    send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=user.email)
+                    send_branded_email(
+                        subject,
+                        'emails/notification.html',
+                        context,
+                        hr_emails,
+                        reply_to=user.email,
+                        from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                    )
 
             messages.success(request, f"{leave_type} Leave applied successfully.")
             messages.info(request, f"Applied for {from_date.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
@@ -3856,7 +3888,7 @@ def apply_leave(request):
             log_leave_action(request.user, "APPLY", leave_obj.id, f"Type: {leave_type} | Dates: {from_date} to {to_date}")
 
             # --- Notify Managers (New Full-Day Request) ---
-            hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+            hr_emails = get_leave_alert_recipients()
             if hr_emails:
                 subject = f"New Leave Request: {user.get_full_name() or user.username}"
                 portal_link = get_portal_link()
@@ -3871,7 +3903,14 @@ def apply_leave(request):
                     'status_class': 'pending',
                     'portal_link': portal_link
                 }
-                send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=user.email)
+                send_branded_email(
+                    subject,
+                    'emails/notification.html',
+                    context,
+                    hr_emails,
+                    reply_to=user.email,
+                    from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                )
             
         # -------- SUCCESS --------
         messages.success(request, f"'{leave_type}' Leave applied Successfully.")
@@ -4750,7 +4789,7 @@ def edit_leave(request, leave_id):
             log_leave_action(request.user, "EDIT", leave.id, f"Changes: {old_type} to {new_type} (Short/Half)")
 
             # --- Notify Managers (Updated Request) ---
-            hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+            hr_emails = get_leave_alert_recipients()
             if hr_emails:
                 subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
                 portal_link = get_portal_link()
@@ -4765,7 +4804,14 @@ def edit_leave(request, leave_id):
                     'status_class': 'updated',
                     'portal_link': portal_link
                 }
-                send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=request.user.email)
+                send_branded_email(
+                    subject,
+                    'emails/notification.html',
+                    context,
+                    hr_emails,
+                    reply_to=request.user.email,
+                    from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                )
 
         messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
         messages.success(request, f"Leave date: From {new_from.strftime('%d %b %Y')} → {new_to.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
@@ -4926,7 +4972,7 @@ def edit_leave(request, leave_id):
         log_leave_action(request.user, "EDIT", leave.id, f"Changes: {old_type} to {new_type}")
 
         # --- Notify Managers (Updated Request) ---
-        hr_emails = list(get_user_model().objects.filter(role="HR").values_list("email", flat=True))
+        hr_emails = get_leave_alert_recipients()
         if hr_emails:
             subject = f"Leave Request UPDATED: {request.user.get_full_name() or request.user.username}"
             portal_link = get_portal_link()
@@ -4941,7 +4987,14 @@ def edit_leave(request, leave_id):
                 'status_class': 'updated',
                 'portal_link': portal_link
             }
-            send_branded_email(subject, 'emails/notification.html', context, hr_emails, reply_to=request.user.email)
+            send_branded_email(
+                subject,
+                'emails/notification.html',
+                context,
+                hr_emails,
+                reply_to=request.user.email,
+                from_email=settings.LEAVE_DESK_FROM_EMAIL,
+            )
 
     messages.success(request, "ℹ Leave updated successfully.")
     
