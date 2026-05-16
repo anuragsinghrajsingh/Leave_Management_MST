@@ -2900,7 +2900,10 @@ def profile_view(request):
         
         if request.content_type == "application/json":
 
-            data = json.loads(request.body)
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
             if data.get("update_inline"):
 
