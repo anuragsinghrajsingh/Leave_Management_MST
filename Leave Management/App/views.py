@@ -2737,22 +2737,61 @@ def reject_leave(request, leave_id):
 
 # Here is the end of reject leave view
 
+def admin_required(view_func):
+    def wrapper(request, *args, **kwargs):
+
+        if not request.user.is_authenticated:
+            return redirect("admin_login")
+
+        if not request.user.is_superuser:
+            return redirect("role_select")
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
 
 
-
-from django.contrib.admin.views.decorators import staff_member_required
-
-@staff_member_required
+@login_required
+@admin_required
 def edit_employee_profile(request, user_id):
 
-    profile = Profile.objects.get(user__id=user_id)
+    profile = get_object_or_404(Profile, user__id=user_id)
 
     if request.method == "POST":
 
-        profile.employee_id = request.POST.get("employee_id")
-        profile.department = request.POST.get("department")
-        profile.role = request.POST.get("role")
-        profile.date_of_joining = request.POST.get("date_of_joining")
+        employee_id = (request.POST.get("employee_id") or "").strip()
+        department = (request.POST.get("department") or "").strip()
+        joining_date_raw = (request.POST.get("date_of_joining") or "").strip()
+
+        if not employee_id:
+            messages.error(request, "Employee ID is required.")
+            return redirect(request.path)
+
+        if len(employee_id) > 20:
+            messages.error(request, "Employee ID must be 20 characters or fewer.")
+            return redirect(request.path)
+
+        if Profile.objects.filter(employee_id__iexact=employee_id).exclude(pk=profile.pk).exists():
+            messages.error(request, "This employee ID is already assigned to another user.")
+            return redirect(request.path)
+
+        if not department:
+            messages.error(request, "Department is required.")
+            return redirect(request.path)
+
+        if len(department) > 100:
+            messages.error(request, "Department must be 100 characters or fewer.")
+            return redirect(request.path)
+
+        try:
+            joining_date = date.fromisoformat(joining_date_raw)
+        except ValueError:
+            messages.error(request, "Please enter a valid joining date.")
+            return redirect(request.path)
+
+        profile.employee_id = employee_id
+        profile.department = department
+        profile.date_of_joining = joining_date
 
         profile.save()
         log_profile_update(profile.user, request.user, "Multiple Fields (HR Edit)", "N/A", "Updated")
@@ -2810,24 +2849,6 @@ def admin_login(request):
     response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
 
     return response
-
-
-
-
-def admin_required(view_func):
-    def wrapper(request, *args, **kwargs):
-
-        if not request.user.is_authenticated:
-            return redirect("admin_login")
-
-        if not request.user.is_superuser:
-            return redirect("role_select")
-
-        return view_func(request, *args, **kwargs)
-
-    return wrapper
-
-
 
 @login_required
 @admin_required
