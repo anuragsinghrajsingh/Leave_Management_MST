@@ -38,6 +38,7 @@ security_logger = logging.getLogger("lms_security")
 PROFILE_PHOTO_MAX_UPLOAD_BYTES = 3 * 1024 * 1024
 PROFILE_PHOTO_MAX_PIXELS = 16_000_000
 PROFILE_PHOTO_MAX_SIDE = 2048
+REJECTION_REASON_MAX_LENGTH = 500
 
 
 def _sanitize_profile_photo_upload(photo):
@@ -2556,6 +2557,19 @@ def reject_leave(request, leave_id):
         if is_ajax_request:
             return JsonResponse({"detail": "HR access required."}, status=403)
         return redirect("role_selection")
+
+    rejection_reason = (request.POST.get("rejection_reason") or "").strip()
+    if not rejection_reason:
+        if is_ajax_request:
+            return JsonResponse({"detail": "Rejection reason is required."}, status=400)
+        messages.error(request, "Rejection reason is required.")
+        return redirect("hr_dashboard")
+
+    if len(rejection_reason) > REJECTION_REASON_MAX_LENGTH:
+        if is_ajax_request:
+            return JsonResponse({"detail": "Rejection reason must be 500 characters or fewer."}, status=400)
+        messages.error(request, "Rejection reason must be 500 characters or fewer.")
+        return redirect("hr_dashboard")
         
     with transaction.atomic():
         leave = get_object_or_404(
@@ -2621,7 +2635,7 @@ def reject_leave(request, leave_id):
         # =====================================
 
         leave.status = "Rejected"
-        leave.rejection_reason = request.POST.get("rejection_reason", "").strip()
+        leave.rejection_reason = rejection_reason
         leave.rejected_at = timezone.now()
         leave.approved_at = None
         leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at"])
