@@ -45,6 +45,7 @@ MAX_READ_SEEN_ACTION_IDS = 5
 EMPLOYEE_PHONE_MAX_LENGTH = 14
 EMPLOYEE_ADDRESS_MAX_LENGTH = 500
 EMPLOYEE_PHONE_PATTERN = re.compile(r"^(?:\+91[\s-]?|91)?([6-9]\d{9})$")
+ALLOWED_LEAVE_TYPES = {choice[0] for choice in Leave.LEAVE_TYPES}
 
 
 def get_portal_link():
@@ -84,6 +85,11 @@ def validate_employee_address(address):
         raise ValueError("Address contains unsupported characters.")
 
     return address
+
+
+def get_valid_leave_type(raw_leave_type):
+    leave_type = (raw_leave_type or "").strip()
+    return leave_type if leave_type in ALLOWED_LEAVE_TYPES else None
 
 
 def _sanitize_profile_photo_upload(photo):
@@ -3447,7 +3453,18 @@ def apply_leave(request):
 
     if request.method == "POST":
 
-        leave_type = request.POST.get("leave_type")
+        leave_type = get_valid_leave_type(request.POST.get("leave_type"))
+        if not leave_type:
+            security_logger.warning(
+                "INVALID_LEAVE_TYPE | action=apply | user_id=%s | ip=%s | submitted=%s",
+                request.user.id,
+                _get_client_ip(request),
+                (request.POST.get("leave_type") or "").strip()[:80],
+            )
+            messages.error(request, "Invalid leave type.")
+            request.session["apply_leave_form"] = request.POST.dict()
+            return redirect("apply_leave")
+
         reason = request.POST.get("reason", "").strip()
         user = request.user
 
@@ -4639,8 +4656,19 @@ def edit_leave(request, leave_id):
     # ===============================
     # READ INPUT ONCE
     # ===============================
+    new_type = get_valid_leave_type(request.POST.get("edit_leave_type"))
+    if not new_type:
+        security_logger.warning(
+            "INVALID_LEAVE_TYPE | action=edit | user_id=%s | leave_id=%s | ip=%s | submitted=%s",
+            request.user.id,
+            leave.id,
+            _get_client_ip(request),
+            (request.POST.get("edit_leave_type") or "").strip()[:80],
+        )
+        messages.error(request, "Invalid leave type.")
+        return _my_leave_response(request, status=400)
+
     try:
-        new_type = request.POST.get("edit_leave_type")
         new_from = date.fromisoformat(request.POST.get("from_date"))
         new_to = date.fromisoformat(request.POST.get("to_date"))
         new_reason = request.POST.get("reason", "").strip()
