@@ -859,7 +859,7 @@ def employee_logout_loading_page(request):
         target_url=reverse("employee_login_form"),
         extra_context={
             "logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p"),
-            "logout_name": (request.GET.get("name") or "Employee").strip() or "Employee",
+            "logout_name": request.session.pop("employee_logout_name", "Employee"),
         },
     )
 
@@ -874,7 +874,7 @@ def hr_logout_loading_page(request):
         target_url=reverse("hr_login_form"),
         extra_context={
             "logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p"),
-            "logout_name": (request.GET.get("name") or "HR").strip() or "HR",
+            "logout_name": request.session.pop("hr_logout_name", "HR"),
         },
     )
 
@@ -889,7 +889,7 @@ def admin_logout_loading_page(request):
         target_url=reverse("admin_login_form"),
         extra_context={
             "logged_out_at": localtime(now()).strftime("%d %b %Y, %I:%M %p"),
-            "logout_name": (request.GET.get("name") or "Admin").strip() or "Admin",
+            "logout_name": request.session.pop("admin_logout_name", "Admin"),
         },
     )
 
@@ -952,7 +952,7 @@ def admin_workspace_loading(request):
 
 @never_cache
 def logout_loading(request):
-    portal = (request.GET.get("portal") or "").strip().lower()
+    portal = (request.session.pop("logout_portal", "") or "").strip().lower()
 
     config = {
         "employee": {
@@ -5049,15 +5049,18 @@ def logout_view(request):
 
     if is_admin or role == "Admin":
         request.session["admin_login_username"] = logout_username
-        return redirect(f"{reverse('admin_logout_loading_page')}?name={quote(logout_name)}")
+        request.session["admin_logout_name"] = logout_name
+        return redirect("admin_logout_loading_page")
     
     elif role == "HR":
         request.session["hr_login_username"] = logout_username
-        return redirect(f"{reverse('hr_logout_loading_page')}?name={quote(logout_name)}")
+        request.session["hr_logout_name"] = logout_name
+        return redirect("hr_logout_loading_page")
 
     elif role == "EMPLOYEE":
         request.session["employee_login_username"] = logout_username
-        return redirect(f"{reverse('employee_logout_loading_page')}?name={quote(logout_name)}")
+        request.session["employee_logout_name"] = logout_name
+        return redirect("employee_logout_loading_page")
   
     else:
         return redirect("role_select")
