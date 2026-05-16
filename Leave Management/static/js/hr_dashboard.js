@@ -258,20 +258,50 @@ const dashboardModalAnimationMs = 120;
         return "-";
     }
 
+    function formatPopupDateLabel(isoValue, fallbackValue)
+    {
+        const relativeLabel = formatRelativeLeaveAge(isoValue);
+
+        if (relativeLabel)
+        {
+            return relativeLabel;
+        }
+
+        if (isoValue)
+        {
+            const target = new Date(isoValue);
+
+            if (!Number.isNaN(target.getTime()))
+            {
+                return target.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                    year: "numeric"
+                });
+            }
+        }
+
+        if (fallbackValue)
+        {
+            const dateOnly = String(fallbackValue)
+                .replace(/\s+\d{1,2}:\d{2}\s?[AP]M$/i, "")
+                .trim();
+
+            return dateOnly || "-";
+        }
+
+        return "-";
+    }
+
     function hydrateRelativeUpdatedDates()
     {
         document.querySelectorAll("[data-relative-datetime]").forEach(function (node)
         {
             const formatted = formatRelativeLeaveAge(node.dataset.relativeDatetime);
             const count = Number.parseInt(node.dataset.relativeCount || "0", 10);
+            const fallbackDate = formatPopupDateLabel(node.dataset.relativeDatetime, node.textContent || "");
 
-            if (!formatted)
-            {
-                node.textContent = "-";
-                return;
-            }
-
-            node.textContent = count > 0 ? `${formatted} (${count})` : formatted;
+            node.textContent = count > 0 ? `${formatted || fallbackDate} (${count})` : (formatted || fallbackDate);
         });
     }
 
@@ -874,7 +904,7 @@ const dashboardModalAnimationMs = 120;
         setMetaLineValue(scheduleDate, leave && leave.scheduleDate ? leave.scheduleDate.replace(/\s*->\s*/g, " ⟶ ") : "-");
         setMetaLineValue(scheduleTime, leave && leave.scheduleTime ? leave.scheduleTime.replace(/\s*->\s*/g, " ⟶ ") : "-");
         setMetaLineValue(days, leave && leave.daysText ? leave.daysText : "-");
-        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.appliedIso) || (leave && leave.applied) || "-");
+        setMetaLineValue(applied, formatPopupDateLabel(leave && leave.appliedIso, leave && leave.applied));
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.appliedIso, leave && leave.applied));
 
         if (updatedHeading)
@@ -884,7 +914,7 @@ const dashboardModalAnimationMs = 120;
 
         if (leave && leave.updatedIso)
         {
-            setMetaLineValue(updated, formatRelativeLeaveAge(leave.updatedIso) || leave.updated || "-");
+            setMetaLineValue(updated, formatPopupDateLabel(leave.updatedIso, leave.updated));
             setMetaLineValue(updatedTime, formatPopupClockTime(leave.updatedIso, leave.updated));
         }
         else
@@ -989,13 +1019,13 @@ const dashboardModalAnimationMs = 120;
         setMetaLineValue(scheduleDate, leave && leave.scheduleDate ? leave.scheduleDate.replace(/\s*->\s*/g, " ⟶ ") : "-");
         setMetaLineValue(scheduleTime, leave && leave.scheduleTime ? leave.scheduleTime.replace(/\s*->\s*/g, " ⟶ ") : "-");
         setMetaLineValue(days, leave && leave.daysText ? leave.daysText : "-");
-        setMetaLineValue(applied, formatRelativeLeaveAge(leave && leave.appliedIso) || (leave && leave.applied) || "-");
+        setMetaLineValue(applied, formatPopupDateLabel(leave && leave.appliedIso, leave && leave.applied));
         setMetaLineValue(appliedTime, formatPopupClockTime(leave && leave.appliedIso, leave && leave.applied));
         if (updatedHeading)
         {
             updatedHeading.textContent = formatUpdatedAtHeading(leave);
         }
-        setMetaLineValue(updated, leave && leave.updatedIso ? (formatRelativeLeaveAge(leave.updatedIso) || leave.updated || "-") : "Not updated");
+        setMetaLineValue(updated, leave && leave.updatedIso ? formatPopupDateLabel(leave.updatedIso, leave.updated) : "Not updated");
         setMetaLineValue(updatedTime, leave && leave.updatedIso ? formatPopupClockTime(leave.updatedIso, leave.updated) : "-");
 
         if (noteRow)
@@ -1166,6 +1196,101 @@ const dashboardModalAnimationMs = 120;
         }, dashboardModalAnimationMs);
     }
 
+    function ensureFlashMessagesContainer()
+    {
+        let container = document.getElementById("flash-messages");
+
+        if (!container)
+        {
+            container = document.createElement("div");
+            container.id = "flash-messages";
+            document.body.appendChild(container);
+        }
+
+        return container;
+    }
+
+    function dismissFlashMessage(flash)
+    {
+        if (!flash || flash.dataset.closing === "true")
+        {
+            return;
+        }
+
+        flash.dataset.closing = "true";
+        flash.classList.add("flash-exit");
+        setTimeout(function ()
+        {
+            if (flash.parentNode)
+            {
+                flash.parentNode.removeChild(flash);
+            }
+        }, 220);
+    }
+
+    function renderFlashMessages(messages)
+    {
+        if (!Array.isArray(messages) || !messages.length)
+        {
+            return;
+        }
+
+        const container = ensureFlashMessagesContainer();
+
+        messages.forEach(function (message, index)
+        {
+            const tags = String(message && message.tags ? message.tags : "").trim();
+            const title = String(message && message.title ? message.title : "Update");
+            const text = String(message && message.text ? message.text : "").trim();
+
+            if (!text)
+            {
+                return;
+            }
+
+            const flash = document.createElement("div");
+            flash.className = "flash" + (tags ? " flash-" + tags : "");
+            flash.setAttribute("data-flash", "");
+            flash.innerHTML = [
+                '<span class="flash-accent" aria-hidden="true"></span>',
+                '<span class="flash-icon" aria-hidden="true"></span>',
+                '<div class="flash-copy">',
+                '<strong class="flash-title"></strong>',
+                '<p></p>',
+                '</div>',
+                '<button type="button" class="flash-dismiss" aria-label="Dismiss message">&times;</button>'
+            ].join("");
+
+            flash.querySelector(".flash-title").textContent = title;
+            flash.querySelector("p").textContent = text;
+
+            const dismissBtn = flash.querySelector(".flash-dismiss");
+            if (dismissBtn)
+            {
+                dismissBtn.addEventListener("click", function ()
+                {
+                    dismissFlashMessage(flash);
+                });
+            }
+
+            container.appendChild(flash);
+
+            setTimeout(function ()
+            {
+                dismissFlashMessage(flash);
+            }, 4200 + index * 250);
+        });
+    }
+
+    function renderActionError(message)
+    {
+        renderFlashMessages([{
+            tags: "error",
+            title: "Action needed",
+            text: message || "Unable to update this leave request right now."
+        }]);
+    }
+
     function setLeaveActionBusyState(leaveId, isBusy)
     {
         if (!leaveId)
@@ -1222,8 +1347,9 @@ const dashboardModalAnimationMs = 120;
                     return payload;
                 });
             })
-            .then(function ()
+            .then(function (payload)
             {
+                renderFlashMessages(payload.messages);
                 closeReject();
                 refreshDashboardLiveSections();
                 window.dispatchEvent(new CustomEvent("hr-notifications:refresh", {
@@ -1234,7 +1360,7 @@ const dashboardModalAnimationMs = 120;
             })
             .catch(function (error)
             {
-                window.alert(error.message || "Unable to update this leave request right now.");
+                renderActionError(error.message || "Unable to update this leave request right now.");
             })
             .finally(function ()
             {

@@ -3212,7 +3212,7 @@ button
 }
 
 .decision-confirm-modal[data-variant="reject"] .decision-confirm-dialog {
-    width: min(660px, calc(100vw - 28px));
+    width: min(600px, calc(100vw - 28px));
     max-height: calc(100vh - 8px);
     padding: 8px 10px 6px;
     border-radius: 18px;
@@ -3618,7 +3618,7 @@ button
 
 @media (max-width: 900px) {
     .decision-confirm-modal[data-variant="reject"] .decision-confirm-dialog {
-        width: min(580px, calc(100vw - 20px));
+        width: min(540px, calc(100vw - 20px));
         max-height: calc(100vh - 6px);
         padding: 7px 8px;
         border-radius: 20px;
@@ -7449,6 +7449,42 @@ button
     }
 }
 
+/* Mobile decision confirmation: keep Applied At and Updated At side by side. */
+@media (max-width: 640px) {
+    #decisionConfirmModal .decision-confirm-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    }
+
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(5),
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(6) {
+        grid-column: span 3 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(5) .reason-meta-stack,
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(6) .reason-meta-stack {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(5) .reason-meta-content-line,
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(6) .reason-meta-content-line {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(5) .reason-meta-content-line > span:last-child,
+    #decisionConfirmModal .decision-confirm-grid .decision-confirm-card:nth-child(6) .reason-meta-content-line > span:last-child {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+}
+
 /* Slightly roomier reject decision confirmation popup. */
 #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
     width: min(660px, calc(100vw - 40px)) !important;
@@ -7870,8 +7906,8 @@ button
 
 /* HR reject decision popup: final width and button-row breathing room. */
 #decisionConfirmModal[data-variant="reject"] .decision-confirm-dialog {
-    width: min(700px, calc(100vw - 24px)) !important;
-    max-width: min(700px, calc(100vw - 24px)) !important;
+    width: min(600px, calc(100vw - 24px)) !important;
+    max-width: min(600px, calc(100vw - 24px)) !important;
     padding-bottom: 8px !important;
 }
 
@@ -8204,6 +8240,7 @@ button
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    gap: 9px !important;
     width: fit-content !important;
     justify-self: center !important;
     margin: 0 auto 6px !important;
@@ -8222,6 +8259,67 @@ button
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.9),
         0 12px 24px rgba(37, 99, 235, 0.14) !important;
+}
+
+.hero-panel .hero-copy > .eyebrow .hero-eyebrow-icon {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.16), rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.14));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 8px 18px rgba(37, 99, 235, 0.18);
+}
+
+.hero-panel .hero-copy > .eyebrow .hero-eyebrow-icon svg {
+    width: 23px;
+    height: 23px;
+    overflow: visible;
+}
+
+.operations-overview-icon .icon-orbit,
+.operations-overview-icon .icon-path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.operations-overview-icon .icon-orbit {
+    stroke: #14b8a6;
+    stroke-width: 1.8;
+}
+
+.operations-overview-icon .icon-node {
+    fill: none;
+    stroke: #2563eb;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.operations-overview-icon .icon-path {
+    stroke: #7c3aed;
+    stroke-width: 2;
+}
+
+.operations-overview-icon .icon-dot {
+    stroke: rgba(255, 255, 255, 0.95);
+    stroke-width: 0.9;
+}
+
+.operations-overview-icon .dot-one {
+    fill: #f97316;
+}
+
+.operations-overview-icon .dot-two {
+    fill: #06b6d4;
+}
+
+.operations-overview-icon .dot-three {
+    fill: #ec4899;
 }
 
 .hero-panel .hero-copy > .eyebrow .hero-eyebrow-text {
@@ -8269,11 +8367,24 @@ button
 
 @media (max-width: 640px) {
     .hero-panel .hero-copy > .eyebrow {
-        font-size: 1.34rem !important;
+        font-size: 1.16rem !important;
         font-weight: 1000 !important;
         letter-spacing: 0.04em !important;
         min-height: 28px !important;
-        padding: 0 12px !important;
+        gap: 7px !important;
+        padding: 0 10px !important;
+    }
+
+    .hero-panel .hero-copy > .eyebrow .hero-eyebrow-icon {
+        width: 25px;
+        height: 25px;
+        flex-basis: 25px;
+        border-radius: 9px;
+    }
+
+    .hero-panel .hero-copy > .eyebrow .hero-eyebrow-icon svg {
+        width: 18px;
+        height: 18px;
     }
 
     .hero-panel .hero-copy h2 {
