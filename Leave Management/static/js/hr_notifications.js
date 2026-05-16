@@ -1,5 +1,6 @@
 (function () {
     const POLL_INTERVAL = 60000;
+    const NOTIFICATION_PAGE_SIZE = 50;
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -111,6 +112,9 @@
         let consecutiveSuspiciousEmptyPayloads = 0;
         let fetchSequence = 0;
         let latestHandledFetchId = 0;
+        let nextNotificationOffset = knownIds.length;
+        let hasMoreNotifications = true;
+        let isLoadingMoreNotifications = false;
 
         function getNotificationSignature(item) {
             return [
@@ -466,6 +470,24 @@
             syncRenderedNewState();
         }
 
+        function mergeNotificationPage(existingItems, nextItems) {
+            const merged = Array.isArray(existingItems) ? existingItems.slice() : [];
+            const seen = new Set(merged.map(function (item) {
+                return String(item.id || "");
+            }));
+
+            (Array.isArray(nextItems) ? nextItems : []).forEach(function (item) {
+                const itemId = String(item.id || "");
+                if (!itemId || seen.has(itemId)) {
+                    return;
+                }
+                seen.add(itemId);
+                merged.push(item);
+            });
+
+            return merged;
+        }
+
         function clearNewHighlights() {
             if (!highlightedIds.size) {
                 return;
@@ -502,16 +524,59 @@
         function handlePayload(payload, fetchId, options) {
             const settings = options || {};
             const forceAcceptEmpty = settings.forceAcceptEmpty === true;
+            const appendPage = settings.append === true;
 
-            if (Number.isFinite(fetchId) && fetchId < latestHandledFetchId) {
+            if (!appendPage && Number.isFinite(fetchId) && fetchId < latestHandledFetchId) {
                 return;
             }
-            if (Number.isFinite(fetchId)) {
+            if (!appendPage && Number.isFinite(fetchId)) {
                 latestHandledFetchId = fetchId;
             }
 
             const notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
             latestLeaveCounts = payload && typeof payload.leave_counts === "object" ? payload.leave_counts : latestLeaveCounts;
+            hasMoreNotifications = payload && typeof payload.has_more === "boolean" ? payload.has_more : false;
+            nextNotificationOffset = Number.isFinite(Number(payload && payload.next_offset))
+                ? Number(payload.next_offset)
+                : (appendPage ? latestNotifications.length + notifications.length : notifications.length);
+
+            if (appendPage) {
+                if (!notifications.length) {
+                    return;
+                }
+
+                const mergedNotifications = mergeNotificationPage(latestNotifications, notifications);
+                const mergedIds = mergedNotifications.map(function (item) {
+                    return String(item.id);
+                });
+                const pageReadIds = new Set(notifications.filter(function (item) {
+                    return item.is_read;
+                }).map(function (item) {
+                    return String(item.id);
+                }));
+                const pageNewIds = notifications.filter(function (item) {
+                    return item.is_new && !item.is_read;
+                }).map(function (item) {
+                    return String(item.id);
+                });
+
+                serverReadIds = new Set(Array.from(serverReadIds).concat(Array.from(pageReadIds)));
+                readIds = new Set(Array.from(readIds).concat(Array.from(pageReadIds)));
+                pageNewIds.forEach(function (id) {
+                    if (!readIds.has(id)) {
+                        highlightedIds.add(id);
+                    }
+                });
+                knownIds = mergedIds;
+                updateTotal(Number(payload && payload.count));
+                updateNewIndicators();
+                hasFetchedOnce = true;
+                renderNotifications(mergedNotifications);
+                broadcastNotificationState();
+                dropdown.classList.add("is-hydrated");
+                return;
+            }
+
             const payloadCount = Number(payload && payload.count);
             const hasRenderableItems =
                 knownIds.length > 0 ||
@@ -576,6 +641,12 @@
                 })
             );
             knownIds = ids;
+            nextNotificationOffset = Number.isFinite(Number(payload && payload.next_offset))
+                ? Number(payload.next_offset)
+                : ids.length;
+            hasMoreNotifications = payload && typeof payload.has_more === "boolean"
+                ? payload.has_more
+                : ids.length >= NOTIFICATION_PAGE_SIZE;
             updateTotal(ids.filter(function (id) {
                 return !readIds.has(id);
             }).length);
@@ -586,18 +657,20 @@
             dropdown.classList.add("is-hydrated");
         }
 
-        function fetchNotifications(options) {
+        function buildNotificationPageUrl(offset) {
+            const separator = apiUrl.includes("?") ? "&" : "?";
+            return apiUrl + separator +
+                "limit=" + encodeURIComponent(String(NOTIFICATION_PAGE_SIZE)) +
+                "&offset=" + encodeURIComponent(String(offset)) +
+                "&_ts=" + Date.now();
+        }
+
+        function fetchNotificationPage(offset, options) {
             const settings = options || {};
             const requestId = ++fetchSequence;
-            const shouldShowSkeleton =
-                dropdown.classList.contains("is-open") &&
-                !list.querySelector("[data-notification-id]");
+            const requestUrl = buildNotificationPageUrl(offset);
 
-            if (shouldShowSkeleton && typeof window.startAsyncPopupSkeleton === "function") {
-                window.startAsyncPopupSkeleton(panel);
-            }
-
-            fetch(apiUrl + (apiUrl.includes("?") ? "&" : "?") + "_ts=" + Date.now(), {
+            return fetch(requestUrl, {
                 cache: "no-store",
                 headers: {
                     "X-Requested-With": "XMLHttpRequest",
@@ -614,7 +687,21 @@
                 })
                 .then(function (payload) {
                     handlePayload(payload, requestId, settings);
-                })
+                    return payload;
+                });
+        }
+
+        function fetchNotifications(options) {
+            const settings = options || {};
+            const shouldShowSkeleton =
+                dropdown.classList.contains("is-open") &&
+                !list.querySelector("[data-notification-id]");
+
+            if (shouldShowSkeleton && typeof window.startAsyncPopupSkeleton === "function") {
+                window.startAsyncPopupSkeleton(panel);
+            }
+
+            fetchNotificationPage(0, settings)
                 .catch(function () {
                     // Ignore polling failures silently.
                 })
@@ -625,6 +712,26 @@
                     }
                 });
         }
+
+        function loadMoreNotifications() {
+            if (!dropdown.classList.contains("is-open") || !hasMoreNotifications || isLoadingMoreNotifications) {
+                return;
+            }
+
+            isLoadingMoreNotifications = true;
+            fetchNotificationPage(nextNotificationOffset, { append: true, forceAcceptEmpty: true })
+                .catch(function () {})
+                .finally(function () {
+                    isLoadingMoreNotifications = false;
+                });
+        }
+
+        list.addEventListener("scroll", function () {
+            const distanceFromBottom = list.scrollHeight - list.scrollTop - list.clientHeight;
+            if (distanceFromBottom <= 120) {
+                loadMoreNotifications();
+            }
+        });
 
         function setOpenState(isOpen) {
             dropdown.classList.toggle("is-open", isOpen);

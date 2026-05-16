@@ -42,11 +42,16 @@ PROFILE_PHOTO_MAX_SIDE = 2048
 REJECTION_REASON_MAX_LENGTH = 500
 EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS = 5 * 60
 MAX_READ_SEEN_ACTION_IDS = 5
+MAX_NOTIFICATION_FEED_LIMIT = 50
 EMPLOYEE_PHONE_MAX_LENGTH = 14
 EMPLOYEE_ADDRESS_MAX_LENGTH = 500
+PROFILE_BIO_MAX_LENGTH = 250
+PROFILE_BIO_MAX_WORDS = 50
 EMPLOYEE_PHONE_PATTERN = re.compile(r"^(?:\+91[\s-]?|91)?([6-9]\d{9})$")
 ALLOWED_LEAVE_TYPES = {choice[0] for choice in Leave.LEAVE_TYPES}
 ALLOWED_PROFILE_ID_ROLES = {choice[0] for choice in Profile.ROLE_CHOICES}
+ALLOWED_LEAVE_FILTER_STATUSES = {choice[0] for choice in Leave.STATUS}
+ALLOWED_LEAVE_FILTER_FIELDS = {"leave_type", "month", "date_range"}
 
 
 def get_portal_link():
@@ -88,9 +93,75 @@ def validate_employee_address(address):
     return address
 
 
+def validate_profile_bio(bio):
+    bio = (bio or "").strip().replace("\r\n", "\n").replace("\r", "\n")
+    if len(bio) > PROFILE_BIO_MAX_LENGTH:
+        raise ValueError(f"Bio must be {PROFILE_BIO_MAX_LENGTH} characters or less.")
+
+    if len(bio.split()) > PROFILE_BIO_MAX_WORDS:
+        raise ValueError(f"Bio must be {PROFILE_BIO_MAX_WORDS} words or fewer.")
+
+    if any(ord(character) < 32 and character not in "\n\t" for character in bio):
+        raise ValueError("Bio contains unsupported characters.")
+
+    return bio
+
+
 def get_valid_leave_type(raw_leave_type):
     leave_type = (raw_leave_type or "").strip()
     return leave_type if leave_type in ALLOWED_LEAVE_TYPES else None
+
+
+def get_valid_leave_status(raw_status):
+    status = (raw_status or "").strip()
+    return status if status in ALLOWED_LEAVE_FILTER_STATUSES else None
+
+
+def get_valid_filter_month(raw_month):
+    month = (raw_month or "").strip()
+    if not month:
+        return None
+
+    if not re.fullmatch(r"\d{4}-\d{2}", month):
+        raise ValueError("Invalid month filter.")
+
+    year, month_number = map(int, month.split("-"))
+    if year < 2000 or year > 2100 or month_number < 1 or month_number > 12:
+        raise ValueError("Invalid month filter.")
+
+    return month
+
+
+def get_valid_filter_date(raw_date, field_label):
+    value = (raw_date or "").strip()
+    if not value:
+        return None
+
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        raise ValueError(f"Invalid {field_label} filter.")
+
+    return value
+
+
+def get_capped_positive_int(raw_value, *, default=None, maximum=MAX_NOTIFICATION_FEED_LIMIT):
+    value = (raw_value or "").strip()
+    if not value:
+        return default
+
+    if not value.isdigit():
+        return default
+
+    return min(int(value), maximum)
+
+
+def get_nonnegative_int(raw_value, *, default=0):
+    value = (raw_value or "").strip()
+    if not value or not value.isdigit():
+        return default
+
+    return int(value)
 
 
 def store_apply_leave_form_state(request):
@@ -1114,16 +1185,22 @@ def hr_notifications(request):
 
     leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
     payload = build_hr_pending_notifications(leaves, request.user)
-    limit = request.GET.get("limit")
+    limit = get_capped_positive_int(request.GET.get("limit"))
+    offset = get_nonnegative_int(request.GET.get("offset"))
 
     notifications = payload["notifications"]
-    if limit and str(limit).isdigit():
-        notifications = notifications[:int(limit)]
+    total_available = len(notifications)
+    if limit:
+        notifications = notifications[offset:offset + limit]
+    elif offset:
+        notifications = notifications[offset:]
 
     return JsonResponse({
         "count": payload["count"],
         "recent_type_class": payload["recent_type_class"],
         "notifications": notifications,
+        "next_offset": offset + len(notifications),
+        "has_more": bool(limit and offset + len(notifications) < total_available),
     })
     
     
@@ -1306,7 +1383,8 @@ def build_hr_pending_notifications(leaves, viewer=None):
     }
 
 
-def get_hr_notification_context(user, limit=None):
+def get_hr_notification_context(user, limit=MAX_NOTIFICATION_FEED_LIMIT):
+    limit = get_capped_positive_int(str(limit), default=MAX_NOTIFICATION_FEED_LIMIT)
     leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
     notification_payload = build_hr_pending_notifications(leaves, user)
     notifications = notification_payload["notifications"]
@@ -1400,7 +1478,8 @@ def build_employee_notifications(leaves, viewer=None):
     }
 
 
-def get_employee_notification_context(user, limit=None):
+def get_employee_notification_context(user, limit=MAX_NOTIFICATION_FEED_LIMIT):
+    limit = get_capped_positive_int(str(limit), default=MAX_NOTIFICATION_FEED_LIMIT)
     leaves = (
         Leave.objects
         .filter(user=user, status__in=["Approved", "Rejected"])
@@ -1617,6 +1696,10 @@ def communications_mark_read(request):
     if limit_response:
         return limit_response
 
+    mark_all = bool(payload.get("all"))
+    if not ids and not mark_all:
+        return JsonResponse({"error": "No communication IDs supplied."}, status=400)
+
     target_type = str(payload.get("target_type") or "").strip().upper()
 
     queryset = get_communication_queryset(request.user).exclude(sender=request.user)
@@ -1743,6 +1826,10 @@ def communications_mark_seen(request):
     if limit_response:
         return limit_response
 
+    mark_all = bool(payload.get("all"))
+    if not ids and not mark_all:
+        return JsonResponse({"error": "No communication IDs supplied."}, status=400)
+
     queryset = get_communication_queryset(request.user).exclude(sender=request.user)
 
     if ids:
@@ -1786,11 +1873,15 @@ def employee_notifications(request):
         .order_by("-created_at")
     )
     payload = build_employee_notifications(leaves, request.user)
-    limit = request.GET.get("limit")
+    limit = get_capped_positive_int(request.GET.get("limit"))
+    offset = get_nonnegative_int(request.GET.get("offset"))
 
     notifications = payload["notifications"]
-    if limit and str(limit).isdigit():
-        notifications = notifications[:int(limit)]
+    total_available = len(notifications)
+    if limit:
+        notifications = notifications[offset:offset + limit]
+    elif offset:
+        notifications = notifications[offset:]
 
     return JsonResponse({
         "count": payload["count"],
@@ -1801,6 +1892,8 @@ def employee_notifications(request):
         },
         "recent_type_class": payload["recent_type_class"],
         "notifications": notifications,
+        "next_offset": offset + len(notifications),
+        "has_more": bool(limit and offset + len(notifications) < total_available),
     })
 
 
@@ -2431,6 +2524,14 @@ def delete_employee(request, user_id):
     }, salt="employee-archive-download")
 
     # Soft Delete: Inactivate user instead of physical deletion
+    log_profile_update(employee, request.user, "is_active", employee.is_active, False)
+    security_logger.info(
+        "EMPLOYEE_SOFT_DELETE | actor_id=%s | actor_username=%s | employee_id=%s | employee_username=%s",
+        request.user.id,
+        request.user.username,
+        employee.id,
+        employee.username,
+    )
     employee.is_active = False
     employee.save()
 
@@ -2560,14 +2661,22 @@ def reports(request):
     if request.user.role != "HR":
         return redirect("role_select")
 
-    employee_id = request.GET.get("employee")
-
     employees = User.objects.filter(role="EMPLOYEE", is_active=True)
-
-    leave_queryset = Leave.objects.filter(user__is_active=True)
+    employee_id = (request.GET.get("employee") or "").strip()
+    selected_employee_user = None
 
     if employee_id:
-        leave_queryset = leave_queryset.filter(user_id=employee_id)
+        if not employee_id.isdigit():
+            return JsonResponse({"detail": "Invalid employee filter."}, status=400)
+
+        selected_employee_user = employees.filter(id=int(employee_id)).first()
+        if not selected_employee_user:
+            return JsonResponse({"detail": "Invalid employee filter."}, status=404)
+
+    leave_queryset = Leave.objects.filter(user__role="EMPLOYEE", user__is_active=True)
+
+    if selected_employee_user:
+        leave_queryset = leave_queryset.filter(user=selected_employee_user)
 
     report_data = leave_queryset.values("user__username", "user").annotate(
         total=Count("id"),
@@ -2578,18 +2687,13 @@ def reports(request):
 
     selected_employee_name = ""
 
-    if employee_id:
-        u = employees.filter(id=employee_id).first()
-        if u:
-            profile = getattr(u, "profile", None)
-            emp_id = getattr(profile, "employee_id", "N/A")
-            dept = getattr(profile, "department", "N/A")
-            full_name = u.get_full_name().strip() or u.username
-            selected_employee_name = f"{full_name} ({emp_id}) - {dept}"
-            selected_employee_name_simple = full_name
-        else:
-            selected_employee_name = ""
-            selected_employee_name_simple = ""
+    if selected_employee_user:
+        profile = getattr(selected_employee_user, "profile", None)
+        emp_id = getattr(profile, "employee_id", "N/A")
+        dept = getattr(profile, "department", "N/A")
+        full_name = selected_employee_user.get_full_name().strip() or selected_employee_user.username
+        selected_employee_name = f"{full_name} ({emp_id}) - {dept}"
+        selected_employee_name_simple = full_name
     else:
         selected_employee_name_simple = ""
 
@@ -3095,13 +3199,24 @@ def profile_view(request):
 
             if data.get("update_inline"):
 
-                field = data.get("field")
+                field = (data.get("field") or "").strip()
                 value = data.get("value")
+
+                if field not in {"address", "bio"}:
+                    return JsonResponse({"error": "Unsupported profile field."}, status=400)
+
+                if not isinstance(value, str):
+                    return JsonResponse({"error": "Invalid profile value."}, status=400)
 
                 if field == "address":
 
-                    if len(value) < 5:
-                        return JsonResponse({"error":"Address too short"})
+                    try:
+                        value = validate_employee_address(value)
+                    except ValueError as exc:
+                        return JsonResponse({"error": str(exc)}, status=400)
+
+                    if value and len(value) < 5:
+                        return JsonResponse({"error":"Address too short"}, status=400)
 
                     old_address = profile.address
                     profile.address = value
@@ -3110,8 +3225,10 @@ def profile_view(request):
 
                 elif field == "bio":
 
-                    if len(value.split()) > 50:
-                        return JsonResponse({"error":"Max 50 words allowed"})
+                    try:
+                        value = validate_profile_bio(value)
+                    except ValueError as exc:
+                        return JsonResponse({"error": str(exc)}, status=400)
 
                     old_bio = profile.bio
                     profile.bio = value
@@ -4309,10 +4426,15 @@ def _build_my_leave_context(request):
         
         f = filters.get(status, {})
 
-        leave_type = f.get("leave_type")
-        month = f.get("month")
-        from_date = f.get("from_date")
-        to_date = f.get("to_date")
+        leave_type = get_valid_leave_type(f.get("leave_type"))
+        try:
+            month = get_valid_filter_month(f.get("month"))
+            from_date = get_valid_filter_date(f.get("from_date"), "from date")
+            to_date = get_valid_filter_date(f.get("to_date"), "to date")
+        except ValueError:
+            filters.pop(status, None)
+            request.session["filters"] = filters
+            return qs
 
         if leave_type:
             qs = qs.filter(leave_type=leave_type)
@@ -4496,12 +4618,29 @@ def apply_status_filter(request, status):
     if request.user.role != "EMPLOYEE":
         return redirect("role_select")
 
+    status = get_valid_leave_status(status)
+    if not status:
+        messages.error(request, "Invalid filter section.")
+        return _my_leave_response(request, status=400)
+
     filters = request.session.get("filters", {})
 
-    leave_type = request.POST.get("leave_type") or None
-    month = request.POST.get("month") or None
-    from_date = request.POST.get("from_date") or None
-    to_date = request.POST.get("to_date") or None
+    try:
+        leave_type_raw = (request.POST.get("leave_type") or "").strip()
+        leave_type = get_valid_leave_type(leave_type_raw) if leave_type_raw else None
+        if leave_type_raw and not leave_type:
+            raise ValueError("Invalid leave type filter.")
+
+        month = get_valid_filter_month(request.POST.get("month"))
+        from_date = get_valid_filter_date(request.POST.get("from_date"), "from date")
+        to_date = get_valid_filter_date(request.POST.get("to_date"), "to date")
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return _my_leave_response(request, filter_status=status, status=400)
+
+    if from_date and to_date and from_date > to_date:
+        messages.error(request, "From date filter cannot be after To date filter.")
+        return _my_leave_response(request, filter_status=status, status=400)
 
     # mutual exclusivity
     if month:
@@ -4530,6 +4669,11 @@ def clear_status_filter(request, status):
     if request.user.role != "EMPLOYEE":
         return redirect("role_select")
 
+    status = get_valid_leave_status(status)
+    if not status:
+        messages.error(request, "Invalid filter section.")
+        return _my_leave_response(request, status=400)
+
     filters = request.session.get("filters", {})
     filters.pop(status, None)
     request.session["filters"] = filters
@@ -4544,6 +4688,12 @@ def clear_status_filter(request, status):
 def clear_status_filter_field(request, status, field):
     if request.user.role != "EMPLOYEE":
         return redirect("role_select")
+
+    status = get_valid_leave_status(status)
+    field = (field or "").strip()
+    if not status or field not in ALLOWED_LEAVE_FILTER_FIELDS:
+        messages.error(request, "Invalid filter field.")
+        return _my_leave_response(request, status=400)
 
     filters = request.session.get("filters", {})
 
@@ -4566,12 +4716,13 @@ def clear_status_filter_field(request, status, field):
 @login_required
 @never_cache
 @require_POST
+@transaction.atomic
 def delete_leave(request, leave_id):
 
-    leave = get_object_or_404(Leave, id=leave_id, user=request.user)
-    balance = get_object_or_404(LeaveBalance, user=leave.user)
+    leave = get_object_or_404(Leave.objects.select_for_update(), id=leave_id, user=request.user)
+    balance = get_object_or_404(LeaveBalance.objects.select_for_update(), user=leave.user)
 
-    if leave.status == "Pending" and request.method == "POST":
+    if leave.status == "Pending":
 
         from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
 

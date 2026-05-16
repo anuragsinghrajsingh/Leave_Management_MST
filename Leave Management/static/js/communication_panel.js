@@ -513,7 +513,7 @@
                 return;
             }
 
-            postMarkRead({ target_type: targetType.toUpperCase() }).catch(function () {});
+            postMarkRead({ target_type: targetType.toUpperCase(), all: true }).catch(function () {});
         }
 
         function postSeenState(ids) {
