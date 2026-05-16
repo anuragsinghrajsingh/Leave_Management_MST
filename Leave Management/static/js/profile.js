@@ -1608,6 +1608,7 @@ launchConfetti();
         function closeViewPhoto()
         {
             document.getElementById("viewPhotoModal").style.display = "none";
+            document.body.style.overflow = "";
         }
 
         /* =========================================================
@@ -1635,6 +1636,7 @@ launchConfetti();
         function closeEditPhoto()
         {
             document.getElementById("editPhotoModal").style.display = "none";
+            document.body.style.overflow = "";
             resetEditor();
         }
 

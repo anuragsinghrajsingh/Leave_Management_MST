@@ -25,12 +25,67 @@ from django.urls import reverse
 from django.utils.html import escape
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
+from django.core.files.base import ContentFile
 from django.conf import settings
 import os
 import base64
+from io import BytesIO
 from urllib.parse import quote
 
 security_logger = logging.getLogger("lms_security")
+
+PROFILE_PHOTO_MAX_UPLOAD_BYTES = 3 * 1024 * 1024
+PROFILE_PHOTO_MAX_PIXELS = 16_000_000
+PROFILE_PHOTO_MAX_SIDE = 2048
+
+
+def _sanitize_profile_photo_upload(photo):
+    from PIL import Image, ImageOps
+
+    if photo.size > PROFILE_PHOTO_MAX_UPLOAD_BYTES:
+        raise ValueError("Image must be under 3MB.")
+
+    try:
+        photo.seek(0)
+        with Image.open(photo) as image:
+            source_format = image.format
+
+            if source_format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError("Only JPG, PNG or WEBP images allowed.")
+
+            width, height = image.size
+            if width <= 0 or height <= 0 or width * height > PROFILE_PHOTO_MAX_PIXELS:
+                raise ValueError("Image dimensions are too large.")
+
+            image.verify()
+
+        photo.seek(0)
+        with Image.open(photo) as image:
+            image = ImageOps.exif_transpose(image)
+            image.thumbnail((PROFILE_PHOTO_MAX_SIDE, PROFILE_PHOTO_MAX_SIDE), Image.Resampling.LANCZOS)
+
+            has_alpha = image.mode in {"RGBA", "LA"} or (
+                image.mode == "P" and "transparency" in image.info
+            )
+
+            output = BytesIO()
+            if has_alpha:
+                sanitized = image.convert("RGBA")
+                sanitized.save(output, format="PNG", optimize=True)
+                extension = "png"
+            else:
+                sanitized = image.convert("RGB")
+                sanitized.save(output, format="JPEG", quality=90, optimize=True)
+                extension = "jpg"
+
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Invalid image file.") from exc
+
+    output.seek(0)
+    filename_root = os.path.splitext(os.path.basename(photo.name or "profile-photo"))[0] or "profile-photo"
+    return ContentFile(output.read(), name=f"{filename_root}.{extension}")
 
 def send_branded_email(subject, template_name, context, to_email, reply_to=None):
     """Helper to send a branded HTML email with an embedded logo."""
@@ -2821,40 +2876,29 @@ def profile_view(request):
             if not photo:
                 return JsonResponse({"error": "No photo uploaded"}, status=400)
 
-            # ✅ SIZE VALIDATION
-            if photo.size > 3 * 1024 * 1024:
-                return JsonResponse({"error": "Image must be under 3MB."}, status=400)
-
-            from PIL import Image
-
             try:
-                img = Image.open(photo)
+                sanitized_photo = _sanitize_profile_photo_upload(photo)
+            except ValueError as exc:
+                return JsonResponse({"error": str(exc)}, status=400)
 
-                # ✅ FORMAT CHECK (DO THIS BEFORE VERIFY)
-                if img.format not in ["JPEG", "PNG", "WEBP"]:
-                    return JsonResponse({"error": "Only JPG, PNG or WEBP images allowed."}, status=400)
-
-                # ✅ VERIFY IMAGE
-                img.verify()
-
-            except Exception:
-                return JsonResponse({"error": "Invalid image file."}, status=400)
-
-            # 🔥 RESET POINTER (VERY IMPORTANT)
-            photo.seek(0)
-
-            # ✅ SAVE
-            profile.profile_photo = photo
+            profile.profile_photo = sanitized_photo
             profile.save(update_fields=["profile_photo"])
-            
-            fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]
 
-            filled = sum(bool(f) for f in fields)
+            fields = [profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]
+            filled = sum(bool(field) for field in fields)
             completion_percentage = int((filled / len(fields)) * 100)
 
-            return JsonResponse({ "success": True, "photo_url": profile.profile_photo.url, "completion": completion_percentage})
-        
+            return JsonResponse({
+                "success": True,
+                "photo_url": profile.profile_photo.url,
+                "completion": completion_percentage,
+            })
 
+            # ✅ SIZE VALIDATION
+                # ✅ FORMAT CHECK (DO THIS BEFORE VERIFY)
+                # ✅ VERIFY IMAGE
+            # 🔥 RESET POINTER (VERY IMPORTANT)
+            # ✅ SAVE
         # -------- PASSWORD CHANGE --------
         elif "change_password" in request.POST:
 
@@ -3162,6 +3206,7 @@ def dashboard(request):
 @login_required
 @never_cache
 @require_http_methods(["GET", "POST"])
+@transaction.atomic
 def apply_leave(request):
 
     if request.method == "POST":
@@ -4319,9 +4364,10 @@ def delete_leave(request, leave_id):
 @login_required
 @never_cache
 @require_http_methods(["POST"])
+@transaction.atomic
 def edit_leave(request, leave_id):
 
-    leave = get_object_or_404(Leave, id=leave_id)
+    leave = get_object_or_404(Leave.objects.select_for_update(), id=leave_id)
 
     # 🔐 SECURITY
     if leave.user != request.user:
