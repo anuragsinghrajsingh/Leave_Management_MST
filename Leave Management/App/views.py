@@ -5,9 +5,10 @@ from calendar import monthrange
 import os,json, requests
 import hashlib
 import logging
+import math
 import re
+import secrets
 import time as time_module
-from django.core import signing
 from ics import Calendar
 from django.contrib import messages
 from django.contrib.messages import get_messages
@@ -29,10 +30,10 @@ from django.template.loader import render_to_string
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.files.base import ContentFile
+from django.core.validators import validate_email
 from django.conf import settings
 import os
 from io import BytesIO
-from urllib.parse import quote
 
 security_logger = logging.getLogger("lms_security")
 
@@ -40,14 +41,21 @@ PROFILE_PHOTO_MAX_UPLOAD_BYTES = 3 * 1024 * 1024
 PROFILE_PHOTO_MAX_PIXELS = 16_000_000
 PROFILE_PHOTO_MAX_SIDE = 2048
 REJECTION_REASON_MAX_LENGTH = 500
+LEAVE_REASON_MAX_LENGTH = 1000
 EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS = 5 * 60
 MAX_READ_SEEN_ACTION_IDS = 5
 MAX_NOTIFICATION_FEED_LIMIT = 50
 EMPLOYEE_PHONE_MAX_LENGTH = 14
 EMPLOYEE_ADDRESS_MAX_LENGTH = 500
+EMPLOYEE_LEAVE_TOTAL_MAX = 30
+EMPLOYEE_USERNAME_MAX_LENGTH = 150
+EMPLOYEE_NAME_MAX_LENGTH = 150
+EMPLOYEE_EMAIL_MAX_LENGTH = 254
+EMPLOYEE_DEPARTMENT_MAX_LENGTH = 100
 PROFILE_BIO_MAX_LENGTH = 250
 PROFILE_BIO_MAX_WORDS = 50
 EMPLOYEE_PHONE_PATTERN = re.compile(r"^(?:\+91[\s-]?|91)?([6-9]\d{9})$")
+EMPLOYEE_USERNAME_PATTERN = re.compile(r"^[\w.@+-]+$")
 ALLOWED_LEAVE_TYPES = {choice[0] for choice in Leave.LEAVE_TYPES}
 ALLOWED_PROFILE_ID_ROLES = {choice[0] for choice in Profile.ROLE_CHOICES}
 ALLOWED_LEAVE_FILTER_STATUSES = {choice[0] for choice in Leave.STATUS}
@@ -56,6 +64,10 @@ ALLOWED_LEAVE_FILTER_FIELDS = {"leave_type", "month", "date_range"}
 
 def get_portal_link():
     return f"{settings.PORTAL_BASE_URL}/"
+
+
+def get_employee_archive_cache_key(token):
+    return f"employee_archive_download:{token}"
 
 
 def get_leave_alert_recipients():
@@ -91,6 +103,52 @@ def validate_employee_address(address):
         raise ValueError("Address contains unsupported characters.")
 
     return address
+
+
+def validate_plain_text_field(value, label, max_length):
+    value = (value or "").strip()
+    if len(value) > max_length:
+        raise ValueError(f"{label} must be {max_length} characters or less.")
+
+    if any(ord(character) < 32 for character in value):
+        raise ValueError(f"{label} contains unsupported characters.")
+
+    return value
+
+
+def validate_employee_username(username):
+    username = validate_plain_text_field(username, "Username", EMPLOYEE_USERNAME_MAX_LENGTH)
+    if username and not EMPLOYEE_USERNAME_PATTERN.fullmatch(username):
+        raise ValueError("Username can contain only letters, numbers, and @/./+/-/_ characters.")
+    return username
+
+
+def validate_employee_email(email):
+    email = validate_plain_text_field(email, "Work email", EMPLOYEE_EMAIL_MAX_LENGTH)
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise ValueError("Please enter a valid work email address.")
+    return email
+
+
+def validate_employee_leave_total(value, label):
+    try:
+        total = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{label} total must be a valid number.")
+
+    if not math.isfinite(total):
+        raise ValueError(f"{label} total must be a normal finite number.")
+
+    if total < 0:
+        raise ValueError(f"{label} total cannot be negative.")
+
+    if total > EMPLOYEE_LEAVE_TOTAL_MAX:
+        raise ValueError(f"{label} total cannot be more than {EMPLOYEE_LEAVE_TOTAL_MAX}.")
+
+    return total
 
 
 def validate_profile_bio(bio):
@@ -1910,6 +1968,8 @@ def notifications_mark_read(request):
         return limit_response
 
     mark_all = bool(payload.get("all"))
+    if not ids and not mark_all:
+        return JsonResponse({"error": "No notification IDs supplied."}, status=400)
 
     if request.user.role == "HR":
         allowed_leaves = list(Leave.objects.filter(status="Pending").values_list("id", flat=True))
@@ -1966,6 +2026,10 @@ def notifications_mark_seen(request):
     if limit_response:
         return limit_response
 
+    mark_all = bool(payload.get("all"))
+    if not ids and not mark_all:
+        return JsonResponse({"error": "No notification IDs supplied."}, status=400)
+
     if request.user.role == "HR":
         allowed_leaves = list(Leave.objects.filter(status="Pending").values_list("id", flat=True))
     else:
@@ -1974,7 +2038,7 @@ def notifications_mark_seen(request):
         )
 
     allowed_ids = {str(leave_id) for leave_id in allowed_leaves}
-    target_ids = {value for value in ids if value in allowed_ids}
+    target_ids = allowed_ids if mark_all else {value for value in ids if value in allowed_ids}
 
     if target_ids:
         try:
@@ -2346,6 +2410,43 @@ def employee_details(request):
             add_field_error("phone", "Phone number is required.")
 
         try:
+            form_values["username"] = validate_employee_username(form_values["username"])
+        except ValueError as exc:
+            add_field_error("username", str(exc))
+
+        try:
+            form_values["first_name"] = validate_plain_text_field(
+                form_values["first_name"],
+                "First name",
+                EMPLOYEE_NAME_MAX_LENGTH,
+            )
+        except ValueError as exc:
+            add_field_error("first_name", str(exc))
+
+        try:
+            form_values["last_name"] = validate_plain_text_field(
+                form_values["last_name"],
+                "Last name",
+                EMPLOYEE_NAME_MAX_LENGTH,
+            )
+        except ValueError as exc:
+            add_field_error("last_name", str(exc))
+
+        try:
+            form_values["email"] = validate_employee_email(form_values["email"])
+        except ValueError as exc:
+            add_field_error("email", str(exc))
+
+        try:
+            form_values["department"] = validate_plain_text_field(
+                form_values["department"],
+                "Department",
+                EMPLOYEE_DEPARTMENT_MAX_LENGTH,
+            )
+        except ValueError as exc:
+            add_field_error("department", str(exc))
+
+        try:
             if form_values["phone"]:
                 form_values["phone"] = normalize_employee_phone(form_values["phone"])
         except ValueError as exc:
@@ -2378,20 +2479,14 @@ def employee_details(request):
         sick_total = None
         earned_total = None
         try:
-            sick_total = float(form_values["sick_total"])
-        except ValueError:
-            add_field_error("sick_total", "Sick total must be a valid number.")
+            sick_total = validate_employee_leave_total(form_values["sick_total"], "Sick")
+        except ValueError as exc:
+            add_field_error("sick_total", str(exc))
 
         try:
-            earned_total = float(form_values["earned_total"])
-        except ValueError:
-            add_field_error("earned_total", "Earned total must be a valid number.")
-
-        if sick_total is not None and sick_total < 0:
-            add_field_error("sick_total", "Sick total cannot be negative.")
-
-        if earned_total is not None and earned_total < 0:
-            add_field_error("earned_total", "Earned total cannot be negative.")
+            earned_total = validate_employee_leave_total(form_values["earned_total"], "Earned")
+        except ValueError as exc:
+            add_field_error("earned_total", str(exc))
 
         if sick_total is not None and earned_total is not None:
             calculated_total = _calculate_total_leave_balance(sick_total, earned_total)
@@ -2518,10 +2613,16 @@ def delete_employee(request, user_id):
         balance = None
 
     filename = f"employee-archive-{employee.username}.pdf"
-    archive_token = signing.dumps({
-        "user_id": employee.id,
-        "username": employee.username,
-    }, salt="employee-archive-download")
+    archive_token = secrets.token_urlsafe(32)
+    cache.set(
+        get_employee_archive_cache_key(archive_token),
+        {
+            "hr_user_id": request.user.id,
+            "user_id": employee.id,
+            "username": employee.username,
+        },
+        EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS,
+    )
 
     # Soft Delete: Inactivate user instead of physical deletion
     log_profile_update(employee, request.user, "is_active", employee.is_active, False)
@@ -2540,25 +2641,29 @@ def delete_employee(request, user_id):
         "message": f"Employee '{employee.username}' deleted successfully.",
         "employee_id": user_id,
         "filename": filename,
-        "download_url": reverse("download_employee_archive", args=[user_id]) + f"?token={quote(archive_token)}",
+        "download_url": reverse("download_employee_archive", args=[user_id]),
+        "download_token": archive_token,
     })
 
 
 @login_required
 @never_cache
+@require_POST
 def download_employee_archive(request, user_id):
     if request.user.role != "HR":
         return HttpResponseForbidden("HR access required.")
 
-    token = request.GET.get("token", "")
-    try:
-        token_payload = signing.loads(
-            token,
-            salt="employee-archive-download",
-            max_age=EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS,
-        )
-    except signing.BadSignature:
+    token = (request.POST.get("token") or "").strip()
+    if not token:
         return HttpResponseForbidden("Invalid or expired archive link.")
+
+    cache_key = get_employee_archive_cache_key(token)
+    token_payload = cache.get(cache_key)
+    if not token_payload:
+        return HttpResponseForbidden("Invalid or expired archive link.")
+
+    if token_payload.get("hr_user_id") != request.user.id:
+        return HttpResponseForbidden("Invalid archive link.")
 
     if token_payload.get("user_id") != user_id:
         return HttpResponseForbidden("Invalid archive link.")
@@ -2566,6 +2671,8 @@ def download_employee_archive(request, user_id):
     employee = get_object_or_404(User, id=user_id, role="EMPLOYEE")
     if token_payload.get("username") != employee.username:
         return HttpResponseForbidden("Invalid archive link.")
+
+    cache.delete(cache_key)
 
     try:
         profile = employee.profile
@@ -2870,6 +2977,8 @@ def reject_leave(request, leave_id):
             return JsonResponse({"detail": "HR access required."}, status=403)
         return redirect("role_selection")
 
+    from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
+
     rejection_reason = (request.POST.get("rejection_reason") or "").strip()
     if not rejection_reason:
         if is_ajax_request:
@@ -2907,7 +3016,7 @@ def reject_leave(request, leave_id):
             leave_value = 0.25 if leave.leave_type == "Short" else 0.5
 
         elif leave.leave_type in ["Sick", "Earned", "Unpaid"]:
-            leave_value = (leave.to_date - leave.from_date).days + 1
+            leave_value = calculate_leave_breakdown_for_leave(leave)["working_days"]
 
         else:
             if is_ajax_request:
@@ -3598,7 +3707,13 @@ def apply_leave(request):
             return redirect("apply_leave")
 
         reason = request.POST.get("reason", "").strip()
+        if len(reason) > LEAVE_REASON_MAX_LENGTH:
+            messages.error(request, f"Leave reason must be {LEAVE_REASON_MAX_LENGTH} characters or fewer.")
+            store_apply_leave_form_state(request)
+            return redirect("apply_leave")
+
         user = request.user
+        balance = LeaveBalance.objects.select_for_update().get(user=user)
 
         # =====================================================
         # 🔵 SHORT / HALF LEAVE BLOCK (Standalone)
@@ -3841,8 +3956,6 @@ def apply_leave(request):
 
             leave_value = 0.25 if leave_type == "Short" else 0.5
 
-            balance = LeaveBalance.objects.select_for_update().get(user=user)
-
             earned_remaining = balance.earned_total - balance.earned_used
             sick_remaining = balance.sick_total - balance.sick_used
 
@@ -3896,13 +4009,15 @@ def apply_leave(request):
                         'status_class': 'pending',
                         'portal_link': portal_link
                     }
-                    send_branded_email(
-                        subject,
-                        'emails/notification.html',
-                        context,
-                        hr_emails,
-                        reply_to=user.email,
-                        from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                    transaction.on_commit(
+                        lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email: send_branded_email(
+                            subject,
+                            'emails/notification.html',
+                            context,
+                            hr_emails,
+                            reply_to=reply_to,
+                            from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                        )
                     )
 
             messages.success(request, f"{leave_type} Leave applied successfully.")
@@ -4023,8 +4138,6 @@ def apply_leave(request):
 
         # -------- STEP 4: LOAD BALANCE --------
 
-        balance = LeaveBalance.objects.select_for_update().get(user=user)
-        
         deducted_from = None
 
         # -------- STEP 5: VALIDATE & SIMULATE BALANCE --------
@@ -4165,13 +4278,15 @@ def apply_leave(request):
                     'status_class': 'pending',
                     'portal_link': portal_link
                 }
-                send_branded_email(
-                    subject,
-                    'emails/notification.html',
-                    context,
-                    hr_emails,
-                    reply_to=user.email,
-                    from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                transaction.on_commit(
+                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email: send_branded_email(
+                        subject,
+                        'emails/notification.html',
+                        context,
+                        hr_emails,
+                        reply_to=reply_to,
+                        from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                    )
                 )
             
         # -------- SUCCESS --------
@@ -4855,6 +4970,9 @@ def edit_leave(request, leave_id):
         new_from = date.fromisoformat(request.POST.get("from_date"))
         new_to = date.fromisoformat(request.POST.get("to_date"))
         new_reason = request.POST.get("reason", "").strip()
+        if len(new_reason) > LEAVE_REASON_MAX_LENGTH:
+            messages.error(request, f"Leave reason must be {LEAVE_REASON_MAX_LENGTH} characters or fewer.")
+            return _my_leave_response(request, status=400)
         
         old_from = leave.from_date
         old_to = leave.to_date
@@ -5128,13 +5246,15 @@ def edit_leave(request, leave_id):
                     'status_class': 'updated',
                     'portal_link': portal_link
                 }
-                send_branded_email(
-                    subject,
-                    'emails/notification.html',
-                    context,
-                    hr_emails,
-                    reply_to=request.user.email,
-                    from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                transaction.on_commit(
+                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email: send_branded_email(
+                        subject,
+                        'emails/notification.html',
+                        context,
+                        hr_emails,
+                        reply_to=reply_to,
+                        from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                    )
                 )
 
         messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
@@ -5311,13 +5431,15 @@ def edit_leave(request, leave_id):
                 'status_class': 'updated',
                 'portal_link': portal_link
             }
-            send_branded_email(
-                subject,
-                'emails/notification.html',
-                context,
-                hr_emails,
-                reply_to=request.user.email,
-                from_email=settings.LEAVE_DESK_FROM_EMAIL,
+            transaction.on_commit(
+                lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email: send_branded_email(
+                    subject,
+                    'emails/notification.html',
+                    context,
+                    hr_emails,
+                    reply_to=reply_to,
+                    from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                )
             )
 
     messages.success(request, "ℹ Leave updated successfully.")

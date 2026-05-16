@@ -64,10 +64,6 @@ urlpatterns = [
     path('delete-leave/<int:leave_id>/', views.delete_leave, name='delete_leave'),
     path('edit-leave/<int:leave_id>/', views.edit_leave, name='edit_leave'),
     # path("apply-leave-filters/", views.apply_leave_filters, name="apply_leave_filters"),
-    
-    path('delete-leave/<int:leave_id>/', views.delete_leave, name='delete_leave'),
-    path('edit-leave/<int:leave_id>/', views.edit_leave, name='edit_leave'),
-    # path("apply-leave-filters/", views.apply_leave_filters, name="apply_leave_filters"),
     # path("remove-leave-filter/", views.remove_leave_filter, name="remove_leave_filter"),
     path("apply-status-filter/<str:status>/", views.apply_status_filter, name="apply_status_filter"),
     path("clear-status-filter/<str:status>/", views.clear_status_filter, name="clear_status_filter"),

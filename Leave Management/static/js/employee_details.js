@@ -1115,10 +1115,17 @@
             }, ADDRESS_MODAL_ANIMATION_MS);
         }
 
-        function downloadPdf(downloadUrl, filename)
+        function getFilenameFromDisposition(disposition)
         {
+            const match = String(disposition || "").match(/filename="?([^"]+)"?/i);
+            return match ? match[1] : "";
+        }
+
+        function downloadBlob(blob, filename)
+        {
+            const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href = downloadUrl;
+            link.href = objectUrl;
             if (filename)
             {
                 link.download = filename;
@@ -1126,6 +1133,31 @@
             document.body.appendChild(link);
             link.click();
             link.remove();
+            URL.revokeObjectURL(objectUrl);
+        }
+
+        async function downloadPdf(downloadUrl, filename, token)
+        {
+            const formData = new FormData();
+            formData.append("token", token || "");
+
+            const response = await fetch(downloadUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCsrfToken(),
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: formData
+            });
+
+            if (!response.ok)
+            {
+                throw new Error("Archive download failed");
+            }
+
+            const blob = await response.blob();
+            const responseFilename = getFilenameFromDisposition(response.headers.get("Content-Disposition"));
+            downloadBlob(blob, filename || responseFilename || "employee-archive.pdf");
         }
 
         function applyAvatarInitials()
@@ -1258,10 +1290,18 @@
                         })
                         .then(function (payload)
                         {
-                            if (payload.download_url)
+                            if (payload.download_url && payload.download_token)
                             {
-                                downloadPdf(payload.download_url, payload.filename);
+                                return downloadPdf(payload.download_url, payload.filename, payload.download_token)
+                                    .then(function ()
+                                    {
+                                        return payload;
+                                    });
                             }
+                            return payload;
+                        })
+                        .then(function (payload)
+                        {
                             card.remove();
                             updateEmployeeTotals();
                             runSearch();
