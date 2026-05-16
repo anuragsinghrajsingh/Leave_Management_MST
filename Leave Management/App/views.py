@@ -6,6 +6,7 @@ import os,json, requests
 import hashlib
 import logging
 import time as time_module
+from django.core import signing
 from ics import Calendar
 from django.contrib import messages
 from django.contrib.messages import get_messages
@@ -13,7 +14,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from App.utils.logger_utils import log_leave_action, log_profile_update
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from .models import Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile # , CompanyClosure, 
 from django.views.decorators.cache import never_cache
 from django.core.cache import cache
@@ -29,7 +30,6 @@ from django.core.mail import EmailMessage
 from django.core.files.base import ContentFile
 from django.conf import settings
 import os
-import base64
 from io import BytesIO
 from urllib.parse import quote
 
@@ -39,6 +39,7 @@ PROFILE_PHOTO_MAX_UPLOAD_BYTES = 3 * 1024 * 1024
 PROFILE_PHOTO_MAX_PIXELS = 16_000_000
 PROFILE_PHOTO_MAX_SIDE = 2048
 REJECTION_REASON_MAX_LENGTH = 500
+EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS = 5 * 60
 
 
 def _sanitize_profile_photo_upload(photo):
@@ -2280,8 +2281,11 @@ def delete_employee(request, user_id):
     except LeaveBalance.DoesNotExist:
         balance = None
 
-    pdf_bytes = build_employee_pdf_payload(employee, profile, balance)
     filename = f"employee-archive-{employee.username}.pdf"
+    archive_token = signing.dumps({
+        "user_id": employee.id,
+        "username": employee.username,
+    }, salt="employee-archive-download")
 
     # Soft Delete: Inactivate user instead of physical deletion
     employee.is_active = False
@@ -2292,8 +2296,52 @@ def delete_employee(request, user_id):
         "message": f"Employee '{employee.username}' deleted successfully.",
         "employee_id": user_id,
         "filename": filename,
-        "pdf_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+        "download_url": reverse("download_employee_archive", args=[user_id]) + f"?token={quote(archive_token)}",
     })
+
+
+@login_required
+@never_cache
+def download_employee_archive(request, user_id):
+    if request.user.role != "HR":
+        return HttpResponseForbidden("HR access required.")
+
+    token = request.GET.get("token", "")
+    try:
+        token_payload = signing.loads(
+            token,
+            salt="employee-archive-download",
+            max_age=EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS,
+        )
+    except signing.BadSignature:
+        return HttpResponseForbidden("Invalid or expired archive link.")
+
+    if token_payload.get("user_id") != user_id:
+        return HttpResponseForbidden("Invalid archive link.")
+
+    employee = get_object_or_404(User, id=user_id, role="EMPLOYEE")
+    if token_payload.get("username") != employee.username:
+        return HttpResponseForbidden("Invalid archive link.")
+
+    try:
+        profile = employee.profile
+    except Profile.DoesNotExist:
+        profile = None
+
+    try:
+        balance = employee.leavebalance
+    except LeaveBalance.DoesNotExist:
+        balance = None
+
+    filename = f"employee-archive-{employee.username}.pdf"
+    response = HttpResponse(
+        build_employee_pdf_payload(employee, profile, balance),
+        content_type="application/pdf",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @login_required

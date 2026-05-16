@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/communications/seen/', views.communications_mark_seen, name='communications_mark_seen'),
     path('employees/', views.employee_details, name='employee_details'),
     path('employees/delete/<int:user_id>/', views.delete_employee, name='delete_employee'),
+    path('employees/archive/<int:user_id>/', views.download_employee_archive, name='download_employee_archive'),
     path('employees/update/<int:user_id>/', views.update_employee_contact_field, name='update_employee_contact_field'),
     path('reports/', views.reports, name='reports'),
     path('approve-leave/<int:leave_id>/', views.approve_leave, name='approve_leave'),

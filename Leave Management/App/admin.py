@@ -7,7 +7,9 @@ from django.contrib.auth import get_user_model
 from .models import CompanyHoliday
 from django import forms
 from django.shortcuts import render, redirect
-from django.urls import path
+from django.urls import path, reverse
+from django.http import HttpResponse
+from django.utils.html import format_html
 from datetime import datetime
 import csv
 from django.utils.timezone import now, localtime
@@ -103,7 +105,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    list_display = ("username", "email", "role", "is_staff", "is_superuser")
+    list_display = ("username", "email", "role", "is_active", "is_staff", "is_superuser", "archive_pdf_link")
     search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
     
     
@@ -141,6 +143,50 @@ class CustomUserAdmin(UserAdmin):
             form.base_fields["email"].required = True
 
         return form
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<path:object_id>/archive-pdf/",
+                self.admin_site.admin_view(self.download_archive_pdf),
+                name="app_customuser_archive_pdf",
+            ),
+        ]
+        return custom_urls + urls
+
+    def archive_pdf_link(self, obj):
+        url = reverse("admin:app_customuser_archive_pdf", args=[obj.pk])
+        return format_html('<a class="button" href="{}">Download PDF</a>', url)
+
+    archive_pdf_link.short_description = "Archive PDF"
+
+    def download_archive_pdf(self, request, object_id):
+        user = self.get_object(request, object_id)
+        if user is None:
+            return redirect("..")
+
+        try:
+            profile = user.profile
+        except Profile.DoesNotExist:
+            profile = None
+
+        try:
+            balance = user.leavebalance
+        except LeaveBalance.DoesNotExist:
+            balance = None
+
+        from .views import build_employee_pdf_payload
+
+        filename = f"user-archive-{user.username}.pdf"
+        response = HttpResponse(
+            build_employee_pdf_payload(user, profile, balance),
+            content_type="application/pdf",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "no-store"
+        return response
 
 
     

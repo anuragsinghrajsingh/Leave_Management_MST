@@ -1018,11 +1018,14 @@
             }, ADDRESS_MODAL_ANIMATION_MS);
         }
 
-        function downloadPdf(filename, base64Content)
+        function downloadPdf(downloadUrl, filename)
         {
             const link = document.createElement("a");
-            link.href = "data:application/pdf;base64," + base64Content;
-            link.download = filename;
+            link.href = downloadUrl;
+            if (filename)
+            {
+                link.download = filename;
+            }
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -1158,9 +1161,9 @@
                         })
                         .then(function (payload)
                         {
-                            if (payload.pdf_base64 && payload.filename)
+                            if (payload.download_url)
                             {
-                                downloadPdf(payload.filename, payload.pdf_base64);
+                                downloadPdf(payload.download_url, payload.filename);
                             }
                             card.remove();
                             updateEmployeeTotals();
