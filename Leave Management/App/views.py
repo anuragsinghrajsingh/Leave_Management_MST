@@ -123,12 +123,16 @@ def send_branded_email(subject, template_name, context, to_email, reply_to=None)
             img.add_header('Content-Disposition', 'inline', filename='logo.png')
             email.attach(img)
             
-    email.send(fail_silently=True)
-    
-    # Log the email communication
     from App.utils.logger_utils import log_email_sent_by_email
+    try:
+        sent_count = email.send(fail_silently=False)
+        send_succeeded = sent_count > 0
+    except Exception:
+        send_succeeded = False
+        security_logger.exception("BRANDED_EMAIL_SEND_FAILED | Subject: %s", subject)
+
     for addr in to_email:
-        log_email_sent_by_email(addr, subject, success=True)
+        log_email_sent_by_email(addr, subject, success=send_succeeded)
 
 
 def _get_leave_day_display(leave):
