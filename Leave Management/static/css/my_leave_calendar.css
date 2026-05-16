@@ -2220,11 +2220,15 @@
 .calendar-detail-reason p {
     max-height: 96px;
     margin: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     color: #1e293b;
     font-size: 0.8rem;
     font-weight: 850;
     line-height: 1.45;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .calendar-detail-card.has-no-detail-actions .calendar-detail-reason span {
@@ -2241,12 +2245,13 @@
 }
 
 .calendar-detail-card.has-no-detail-actions .calendar-detail-reason p {
-    display: -webkit-box;
     min-height: calc(1.45em * 3);
     max-height: calc(1.45em * 3);
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+    overflow-x: hidden;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .calendar-inline-edit-card {
@@ -3449,7 +3454,14 @@
 
 #calendar-detail-content .calendar-inline-edit-template #edit-reason {
     min-height: 68px !important;
-    margin-bottom: -4px !important;
+    margin-bottom: 0 !important;
+    padding: 8px 14px 12px 17px !important;
+    background:
+        linear-gradient(90deg, #db2777 0 4px, transparent 4px),
+        #ffffff !important;
+    box-shadow: none !important;
+    overflow: auto !important;
+    resize: none !important;
 }
 
 #calendar-detail-content .calendar-inline-edit-template .edit-modal-actions {
@@ -3471,6 +3483,90 @@
 #calendar-detail-content .detail-actions .edit-btn span:first-child,
 #calendar-detail-content .detail-actions .delete-btn::first-letter {
     font-weight: 1000 !important;
+}
+
+@media (min-width: 769px) {
+    #calendar-detail-overlay .detail-box.is-calendar-editing {
+        max-height: min(570px, 83vh) !important;
+        padding: 7px 11px 8px !important;
+    }
+
+    #calendar-detail-overlay .detail-box.is-calendar-editing .calendar-inline-edit-template {
+        border-radius: 16px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-template-title {
+        min-height: 31px !important;
+        padding-top: 0 !important;
+        padding-bottom: 1px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-template-title-copy h3 {
+        min-height: 29px !important;
+        font-size: 1.02rem !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template #edit-leave-form {
+        row-gap: 1px !important;
+        padding: 4px 12px 4px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-field-label {
+        min-height: 18px !important;
+        margin-bottom: -3px !important;
+        font-size: 0.65rem !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-select-shell,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-date-shell,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .time-select-shell,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-time-output-shell {
+        min-height: 32px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .custom-select-trigger,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .date-trigger,
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-time-output-shell input {
+        min-height: 32px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template #edit-leave-form .row {
+        gap: 7px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-form-section-divider {
+        height: 3px !important;
+        margin-top: 0 !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-duration-card {
+        min-height: 21px !important;
+        margin-bottom: -4px !important;
+        font-size: 0.72rem !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-form-section-divider-reason {
+        margin-top: -3px !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template #edit-reason {
+        min-height: 62px !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 10px !important;
+        background:
+            linear-gradient(90deg, #db2777 0 4px, transparent 4px),
+            #ffffff !important;
+        box-shadow: none !important;
+        resize: none !important;
+    }
+
+    #calendar-detail-overlay #calendar-detail-content .calendar-inline-edit-template .edit-modal-actions {
+        min-height: 40px !important;
+        margin-top: -8px !important;
+        margin-bottom: -10px !important;
+        padding-top: 3px !important;
+        padding-bottom: 3px !important;
+    }
 }
 
 @media (max-width: 640px) {
@@ -3512,6 +3608,7 @@
 
     #calendar-detail-overlay .calendar-detail-card.has-detail-actions .calendar-detail-reason p {
         max-height: calc(1.45em * 3) !important;
+        overflow-x: hidden !important;
         overflow-y: auto !important;
     }
 
