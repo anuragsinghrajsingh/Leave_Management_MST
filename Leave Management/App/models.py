@@ -405,6 +405,20 @@ class Communication(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    def clean(self):
+        super().clean()
+
+        for field_name in ("title", "body"):
+            value = getattr(self, field_name, "") or ""
+            if "<" in value or ">" in value:
+                raise ValidationError({
+                    field_name: "HTML markup is not allowed in communication messages."
+                })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         label = self.title or self.get_message_type_display()
         return f"{self.sender.username} - {label}"

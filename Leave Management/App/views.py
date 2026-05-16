@@ -24,6 +24,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.html import escape
 from django.template.loader import render_to_string
+from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.files.base import ContentFile
 from django.conf import settings
@@ -1562,41 +1563,44 @@ def communications_send(request):
     if len(title) > 140:
         return JsonResponse({"error": "Title is too long."}, status=400)
 
-    if user.role == "HR":
-        if message_type == "ANNOUNCEMENT":
+    try:
+        if user.role == "HR":
+            if message_type == "ANNOUNCEMENT":
+                Communication.objects.create(
+                    sender=user,
+                    message_type="ANNOUNCEMENT",
+                    audience_role="EMPLOYEE",
+                    title=title,
+                    body=body,
+                )
+            elif message_type == "DIRECT":
+                recipient_id = request.POST.get("recipient_id")
+                recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE", is_active=True)
+                Communication.objects.create(
+                    sender=user,
+                    recipient=recipient,
+                    message_type="DIRECT",
+                    title=title,
+                    body=body,
+                )
+            else:
+                return JsonResponse({"error": "Invalid communication type."}, status=400)
+
+        elif user.role == "EMPLOYEE":
+            if message_type != "DIRECT":
+                return JsonResponse({"error": "Employees can only send direct messages."}, status=403)
+
             Communication.objects.create(
                 sender=user,
-                message_type="ANNOUNCEMENT",
-                audience_role="EMPLOYEE",
-                title=title,
-                body=body,
-            )
-        elif message_type == "DIRECT":
-            recipient_id = request.POST.get("recipient_id")
-            recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE", is_active=True)
-            Communication.objects.create(
-                sender=user,
-                recipient=recipient,
                 message_type="DIRECT",
+                audience_role="HR",
                 title=title,
                 body=body,
             )
         else:
-            return JsonResponse({"error": "Invalid communication type."}, status=400)
-
-    elif user.role == "EMPLOYEE":
-        if message_type != "DIRECT":
-            return JsonResponse({"error": "Employees can only send direct messages."}, status=403)
-
-        Communication.objects.create(
-            sender=user,
-            message_type="DIRECT",
-            audience_role="HR",
-            title=title,
-            body=body,
-        )
-    else:
-        return JsonResponse({"error": "Unsupported role."}, status=403)
+            return JsonResponse({"error": "Unsupported role."}, status=403)
+    except ValidationError:
+        return JsonResponse({"error": "HTML markup is not allowed in messages."}, status=400)
 
     queryset = get_communication_queryset(user)
     communications = list(queryset[:8])
