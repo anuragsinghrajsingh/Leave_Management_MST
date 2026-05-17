@@ -2313,26 +2313,22 @@ const exportWrapper = document.createElement("div");
             shell.dataset.previewValue = formatDate(openDate);
             shell._viewDate = new Date(openDate.getFullYear(), openDate.getMonth(), 1);
             window.clearTimeout(shell._closeTimer);
-            const menuHeight = Math.max(menu.offsetHeight || 0, 318);
-            const shellRect = shell.getBoundingClientRect();
-            const viewportPadding = 18;
-            const spaceBelow = window.innerHeight - shellRect.bottom - viewportPadding;
-            const spaceAbove = shellRect.top - viewportPadding;
             const isEditLeavePicker = !!shell.closest("#edit-leave-template");
-            const openUp = !isEditLeavePicker && (spaceAbove >= menuHeight || spaceAbove >= spaceBelow);
-            shell.classList.add("is-positioning");
+            let openUp = false;
+            if (!isEditLeavePicker)
+            {
+                const menuHeight = Math.max(menu.offsetHeight || 0, 318);
+                const shellRect = shell.getBoundingClientRect();
+                const viewportPadding = 18;
+                const spaceBelow = window.innerHeight - shellRect.bottom - viewportPadding;
+                const spaceAbove = shellRect.top - viewportPadding;
+                openUp = spaceAbove >= menuHeight || spaceAbove >= spaceBelow;
+            }
             shell.classList.toggle("open-up", openUp);
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
             dateOpenedAt = Date.now();
             render();
-            requestAnimationFrame(() =>
-            {
-                requestAnimationFrame(() =>
-                {
-                    shell.classList.remove("is-positioning");
-                });
-            });
         };
         trigger.addEventListener("click", (event) =>
         {
