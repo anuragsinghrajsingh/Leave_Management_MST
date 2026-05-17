@@ -2543,6 +2543,8 @@ def employee_details(request):
         try:
             if form_values["date_of_joining"]:
                 joining_date = date.fromisoformat(form_values["date_of_joining"])
+                if joining_date < localdate():
+                    add_field_error("date_of_joining", "Joining date cannot be in the past.")
         except ValueError:
             add_field_error("date_of_joining", "Please enter a valid joining date.")
 
