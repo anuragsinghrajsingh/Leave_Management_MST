@@ -4,7 +4,7 @@
 {% block title %}Apply Leave{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/apply_leave.css' %}?v=responsive-upcoming-variants">
+    <link rel="stylesheet" href="{% static 'css/apply_leave.css' %}">
 {% endblock %}
 
 {% block page_skeleton %}
@@ -681,6 +681,6 @@
     {{ company_holidays_json|json_script:"company-holidays-data" }}
     {{ existing_leaves_json|json_script:"existing-leaves-data" }}
     <div id="apply-leave-js-config" data-initial-leave-type="{{ form_data.leave_type|default:'' }}" hidden></div>
-    <script src="{% static 'js/apply_leave.js' %}?v=responsive-upcoming-variants"></script>
+    <script src="{% static 'js/apply_leave.js' %}"></script>
 {% endblock %}
 
