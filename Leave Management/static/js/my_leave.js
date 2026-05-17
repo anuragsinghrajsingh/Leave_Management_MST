@@ -654,9 +654,15 @@ document.addEventListener("DOMContentLoaded", function () {
     {
         showLeaveCalendarSkeleton();
         fetch(myLeaveCalendarDataUrl)
-            .then(res => res.json())
+            .then(res => typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json())
             .then(data => 
             {
+                if (data.sessionExpired)
+                {
+                    showAjaxMessages(data.messages);
+                    if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(data);
+                    return;
+                }
                 // Load all data (leaves, holidays, company closures) from response
                 const leaves = data.leaves;
                 const holidays = data.holidays;
@@ -3005,7 +3011,15 @@ const exportWrapper = document.createElement("div");
             {
                 throw new Error("Unable to refresh my leave data.");
             }
-            const payload = await response.json();
+            const payload = typeof window.parseJsonOrSessionExpired === "function"
+                ? await window.parseJsonOrSessionExpired(response)
+                : await response.json();
+            if (payload.sessionExpired)
+            {
+                showAjaxMessages(payload.messages);
+                if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                return;
+            }
             const activePanelId = options.activePanel || getActiveMyLeavePanelId();
             const summaryHost = document.querySelector("[data-my-leave-summary]");
             const statsHost = document.querySelector("[data-my-leave-stats]");
@@ -3143,6 +3157,11 @@ const exportWrapper = document.createElement("div");
     }
     async function parseAjaxResponse(response)
     {
+        if (typeof window.parseJsonOrSessionExpired === "function")
+        {
+            return window.parseJsonOrSessionExpired(response);
+        }
+
         try
         {
             return await response.json();
@@ -3158,6 +3177,18 @@ const exportWrapper = document.createElement("div");
     async function parseAjaxResponseLenient(response, fallbackMessage)
     {
         const contentType = response.headers.get("content-type") || "";
+        if (response.redirected || (!contentType.includes("application/json") && !response.ok))
+        {
+            return typeof window.buildSessionExpiredPayload === "function"
+                ? window.buildSessionExpiredPayload(response)
+                : {
+                    success: false,
+                    sessionExpired: true,
+                    redirectUrl: response.url || "/portal/",
+                    messages: [{ title: "Session expired", text: "Please log in again.", tags: "error" }]
+                };
+        }
+
         if (contentType.includes("application/json"))
         {
             return parseAjaxResponse(response);
@@ -3181,6 +3212,16 @@ const exportWrapper = document.createElement("div");
             credentials: "same-origin"
         });
         const payload = await parseAjaxResponse(response);
+        if (payload.sessionExpired)
+        {
+            showAjaxMessages(payload.messages);
+            if (typeof window.redirectAfterSessionExpired === "function")
+            {
+                window.redirectAfterSessionExpired(payload);
+            }
+            return payload;
+        }
+
         if (!response.ok || payload.success === false)
         {
             showAjaxMessages(payload.messages);

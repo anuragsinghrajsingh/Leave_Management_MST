@@ -339,7 +339,15 @@
 
             if (!response.ok) throw new Error("Network response was not ok");
 
-            const data = await response.json();
+            const data = typeof window.parseJsonOrSessionExpired === "function"
+                ? await window.parseJsonOrSessionExpired(response)
+                : await response.json();
+            if (data.sessionExpired) {
+                if (typeof window.redirectAfterSessionExpired === "function") {
+                    window.redirectAfterSessionExpired(data);
+                }
+                return;
+            }
 
             if (reportTableBody) {
                 window.setSafeHTML(reportTableBody, data.table_html);

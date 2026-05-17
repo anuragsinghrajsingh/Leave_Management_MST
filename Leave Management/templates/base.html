@@ -23,7 +23,7 @@
 
     </head>
 
-    <body class="{% block body_class %}{% endblock %}" data-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}">
+    <body class="{% block body_class %}{% endblock %}" data-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}" data-login-url="{% if request.user.role == 'HR' %}{% url 'hr_login_form' %}{% elif request.user.role == 'Admin' or request.user.is_superuser %}{% url 'admin_login_form' %}{% else %}{% url 'employee_login_form' %}{% endif %}">
 
     <header>
         {% block header %}
@@ -74,9 +74,9 @@
         </div>
 
         <div id="export-user" data-username="{{ request.user.username }}" style="display: none;"></div>
+        <script src="{% static 'js/base.js' %}"></script>
         <script src="{% static 'js/hr_notifications.js' %}"></script>
         <script src="{% static 'js/communication_panel.js' %}"></script>
-        <script src="{% static 'js/base.js' %}"></script>
         <script src="{% static 'js/template_events.js' %}"></script>
 
         {% block scripts %}

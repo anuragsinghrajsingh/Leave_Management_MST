@@ -280,8 +280,12 @@
                     throw new Error("Unable to update notification state.");
                 }
 
-                return response.json();
+                return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(response) : response.json();
             }).then(function (payload) {
+                if (payload.sessionExpired) {
+                    if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                    return payload;
+                }
                 serverReadIds = new Set((payload.read_ids || []).map(String));
                 readIds = new Set(Array.from(serverReadIds));
                 highlightedIds = new Set(Array.from(highlightedIds).filter(function (id) {
@@ -683,9 +687,13 @@
                         throw new Error("Notification fetch failed.");
                     }
 
-                    return response.json();
+                    return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(response) : response.json();
                 })
                 .then(function (payload) {
+                    if (payload.sessionExpired) {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                        return payload;
+                    }
                     handlePayload(payload, requestId, settings);
                     return payload;
                 });

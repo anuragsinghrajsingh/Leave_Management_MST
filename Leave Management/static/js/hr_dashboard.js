@@ -1340,11 +1340,16 @@ const reasonPreviewModalAnimationMs = 400;
         })
             .then(function (response)
             {
-                return response.json().catch(function ()
+                const payloadPromise = typeof window.parseJsonOrSessionExpired === "function"
+                    ? window.parseJsonOrSessionExpired(response)
+                    : response.json().catch(function () { return {}; });
+                return payloadPromise.then(function (payload)
                 {
-                    return {};
-                }).then(function (payload)
-                {
+                    if (payload.sessionExpired)
+                    {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                        return payload;
+                    }
                     if (!response.ok)
                     {
                         throw new Error(payload.detail || "Unable to update this leave request right now.");

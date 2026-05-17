@@ -1034,9 +1034,15 @@ launchConfetti();
                     update_inline: true
                 })
             })
-            .then(res => res.json())
+            .then(res => typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json())
             .then(data =>
             {
+                if (data.sessionExpired)
+                {
+                    if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(data);
+                    return;
+                }
+
                 if(data.error)
                 {
                     const errorBox = document.getElementById(field + "Error");
@@ -1981,13 +1987,19 @@ launchConfetti();
                         "X-CSRFToken": getCSRFToken() || getCookie("csrftoken")
                     }
                 })
-                .then(res => res.json())
+                .then(res => typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json())
                 .then(data => 
                 {
                     /* STOP LOADING */
                     uploadBtn.disabled = false;
                     loader.classList.add("hidden");
                     text.innerText = "Upload Photo";
+
+                    if (data.sessionExpired)
+                    {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(data);
+                        return;
+                    }
 
                     if(data.error)
                     {

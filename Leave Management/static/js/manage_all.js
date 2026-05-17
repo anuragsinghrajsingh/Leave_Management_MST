@@ -2206,10 +2206,15 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     throw new Error("Unable to load latest employee detail.");
                 }
 
-                return response.json();
+                return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(response) : response.json();
             })
             .then(function (payload)
             {
+                if (payload.sessionExpired)
+                {
+                    if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                    return null;
+                }
                 return upsertEmployeeSnapshot(payload, options);
             });
     }
@@ -2315,10 +2320,15 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     throw new Error("Unable to load latest manage-all summary.");
                 }
 
-                return response.json();
+                return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(response) : response.json();
             })
             .then(function (summary)
             {
+                if (summary.sessionExpired)
+                {
+                    if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(summary);
+                    return;
+                }
                 setManageSummaryMetric("pending", summary.pending);
                 setManageSummaryMetric("approved", summary.approved);
                 setManageSummaryMetric("rejected", summary.rejected);
@@ -2927,11 +2937,16 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         })
             .then(function (response)
             {
-                return response.json().catch(function ()
+                const payloadPromise = typeof window.parseJsonOrSessionExpired === "function"
+                    ? window.parseJsonOrSessionExpired(response)
+                    : response.json().catch(function () { return {}; });
+                return payloadPromise.then(function (payload)
                 {
-                    return {};
-                }).then(function (payload)
-                {
+                    if (payload.sessionExpired)
+                    {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                        return payload;
+                    }
                     if (!response.ok)
                     {
                         throw new Error(payload.detail || "Unable to approve leave.");
@@ -2942,6 +2957,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             })
             .then(function (payload)
             {
+                if (payload && payload.sessionExpired)
+                {
+                    renderFlashMessages(payload.messages);
+                    return;
+                }
                 renderFlashMessages(payload.messages);
                 refreshEmployeeModalAfterAction(payload.employee_detail, "approved");
                 refreshHrNotificationsAfterDecision(leaveId);
@@ -3001,11 +3021,16 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         })
             .then(function (response)
             {
-                return response.json().catch(function ()
+                const payloadPromise = typeof window.parseJsonOrSessionExpired === "function"
+                    ? window.parseJsonOrSessionExpired(response)
+                    : response.json().catch(function () { return {}; });
+                return payloadPromise.then(function (payload)
                 {
-                    return {};
-                }).then(function (payload)
-                {
+                    if (payload.sessionExpired)
+                    {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                        return payload;
+                    }
                     if (!response.ok)
                     {
                         throw new Error(payload.detail || "Unable to reject leave.");
@@ -3016,6 +3041,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             })
             .then(function (payload)
             {
+                if (payload && payload.sessionExpired)
+                {
+                    renderFlashMessages(payload.messages);
+                    return payload;
+                }
                 return payload;
             })
             .catch(function (error)

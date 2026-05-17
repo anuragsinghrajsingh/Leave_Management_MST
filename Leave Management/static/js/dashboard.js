@@ -453,8 +453,13 @@ function loadLeaves(page, options = {}) {
             "X-Requested-With": "XMLHttpRequest"
         }
     })
-    .then(res => res.json())
+    .then(res => typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json())
     .then(data => {
+        if (data.sessionExpired) {
+            if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(data);
+            return;
+        }
+
         const container = document.getElementById("activityContainer");
         if (!container) return;
 
@@ -921,9 +926,14 @@ function refreshDashboardCards() {
         if (!res.ok) {
             throw new Error("Unable to refresh dashboard cards.");
         }
-        return res.json();
+        return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json();
     })
     .then(data => {
+        if (data.sessionExpired) {
+            if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(data);
+            return;
+        }
+
         updateDashboardSummary(data.summary || null);
         updateDashboardCard(".main-leave-card.upcoming .inner-leave-card.short", data.upcoming?.short || null, "short", "No short leave planned", "upcoming");
         updateDashboardCard(".main-leave-card.upcoming .inner-leave-card.full", data.upcoming?.full || null, "full", "No full leave planned", "upcoming");

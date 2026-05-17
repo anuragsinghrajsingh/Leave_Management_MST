@@ -136,6 +136,61 @@ const modal = document.getElementById("modal");
                 }, options || {}));
             };
 
+            window.buildSessionExpiredPayload = function (response, options)
+            {
+                const settings = options || {};
+                const fallbackUrl = settings.loginUrl || (document.body && document.body.dataset.loginUrl) || response.url || "/portal/";
+                return {
+                    success: false,
+                    sessionExpired: true,
+                    redirectUrl: fallbackUrl,
+                    messages: [{
+                        title: "Session expired",
+                        text: "Please log in again.",
+                        tags: "error"
+                    }]
+                };
+            };
+
+            window.parseJsonOrSessionExpired = async function (response, options)
+            {
+                const contentType = response.headers.get("content-type") || "";
+
+                if (response.redirected || !contentType.toLowerCase().includes("application/json"))
+                {
+                    return window.buildSessionExpiredPayload(response, options);
+                }
+
+                try
+                {
+                    return await response.json();
+                }
+                catch (error)
+                {
+                    return {
+                        success: false,
+                        messages: [{
+                            title: "Action needed",
+                            text: "Could not read the server response.",
+                            tags: "error"
+                        }]
+                    };
+                }
+            };
+
+            window.redirectAfterSessionExpired = function (payload, delay)
+            {
+                if (!payload || !payload.sessionExpired)
+                {
+                    return;
+                }
+
+                window.setTimeout(function ()
+                {
+                    window.location.href = payload.redirectUrl || "/portal/";
+                }, Number.isFinite(delay) ? delay : 1200);
+            };
+
             document.addEventListener("submit", function (event)
             {
                 const form = event.target.closest(".logout-form");

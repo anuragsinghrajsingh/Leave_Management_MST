@@ -29,6 +29,15 @@
     }
 
     function readResponsePayload(response) {
+        if (typeof window.parseJsonOrSessionExpired === "function") {
+            return window.parseJsonOrSessionExpired(response).then(function (payload) {
+                if (payload.sessionExpired && typeof window.redirectAfterSessionExpired === "function") {
+                    window.redirectAfterSessionExpired(payload);
+                }
+                return payload;
+            });
+        }
+
         const contentType = response.headers.get("content-type") || "";
 
         if (contentType.includes("application/json")) {

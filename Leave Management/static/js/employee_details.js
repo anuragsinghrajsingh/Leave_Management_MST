@@ -361,8 +361,16 @@
                 })
             }).then(function (response)
             {
-                return response.json().then(function (data)
+                const payloadPromise = typeof window.parseJsonOrSessionExpired === "function"
+                    ? window.parseJsonOrSessionExpired(response)
+                    : response.json();
+                return payloadPromise.then(function (data)
                 {
+                    if (data.sessionExpired)
+                    {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(data);
+                        return data;
+                    }
                     if (!response.ok)
                     {
                         throw new Error(data.detail || "Unable to save changes.");
@@ -1078,10 +1086,15 @@
                 .then(function (response)
                 {
                     if (!response.ok) throw new Error("Unable to load latest employee card.");
-                    return response.json();
+                    return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(response) : response.json();
                 })
                 .then(function (employee)
                 {
+                    if (employee.sessionExpired)
+                    {
+                        if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(employee);
+                        return;
+                    }
                     updateEmployeeCardSnapshot(card, employee);
                 })
                 .catch(function ()
@@ -1396,10 +1409,15 @@
                         .then(function (response)
                         {
                             if (!response.ok) throw new Error("Delete failed");
-                            return response.json();
+                            return typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(response) : response.json();
                         })
                         .then(function (payload)
                         {
+                            if (payload.sessionExpired)
+                            {
+                                if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
+                                return payload;
+                            }
                             if (payload.download_url && payload.download_token)
                             {
                                 return downloadPdf(payload.download_url, payload.filename, payload.download_token)
