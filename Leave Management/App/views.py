@@ -211,7 +211,11 @@ def get_capped_positive_int(raw_value, *, default=None, maximum=MAX_NOTIFICATION
     if not value.isdigit():
         return default
 
-    return min(int(value), maximum)
+    parsed_value = int(value)
+    if parsed_value <= 0:
+        return default
+
+    return min(parsed_value, maximum)
 
 
 def get_nonnegative_int(raw_value, *, default=0):
@@ -1243,15 +1247,15 @@ def hr_notifications(request):
 
     leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
     payload = build_hr_pending_notifications(leaves, request.user)
-    limit = get_capped_positive_int(request.GET.get("limit"))
+    limit = get_capped_positive_int(
+        request.GET.get("limit"),
+        default=MAX_NOTIFICATION_FEED_LIMIT,
+    )
     offset = get_nonnegative_int(request.GET.get("offset"))
 
     notifications = payload["notifications"]
     total_available = len(notifications)
-    if limit:
-        notifications = notifications[offset:offset + limit]
-    elif offset:
-        notifications = notifications[offset:]
+    notifications = notifications[offset:offset + limit]
 
     return JsonResponse({
         "count": payload["count"],
@@ -1931,15 +1935,15 @@ def employee_notifications(request):
         .order_by("-created_at")
     )
     payload = build_employee_notifications(leaves, request.user)
-    limit = get_capped_positive_int(request.GET.get("limit"))
+    limit = get_capped_positive_int(
+        request.GET.get("limit"),
+        default=MAX_NOTIFICATION_FEED_LIMIT,
+    )
     offset = get_nonnegative_int(request.GET.get("offset"))
 
     notifications = payload["notifications"]
     total_available = len(notifications)
-    if limit:
-        notifications = notifications[offset:offset + limit]
-    elif offset:
-        notifications = notifications[offset:]
+    notifications = notifications[offset:offset + limit]
 
     return JsonResponse({
         "count": payload["count"],
@@ -3299,7 +3303,7 @@ def profile_view(request):
 
     if request.method == "POST":
         
-        if request.content_type == "application/json":
+        if (request.content_type or "").startswith("application/json"):
 
             try:
                 data = json.loads(request.body)
@@ -3790,7 +3794,7 @@ def apply_leave(request):
             if from_date < today or to_date < today:
                 messages.error(request, "Leave date cannot be in the past.")
                 
-                 # ✅ STORE FORM DATA TEMPORARILY
+                # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
                 return redirect("apply_leave")
 
