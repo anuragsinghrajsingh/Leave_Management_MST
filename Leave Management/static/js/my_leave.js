@@ -2318,12 +2318,21 @@ const exportWrapper = document.createElement("div");
             const viewportPadding = 18;
             const spaceBelow = window.innerHeight - shellRect.bottom - viewportPadding;
             const spaceAbove = shellRect.top - viewportPadding;
-            const openUp = spaceAbove >= menuHeight || spaceAbove >= spaceBelow;
+            const isEditLeavePicker = !!shell.closest("#edit-leave-template");
+            const openUp = !isEditLeavePicker && (spaceAbove >= menuHeight || spaceAbove >= spaceBelow);
+            shell.classList.add("is-positioning");
             shell.classList.toggle("open-up", openUp);
             shell.classList.add("open");
             trigger.setAttribute("aria-expanded", "true");
             dateOpenedAt = Date.now();
             render();
+            requestAnimationFrame(() =>
+            {
+                requestAnimationFrame(() =>
+                {
+                    shell.classList.remove("is-positioning");
+                });
+            });
         };
         trigger.addEventListener("click", (event) =>
         {

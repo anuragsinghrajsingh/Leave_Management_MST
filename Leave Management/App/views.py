@@ -5613,7 +5613,7 @@ def edit_leave(request, leave_id):
             messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
             messages.error(request, "ℹ Minimum advance period is 15 days.")
             messages.error(request, "ℹ Admissible advance period is 21 days.")
-            return redirect("my_leave")
+            return _my_leave_response(request, status=400)
 
         elif days_before >= 15 and days_before < 21:
             messages.warning( request, "⚠ Early application")

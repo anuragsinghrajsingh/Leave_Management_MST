@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from datetime import time
 from django.db.models import Count
+from django.utils import timezone
 from django.utils.timezone import now
 from App.services.profile_photo_storage import ProfilePhotoStorage
 
@@ -107,6 +108,7 @@ class Leave(models.Model):
 
 
     def clean(self):
+        super().clean()
 
         if self.leave_type in ["Short", "Half"]:
 
@@ -114,14 +116,20 @@ class Leave(models.Model):
                 raise ValidationError("Time required for Short/Half leave")
 
             # same day check
-            if self.from_datetime.date() != self.to_datetime.date():
+            from_datetime = timezone.localtime(self.from_datetime) if timezone.is_aware(self.from_datetime) else self.from_datetime
+            to_datetime = timezone.localtime(self.to_datetime) if timezone.is_aware(self.to_datetime) else self.to_datetime
+
+            if from_datetime.date() != to_datetime.date():
                 raise ValidationError("Short/Half leave must be single day")
 
             # working hours (10 AM – 7 PM)
-            if self.from_datetime.time() < time(10, 0) or self.to_datetime.time() > time(19, 0):
+            if from_datetime.time() < time(10, 0) or to_datetime.time() > time(19, 0):
                 raise ValidationError("Allowed time: 10 AM to 7 PM")
 
-            duration = (self.to_datetime - self.from_datetime).total_seconds() / 3600
+            duration = (to_datetime - from_datetime).total_seconds() / 3600
+
+            if duration <= 0:
+                raise ValidationError("Leave end time must be after start time")
 
             if self.leave_type == "Short" and duration > 2:
                 raise ValidationError("Short leave max 2 hours")
@@ -131,6 +139,22 @@ class Leave(models.Model):
 
 
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        validation_fields = {
+            "user",
+            "leave_type",
+            "from_date",
+            "to_date",
+            "requested_from_date",
+            "requested_to_date",
+            "from_datetime",
+            "to_datetime",
+            "reason",
+            "deducted_from",
+        }
+
+        if self._state.adding or update_fields is None or validation_fields.intersection(update_fields):
+            self.full_clean()
 
         month = self.from_date.month
         year = self.from_date.year

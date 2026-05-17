@@ -4817,6 +4817,10 @@ textarea:focus {
     transition: opacity 0.2s ease, transform 0.22s ease, visibility 0s linear 0.22s;
 }
 
+.popup-filter-modal-content .popup-filter-date-shell.is-positioning .date-menu {
+    transition: none !important;
+}
+
 .popup-filter-modal-content .popup-filter-field:last-child .popup-filter-date-shell .date-menu {
     left: auto;
     right: 0;
@@ -7560,7 +7564,7 @@ textarea:focus {
 }
 
 #edit-leave-template .edit-date-shell .date-grid {
-    row-gap: 0px;
+    row-gap: 3px;
 }
 
 #edit-leave-template .edit-date-shell .date-day.weekend {
@@ -8111,6 +8115,11 @@ textarea:focus {
     .modal-box.popup-edit-modal-box {
         width: calc(100vw - 24px) !important;
         max-width: calc(100vw - 24px) !important;
+    }
+
+    #modal.popup-edit-modal-host.is-open .modal-box.popup-edit-modal-box {
+        clip-path: none !important;
+        overflow: visible !important;
     }
 
     #edit-leave-template .edit-template-title {

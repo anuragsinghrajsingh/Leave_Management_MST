@@ -1814,6 +1814,13 @@
     padding-top: 6px;
 }
 
+.modal-box.compact-calendar:has(#calendar-detail-overlay.show .detail-box.is-calendar-editing),
+.modal-box.expanded-calendar:has(#calendar-detail-overlay.show .detail-box.is-calendar-editing),
+.modal-box.compact-calendar:has(#calendar-detail-overlay.show .detail-box.is-calendar-editing) #modal-content,
+.modal-box.expanded-calendar:has(#calendar-detail-overlay.show .detail-box.is-calendar-editing) #modal-content {
+    overflow: visible !important;
+}
+
 #calendar-detail-overlay.show .detail-box {
     opacity: 1;
     transform: translateY(0) scale(1);
