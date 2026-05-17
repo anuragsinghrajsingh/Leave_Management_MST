@@ -541,6 +541,13 @@ body
     {
         min-height: 108px;
     }
+
+    .table-header .queue-title
+    {
+        font-size: 1.5rem;
+        font-weight: 900;
+        line-height: 1.05;
+    }
 }
 
 .queue-stat-card
@@ -692,11 +699,14 @@ body
     display: inline-flex;
     align-items: center;
     gap: 10px;
+    background: linear-gradient(90deg, #0f766e 0%, #1d4ed8 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
     font-size: 1.18rem;
     font-weight: 900;
     line-height: 1.1;
     letter-spacing: -0.03em;
-    color: #12324c;
+    color: transparent;
     padding-bottom: 6px;
 }
 
@@ -744,16 +754,18 @@ body
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 28px;
-    padding: 3px 12px;
+    transform: translateX(10px);
+    min-height: 22px;
+    padding: 1px 10px;
     border-radius: 999px;
     border: 1px solid transparent;
     background:
         linear-gradient(135deg, rgba(209, 250, 229, 0.98), rgba(167, 243, 208, 0.94)) padding-box,
         linear-gradient(135deg, #22c55e, #06b6d4, #8b5cf6, #22c55e) border-box;
     color: #047c73;
-    font-weight: 1000;
-    font-size: 0.84rem;
+    font-weight: 900;
+    font-size: 0.9rem;
+    line-height: 1;
     letter-spacing: 0.01em;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -8598,4 +8610,97 @@ button
         line-height: 1.24 !important;
     }
 }
+
+html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-header .reason-modal-heading > h3#reasonModalTitle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    font-size: clamp(1.12rem, 3vw, 1.5rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.08 !important;
+}
+
+html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-header {
+    padding-top: 0 !important;
+    padding-bottom: 3px !important;
+}
+
+html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-header .reason-modal-heading > h3#reasonModalTitle::before {
+    content: "\270E";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: none;
+    color: #f97316 !important;
+    font-size: 0.92em;
+    font-weight: 1000;
+    line-height: 1;
+    box-shadow: none;
+    flex-shrink: 0;
+}
+
+html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-top-row {
+    margin-top: 2px !important;
+    margin-bottom: -6px !important;
+}
+
+html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-body {
+    gap: 4px !important;
+}
+
+html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid {
+    margin-top: 0 !important;
+}
+
+@media (max-width: 640px) {
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-header {
+        padding-top: 8px !important;
+    }
+
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-header > .close-modal-btn {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        border-radius: 50% !important;
+        background: rgba(241, 245, 249, 0.96) !important;
+        color: #334155 !important;
+        font-size: 1rem !important;
+        font-weight: 1000 !important;
+        line-height: 1 !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.95),
+            0 4px 10px rgba(15, 23, 42, 0.12) !important;
+        transform: translate(-8px, 4px) !important;
+    }
+
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-top-row {
+        margin-top: 9px !important;
+        margin-bottom: 2px !important;
+    }
+
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-body {
+        gap: 4px !important;
+    }
+
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid .reason-meta-card {
+        grid-column: auto !important;
+        width: 100% !important;
+    }
+
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid .reason-meta-card:first-child,
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid .reason-meta-card:nth-child(2),
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid .reason-meta-card:nth-child(3),
+    html body #reasonModal.reason-modal .reason-modal-dialog .reason-modal-meta-grid .reason-meta-card:nth-child(4) {
+        grid-column: auto !important;
+    }
+}
+
 
