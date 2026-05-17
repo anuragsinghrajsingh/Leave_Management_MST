@@ -48,6 +48,7 @@ LEAVE_REASON_MAX_LENGTH = 1000
 EMPLOYEE_ARCHIVE_DOWNLOAD_MAX_AGE_SECONDS = 5 * 60
 MAX_READ_SEEN_ACTION_IDS = 5
 MAX_NOTIFICATION_FEED_LIMIT = 50
+MAX_NOTIFICATION_FEED_OFFSET = 1000
 EMPLOYEE_PHONE_MAX_LENGTH = 14
 EMPLOYEE_ADDRESS_MAX_LENGTH = 500
 EMPLOYEE_LEAVE_TOTAL_MAX = 30
@@ -227,6 +228,13 @@ def get_nonnegative_int(raw_value, *, default=0):
         return default
 
     return int(value)
+
+
+def get_capped_notification_offset(raw_value):
+    offset = get_nonnegative_int(raw_value)
+    if offset > MAX_NOTIFICATION_FEED_OFFSET:
+        return None
+    return offset
 
 
 def store_apply_leave_form_state(request):
@@ -1252,7 +1260,9 @@ def hr_notifications(request):
         request.GET.get("limit"),
         default=MAX_NOTIFICATION_FEED_LIMIT,
     )
-    offset = get_nonnegative_int(request.GET.get("offset"))
+    offset = get_capped_notification_offset(request.GET.get("offset"))
+    if offset is None:
+        return JsonResponse({"detail": "Offset too large."}, status=400)
 
     pending_leaves = (
         Leave.objects
@@ -1291,7 +1301,7 @@ def parse_json_request_body(request):
         return {}
 
     try:
-        return json.loads(raw_body.decode("utf-8"))
+        payload = json.loads(raw_body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         user = getattr(request, "user", None)
         security_logger.warning(
@@ -1306,6 +1316,22 @@ def parse_json_request_body(request):
             str(exc),
         )
         return None
+
+    if not isinstance(payload, dict):
+        user = getattr(request, "user", None)
+        security_logger.warning(
+            "INVALID_JSON_REQUEST | path=%s | method=%s | user_id=%s | role=%s | ip=%s | content_type=%s | body_bytes=%s | error=payload_not_object",
+            request.path,
+            request.method,
+            getattr(user, "id", None) if getattr(user, "is_authenticated", False) else None,
+            getattr(user, "role", "") if getattr(user, "is_authenticated", False) else "",
+            _get_client_ip(request),
+            request.META.get("CONTENT_TYPE", ""),
+            len(raw_body),
+        )
+        return None
+
+    return payload
 
 
 def normalize_action_id_for_model(value, model):
@@ -1339,6 +1365,20 @@ def normalize_action_id_for_model(value, model):
 
 def get_limited_action_ids(request, payload, model):
     raw_ids = payload.get("ids") or []
+    if raw_ids and not isinstance(raw_ids, (list, tuple)):
+        user = getattr(request, "user", None)
+        security_logger.warning(
+            "INVALID_ACTION_IDS_TYPE | path=%s | method=%s | user_id=%s | role=%s | ip=%s | model=%s | ids_type=%s",
+            request.path,
+            request.method,
+            getattr(user, "id", None) if getattr(user, "is_authenticated", False) else None,
+            getattr(user, "role", "") if getattr(user, "is_authenticated", False) else "",
+            _get_client_ip(request),
+            model.__name__,
+            type(raw_ids).__name__,
+        )
+        return None, JsonResponse({"error": "IDs must be provided as a list."}, status=400)
+
     ids = []
 
     try:
@@ -2061,7 +2101,9 @@ def employee_notifications(request):
         request.GET.get("limit"),
         default=MAX_NOTIFICATION_FEED_LIMIT,
     )
-    offset = get_nonnegative_int(request.GET.get("offset"))
+    offset = get_capped_notification_offset(request.GET.get("offset"))
+    if offset is None:
+        return JsonResponse({"detail": "Offset too large."}, status=400)
 
     total_available = leaves.count()
     page_leaves = list(leaves[offset:offset + limit])
