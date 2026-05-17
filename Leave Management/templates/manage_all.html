@@ -294,7 +294,7 @@
                             <span class="employee-card-serial">{{ forloop.counter }}</span>
                             <div class="employee-card-split">
                                 <div class="employee-card-visual">
-                                    <div class="employee-photo-wrap employee-photo-wrap-large">
+                                    <div class="employee-photo-wrap employee-photo-wrap-large" data-employee-card-photo>
                                         {% if employee.photo_url %}
                                             <img src="{{ employee.photo_url }}" alt="{{ employee.display_name }}" class="employee-photo">
                                         {% else %}
@@ -367,12 +367,12 @@
                                     <div class="employee-card-metrics">
                                         <article class="employee-stat-box employee-stat-sick">
                                             <span>Sick</span>
-                                            <strong>{{ employee.sick_used }} / {{ employee.sick_total }}</strong>
+                                            <strong data-card-balance="sick">{{ employee.sick_used }} / {{ employee.sick_total }}</strong>
                                             <small>USED</small>
                                         </article>
                                         <article class="employee-stat-box employee-stat-earned">
                                             <span>Earned</span>
-                                            <strong>{{ employee.earned_used }} / {{ employee.earned_total }}</strong>
+                                            <strong data-card-balance="earned">{{ employee.earned_used }} / {{ employee.earned_total }}</strong>
                                             <small>USED</small>
                                         </article>
                                     </div>

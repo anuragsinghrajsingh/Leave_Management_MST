@@ -2021,6 +2021,22 @@ launchConfetti();
                         updateCompletionUI(data.completion);
                     }
 
+                    try
+                    {
+                        localStorage.setItem("profile-photo-updated", JSON.stringify({
+                            at: Date.now(),
+                            photo_url: data.photo_url || ""
+                        }));
+                    }
+                    catch (error)
+                    {
+                        window.dispatchEvent(new CustomEvent("profile-photo-updated", {
+                            detail: {
+                                photo_url: data.photo_url || ""
+                            }
+                        }));
+                    }
+
                     closeEditPhoto();
                 })
                 .catch(() =>

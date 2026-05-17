@@ -251,14 +251,15 @@ def store_apply_leave_form_state(request):
     request.session["apply_leave_form"] = safe_form_data
 
 
-def _profile_photo_filename(profile, extension):
+def _profile_photo_filename(profile, extension, update_count=None):
     username = getattr(getattr(profile, "user", None), "username", "") or "employee"
     employee_id = getattr(profile, "employee_id", "") or "profile"
     filename_root = re.sub(r"[^A-Za-z0-9_-]+", "_", f"{username}_{employee_id}").strip("_")
-    return f"{filename_root or 'employee_profile'}.{extension}"
+    version_suffix = f"({update_count})" if update_count else ""
+    return f"{filename_root or 'employee_profile'}{version_suffix}.{extension}"
 
 
-def _sanitize_profile_photo_upload(photo, profile=None):
+def _sanitize_profile_photo_upload(photo, profile=None, update_count=None):
     from PIL import Image, ImageOps
 
     if photo.size > PROFILE_PHOTO_MAX_UPLOAD_BYTES:
@@ -307,7 +308,9 @@ def _sanitize_profile_photo_upload(photo, profile=None):
         os.path.splitext(os.path.basename(photo.name or "profile-photo"))[0] or "profile-photo"
     )
     if profile is not None:
-        filename_root = os.path.splitext(_profile_photo_filename(profile, extension))[0]
+        filename_root = os.path.splitext(
+            _profile_photo_filename(profile, extension, update_count=update_count)
+        )[0]
 
     return ContentFile(output.read(), name=f"{filename_root}.{extension}")
 
@@ -3564,8 +3567,14 @@ def profile_view(request):
             if not photo:
                 return JsonResponse({"error": "No photo uploaded"}, status=400)
 
+            next_photo_update_count = profile.profile_photo_update_count + 1
+
             try:
-                sanitized_photo = _sanitize_profile_photo_upload(photo, profile=profile)
+                sanitized_photo = _sanitize_profile_photo_upload(
+                    photo,
+                    profile=profile,
+                    update_count=next_photo_update_count,
+                )
             except ValueError as exc:
                 return JsonResponse({"error": str(exc)}, status=400)
 
@@ -3581,7 +3590,8 @@ def profile_view(request):
                 security_logger.exception("Failed to delete existing profile photo target: %s", target_name)
 
             profile.profile_photo = sanitized_photo
-            profile.save(update_fields=["profile_photo"])
+            profile.profile_photo_update_count = next_photo_update_count
+            profile.save(update_fields=["profile_photo", "profile_photo_update_count"])
             _delete_profile_photo_file(old_profile_photo, keep_name=profile.profile_photo.name)
 
             fields = [profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]

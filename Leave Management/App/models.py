@@ -316,6 +316,7 @@ class Profile(models.Model):
     # -------- Editable by user --------
     address = models.TextField(blank=True)
     profile_photo = models.ImageField(upload_to="profile_photos/", blank=True, null=True, default=None)
+    profile_photo_update_count = models.PositiveIntegerField(default=0)
     bio = models.TextField(blank=True)
 
     def __str__(self):

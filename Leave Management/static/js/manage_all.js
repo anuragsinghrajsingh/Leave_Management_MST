@@ -51,6 +51,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
     let currentRejectLeaveSnapshot = null;
     let popupActionInFlight = false;
     let popupFilterOwnerId = "";
+    const employeeCardRefreshInFlight = new Set();
+    let pendingEmployeeCardPhotoReload = false;
     let reasonModalCloseTimer = null;
     let decisionConfirmState = null;
     let activeReasonAnchor = null;
@@ -2154,7 +2156,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         }
     }
 
-    function upsertEmployeeSnapshot(snapshot)
+    function upsertEmployeeSnapshot(snapshot, options)
     {
         const employeeId = String(snapshot && snapshot.id || "");
 
@@ -2177,10 +2179,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             employeeData.push(snapshot);
         }
 
+        updateEmployeeCardFromSnapshot(snapshot, options);
         return snapshot;
     }
 
-    function fetchManageEmployeeDetail(employeeId)
+    function fetchManageEmployeeDetail(employeeId, options)
     {
         return fetch(getManageEmployeeDetailApiUrl(employeeId) + "?_ts=" + Date.now(), {
             headers: {
@@ -2201,8 +2204,63 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             })
             .then(function (payload)
             {
-                return upsertEmployeeSnapshot(payload);
+                return upsertEmployeeSnapshot(payload, options);
             });
+    }
+
+    function refreshEmployeeCardSnapshot(employeeId, options)
+    {
+        const normalizedId = String(employeeId || "");
+
+        if (!normalizedId || employeeCardRefreshInFlight.has(normalizedId))
+        {
+            return Promise.resolve(null);
+        }
+
+        employeeCardRefreshInFlight.add(normalizedId);
+
+        return fetchManageEmployeeDetail(normalizedId, options)
+            .catch(function ()
+            {
+                return null;
+            })
+            .finally(function ()
+            {
+                employeeCardRefreshInFlight.delete(normalizedId);
+            });
+    }
+
+    function refreshVisibleEmployeeCards(options)
+    {
+        const shouldForcePhotoReload = Boolean(
+            pendingEmployeeCardPhotoReload || (options && options.forcePhotoReload)
+        );
+
+        if (shouldForcePhotoReload)
+        {
+            pendingEmployeeCardPhotoReload = true;
+        }
+
+        if (document.hidden)
+        {
+            return;
+        }
+
+        const refreshOptions = shouldForcePhotoReload
+            ? { forcePhotoReload: true }
+            : options;
+
+        employeeProfileCards
+            .filter(function (card)
+            {
+                return !card.hidden && card.dataset.employeeId;
+            })
+            .forEach(function (card)
+            {
+                refreshEmployeeCardSnapshot(card.dataset.employeeId, refreshOptions);
+            });
+
+        pendingEmployeeCardPhotoReload = false;
     }
 
     function getLeaveActionUrl(urlTemplate, leaveId)
@@ -2947,6 +3005,159 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         return normalizedUsername.slice(0, 2).toUpperCase() || "EM";
     }
 
+    function formatEmployeeBalanceText(used, total)
+    {
+        return `${used ?? 0} / ${total ?? 0}`;
+    }
+
+    function setEmployeeCardBalance(card, key, used, total)
+    {
+        const balance = card ? card.querySelector(`[data-card-balance="${key}"]`) : null;
+
+        if (!balance)
+        {
+            return;
+        }
+
+        const nextText = formatEmployeeBalanceText(used, total);
+
+        if (balance.textContent.trim() === nextText)
+        {
+            return;
+        }
+
+        balance.textContent = nextText;
+        balance.classList.remove("count-pulse");
+        void balance.offsetWidth;
+        balance.classList.add("count-pulse");
+    }
+
+    function reloadEmployeeCardPhoto(image, photoUrl)
+    {
+        const reloadToken = String(Date.now()) + Math.random();
+        image.dataset.photoReloadToken = reloadToken;
+
+        fetch(photoUrl, {
+            cache: "no-store",
+            headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache"
+            }
+        })
+            .then(function (response)
+            {
+                if (!response.ok)
+                {
+                    throw new Error("Unable to refresh employee photo.");
+                }
+
+                return response.blob();
+            })
+            .then(function (blob)
+            {
+                if (image.dataset.photoReloadToken !== reloadToken)
+                {
+                    return;
+                }
+
+                const previousObjectUrl = image.dataset.employeePhotoObjectUrl || "";
+                const nextObjectUrl = URL.createObjectURL(blob);
+
+                image.src = nextObjectUrl;
+                image.dataset.employeePhotoObjectUrl = nextObjectUrl;
+
+                if (previousObjectUrl)
+                {
+                    URL.revokeObjectURL(previousObjectUrl);
+                }
+            })
+            .catch(function ()
+            {
+                if (image.dataset.photoReloadToken === reloadToken)
+                {
+                    image.src = photoUrl;
+                }
+            });
+    }
+
+    function setEmployeeCardPhoto(card, employee, options)
+    {
+        const photoWrap = card ? card.querySelector("[data-employee-card-photo]") : null;
+
+        if (!photoWrap || !employee)
+        {
+            return;
+        }
+
+        const displayName = employee.display_name || employee.username || "Employee";
+        const username = employee.username || "";
+
+        if (employee.photo_url)
+        {
+            let image = photoWrap.querySelector("img.employee-photo");
+
+            if (!image)
+            {
+                image = document.createElement("img");
+                image.className = "employee-photo";
+                photoWrap.replaceChildren(image);
+            }
+
+            if (options && options.forcePhotoReload)
+            {
+                reloadEmployeeCardPhoto(image, employee.photo_url);
+            }
+            else if (image.getAttribute("src") !== employee.photo_url)
+            {
+                const previousObjectUrl = image.dataset.employeePhotoObjectUrl || "";
+                image.src = employee.photo_url;
+
+                if (previousObjectUrl)
+                {
+                    URL.revokeObjectURL(previousObjectUrl);
+                    delete image.dataset.employeePhotoObjectUrl;
+                }
+            }
+
+            image.alt = displayName;
+            return;
+        }
+
+        let fallback = photoWrap.querySelector(".employee-photo-fallback");
+
+        if (!fallback)
+        {
+            fallback = document.createElement("div");
+            fallback.className = "employee-photo employee-photo-fallback";
+            fallback.setAttribute("data-avatar-fallback", "");
+            photoWrap.replaceChildren(fallback);
+        }
+
+        fallback.setAttribute("aria-label", displayName);
+        fallback.dataset.fullName = displayName;
+        fallback.dataset.username = username;
+        fallback.textContent = getInitials(displayName, username);
+    }
+
+    function updateEmployeeCardFromSnapshot(employee, options)
+    {
+        if (!employee || !employee.id)
+        {
+            return;
+        }
+
+        const card = document.querySelector(`.employee-profile-card[data-employee-id="${String(employee.id)}"]`);
+
+        if (!card)
+        {
+            return;
+        }
+
+        setEmployeeCardPhoto(card, employee, options);
+        setEmployeeCardBalance(card, "sick", employee.sick_used, employee.sick_total);
+        setEmployeeCardBalance(card, "earned", employee.earned_used, employee.earned_total);
+    }
+
     function getEmployeeBellItems()
     {
         return Array.from(document.querySelectorAll("[data-employee-bell-item]"));
@@ -3534,6 +3745,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         renderManageDirectoryPagination(matchingCards.length > 0 ? Math.max(1, totalPages) : 0);
         manageDirectoryLastPageSize = pageSize;
         animateEmployeeBellCounts();
+        refreshVisibleEmployeeCards();
 
         return {
             matchingCards: matchingCards,
@@ -5367,6 +5579,30 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
     {
         refreshPopupTableAfterLayout();
     });
+
+    window.addEventListener("focus", refreshVisibleEmployeeCards);
+    window.addEventListener("pageshow", refreshVisibleEmployeeCards);
+    window.addEventListener("profile-photo-updated", function ()
+    {
+        pendingEmployeeCardPhotoReload = true;
+        refreshVisibleEmployeeCards({ forcePhotoReload: true });
+    });
+    window.addEventListener("storage", function (event)
+    {
+        if (event.key === "profile-photo-updated")
+        {
+            pendingEmployeeCardPhotoReload = true;
+            refreshVisibleEmployeeCards({ forcePhotoReload: true });
+        }
+    });
+    document.addEventListener("visibilitychange", function ()
+    {
+        if (!document.hidden)
+        {
+            refreshVisibleEmployeeCards();
+        }
+    });
+    setInterval(refreshVisibleEmployeeCards, 60000);
 
     employeeBellDropdowns.forEach(function (dropdown)
     {
