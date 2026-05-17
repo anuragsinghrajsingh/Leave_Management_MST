@@ -251,7 +251,7 @@
         <div class="employee-card">
             <div style="height: 5px; background: linear-gradient(to right, #4f46e5, #3b82f6, #06b6d4, #8b5cf6); width: 100%;"></div>
             <div class="employee-header">
-                {% if report.profile.profile_photo %}
+                {% if report.profile.has_profile_photo_file %}
                     <img src="{{ portal_link }}{{ report.profile.profile_photo.url }}" class="employee-avatar" alt="Avatar">
                 {% else %}
                     <div class="employee-avatar" style="background: #e2e8f0; color: #64748b; line-height: 105px; text-align: center; font-size: 40px; display: inline-block;">👤</div>

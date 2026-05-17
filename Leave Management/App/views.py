@@ -251,7 +251,14 @@ def store_apply_leave_form_state(request):
     request.session["apply_leave_form"] = safe_form_data
 
 
-def _sanitize_profile_photo_upload(photo):
+def _profile_photo_filename(profile, extension):
+    username = getattr(getattr(profile, "user", None), "username", "") or "employee"
+    employee_id = getattr(profile, "employee_id", "") or "profile"
+    filename_root = re.sub(r"[^A-Za-z0-9_-]+", "_", f"{username}_{employee_id}").strip("_")
+    return f"{filename_root or 'employee_profile'}.{extension}"
+
+
+def _sanitize_profile_photo_upload(photo, profile=None):
     from PIL import Image, ImageOps
 
     if photo.size > PROFILE_PHOTO_MAX_UPLOAD_BYTES:
@@ -296,8 +303,36 @@ def _sanitize_profile_photo_upload(photo):
         raise ValueError("Invalid image file.") from exc
 
     output.seek(0)
-    filename_root = os.path.splitext(os.path.basename(photo.name or "profile-photo"))[0] or "profile-photo"
+    filename_root = (
+        os.path.splitext(os.path.basename(photo.name or "profile-photo"))[0] or "profile-photo"
+    )
+    if profile is not None:
+        filename_root = os.path.splitext(_profile_photo_filename(profile, extension))[0]
+
     return ContentFile(output.read(), name=f"{filename_root}.{extension}")
+
+
+def _delete_profile_photo_file(profile_photo, keep_name=None):
+    if not profile_photo:
+        return
+
+    old_name = getattr(profile_photo, "name", "")
+    if not old_name or old_name == keep_name:
+        return
+
+    try:
+        storage = profile_photo.storage
+        if storage.exists(old_name):
+            storage.delete(old_name)
+    except Exception:
+        security_logger.exception("Failed to delete old profile photo: %s", old_name)
+
+
+def _profile_photo_url(profile):
+    if profile and getattr(profile, "has_profile_photo_file", False):
+        return profile.profile_photo.url
+    return None
+
 
 def send_branded_email(subject, template_name, context, to_email, reply_to=None, from_email=None):
     """Helper to send a branded HTML email with an embedded logo."""
@@ -1527,7 +1562,7 @@ def build_hr_pending_notifications(leaves, viewer=None):
             "schedule_text": schedule_text,
             "activity_label": activity_label,
             "activity_text": localtime(activity_at).strftime("%b %d, %Y %I:%M %p"),
-            "photo_url": leave_profile.profile_photo.url if leave_profile and leave_profile.profile_photo else None,
+            "photo_url": _profile_photo_url(leave_profile),
             "target_url": f"{reverse('manage_all')}?employee={leave.user_id}&highlight_leave={leave.id}",
             "is_read": is_read,
             "is_new": is_new,
@@ -1621,7 +1656,7 @@ def build_employee_notifications(leaves, viewer=None):
             "updated_text": updated_text,
             "status": leave.status,
             "status_class": leave.status.lower(),
-            "photo_url": leave_profile.profile_photo.url if leave_profile and leave_profile.profile_photo else None,
+            "photo_url": _profile_photo_url(leave_profile),
             "target_panel": panel_target,
             "target_url": f"{reverse('my_leave')}?panel={panel_target}&highlight_leave={leave.id}",
             "is_read": is_read,
@@ -1820,7 +1855,7 @@ def build_communication_items(communications, viewer, read_ids=None, seen_ids=No
             "is_outgoing": is_outgoing,
             "is_read": is_read,
             "is_new": is_new,
-            "photo_url": sender_profile.profile_photo.url if sender_profile and sender_profile.profile_photo else None,
+            "photo_url": _profile_photo_url(sender_profile),
             "username": communication.sender.username,
         })
 
@@ -2326,7 +2361,7 @@ def build_manage_employee_card(employee, employee_leaves, today=None):
         "phone": getattr(profile, "phone", "Not added"),
         "address": getattr(profile, "address", "") or "Address not added yet.",
         "bio": getattr(profile, "bio", "") or "No employee bio available yet.",
-        "photo_url": profile.profile_photo.url if profile and profile.profile_photo else None,
+        "photo_url": _profile_photo_url(profile),
         "total_requests": len(employee_leaves),
         "pending_count": pending_count,
         "approved_count": approved_count,
@@ -2731,7 +2766,7 @@ def employee_details(request):
             "date_of_joining": profile.date_of_joining.strftime("%b %d, %Y") if profile and profile.date_of_joining else "Not added",
             "phone": getattr(profile, "phone", "Not added"),
             "address": getattr(profile, "address", "") or "Address not added yet.",
-            "photo_url": profile.profile_photo.url if profile and profile.profile_photo else None,
+            "photo_url": _profile_photo_url(profile),
             "total_leave_balance": balance.total_leave_balance if balance else 0,
             "total_leave_remaining": _remaining_from_balance(balance) if balance else 0,
             "sick_total": balance.sick_total if balance else 0,
@@ -2989,7 +3024,7 @@ def reports(request):
             "employee_id": getattr(report_profile, "employee_id", "Not assigned"),
             "department": getattr(report_profile, "department", "Not assigned"),
             "phone": getattr(report_profile, "phone", "Not added"),
-            "photo_url": report_profile.profile_photo.url if report_profile and report_profile.profile_photo else None,
+            "photo_url": _profile_photo_url(report_profile),
             "total": item["total"],
             "approved": item["approved"],
             "pending": item["pending"],
@@ -3530,12 +3565,24 @@ def profile_view(request):
                 return JsonResponse({"error": "No photo uploaded"}, status=400)
 
             try:
-                sanitized_photo = _sanitize_profile_photo_upload(photo)
+                sanitized_photo = _sanitize_profile_photo_upload(photo, profile=profile)
             except ValueError as exc:
                 return JsonResponse({"error": str(exc)}, status=400)
 
+            old_profile_photo = profile.profile_photo
+            target_name = profile._meta.get_field("profile_photo").generate_filename(profile, sanitized_photo.name)
+            _delete_profile_photo_file(old_profile_photo, keep_name=None if old_profile_photo.name == target_name else old_profile_photo.name)
+
+            try:
+                storage = profile._meta.get_field("profile_photo").storage
+                if target_name != old_profile_photo.name and storage.exists(target_name):
+                    storage.delete(target_name)
+            except Exception:
+                security_logger.exception("Failed to delete existing profile photo target: %s", target_name)
+
             profile.profile_photo = sanitized_photo
             profile.save(update_fields=["profile_photo"])
+            _delete_profile_photo_file(old_profile_photo, keep_name=profile.profile_photo.name)
 
             fields = [profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio]
             filled = sum(bool(field) for field in fields)

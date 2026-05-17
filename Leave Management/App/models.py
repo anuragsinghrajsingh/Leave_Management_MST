@@ -321,6 +321,16 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.user.username} Profile"
 
+    @property
+    def has_profile_photo_file(self):
+        if not self.profile_photo or not self.profile_photo.name:
+            return False
+
+        try:
+            return self.profile_photo.storage.exists(self.profile_photo.name)
+        except Exception:
+            return False
+
     @classmethod
     def generate_next_id(cls, role):
         """

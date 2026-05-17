@@ -12,11 +12,33 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.core.files import File
 from App.models import Leave, LeaveBalance, Profile
+import re
 
 
 
 User = get_user_model()
+
+
+def _default_profile_photo_name(profile):
+    username = getattr(profile.user, "username", "") or "employee"
+    employee_id = profile.employee_id or "profile"
+    filename_root = re.sub(r"[^A-Za-z0-9_-]+", "_", f"{username}_{employee_id}").strip("_")
+    return f"{filename_root or 'employee_profile'}.jpg"
+
+
+def _assign_default_profile_photo(profile):
+    if profile.profile_photo:
+        return
+
+    default_photo_path = settings.BASE_DIR / "static" / "images" / "user.jpg"
+    if not default_photo_path.exists():
+        return
+
+    with default_photo_path.open("rb") as photo_file:
+        profile.profile_photo.save(_default_profile_photo_name(profile), File(photo_file), save=True)
 
 @receiver(post_save, sender=User)
 def create_leave_balance(sender, instance, created, **kwargs):
@@ -30,7 +52,7 @@ def create_leave_balance(sender, instance, created, **kwargs):
 def create_profile(sender, instance, created, **kwargs):
     
     if created:
-        Profile.objects.get_or_create(
+        profile, _ = Profile.objects.get_or_create(
             user=instance,
             defaults={
                 'department': "Not Assigned",
@@ -38,6 +60,7 @@ def create_profile(sender, instance, created, **kwargs):
                 'date_of_joining': instance.date_joined.date(),
             }
         )
+        _assign_default_profile_photo(profile)
 
     else:
         # ✅ SYNC ON UPDATE

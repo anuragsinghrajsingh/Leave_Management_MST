@@ -448,7 +448,7 @@ header h1
     justify-content: center;
     width: 38px;
     height: 38px;
-    padding: 1px;
+    padding: 0;
     border-radius: 50%;
     background: linear-gradient(135deg, #dbe7f5, #bfd2e8 72%, #a9c3de 100%);
     box-shadow:
@@ -483,7 +483,7 @@ header h1
     object-fit: cover;
     border: 0;
     cursor: pointer;
-    transform: scale(1);
+    transform: translateY(2px) scale(1.24);
     transform-origin: center;
 }
 
@@ -4098,4 +4098,31 @@ header .nav-links a:focus-visible {
     .communication-mode-btn span {
         font-size: 0.76rem !important;
     }
+}
+
+header .header-actions .profile-dropdown .profile-icon,
+header .header-actions .profile-dropdown .profile-menu-trigger {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transform: translateY(2px) !important;
+}
+
+header .header-actions .profile-dropdown .profile-icon > img,
+header .header-actions .profile-dropdown .profile-menu-trigger > img,
+header .header-actions .profile-dropdown .profile-icon .profile-avatar-shell {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+header .header-actions .profile-dropdown .profile-icon > img,
+header .header-actions .profile-dropdown .profile-menu-trigger > img {
+    object-fit: cover !important;
+    transform: translateY(3px) scale(1.12) !important;
+    transform-origin: center center !important;
 }

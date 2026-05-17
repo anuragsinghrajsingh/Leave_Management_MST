@@ -157,7 +157,7 @@
         <div class="profile-dropdown">
             <input type="checkbox" id="profile-toggle">
             <label for="profile-toggle" class="profile-icon">
-                {% if request.user.profile.profile_photo %}
+                {% if request.user.profile.has_profile_photo_file %}
                     <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
                 {% else %}
                     <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-label="HR user"></span>
@@ -166,7 +166,7 @@
 
             <div class="dropdown-content">
                 <div class="user-info">
-                    {% if request.user.profile.profile_photo %}
+                    {% if request.user.profile.has_profile_photo_file %}
                         <span class="user-info-media">
                             <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
                         </span>

@@ -163,7 +163,7 @@
         </div>
         <div class="profile-dropdown profile-header-dropdown">
             <button type="button" class="profile-icon profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false">
-                {% if request.user.profile.profile_photo %}
+                {% if request.user.profile.has_profile_photo_file %}
                     <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
                 {% else %}
                     <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-hidden="true"></span>
@@ -171,7 +171,7 @@
             </button>
             <div class="dropdown-content">
                 <div class="user-info">
-                {% if request.user.profile.profile_photo %}
+                    {% if request.user.profile.has_profile_photo_file %}
                     <div class="user-info-media">
                         <img src="{{ request.user.profile.profile_photo.url }}" alt="Profile">
                     </div>

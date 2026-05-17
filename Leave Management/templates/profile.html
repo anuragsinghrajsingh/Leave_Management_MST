@@ -177,7 +177,7 @@
 
         <div class="profile-dropdown profile-header-dropdown">
             <button type="button" id="profileMenuTrigger" class="profile-icon profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false">
-                {% if profile.profile_photo %}
+                {% if profile.has_profile_photo_file %}
                     <img src="{{ profile.profile_photo.url }}" alt="Profile">
                 {% else %}
                     <span class="profile-avatar-shell profile-avatar-initials" data-user-initials data-full-name="{{ request.user.get_full_name }}" data-username="{{ request.user.username }}" aria-hidden="true"></span>
@@ -185,7 +185,7 @@
             </button>
             <div class="dropdown-content">
                 <div class="user-info">
-                    {% if profile.profile_photo %}
+                    {% if profile.has_profile_photo_file %}
                         <span class="user-info-media">
                             <img src="{{ profile.profile_photo.url }}" alt="Profile">
                         </span>
@@ -214,7 +214,7 @@
             <div class="profile-masthead-copy">
                 <div class="profile-masthead-main">
                     <div class="profile-avatar-container masthead-avatar" id="mastheadAvatarCard">
-                        {% if profile.profile_photo %}
+                        {% if profile.has_profile_photo_file %}
                         <img src="{{ profile.profile_photo.url }}" id="profileViewPhotoTrigger" class="avatar">
                         {% else %}
                         <img src="{% static 'images/user.jpg' %}" id="profileViewPhotoTrigger" class="avatar">
@@ -492,7 +492,7 @@
             <div class="modal-content photo-view-modal">
                 <span class="modal-close" id="viewPhotoModalClose" data-action="close-view-photo">&times;</span>
 
-                {% if request.user.profile.profile_photo %}
+                {% if request.user.profile.has_profile_photo_file %}
                     <img src="{{ request.user.profile.profile_photo.url }}" id="viewProfileImg" class="photo-view-img">
                 {% else %}
                     <img src="{% static 'images/user.jpg' %}" id="viewProfileImg" class="photo-view-img">
