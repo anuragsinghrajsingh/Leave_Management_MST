@@ -18967,6 +18967,7 @@ button {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    gap: 8px !important;
     min-height: 32px !important;
     padding: 0 16px !important;
     border-radius: 999px !important;
@@ -18979,6 +18980,38 @@ button {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.9),
         0 10px 20px rgba(6, 182, 212, 0.12) !important;
+}
+
+.employee-directory .panel-heading .eyebrow::before {
+    content: "\25C9";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    font-size: 1.08em;
+    line-height: 1;
+    text-shadow:
+        5px 0 0 #14b8a6,
+        10px 0 0 #f59e0b;
+    transform: translateX(-5px);
+}
+
+@media (min-width: 641px) {
+    .employee-directory .employee-search-bar {
+        min-height: 36px !important;
+        padding: 2px !important;
+    }
+
+    .employee-directory .employee-search-input {
+        min-height: 30px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+
+    .employee-directory .employee-search-icon {
+        width: 54px !important;
+        padding: 8px !important;
+    }
 }
 
 /* Manage all employee cards: only reserve bell space where the bell sits. */
