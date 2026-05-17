@@ -12,7 +12,18 @@ let totalPages = 1;
 let direction = "next";
 let isPageLoaded = false;
 const INDIA_TIMEZONE = "Asia/Kolkata";
+const DASHBOARD_LIVE_REFRESH_INTERVAL_MS = 60000;
 let countdownTimers = [];
+
+function buildDashboardAjaxUrl(params = {}) {
+    const url = new URL(window.location.pathname, window.location.origin);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            url.searchParams.set(key, value);
+        }
+    });
+    return `${url.pathname}${url.search}`;
+}
 
 function rotateQuotes() {
     const el = document.getElementById("quoteText");
@@ -133,10 +144,11 @@ function startCountdown() {
     countdownTimers.forEach(timerId => clearInterval(timerId));
     countdownTimers = [];
     updateLiveLeaveStatuses();
+    animateLeaveProgress();
     countdownTimers.push(setInterval(() => {
         updateLiveLeaveStatuses();
         animateLeaveProgress();
-    }, 1000));
+    }, DASHBOARD_LIVE_REFRESH_INTERVAL_MS));
 }
 
 function syncDividerPointer(targetCard) {
@@ -316,15 +328,15 @@ function renderLeaveCard(leave, isNew) {
     }
 
     if (leave.type === "Short" || leave.type === "Half") {
-        const parts = leave.from_datetime.split(" ");
-        const fromTime = parts.slice(3).join(" ");
+        const fromTime = leave.from_time || formatIndiaTime(leave.from_datetime);
+        const toTime = leave.to_time || leave.to_datetime || "";
 
         bodyHTML = `
             <p class="date-line"><strong>${fromDateLabel}</strong></p>
             <p class="date-line time-line">
-                <strong>${fromTime}</strong>
+                <strong>${escapeHtml(fromTime)}</strong>
                 <span class="arrow">&rarr;</span>
-                <strong>${leave.to_datetime}</strong>
+                <strong>${escapeHtml(toTime)}</strong>
             </p>
         `;
     } else {
@@ -448,7 +460,7 @@ function renderActivityLeaves(container, leaves) {
 function loadLeaves(page, options = {}) {
     const shouldAnimate = options.animate !== false;
 
-    fetch(`/dashboard?page=${page}`, {
+    fetch(buildDashboardAjaxUrl({ page }), {
         headers: {
             "X-Requested-With": "XMLHttpRequest"
         }
@@ -917,7 +929,7 @@ function updateDashboardSummary(summary) {
 }
 
 function refreshDashboardCards() {
-    fetch("/dashboard?section=cards", {
+    fetch(buildDashboardAjaxUrl({ section: "cards" }), {
         headers: {
             "X-Requested-With": "XMLHttpRequest"
         }
@@ -1330,11 +1342,27 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
+let lastDashboardNotificationSignature = "";
+
 window.addEventListener("hr-notification-state-sync", function (event) {
     const detail = event.detail || {};
     if (!Array.isArray(detail.notifications)) {
         return;
     }
 
+    const nextSignature = detail.notifications.map(function (item) {
+        return [
+            item.id,
+            item.status,
+            item.updated_at || item.updated || "",
+            item.is_read ? "read" : "unread"
+        ].join(":");
+    }).join("|");
+
+    if (nextSignature === lastDashboardNotificationSignature) {
+        return;
+    }
+
+    lastDashboardNotificationSignature = nextSignature;
     refreshDashboardCards();
 });

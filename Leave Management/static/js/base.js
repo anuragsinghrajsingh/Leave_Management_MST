@@ -156,7 +156,7 @@ const modal = document.getElementById("modal");
             {
                 const contentType = response.headers.get("content-type") || "";
 
-                if (response.redirected || !contentType.toLowerCase().includes("application/json"))
+                if (!contentType.toLowerCase().includes("application/json"))
                 {
                     return window.buildSessionExpiredPayload(response, options);
                 }
@@ -216,21 +216,6 @@ const modal = document.getElementById("modal");
                     form.dataset.logoutConfirmed = "true";
                     form.submit();
                 });
-            });
-
-            window.addEventListener("pageshow", function (event)
-            {
-                const isAuthenticatedPage = document.body && document.body.dataset.authenticated === "true";
-                const navEntries = typeof performance.getEntriesByType === "function" ? performance.getEntriesByType("navigation") : [];
-                const navType = navEntries.length ? navEntries[0].type : "";
-                const restoredFromHistory = event.persisted || navType === "back_forward";
-
-                if (!isAuthenticatedPage || !restoredFromHistory)
-                {
-                    return;
-                }
-
-                window.location.replace(window.location.href);
             });
 
             function startAsyncPopupSkeleton(popupElement)
@@ -1398,6 +1383,10 @@ document.addEventListener("keydown", (e) =>
             {
                 if (event.persisted) 
                 {
-                    document.querySelector("form").reset();
+                    const firstForm = document.querySelector("form");
+                    if (firstForm)
+                    {
+                        firstForm.reset();
+                    }
                 }
             });

@@ -68,16 +68,6 @@
                 callGlobal("closeModal");
                 break;
 
-            case "dashboard-prev-page":
-                event.preventDefault();
-                callGlobal("prevPage");
-                break;
-
-            case "dashboard-next-page":
-                event.preventDefault();
-                callGlobal("nextPage");
-                break;
-
             case "close-reason-modal":
                 event.preventDefault();
                 callGlobal("closeReasonModal");
