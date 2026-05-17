@@ -7,6 +7,7 @@ import hashlib
 import logging
 import math
 import re
+import uuid
 import secrets
 import time as time_module
 from ics import Calendar
@@ -22,6 +23,7 @@ from django.views.decorators.cache import never_cache
 from django.core.cache import cache
 from django.views.decorators.http import require_http_methods, require_POST
 from django.db import transaction, OperationalError, ProgrammingError
+from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
@@ -1306,9 +1308,57 @@ def parse_json_request_body(request):
         return None
 
 
-def get_limited_action_ids(request, payload):
+def normalize_action_id_for_model(value, model):
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return None
+
+    pk_field = model._meta.pk
+
+    if isinstance(pk_field, (models.AutoField, models.BigAutoField, models.SmallAutoField, models.IntegerField, models.BigIntegerField, models.SmallIntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField)):
+        if not raw_value.isdigit():
+            raise ValueError("IDs must be numeric.")
+        return raw_value
+
+    if isinstance(pk_field, models.UUIDField):
+        try:
+            return str(uuid.UUID(raw_value))
+        except ValueError:
+            raise ValueError("IDs must be valid UUID values.")
+
+    if isinstance(pk_field, (models.CharField, models.SlugField)):
+        max_length = pk_field.max_length or 64
+        if len(raw_value) > max_length:
+            raise ValueError(f"IDs must be {max_length} characters or fewer.")
+        if not re.fullmatch(r"[\w.@:+-]+", raw_value):
+            raise ValueError("IDs contain unsupported characters.")
+        return raw_value
+
+    raise ValueError("Unsupported ID field type.")
+
+
+def get_limited_action_ids(request, payload, model):
     raw_ids = payload.get("ids") or []
-    ids = [str(value) for value in raw_ids if str(value).strip()]
+    ids = []
+
+    try:
+        for value in raw_ids:
+            normalized_id = normalize_action_id_for_model(value, model)
+            if normalized_id:
+                ids.append(normalized_id)
+    except ValueError as exc:
+        user = getattr(request, "user", None)
+        security_logger.warning(
+            "INVALID_ACTION_ID | path=%s | method=%s | user_id=%s | role=%s | ip=%s | model=%s | error=%s",
+            request.path,
+            request.method,
+            getattr(user, "id", None) if getattr(user, "is_authenticated", False) else None,
+            getattr(user, "role", "") if getattr(user, "is_authenticated", False) else "",
+            _get_client_ip(request),
+            model.__name__,
+            str(exc),
+        )
+        return None, JsonResponse({"error": str(exc)}, status=400)
 
     if len(ids) > MAX_READ_SEEN_ACTION_IDS:
         user = getattr(request, "user", None)
@@ -1812,7 +1862,7 @@ def communications_mark_read(request):
     if payload is None:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    ids, limit_response = get_limited_action_ids(request, payload)
+    ids, limit_response = get_limited_action_ids(request, payload, Communication)
     if limit_response:
         return limit_response
 
@@ -1894,7 +1944,14 @@ def communications_send(request):
                     body=body,
                 )
             elif message_type == "DIRECT":
-                recipient_id = request.POST.get("recipient_id")
+                try:
+                    recipient_id = normalize_action_id_for_model(request.POST.get("recipient_id"), User)
+                except ValueError:
+                    return JsonResponse({"error": "Invalid recipient."}, status=400)
+
+                if not recipient_id:
+                    return JsonResponse({"error": "Recipient is required."}, status=400)
+
                 recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE", is_active=True)
                 Communication.objects.create(
                     sender=user,
@@ -1942,7 +1999,7 @@ def communications_mark_seen(request):
     if payload is None:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    ids, limit_response = get_limited_action_ids(request, payload)
+    ids, limit_response = get_limited_action_ids(request, payload, Communication)
     if limit_response:
         return limit_response
 
@@ -2033,7 +2090,7 @@ def notifications_mark_read(request):
     if payload is None:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    ids, limit_response = get_limited_action_ids(request, payload)
+    ids, limit_response = get_limited_action_ids(request, payload, Leave)
     if limit_response:
         return limit_response
 
@@ -2092,7 +2149,7 @@ def notifications_mark_seen(request):
     if payload is None:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    ids, limit_response = get_limited_action_ids(request, payload)
+    ids, limit_response = get_limited_action_ids(request, payload, Leave)
     if limit_response:
         return limit_response
 
