@@ -35,12 +35,14 @@
         const employeeDetailsConfig = document.getElementById("employee-details-js-config");
         const joinDateTodayString = employeeDetailsConfig ? employeeDetailsConfig.dataset.joinDateToday : "";
         const updateEmployeeContactUrlTemplate = employeeDetailsConfig ? employeeDetailsConfig.dataset.updateContactUrlTemplate : "";
+        const employeeDetailUrlTemplate = employeeDetailsConfig ? employeeDetailsConfig.dataset.employeeDetailUrlTemplate : "";
         const ADDRESS_MODAL_ANIMATION_MS = 190;
         let currentPage = 1;
         let addressModalCloseTimer = null;
         let lastCardsPerPage = null;
         let directoryAnimationTimer = null;
         let activeAddressEmployeeId = "";
+        const employeeCardRefreshInFlight = new Set();
 
         if (addressModal)
         {
@@ -840,6 +842,7 @@
                 });
                 requestAnimationFrame(applyResponsiveTrim);
                 lastCardsPerPage = cardsPerPage;
+                refreshVisibleEmployeeCards();
                 return;
             }
 
@@ -857,6 +860,7 @@
                 card.hidden = index >= Math.max(0, cardsPerPage - visibleCards.length);
             });
             requestAnimationFrame(applyResponsiveTrim);
+            refreshVisibleEmployeeCards();
 
             pagination.innerHTML = "";
             const first = document.createElement("button");
@@ -991,6 +995,112 @@
                 return parts[0].slice(0, 2).toUpperCase();
             }
             return user.slice(0, 2).toUpperCase();
+        }
+
+        function getEmployeeDetailUrl(employeeId)
+        {
+            return employeeDetailUrlTemplate.replace(/0\/?$/, String(employeeId) + "/");
+        }
+
+        function setEmployeeCardText(card, key, value)
+        {
+            const element = card ? card.querySelector('[data-employee-card-balance="' + key + '"]') : null;
+            if (!element || element.textContent.trim() === value) return;
+
+            element.textContent = value;
+            element.classList.remove("count-pulse");
+            void element.offsetWidth;
+            element.classList.add("count-pulse");
+        }
+
+        function setEmployeeCardPhoto(card, employee)
+        {
+            const photoWrap = card ? card.querySelector("[data-employee-card-photo]") : null;
+            if (!photoWrap || !employee) return;
+
+            const displayName = employee.display_name || employee.username || "Employee";
+            const username = employee.username || "";
+
+            if (employee.photo_url)
+            {
+                let image = photoWrap.querySelector("img.employee-avatar");
+                if (!image)
+                {
+                    image = document.createElement("img");
+                    image.className = "employee-avatar";
+                    photoWrap.replaceChildren(image);
+                }
+                if (image.getAttribute("src") !== employee.photo_url)
+                {
+                    image.src = employee.photo_url;
+                }
+                image.alt = displayName;
+                return;
+            }
+
+            let fallback = photoWrap.querySelector(".employee-avatar-fallback");
+            if (!fallback)
+            {
+                fallback = document.createElement("div");
+                fallback.className = "employee-avatar employee-avatar-fallback";
+                fallback.setAttribute("data-avatar-fallback", "");
+                photoWrap.replaceChildren(fallback);
+            }
+            fallback.setAttribute("aria-label", displayName);
+            fallback.dataset.fullName = displayName;
+            fallback.dataset.username = username;
+            fallback.textContent = getInitials(displayName, username);
+        }
+
+        function updateEmployeeCardSnapshot(card, employee)
+        {
+            setEmployeeCardPhoto(card, employee);
+            setEmployeeCardText(card, "leave", String((employee.sick_used || 0) + (employee.earned_used || 0)) + " / " + String((employee.sick_total || 0) + (employee.earned_total || 0)) + " used");
+            setEmployeeCardText(card, "sick", String(employee.sick_used || 0) + " / " + String(employee.sick_total || 0));
+            setEmployeeCardText(card, "earned", String(employee.earned_used || 0) + " / " + String(employee.earned_total || 0));
+            setEmployeeCardText(card, "unpaid", String(employee.unpaid_taken || 0));
+        }
+
+        function refreshEmployeeCard(card)
+        {
+            const employeeId = card ? String(card.dataset.employeeId || "") : "";
+            if (!employeeId || !employeeDetailUrlTemplate || employeeCardRefreshInFlight.has(employeeId)) return;
+
+            employeeCardRefreshInFlight.add(employeeId);
+            fetch(getEmployeeDetailUrl(employeeId) + "?_ts=" + Date.now(), {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache"
+                },
+                cache: "no-store"
+            })
+                .then(function (response)
+                {
+                    if (!response.ok) throw new Error("Unable to load latest employee card.");
+                    return response.json();
+                })
+                .then(function (employee)
+                {
+                    updateEmployeeCardSnapshot(card, employee);
+                })
+                .catch(function ()
+                {
+                    return null;
+                })
+                .finally(function ()
+                {
+                    employeeCardRefreshInFlight.delete(employeeId);
+                });
+        }
+
+        function refreshVisibleEmployeeCards()
+        {
+            if (document.hidden) return;
+            employeeCards.filter(function (card)
+            {
+                return !card.hidden;
+            }).forEach(refreshEmployeeCard);
         }
 
         function syncPhoneDisplay(card, phoneValue)
@@ -1601,6 +1711,24 @@
                 closeAddressModal();
             }
         });
+
+        window.addEventListener("focus", refreshVisibleEmployeeCards);
+        window.addEventListener("pageshow", refreshVisibleEmployeeCards);
+        window.addEventListener("storage", function (event)
+        {
+            if (event.key === "profile-photo-updated")
+            {
+                refreshVisibleEmployeeCards();
+            }
+        });
+        document.addEventListener("visibilitychange", function ()
+        {
+            if (!document.hidden)
+            {
+                refreshVisibleEmployeeCards();
+            }
+        });
+        setInterval(refreshVisibleEmployeeCards, 60000);
 
         updateTotalLeave();
         syncAllFieldAccentStates();

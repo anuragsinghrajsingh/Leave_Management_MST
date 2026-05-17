@@ -449,7 +449,7 @@
                         {% for employee in employee_cards %}
                             <article class="employee-card" data-employee-card data-employee-id="{{ employee.id }}" data-search="{{ employee.display_name|lower }} {{ employee.username|lower }} {{ employee.employee_id|lower }} {{ employee.department|lower }} {{ employee.phone|lower }}">
                                 <div class="employee-card-top">
-                                    <div class="employee-avatar-shell">
+                                    <div class="employee-avatar-shell" data-employee-card-photo>
                                         {% if employee.photo_url %}
                                             <img src="{{ employee.photo_url }}" alt="{{ employee.display_name }}" class="employee-avatar">
                                         {% else %}
@@ -487,13 +487,13 @@
                                         </form>
                                     </article>
                                     <article class="detail-block"><span>Joined</span><strong>{{ employee.date_of_joining }}</strong></article>
-                                    <article class="detail-block"><span>Leaves</span><strong>{{ employee.sick_used|default:0|add:employee.earned_used|default:0 }} / {{ employee.sick_total|default:0|add:employee.earned_total|default:0 }} used</strong></article>
+                                    <article class="detail-block"><span>Leaves</span><strong data-employee-card-balance="leave">{{ employee.sick_used|default:0|add:employee.earned_used|default:0 }} / {{ employee.sick_total|default:0|add:employee.earned_total|default:0 }} used</strong></article>
                                 </div>
 
                                 <div class="balance-strip">
-                                    <article class="balance-item"><span>Sick</span><strong class="balance-usage"><span class="balance-usage-main">{{ employee.sick_used|default:0 }} / {{ employee.sick_total|default:0 }}</span><span class="balance-usage-sub">used</span></strong></article>
-                                    <article class="balance-item"><span>Earned</span><strong class="balance-usage"><span class="balance-usage-main">{{ employee.earned_used|default:0 }} / {{ employee.earned_total|default:0 }}</span><span class="balance-usage-sub">used</span></strong></article>
-                                    <article class="balance-item"><span>Unpaid</span><strong class="balance-usage"><span class="balance-usage-main">{{ employee.unpaid|default:0 }}</span><span class="balance-usage-sub">used</span></strong></article>
+                                    <article class="balance-item"><span>Sick</span><strong class="balance-usage"><span class="balance-usage-main" data-employee-card-balance="sick">{{ employee.sick_used|default:0 }} / {{ employee.sick_total|default:0 }}</span><span class="balance-usage-sub">used</span></strong></article>
+                                    <article class="balance-item"><span>Earned</span><strong class="balance-usage"><span class="balance-usage-main" data-employee-card-balance="earned">{{ employee.earned_used|default:0 }} / {{ employee.earned_total|default:0 }}</span><span class="balance-usage-sub">used</span></strong></article>
+                                    <article class="balance-item"><span>Unpaid</span><strong class="balance-usage"><span class="balance-usage-main" data-employee-card-balance="unpaid">{{ employee.unpaid|default:0 }}</span><span class="balance-usage-sub">used</span></strong></article>
                                 </div>
 
                                 <div class="employee-footer-copy">
@@ -619,6 +619,7 @@
         id="employee-details-js-config"
         data-join-date-today="{% now 'Y-m-d' %}"
         data-update-contact-url-template="{% url 'update_employee_contact_field' 0 %}"
+        data-employee-detail-url-template="{% url 'manage_all_employee_detail' 0 %}"
         data-has-field-errors="{% if field_errors %}true{% else %}false{% endif %}"
         hidden
     ></div>
