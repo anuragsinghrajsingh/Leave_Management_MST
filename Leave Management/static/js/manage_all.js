@@ -4,6 +4,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
     const csrfToken = manageAllConfig.csrfToken || "";
     const defaultProfileImage = manageAllConfig.defaultProfileImage || "";
     const manageEmployeeDetailApiTemplate = manageAllConfig.employeeDetailUrlTemplate || "";
+    const manageSummaryApiUrl = manageAllConfig.summaryUrl || "";
     const approveLeaveUrlTemplate = manageAllConfig.approveLeaveUrlTemplate || "";
     const rejectLeaveUrlTemplate = manageAllConfig.rejectLeaveUrlTemplate || "";
     const popupTableSection = document.getElementById("popupTableSection");
@@ -30,6 +31,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
     const employeeBellDropdowns = Array.from(document.querySelectorAll("[data-employee-bell]"));
     const employeeProfileCards = Array.from(document.querySelectorAll(".employee-profile-card:not(.employee-profile-card-placeholder)"));
     const employeePlaceholderCards = Array.from(document.querySelectorAll(".employee-profile-card-placeholder"));
+    const manageSummaryMetrics = {
+        pending: document.querySelector('[data-manage-summary-metric="pending"]'),
+        approved: document.querySelector('[data-manage-summary-metric="approved"]'),
+        rejected: document.querySelector('[data-manage-summary-metric="rejected"]')
+    };
     let manageDirectoryCurrentPage = 1;
     let manageDirectoryLastPageSize = null;
     let manageDirectoryAnimationTimer = null;
@@ -2263,6 +2269,72 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         pendingEmployeeCardPhotoReload = false;
     }
 
+    function setManageSummaryMetric(key, value)
+    {
+        const metric = manageSummaryMetrics[key];
+
+        if (!metric)
+        {
+            return;
+        }
+
+        const nextValue = Number(value || 0);
+        const nextText = String(nextValue);
+
+        if (metric.textContent.trim() === nextText)
+        {
+            return;
+        }
+
+        metric.dataset.countupTarget = nextText;
+        metric.textContent = nextText;
+        metric.classList.remove("count-pulse");
+        void metric.offsetWidth;
+        metric.classList.add("count-pulse");
+    }
+
+    function refreshManageSummaryMetrics()
+    {
+        if (!manageSummaryApiUrl || document.hidden)
+        {
+            return;
+        }
+
+        fetch(manageSummaryApiUrl + "?_ts=" + Date.now(), {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache"
+            },
+            cache: "no-store"
+        })
+            .then(function (response)
+            {
+                if (!response.ok)
+                {
+                    throw new Error("Unable to load latest manage-all summary.");
+                }
+
+                return response.json();
+            })
+            .then(function (summary)
+            {
+                setManageSummaryMetric("pending", summary.pending);
+                setManageSummaryMetric("approved", summary.approved);
+                setManageSummaryMetric("rejected", summary.rejected);
+            })
+            .catch(function ()
+            {
+                return null;
+            });
+    }
+
+    function refreshManageAllLiveData(options)
+    {
+        refreshVisibleEmployeeCards(options);
+        refreshManageSummaryMetrics();
+    }
+
     function getLeaveActionUrl(urlTemplate, leaveId)
     {
         return urlTemplate.replace(/0\/?$/, String(leaveId) + "/");
@@ -2821,6 +2893,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         activePopupHistoryStatus = nextStatus || activePopupHistoryStatus;
         renderEmployeeModal(snapshot);
         setPopupTableCollapsed(false);
+        refreshManageSummaryMetrics();
     }
 
     function refreshHrNotificationsAfterDecision(leaveId)
@@ -3745,7 +3818,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         renderManageDirectoryPagination(matchingCards.length > 0 ? Math.max(1, totalPages) : 0);
         manageDirectoryLastPageSize = pageSize;
         animateEmployeeBellCounts();
-        refreshVisibleEmployeeCards();
+        refreshManageAllLiveData();
 
         return {
             matchingCards: matchingCards,
@@ -5580,29 +5653,29 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         refreshPopupTableAfterLayout();
     });
 
-    window.addEventListener("focus", refreshVisibleEmployeeCards);
-    window.addEventListener("pageshow", refreshVisibleEmployeeCards);
+    window.addEventListener("focus", refreshManageAllLiveData);
+    window.addEventListener("pageshow", refreshManageAllLiveData);
     window.addEventListener("profile-photo-updated", function ()
     {
         pendingEmployeeCardPhotoReload = true;
-        refreshVisibleEmployeeCards({ forcePhotoReload: true });
+        refreshManageAllLiveData({ forcePhotoReload: true });
     });
     window.addEventListener("storage", function (event)
     {
         if (event.key === "profile-photo-updated")
         {
             pendingEmployeeCardPhotoReload = true;
-            refreshVisibleEmployeeCards({ forcePhotoReload: true });
+            refreshManageAllLiveData({ forcePhotoReload: true });
         }
     });
     document.addEventListener("visibilitychange", function ()
     {
         if (!document.hidden)
         {
-            refreshVisibleEmployeeCards();
+            refreshManageAllLiveData();
         }
     });
-    setInterval(refreshVisibleEmployeeCards, 60000);
+    setInterval(refreshManageAllLiveData, 60000);
 
     employeeBellDropdowns.forEach(function (dropdown)
     {

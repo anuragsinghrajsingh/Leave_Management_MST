@@ -28,6 +28,7 @@ urlpatterns = [
     path('hr-dashboard/', views.hr_dashboard, name='hr_dashboard'),
     path('manage-all/', views.manage_all, name='manage_all'),
     path('api/manage-all/employee/<int:user_id>/', views.manage_all_employee_detail, name='manage_all_employee_detail'),
+    path('api/manage-all/summary/', views.manage_all_summary, name='manage_all_summary'),
     path('api/hr-notifications/', views.hr_notifications, name='hr_notifications'),
     path('api/employee-notifications/', views.employee_notifications, name='employee_notifications'),
     path('api/notifications/read/', views.notifications_mark_read, name='notifications_mark_read'),

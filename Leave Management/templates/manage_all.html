@@ -220,15 +220,15 @@
                 <div class="hero-metrics">
                     <article class="hero-metric total">
                         <span class="hero-metric-label"><span class="hero-metric-title">Total</span><span class="hero-metric-subtitle">Pending Leave</span></span>
-                        <strong data-countup data-countup-target="{{ pending_leave_total }}">{{ pending_leave_total }}</strong>
+                        <strong data-manage-summary-metric="pending" data-countup data-countup-target="{{ pending_leave_total }}">{{ pending_leave_total }}</strong>
                     </article>
                     <article class="hero-metric pending">
                         <span class="hero-metric-label"><span class="hero-metric-title">Total</span><span class="hero-metric-subtitle">Approved Leave</span></span>
-                        <strong data-countup data-countup-target="{{ approved_leave_total }}">{{ approved_leave_total }}</strong>
+                        <strong data-manage-summary-metric="approved" data-countup data-countup-target="{{ approved_leave_total }}">{{ approved_leave_total }}</strong>
                     </article>
                     <article class="hero-metric queue">
                         <span class="hero-metric-label"><span class="hero-metric-title">Total</span><span class="hero-metric-subtitle">Rejected Leave</span></span>
-                        <strong data-countup data-countup-target="{{ rejected_leave_total }}">{{ rejected_leave_total }}</strong>
+                        <strong data-manage-summary-metric="rejected" data-countup data-countup-target="{{ rejected_leave_total }}">{{ rejected_leave_total }}</strong>
                     </article>
                 </div>
             </section>
@@ -907,6 +907,7 @@
         data-csrf-token="{{ csrf_token }}"
         data-default-profile-image="{% static 'images/user.jpg' %}"
         data-employee-detail-url-template="{% url 'manage_all_employee_detail' 0 %}"
+        data-summary-url="{% url 'manage_all_summary' %}"
         data-approve-leave-url-template="{% url 'approve_leave' 0 %}"
         data-reject-leave-url-template="{% url 'reject_leave' 0 %}"
         data-current-month="{% now 'Y-m' %}"

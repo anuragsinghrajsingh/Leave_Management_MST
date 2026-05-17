@@ -2482,6 +2482,20 @@ def manage_all_employee_detail(request, user_id):
     return JsonResponse(build_manage_employee_card(employee, employee_leaves))
 
 
+@login_required
+@never_cache
+def manage_all_summary(request):
+    if request.user.role != "HR":
+        return JsonResponse({"detail": "HR access required."}, status=403)
+
+    active_leaves = Leave.objects.filter(user__is_active=True)
+    return JsonResponse({
+        "pending": active_leaves.filter(status="Pending").count(),
+        "approved": active_leaves.filter(status="Approved").count(),
+        "rejected": active_leaves.filter(status="Rejected").count(),
+    })
+
+
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
