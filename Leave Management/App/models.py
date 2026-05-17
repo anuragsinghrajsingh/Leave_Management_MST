@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from datetime import time
 from django.db.models import Count
 from django.utils.timezone import now
+from App.services.profile_photo_storage import ProfilePhotoStorage
 
 
 
@@ -315,7 +316,13 @@ class Profile(models.Model):
 
     # -------- Editable by user --------
     address = models.TextField(blank=True)
-    profile_photo = models.ImageField(upload_to="profile_photos/", blank=True, null=True, default=None)
+    profile_photo = models.ImageField(
+        upload_to="profile_photos/",
+        storage=ProfilePhotoStorage(),
+        blank=True,
+        null=True,
+        default=None,
+    )
     profile_photo_update_count = models.PositiveIntegerField(default=0)
     bio = models.TextField(blank=True)
 

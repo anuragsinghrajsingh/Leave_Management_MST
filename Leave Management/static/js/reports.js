@@ -303,18 +303,38 @@
         });
     });
 
-    async function fetchAnalytics(url) {
-        if (typeof window.startAsyncSurfaceSkeleton === "function") {
+    function getActiveAnalyticsUrl() {
+        const params = new URLSearchParams();
+        if (activeFilterValue) {
+            params.set("employee", activeFilterValue);
+        }
+
+        const query = params.toString();
+        return query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    }
+
+    async function fetchAnalytics(url, options) {
+        const config = Object.assign({
+            silent: false,
+            preservePage: false,
+            updateHistory: true
+        }, options || {});
+        const previousPage = reportCurrentPage;
+
+        if (!config.silent && typeof window.startAsyncSurfaceSkeleton === "function") {
             window.startAsyncSurfaceSkeleton(reportTablePanel);
         }
 
-        if (reportApplyButton) reportApplyButton.disabled = true;
+        if (!config.silent && reportApplyButton) reportApplyButton.disabled = true;
 
         try {
             const response = await fetch(url, {
                 headers: {
-                    "X-Requested-With": "XMLHttpRequest"
-                }
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache"
+                },
+                cache: "no-store"
             });
 
             if (!response.ok) throw new Error("Network response was not ok");
@@ -324,7 +344,7 @@
             if (reportTableBody) {
                 window.setSafeHTML(reportTableBody, data.table_html);
             }
-            reportCurrentPage = 1;
+            reportCurrentPage = config.preservePage ? previousPage : 1;
 
             const focusTarget = document.getElementById("focusTarget");
             const scopeTargetName = document.getElementById("scopeTargetName");
@@ -353,19 +373,33 @@
                 reportApprovalRateCopy.textContent = data.metrics.approval_rate_overall + "% overall approval rate";
             }
 
-            window.history.pushState({ path: url }, "", url);
+            if (config.updateHistory) {
+                window.history.pushState({ path: url }, "", url);
+            }
             filterReportRows(reportSearchInput ? reportSearchInput.value : "");
             activeFilterValue = employeeFilterSelect ? employeeFilterSelect.value : "";
             syncApplyButton();
 
-            if (typeof window.finishAsyncSurfaceSkeleton === "function") {
+            if (!config.silent && typeof window.finishAsyncSurfaceSkeleton === "function") {
                 window.finishAsyncSurfaceSkeleton(reportTablePanel);
             }
         } catch (error) {
             console.error("Error fetching analytics:", error);
-            if (reportApplyButton) reportApplyButton.disabled = false;
-            window.location.href = url;
+            if (!config.silent) {
+                if (reportApplyButton) reportApplyButton.disabled = false;
+                window.location.href = url;
+            }
         }
+    }
+
+    function refreshLiveAnalytics() {
+        if (document.hidden) return;
+
+        fetchAnalytics(getActiveAnalyticsUrl(), {
+            silent: true,
+            preservePage: true,
+            updateHistory: false
+        });
     }
 
     if (reportFilterForm) {
@@ -383,6 +417,15 @@
     }
 
     filterReportRows(reportSearchInput ? reportSearchInput.value : "");
+
+    window.addEventListener("focus", refreshLiveAnalytics);
+    window.addEventListener("pageshow", refreshLiveAnalytics);
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+            refreshLiveAnalytics();
+        }
+    });
+    setInterval(refreshLiveAnalytics, 60000);
 
     document.addEventListener("click", function (event) {
         const notificationToggle = document.getElementById("notification-toggle");
