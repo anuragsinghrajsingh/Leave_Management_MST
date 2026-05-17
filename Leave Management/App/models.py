@@ -7,6 +7,7 @@
 
 
 from django.db import models, transaction
+import logging
 import re
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -17,6 +18,8 @@ from django.utils import timezone
 from django.utils.timezone import now
 from App.services.profile_photo_storage import ProfilePhotoStorage
 
+
+logger = logging.getLogger("lms_security")
 
 
 
@@ -110,6 +113,9 @@ class Leave(models.Model):
     def clean(self):
         super().clean()
 
+        if getattr(self, "_skip_model_validation", False):
+            return
+
         if self.leave_type in ["Short", "Half"]:
 
             if not self.from_datetime or not self.to_datetime:
@@ -137,8 +143,45 @@ class Leave(models.Model):
             if self.leave_type == "Half" and duration > 4:
                 raise ValidationError("Half leave max 4 hours")
 
+            if self.user_id and self.from_date and self.status in ["Pending", "Approved"]:
+                monthly_leaves = Leave.objects.filter(
+                    user=self.user,
+                    leave_type=self.leave_type,
+                    from_date__month=self.from_date.month,
+                    from_date__year=self.from_date.year,
+                    status__in=["Pending", "Approved"],
+                )
+
+                if self.pk:
+                    monthly_leaves = monthly_leaves.exclude(pk=self.pk)
+
+                if self.leave_type == "Short" and monthly_leaves.count() >= 2:
+                    logger.warning(
+                        "LEAVE_MONTHLY_LIMIT_BLOCKED | user_id=%s | leave_type=%s | year=%s | month=%s | existing_count=%s | limit=%s",
+                        self.user_id,
+                        self.leave_type,
+                        self.from_date.year,
+                        self.from_date.month,
+                        monthly_leaves.count(),
+                        2,
+                    )
+                    raise ValidationError("Maximum 2 Short leaves allowed per month.")
+
+                if self.leave_type == "Half" and monthly_leaves.count() >= 1:
+                    logger.warning(
+                        "LEAVE_MONTHLY_LIMIT_BLOCKED | user_id=%s | leave_type=%s | year=%s | month=%s | existing_count=%s | limit=%s",
+                        self.user_id,
+                        self.leave_type,
+                        self.from_date.year,
+                        self.from_date.month,
+                        monthly_leaves.count(),
+                        1,
+                    )
+                    raise ValidationError("Only 1 Half-day leave allowed per month.")
+
 
     def save(self, *args, **kwargs):
+        skip_validation = kwargs.pop("skip_validation", False) or getattr(self, "_skip_model_validation", False)
         update_fields = kwargs.get("update_fields")
         validation_fields = {
             "user",
@@ -153,31 +196,8 @@ class Leave(models.Model):
             "deducted_from",
         }
 
-        if self._state.adding or update_fields is None or validation_fields.intersection(update_fields):
+        if not skip_validation and (self._state.adding or update_fields is None or validation_fields.intersection(update_fields)):
             self.full_clean()
-
-        month = self.from_date.month
-        year = self.from_date.year
-
-        short_count = Leave.objects.filter(
-            user=self.user,
-            leave_type="Short",
-            from_date__month=month,
-            from_date__year=year
-        ).count()
-
-        half_count = Leave.objects.filter(
-            user=self.user,
-            leave_type="Half",
-            from_date__month=month,
-            from_date__year=year
-        ).count()
-
-        if self.leave_type == "Short" and short_count >= 2:
-            print("⚠ Warning: More than 2 short leaves this month")
-
-        if self.leave_type == "Half" and half_count >= 1:
-            print("⚠ Warning: More than 1 half leave this month")
 
         super().save(*args, **kwargs)
     

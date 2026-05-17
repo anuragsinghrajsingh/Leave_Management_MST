@@ -53,6 +53,7 @@ class ProfileInline(admin.StackedInline):
     fields = (
         "employee_id",
         "department",
+        "role",
         "date_of_joining",
         "phone",
         "address",
@@ -193,10 +194,32 @@ class CustomUserAdmin(UserAdmin):
 
 
 
+class LeaveAdminForm(forms.ModelForm):
+    created_at_override = forms.DateTimeField(
+        required=False,
+        help_text="Admin override only. Format: YYYY-MM-DD HH:MM:SS. Leave blank to keep the current created time.",
+    )
+
+    class Meta:
+        model = Leave
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.created_at:
+            self.fields["created_at_override"].initial = localtime(self.instance.created_at).strftime("%Y-%m-%d %H:%M:%S")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        self.instance._skip_model_validation = True
+        return cleaned_data
+
+
 @login_required
 @never_cache
 @admin.register(Leave)
 class LeaveAdmin(admin.ModelAdmin):
+    form = LeaveAdminForm
 
     class Media:
         js = ("/static/admin/js/leave_toggle.js",)
@@ -225,7 +248,9 @@ class LeaveAdmin(admin.ModelAdmin):
             'fields': (
                 'leave_type',
                 ('from_date', 'from_datetime', 'to_date', 'to_datetime',),
+                ('requested_from_date', 'requested_to_date',),
                 'reason',
+                'deducted_from',
             )
         }),
 
@@ -233,11 +258,14 @@ class LeaveAdmin(admin.ModelAdmin):
             'fields': (
                 'status',
                 'rejection_reason',
+                ('approved_at', 'rejected_at',),
+                'updated_at',
+                'no_of_times_updated',
             )
         }),
 
         ("🕒 Metadata", {
-            'fields': ('created_at_display',),
+            'fields': ('created_at_display', 'created_at_override'),
             'classes': ('collapse',),   # 👈 collapsible (clean UI)
         }),
     )
@@ -259,30 +287,31 @@ class LeaveAdmin(admin.ModelAdmin):
     
 
     def save_model(self, request, obj, form, change):
-
-        current_month = now().month
-
-        if obj.leave_type == "Short":
+        if obj.leave_type in ["Short", "Half"] and obj.user_id and obj.from_date:
             count = Leave.objects.filter(
                 user=obj.user,
-                leave_type="Short",
-                from_date__month=current_month
-            ).count()
+                leave_type=obj.leave_type,
+                from_date__month=obj.from_date.month,
+                from_date__year=obj.from_date.year,
+                status__in=["Pending", "Approved"],
+            ).exclude(pk=obj.pk).count()
+            limit = 2 if obj.leave_type == "Short" else 1
 
-            if count >= 2:
-                messages.warning(request, "⚠ More than 2 short leaves this month")
+            if obj.status in ["Pending", "Approved"] and count >= limit:
+                messages.warning(
+                    request,
+                    f"Admin override saved: {obj.leave_type} monthly limit is exceeded for this employee."
+                )
 
-        if obj.leave_type == "Half":
-            count = Leave.objects.filter(
-                user=obj.user,
-                leave_type="Half",
-                from_date__month=current_month
-            ).count()
+        obj._skip_model_validation = True
+        obj.save(skip_validation=True)
+        created_at_override = form.cleaned_data.get("created_at_override")
+        if created_at_override:
+            Leave.objects.filter(pk=obj.pk).update(created_at=created_at_override)
+            obj.created_at = created_at_override
+        return
 
-            if count >= 1:
-                messages.warning(request, "⚠ More than 1 half leave this month")
 
-        super().save_model(request, obj, form, change)
 
 
 
