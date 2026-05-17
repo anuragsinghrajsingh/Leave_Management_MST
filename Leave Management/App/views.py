@@ -23,6 +23,7 @@ from django.core.cache import cache
 from django.views.decorators.http import require_http_methods, require_POST
 from django.db import transaction, OperationalError, ProgrammingError
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.html import escape
@@ -1245,20 +1246,26 @@ def hr_notifications(request):
     if request.user.role != "HR":
         return JsonResponse({"detail": "HR access required."}, status=403)
 
-    leaves = Leave.objects.select_related("user", "user__profile").order_by("-created_at")
-    payload = build_hr_pending_notifications(leaves, request.user)
     limit = get_capped_positive_int(
         request.GET.get("limit"),
         default=MAX_NOTIFICATION_FEED_LIMIT,
     )
     offset = get_nonnegative_int(request.GET.get("offset"))
 
+    pending_leaves = (
+        Leave.objects
+        .filter(status="Pending")
+        .annotate(notification_activity_at=Coalesce("updated_at", "created_at"))
+        .select_related("user", "user__profile")
+        .order_by("-notification_activity_at", "-id")
+    )
+    total_available = pending_leaves.count()
+    page_leaves = list(pending_leaves[offset:offset + limit])
+    payload = build_hr_pending_notifications(page_leaves, request.user)
     notifications = payload["notifications"]
-    total_available = len(notifications)
-    notifications = notifications[offset:offset + limit]
 
     return JsonResponse({
-        "count": payload["count"],
+        "count": get_hr_unread_notification_count(request.user),
         "recent_type_class": payload["recent_type_class"],
         "notifications": notifications,
         "next_offset": offset + len(notifications),
@@ -1559,6 +1566,57 @@ def get_employee_notification_context(user, limit=MAX_NOTIFICATION_FEED_LIMIT):
         "employee_notification_count": notification_payload["count"],
         "employee_recent_notification_type_class": notification_payload["recent_type_class"],
     }
+
+
+def get_hr_unread_notification_count(user):
+    pending_leave_count = Leave.objects.filter(status="Pending").count()
+
+    try:
+        read_count = (
+            LeaveNotificationRead.objects
+            .filter(user=user, leave__status="Pending")
+            .values("leave_id")
+            .distinct()
+            .count()
+        )
+    except (OperationalError, ProgrammingError):
+        read_count = 0
+
+    return max(pending_leave_count - read_count, 0)
+
+
+def get_employee_unread_notification_count(user):
+    notification_retention_cutoff = now() - timedelta(days=30)
+    eligible_leaves = Leave.objects.filter(
+        user=user,
+        status__in=["Approved", "Rejected"],
+        approved_at__gte=notification_retention_cutoff,
+    ) | Leave.objects.filter(
+        user=user,
+        status__in=["Approved", "Rejected"],
+        rejected_at__gte=notification_retention_cutoff,
+    ) | Leave.objects.filter(
+        user=user,
+        status__in=["Approved", "Rejected"],
+        approved_at__isnull=True,
+        rejected_at__isnull=True,
+        created_at__gte=notification_retention_cutoff,
+    )
+    eligible_leaves = eligible_leaves.distinct()
+    eligible_count = eligible_leaves.count()
+
+    try:
+        read_count = (
+            LeaveNotificationRead.objects
+            .filter(user=user, leave_id__in=eligible_leaves.values("id"))
+            .values("leave_id")
+            .distinct()
+            .count()
+        )
+    except (OperationalError, ProgrammingError):
+        read_count = 0
+
+    return max(eligible_count - read_count, 0)
 
 
 def truncate_communication_body(value, limit=120):
@@ -1928,25 +1986,33 @@ def employee_notifications(request):
     if request.user.role != "EMPLOYEE":
         return JsonResponse({"detail": "Employee access required."}, status=403)
 
+    notification_retention_cutoff = now() - timedelta(days=30)
     leaves = (
         Leave.objects
-        .filter(user=request.user, status__in=["Approved", "Rejected"])
+        .filter(
+            Q(approved_at__gte=notification_retention_cutoff) |
+            Q(rejected_at__gte=notification_retention_cutoff) |
+            Q(approved_at__isnull=True, rejected_at__isnull=True, created_at__gte=notification_retention_cutoff),
+            user=request.user,
+            status__in=["Approved", "Rejected"],
+        )
+        .annotate(notification_activity_at=Coalesce("approved_at", "rejected_at", "created_at"))
         .select_related("user", "user__profile")
-        .order_by("-created_at")
+        .order_by("-notification_activity_at", "-id")
     )
-    payload = build_employee_notifications(leaves, request.user)
     limit = get_capped_positive_int(
         request.GET.get("limit"),
         default=MAX_NOTIFICATION_FEED_LIMIT,
     )
     offset = get_nonnegative_int(request.GET.get("offset"))
 
+    total_available = leaves.count()
+    page_leaves = list(leaves[offset:offset + limit])
+    payload = build_employee_notifications(page_leaves, request.user)
     notifications = payload["notifications"]
-    total_available = len(notifications)
-    notifications = notifications[offset:offset + limit]
 
     return JsonResponse({
-        "count": payload["count"],
+        "count": get_employee_unread_notification_count(request.user),
         "leave_counts": {
             "pending": Leave.objects.filter(user=request.user, status="Pending").count(),
             "approved": Leave.objects.filter(user=request.user, status="Approved").count(),
@@ -3305,9 +3371,8 @@ def profile_view(request):
         
         if (request.content_type or "").startswith("application/json"):
 
-            try:
-                data = json.loads(request.body)
-            except json.JSONDecodeError:
+            data = parse_json_request_body(request)
+            if data is None:
                 return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
             if data.get("update_inline"):
