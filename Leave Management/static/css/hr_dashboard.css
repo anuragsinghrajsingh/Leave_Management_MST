@@ -6677,6 +6677,26 @@ button
     }
 }
 
+@keyframes popupOverlayFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popupOverlayFadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
 @media (min-width: 641px) {
     #rejectModal .reject-review-body {
         padding-bottom: 4px !important;
@@ -7259,6 +7279,26 @@ button
 
 #decisionConfirmModal[data-variant="reject"].is-closing .decision-confirm-dialog {
     animation: rejectConfirmModalOut 0.18s ease-in both;
+}
+
+#reasonModal[aria-hidden="false"] .reason-modal-overlay {
+    animation: popupOverlayFadeIn 0.12s ease-out;
+}
+
+#reasonModal.is-closing {
+    opacity: 1;
+}
+
+#reasonModal.is-closing .reason-modal-overlay {
+    animation: popupOverlayFadeOut 0.1s ease-in forwards;
+}
+
+#reasonModal[aria-hidden="false"] .reason-modal-dialog {
+    animation: reasonPreviewModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#reasonModal.is-closing .reason-modal-dialog {
+    animation: reasonPreviewModalOut 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @media (max-width: 640px) {

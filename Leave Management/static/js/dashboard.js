@@ -1025,6 +1025,8 @@ function setReasonModalLabel(element, icon, label) {
     element.innerHTML = `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${icon}</span><span>${label}</span></span>`;
 }
 
+let dashboardReasonModalCloseTimer = null;
+
 function openReasonModal(sourceElement) {
     const modalreason = document.getElementById("reasonModal");
     const title = document.getElementById("reasonModalTitle");
@@ -1046,6 +1048,11 @@ function openReasonModal(sourceElement) {
     const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
     if (!modalreason || !content) return;
+
+    if (dashboardReasonModalCloseTimer) {
+        clearTimeout(dashboardReasonModalCloseTimer);
+        dashboardReasonModalCloseTimer = null;
+    }
 
     const reasonBox = sourceElement?.closest?.(".reason-box");
     const reasonContent = reasonBox?.querySelector(".reason-content");
@@ -1107,24 +1114,35 @@ function openReasonModal(sourceElement) {
     setReasonModalLabel(fieldLabel, contextCopy.icon, contextCopy.label);
     content.innerText = sourceElement?.dataset.reason || reasonContent?.dataset.full || reasonContent?.textContent?.trim() || "No reason provided";
     modalreason.style.display = "flex";
-    modalreason.classList.add("show", "is-open");
+    modalreason.classList.remove("is-closing");
     modalreason.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(function () {
+        modalreason.classList.add("show", "is-open");
+    });
     document.body.style.overflow = "hidden";
 }
 
 function closeReasonModal() {
     const modal = document.getElementById("reasonModal");
     if (modal) {
-        modal.classList.remove("show", "is-open", "is-closing");
-        modal.style.display = "none";
+        modal.classList.remove("is-open");
+        modal.classList.add("is-closing");
         modal.setAttribute("aria-hidden", "true");
-        modal.classList.remove(
-            "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half",
-            "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
-        );
-        modal.classList.add("reason-theme-default");
+        if (dashboardReasonModalCloseTimer) {
+            clearTimeout(dashboardReasonModalCloseTimer);
+        }
+        dashboardReasonModalCloseTimer = setTimeout(function () {
+            modal.classList.remove("show", "is-closing");
+            modal.style.display = "none";
+            modal.classList.remove(
+                "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half",
+                "reason-context-pending", "reason-context-approved", "reason-context-rejected-employee", "reason-context-rejected-note"
+            );
+            modal.classList.add("reason-theme-default");
+            dashboardReasonModalCloseTimer = null;
+            document.body.style.overflow = "";
+        }, 400);
     }
-    document.body.style.overflow = "";
 }
 
 document.addEventListener("DOMContentLoaded", function() {

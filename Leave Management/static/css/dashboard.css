@@ -1861,6 +1861,68 @@ body {
     backdrop-filter: blur(5px);
 }
 
+@keyframes popupOverlayFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popupOverlayFadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes reasonPreviewModalIn {
+    from {
+        opacity: 0;
+        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.16);
+        clip-path: inset(38% 42% 38% 42% round 12px);
+        filter: blur(4px);
+        transform-origin: center center;
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        clip-path: inset(0 0 0 0 round 18px);
+        filter: blur(0);
+        transform-origin: center center;
+    }
+}
+
+@keyframes reasonPreviewModalOut {
+    from {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        clip-path: inset(0 0 0 0 round 18px);
+        filter: blur(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.16);
+        clip-path: inset(38% 42% 38% 42% round 12px);
+        filter: blur(4px);
+    }
+}
+
+.reason-modal[aria-hidden="false"] .reason-modal-overlay {
+    animation: popupOverlayFadeIn 0.12s ease-out;
+}
+
+.reason-modal.is-closing .reason-modal-overlay {
+    animation: popupOverlayFadeOut 0.1s ease-in forwards;
+}
+
 .reason-modal-dialog {
     --reason-theme-tint: rgba(191, 219, 254, 0.18);
     --reason-theme-border: rgba(148, 163, 184, 0.2);
@@ -1900,6 +1962,18 @@ body {
 .reason-modal[aria-hidden="false"] .reason-modal-dialog,
 .reason-modal.is-open .reason-modal-dialog {
     transform: translate(0, 0) scale(1);
+}
+
+.reason-modal.is-closing .reason-modal-dialog {
+    transform: translate(var(--reason-origin-x, 0), var(--reason-origin-y, 0)) scale(0.88);
+}
+
+.reason-modal[aria-hidden="false"] .reason-modal-dialog {
+    animation: reasonPreviewModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reason-modal.is-closing .reason-modal-dialog {
+    animation: reasonPreviewModalOut 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .reason-modal.reason-context-pending .reason-modal-dialog {

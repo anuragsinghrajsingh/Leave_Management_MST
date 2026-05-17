@@ -1,4 +1,5 @@
 const dashboardModalAnimationMs = 120;
+const reasonPreviewModalAnimationMs = 400;
     let rejectModalCloseTimer = null;
     let reasonModalCloseTimer = null;
     let dashboardQueueRequest = null;
@@ -692,6 +693,11 @@ const dashboardModalAnimationMs = 120;
         modal.classList.remove("is-open");
         modal.classList.add("is-closing");
         modal.setAttribute("aria-hidden", "true");
+        if (reasonModalCloseTimer)
+        {
+            clearTimeout(reasonModalCloseTimer);
+        }
+
         reasonModalCloseTimer = setTimeout(function ()
         {
             modal.style.display = "none";
@@ -715,7 +721,7 @@ const dashboardModalAnimationMs = 120;
             updatedTime.textContent = "-";
             activeReasonAnchor = null;
             reasonModalCloseTimer = null;
-        }, dashboardModalAnimationMs);
+        }, reasonPreviewModalAnimationMs);
     }
 
     function getDashboardLeaveThemeClass(leaveType)
