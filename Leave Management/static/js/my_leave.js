@@ -3584,8 +3584,13 @@ const exportWrapper = document.createElement("div");
         const submitBtn = form.querySelector('button[type="submit"]');
         if (!submitBtn) return;
         const original = form.dataset.originalSnapshot || "";
-        const current = JSON.stringify(getEditFormSnapshot(form));
-        submitBtn.disabled = !!original && current === original;
+        const snapshot = getEditFormSnapshot(form);
+        const current = JSON.stringify(snapshot);
+        const isTimeBased = snapshot.type === "Short" || snapshot.type === "Half";
+        const hasValidDateRange = !!snapshot.from && !!snapshot.to && snapshot.to >= snapshot.from;
+        const hasRequiredTimeRange = !isTimeBased || (!!snapshot.fromDatetime && !!snapshot.toDatetime);
+        const isComplete = !!snapshot.type && hasValidDateRange && !!snapshot.reason && hasRequiredTimeRange;
+        submitBtn.disabled = !isComplete || (!!original && current === original);
         submitBtn.classList.toggle("is-disabled-by-no-change", submitBtn.disabled);
     }
     function storeEditOriginalSnapshot(form)
@@ -3933,6 +3938,8 @@ const exportWrapper = document.createElement("div");
         fromDate.onchange = function ()
         {
             const type = leaveType.value;
+            applyEditLeaveDateRules();
+
             if (type !== "Short" && type !== "Half")
             {
                 updateEditDurationSummary();

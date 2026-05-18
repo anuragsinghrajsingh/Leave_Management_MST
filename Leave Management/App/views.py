@@ -3216,7 +3216,7 @@ def reject_leave(request, leave_id):
             return JsonResponse({"detail": "HR access required."}, status=403)
         return redirect("role_selection")
 
-    from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
+    from App.services.leave_breakdown import calculate_leave_breakdown_for_leave, reconcile_user_full_day_leave_bridges
 
     rejection_reason = (request.POST.get("rejection_reason") or "").strip()
     if not rejection_reason:
@@ -3301,6 +3301,9 @@ def reject_leave(request, leave_id):
         leave.reviewed_by = request.user
         leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at", "reviewed_by"])
         log_leave_action(request.user, "REJECT", leave.id, f"Employee: {leave.user.username} | Reason: {leave.rejection_reason}")
+
+        if leave.leave_type in ["Sick", "Earned", "Unpaid"]:
+            reconcile_user_full_day_leave_bridges(leave.user)
 
     # --- Notify Employee (Rejected) ---
     subject = f"Leave Request REJECTED: {leave.leave_type}"
@@ -5109,7 +5112,7 @@ def delete_leave(request, leave_id):
 
     if leave.status == "Pending":
 
-        from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
+        from App.services.leave_breakdown import calculate_leave_breakdown_for_leave, reconcile_user_full_day_leave_bridges
 
         # =====================================================
         # 🔵 SHORT / HALF LOGIC
@@ -5186,6 +5189,7 @@ def delete_leave(request, leave_id):
         deleted_leave_id = leave.id
         log_leave_action(request.user, "DELETE", leave.id, f"Type: {leave.leave_type}")
         leave.delete()
+        reconcile_user_full_day_leave_bridges(request.user)
         
         live_counts = {
             "pending": Leave.objects.filter(user=request.user, status="Pending").count(),
@@ -5236,9 +5240,16 @@ def edit_leave(request, leave_id):
         messages.error(request, "Invalid leave type.")
         return _my_leave_response(request, status=400)
 
+    from_date_raw = (request.POST.get("from_date") or "").strip()
+    to_date_raw = (request.POST.get("to_date") or "").strip()
+
+    if not from_date_raw or not to_date_raw:
+        messages.error(request, "From date and to date are required.")
+        return _my_leave_response(request, status=400)
+
     try:
-        new_from = date.fromisoformat(request.POST.get("from_date"))
-        new_to = date.fromisoformat(request.POST.get("to_date"))
+        new_from = date.fromisoformat(from_date_raw)
+        new_to = date.fromisoformat(to_date_raw)
         new_reason = request.POST.get("reason", "").strip()
         if len(new_reason) > LEAVE_REASON_MAX_LENGTH:
             messages.error(request, f"Leave reason must be {LEAVE_REASON_MAX_LENGTH} characters or fewer.")
@@ -5536,7 +5547,7 @@ def edit_leave(request, leave_id):
     # 🔥 NORMAL LEAVE LOGIC
     # =========================================================
 
-    from App.services.leave_breakdown import calculate_leave_breakdown, expand_full_day_leave_range
+    from App.services.leave_breakdown import calculate_leave_breakdown, expand_full_day_leave_range, reconcile_user_full_day_leave_bridges
     from App.services.overlap_service import get_overlap_details
 
     single_day_company_holiday = new_from == new_to and _get_blocking_company_holiday(new_from)
@@ -5684,6 +5695,7 @@ def edit_leave(request, leave_id):
         refresh_pending_leave_notification(leave)
         leave.save()
         log_leave_action(request.user, "EDIT", leave.id, f"Changes: {old_type} to {new_type}")
+        reconcile_user_full_day_leave_bridges(request.user)
 
         # --- Notify Managers (Updated Request) ---
         hr_emails = get_leave_alert_recipients()
