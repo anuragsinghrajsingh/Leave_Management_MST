@@ -3261,6 +3261,10 @@ const exportWrapper = document.createElement("div");
             {
                 return false;
             }
+            if (typeof window.playLeaveActionTone === "function")
+            {
+                window.playLeaveActionTone("edit");
+            }
             await refreshMyLeaveLiveData({
                 activePanel: "pending-panel",
                 targetPanel: "pending-panel",
@@ -3316,6 +3320,10 @@ const exportWrapper = document.createElement("div");
                     row.classList.remove("deleting-feedback");
                 }
                 return;
+            }
+            if (typeof window.playLeaveActionTone === "function")
+            {
+                window.playLeaveActionTone("delete");
             }
             
             // Immediate UI update for the counts if available

@@ -97,6 +97,46 @@
         }
     }
 
+    function playLeaveActionTone(action) {
+        if (!notificationAudioUnlocked) {
+            return;
+        }
+
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
+            return;
+        }
+
+        const toneMap = {
+            apply: [660, 880],
+            edit: [560, 740],
+            delete: [520, 330],
+        };
+        const frequencies = toneMap[action] || toneMap.apply;
+
+        try {
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            oscillator.type = action === "delete" ? "triangle" : "sine";
+            oscillator.frequency.setValueAtTime(frequencies[0], audioContext.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(frequencies[1], audioContext.currentTime + 0.18);
+            gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.04, audioContext.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.24);
+
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.24);
+        } catch (error) {
+            // Ignore audio failures silently.
+        }
+    }
+
+    window.playLeaveActionTone = playLeaveActionTone;
+
     function flashNotificationScreen(statusClass) {
         if (statusClass !== "approved" && statusClass !== "rejected") {
             return;

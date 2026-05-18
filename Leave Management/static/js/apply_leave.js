@@ -1493,6 +1493,11 @@
 
             if (hasError) {
                 event.preventDefault();
+                return;
+            }
+
+            if (typeof window.playLeaveActionTone === "function") {
+                window.playLeaveActionTone("apply");
             }
         });
 
