@@ -226,7 +226,7 @@ class LeaveAdmin(admin.ModelAdmin):
     
     
     # ✅ LIST VIEW (clean + useful)
-    list_display = ( 'id', 'user', 'leave_type',  'from_datetime', 'to_datetime', 'status', 'created_at', )
+    list_display = ( 'id', 'user', 'leave_type',  'from_datetime', 'to_datetime', 'status', 'reviewed_by', 'created_at', )
 
     list_filter = ( 'id', 'status', 'leave_type', 'from_date', 'created_at', )
 
@@ -258,6 +258,7 @@ class LeaveAdmin(admin.ModelAdmin):
             'fields': (
                 'status',
                 'rejection_reason',
+                'reviewed_by',
                 ('approved_at', 'rejected_at',),
                 'updated_at',
                 'no_of_times_updated',

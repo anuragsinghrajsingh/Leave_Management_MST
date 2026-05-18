@@ -106,6 +106,13 @@ class Leave(models.Model):
     no_of_times_updated = models.PositiveIntegerField(default=0)
     rejected_at = models.DateTimeField(blank=True, null=True)
     approved_at = models.DateTimeField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_leaves",
+        blank=True,
+        null=True,
+    )
 
     deducted_from = models.CharField( max_length=20, choices=DEDUCTION_SOURCE, default="None")
 

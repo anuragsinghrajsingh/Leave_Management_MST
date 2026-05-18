@@ -7,7 +7,10 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write(self.style.SUCCESS('--- Initializing Manual Report Generation ---'))
         try:
-            send_weekly_hr_report()
-            self.stdout.write(self.style.SUCCESS('SUCCESS: Weekly HR Report sent!'))
+            sent = send_weekly_hr_report()
+            if sent:
+                self.stdout.write(self.style.SUCCESS('SUCCESS: Weekly HR Report sent!'))
+            else:
+                self.stdout.write(self.style.ERROR('ERROR: Weekly HR Report was not sent. Check the report/email logs for details.'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'ERROR: Failed to send report: {e}'))

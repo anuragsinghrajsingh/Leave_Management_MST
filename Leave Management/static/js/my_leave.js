@@ -1234,10 +1234,10 @@ const exportWrapper = document.createElement("div");
     }
     function exportCSV(leaves, info) 
     {
-        let csv = "Type,From,To,Status,Reason\n";
+        let csv = "Type,From,To,Status,Reviewed By,Reason\n";
         leaves.forEach(l => 
         {
-            csv += `"${l.type}","${l.from}","${l.to}","${l.status}","${(l.reason||"").replace(/"/g,'""')}"\n`;
+            csv += `"${l.type}","${l.from}","${l.to}","${l.status}","${(l.reviewed_by||"").replace(/"/g,'""')}","${(l.reason||"").replace(/"/g,'""')}"\n`;
         });
         downloadFile(csv, "my_leave_calendar.csv", "text/csv");
     }
@@ -1248,6 +1248,7 @@ const exportWrapper = document.createElement("div");
             Type: l.type,
             From: l.from, To: l.to,
             Status: l.status,
+            "Reviewed By": l.reviewed_by || "",
             Reason: l.reason || ""
         }));
         const ws = XLSX.utils.json_to_sheet(data);
@@ -1269,8 +1270,8 @@ const exportWrapper = document.createElement("div");
         doc.text("CONFIDENTIAL", 60, 150, { angle: 45 });
         doc.setTextColor(0);
         doc.autoTable({
-            head: [["Type","From","To","Status","Reason"]],
-            body: leaves.map(l => [ l.type, l.from, l.to, l.status, l.reason || "" ]),
+            head: [["Type","From","To","Status","Reviewed By","Reason"]],
+            body: leaves.map(l => [ l.type, l.from, l.to, l.status, l.reviewed_by || "", l.reason || "" ]),
             startY: 25
         });
         doc.save("leave_calendar.pdf");
@@ -1293,7 +1294,7 @@ const exportWrapper = document.createElement("div");
         const rows = [
             new TableRow(
             {
-                children: ["Type","From","To","Status","Reason"].map(h =>
+                children: ["Type","From","To","Status","Reviewed By","Reason"].map(h =>
                     new TableCell(
                     {
                         children: [new Paragraph({ children:[new TextRun({text:h,bold:true})] })]
@@ -1303,7 +1304,7 @@ const exportWrapper = document.createElement("div");
             ...leaves.map(l =>
                 new TableRow(
                 {
-                    children: [l.type,l.from,l.to,l.status,l.reason||""].map(v => new TableCell({ children:[new Paragraph(v)] }))
+                    children: [l.type,l.from,l.to,l.status,l.reviewed_by||"",l.reason||""].map(v => new TableCell({ children:[new Paragraph(v)] }))
                 })
             )
         ];
@@ -1333,7 +1334,7 @@ const exportWrapper = document.createElement("div");
             SUMMARY:${l.type} Leave (${l.status})
             DTSTART:${l.from.replace(/-/g,"")}
             DTEND:${l.to.replace(/-/g,"")}
-            DESCRIPTION:${l.reason || ""}
+            DESCRIPTION:${l.reason || ""}${l.reviewed_by ? ` | Reviewed By: ${l.reviewed_by}` : ""}
             END:VEVENT\n`;
         });
         ics += "END:VCALENDAR";
@@ -1364,7 +1365,7 @@ const exportWrapper = document.createElement("div");
         table.setAttribute("cellpadding", "6");
 
         const headerRow = printDocument.createElement("tr");
-        ["Type", "From", "To", "Status", "Reason"].forEach(function (label)
+        ["Type", "From", "To", "Status", "Reviewed By", "Reason"].forEach(function (label)
         {
             const headerCell = printDocument.createElement("th");
             headerCell.textContent = label;
@@ -1376,7 +1377,7 @@ const exportWrapper = document.createElement("div");
         {
             const row = printDocument.createElement("tr");
 
-            [leave.type, leave.from, leave.to, leave.status, leave.reason || ""].forEach(function (value)
+            [leave.type, leave.from, leave.to, leave.status, leave.reviewed_by || "", leave.reason || ""].forEach(function (value)
             {
                 const cell = printDocument.createElement("td");
                 cell.textContent = value || "";
@@ -2732,7 +2733,7 @@ const exportWrapper = document.createElement("div");
             {
                 emptyRow = document.createElement("tr");
                 emptyRow.className = "table-empty-row";
-                const colCount = panelId === "pending-panel" || panelId === "rejected-panel" ? 8 : 7;
+                const colCount = panelId === "pending-panel" ? 8 : panelId === "approved-panel" ? 8 : 9;
                 const emptyDefs = {
                     "pending-panel": {
                         theme: "mle-pending",
@@ -2973,7 +2974,8 @@ const exportWrapper = document.createElement("div");
                 item.status || "",
                 item.status_class || "",
                 item.updated_text || "",
-                item.applied_text || ""
+                item.applied_text || "",
+                item.reviewer_name || ""
             ].join(":"))
             .join("|");
         return `${totalCount}:${itemsSig}`;
@@ -4345,6 +4347,7 @@ const exportWrapper = document.createElement("div");
         const scheduleBlock = row?.querySelector(".schedule-block");
         const appliedBlock = row?.children?.[4]?.querySelector(".applied-block");
         const decisionBlock = row?.children?.[5]?.querySelector(".applied-block");
+        const reviewerBlock = panelId !== "pending-panel" ? row?.children?.[6]?.querySelector(".reviewer-block") : null;
         const updatedCountNode = panelId === "pending-panel"
             ? row?.children?.[5]?.querySelector("[data-relative-count]")
             : null;
@@ -4365,7 +4368,9 @@ const exportWrapper = document.createElement("div");
             updatedCount: Number.parseInt(updatedCountNode?.dataset.relativeCount || "0", 10) || 0,
             decisionIso: panelId !== "pending-panel" ? (decisionBlock?.querySelector("[data-relative-datetime]")?.dataset.relativeDatetime || "") : "",
             decision: panelId !== "pending-panel" ? (decisionBlock?.textContent?.replace(/\s+/g, " ").trim() || "-") : "-",
-            decisionLabel: statusKey === "approved" ? "Approved At" : statusKey === "rejected" ? "Rejected At" : ""
+            decisionLabel: statusKey === "approved" ? "Approved At" : statusKey === "rejected" ? "Rejected At" : "",
+            reviewer: reviewerBlock?.textContent?.replace(/\s+/g, " ").trim() || "HR Team",
+            reviewerLabel: statusKey === "approved" ? "Approved By" : statusKey === "rejected" ? "Rejected By" : ""
         };
     }
     function openReasonTextModal(titleText, reasonText, sourceElement = null)
@@ -4388,6 +4393,8 @@ const exportWrapper = document.createElement("div");
         const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
         const decisionCard = document.getElementById("reasonModalDecisionCard");
         const decisionLabel = document.getElementById("reasonModalDecisionLabel");
+        const reviewerCard = document.getElementById("reasonModalReviewerCard");
+        const reviewerLabel = document.getElementById("reasonModalReviewerLabel");
         const scheduleDate = document.getElementById("reasonModalScheduleDate");
         const scheduleTime = document.getElementById("reasonModalScheduleTime");
         const days = document.getElementById("reasonModalDays");
@@ -4397,6 +4404,7 @@ const exportWrapper = document.createElement("div");
         const updatedTime = document.getElementById("reasonModalUpdatedTime");
         const decision = document.getElementById("reasonModalDecision");
         const decisionTime = document.getElementById("reasonModalDecisionTime");
+        const reviewer = document.getElementById("reasonModalReviewer");
         const fieldLabel = document.getElementById("reasonModalFieldLabel");
         if (!modal || !reasonText) return;
         if (reasonModalCloseTimer)
@@ -4446,6 +4454,7 @@ const exportWrapper = document.createElement("div");
         updatedTime.textContent = meta.updatedIso ? formatReasonModalClockTime(meta.updatedIso, "") : "-";
         if (metaGrid) metaGrid.classList.toggle("has-decision", hasDecision);
         if (decisionCard) decisionCard.hidden = !hasDecision;
+        if (reviewerCard) reviewerCard.hidden = !hasDecision;
         if (decisionLabel)
         {
             const isRejectedDecision = meta.decisionLabel.toLowerCase().includes("reject");
@@ -4453,6 +4462,12 @@ const exportWrapper = document.createElement("div");
         }
         if (decision) decision.textContent = hasDecision ? (formatReasonModalRelativeAge(meta.decisionIso) || meta.decision || "-") : "-";
         if (decisionTime) decisionTime.textContent = hasDecision ? formatReasonModalClockTime(meta.decisionIso, meta.decision) : "-";
+        if (reviewerLabel)
+        {
+            const isRejectedReviewer = meta.reviewerLabel.toLowerCase().includes("reject");
+            window.setSafeHTML(reviewerLabel, `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>${meta.reviewerLabel || (isRejectedReviewer ? "Rejected By" : "Approved By")}</span></span>`);
+        }
+        if (reviewer) reviewer.textContent = hasDecision ? (meta.reviewer || "HR Team") : "-";
         window.setSafeHTML(fieldLabel, `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${contextCopy.icon}</span><span>${contextCopy.label}</span></span>`);
         content.textContent = reasonText.dataset.full || reasonText.textContent || "";
         modal.classList.remove("is-closing");
@@ -4474,6 +4489,8 @@ const exportWrapper = document.createElement("div");
         const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
         const decisionCard = document.getElementById("reasonModalDecisionCard");
         const decisionLabel = document.getElementById("reasonModalDecisionLabel");
+        const reviewerCard = document.getElementById("reasonModalReviewerCard");
+        const reviewerLabel = document.getElementById("reasonModalReviewerLabel");
         const scheduleDate = document.getElementById("reasonModalScheduleDate");
         const scheduleTime = document.getElementById("reasonModalScheduleTime");
         const days = document.getElementById("reasonModalDays");
@@ -4483,6 +4500,7 @@ const exportWrapper = document.createElement("div");
         const updatedTime = document.getElementById("reasonModalUpdatedTime");
         const decision = document.getElementById("reasonModalDecision");
         const decisionTime = document.getElementById("reasonModalDecisionTime");
+        const reviewer = document.getElementById("reasonModalReviewer");
         const fieldLabel = document.getElementById("reasonModalFieldLabel");
         if (!modal) return;
         modal.classList.remove("is-open");
@@ -4498,6 +4516,8 @@ const exportWrapper = document.createElement("div");
             window.setSafeHTML(updatedLabel, '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128260;</span><span>0 updates</span></span>');
             if (decisionLabel) window.setSafeHTML(decisionLabel, '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#10003;</span><span>Approved At</span></span>');
             if (decisionCard) decisionCard.hidden = true;
+            if (reviewerLabel) window.setSafeHTML(reviewerLabel, '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>Approved By</span></span>');
+            if (reviewerCard) reviewerCard.hidden = true;
             window.setSafeHTML(fieldLabel, '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Reason</span></span>');
             scheduleDate.textContent = "-";
             scheduleTime.textContent = "-";
@@ -4510,6 +4530,7 @@ const exportWrapper = document.createElement("div");
             updatedTime.textContent = "-";
             if (decision) decision.textContent = "-";
             if (decisionTime) decisionTime.textContent = "-";
+            if (reviewer) reviewer.textContent = "-";
             modal.dataset.sourceLeaveId = "";
             modal.dataset.sourceReasonTitle = "";
             modal.classList.remove(

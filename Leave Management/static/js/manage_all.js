@@ -210,7 +210,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                 </circle>
             </svg>`,
             columns: [
-                { key: "serial", label: "S. No." },
+                { key: "serial", label: "#" },
                 { key: "type", label: "Type" },
                 { key: "schedule", label: "Schedule" },
                 { key: "days", label: "Days" },
@@ -236,12 +236,13 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                 </g>
             </svg>`,
             columns: [
-                { key: "serial", label: "S. No." },
+                { key: "serial", label: "#" },
                 { key: "type", label: "Type" },
                 { key: "schedule", label: "Schedule" },
                 { key: "days", label: "Days" },
                 { key: "applied", label: "Applied At" },
                 { key: "decision", label: "Approved At" },
+                { key: "reviewer", label: "Approved By" },
                 { key: "reason", label: "Reason" }
             ]
         },
@@ -261,12 +262,13 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                 </g>
             </svg>`,
             columns: [
-                { key: "serial", label: "S. No." },
+                { key: "serial", label: "#" },
                 { key: "type", label: "Type" },
                 { key: "schedule", label: "Schedule" },
                 { key: "days", label: "Days" },
                 { key: "applied", label: "Applied At" },
                 { key: "decision", label: "Rejected At" },
+                { key: "reviewer", label: "Rejected By" },
                 { key: "reason", label: "Reason" },
                 { key: "rejection", label: "Rejection Reason" }
             ]
@@ -282,6 +284,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             days: "&#9203;",
             applied: "&#128338;",
             decision: "&#10003;",
+            reviewer: "&#128100;",
             reason: "&#128221;",
             rejection: "&#9940;",
             action: "&#9881;"
@@ -4137,7 +4140,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             `data-applied-iso="${escapeHtml(leave.applied_at_iso || "")}"`,
             `data-updated="${escapeHtml(leave.updated_at || "-")}"`,
             `data-updated-iso="${escapeHtml(leave.updated_at_iso || "")}"`,
-            `data-updated-count="${escapeHtml(String(leave.no_of_times_updated || 0))}"`
+            `data-updated-count="${escapeHtml(String(leave.no_of_times_updated || 0))}"`,
+            `data-reviewer="${escapeHtml(leave.reviewed_by || "HR Team")}"`
         ].join(" ");
         const timeHighlightClass = (leave.type_class === "short" || leave.type_class === "half")
             ? ` schedule-time-highlight schedule-time-highlight-${escapeHtml(leave.type_class)}`
@@ -4235,9 +4239,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                             extraClass: "decision-block-approved"
                         })}
                     </td>
+                    <td><div class="popup-reviewer-cell">${escapeHtml(leave.reviewed_by || "HR Team")}</div></td>
                     <td>
                         <div class="reason-box">
-                            <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="approved" data-decision="${escapeHtml(leave.approved_at || "-")}" data-decision-iso="${escapeHtml(leave.approved_at_iso || "")}" data-decision-label="Approved At">${escapeHtml(leave.reason)}</p>
+                            <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="approved" data-decision="${escapeHtml(leave.approved_at || "-")}" data-decision-iso="${escapeHtml(leave.approved_at_iso || "")}" data-decision-label="Approved At" data-reviewer-label="Approved By">${escapeHtml(leave.reason)}</p>
                         </div>
                     </td>
                 </tr>
@@ -4258,14 +4263,15 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                         extraClass: "decision-block-rejected"
                     })}
                 </td>
+                <td><div class="popup-reviewer-cell">${escapeHtml(leave.reviewed_by || "HR Team")}</div></td>
                 <td>
                     <div class="reason-box">
-                        <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="rejected-employee" data-decision="${escapeHtml(leave.rejected_at || "-")}" data-decision-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-decision-label="Rejected At">${escapeHtml(leave.reason)}</p>
+                        <p class="reason-text" data-full="${escapeHtml(leave.reason)}" ${reasonMetaAttributes} data-reason-context="rejected-employee" data-decision="${escapeHtml(leave.rejected_at || "-")}" data-decision-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-decision-label="Rejected At" data-reviewer-label="Rejected By">${escapeHtml(leave.reason)}</p>
                     </div>
                 </td>
                 <td>
                     <div class="reason-box rejection-box">
-                        <p class="reason-text action-reason-text" data-full="${escapeHtml(rejectionReason)}" ${reasonMetaAttributes} data-reason-context="rejected-note" data-modal-title="${escapeHtml(leave.type)} Rejection Reason" data-decision="${escapeHtml(leave.rejected_at || "-")}" data-decision-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-decision-label="Rejected At">${escapeHtml(rejectionReason)}</p>
+                        <p class="reason-text action-reason-text" data-full="${escapeHtml(rejectionReason)}" ${reasonMetaAttributes} data-reason-context="rejected-note" data-modal-title="${escapeHtml(leave.type)} Rejection Reason" data-decision="${escapeHtml(leave.rejected_at || "-")}" data-decision-iso="${escapeHtml(leave.rejected_at_iso || "")}" data-decision-label="Rejected At" data-reviewer-label="Rejected By">${escapeHtml(rejectionReason)}</p>
                     </div>
                 </td>
             </tr>
@@ -5230,6 +5236,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
         const decisionCard = document.getElementById("reasonModalDecisionCard");
         const decisionLabel = document.getElementById("reasonModalDecisionLabel");
+        const reviewerCard = document.getElementById("reasonModalReviewerCard");
+        const reviewerLabel = document.getElementById("reasonModalReviewerLabel");
         const scheduleDate = document.getElementById("reasonModalScheduleDate");
         const scheduleTime = document.getElementById("reasonModalScheduleTime");
         const days = document.getElementById("reasonModalDays");
@@ -5239,6 +5247,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const updatedTime = document.getElementById("reasonModalUpdatedTime");
         const decision = document.getElementById("reasonModalDecision");
         const decisionTime = document.getElementById("reasonModalDecisionTime");
+        const reviewer = document.getElementById("reasonModalReviewer");
         const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
         if (reasonModalCloseTimer)
@@ -5274,6 +5283,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const updatedIso = reasonText.dataset.updatedIso || "";
         const decisionIso = reasonText.dataset.decisionIso || "";
         const decisionLabelText = reasonText.dataset.decisionLabel || "";
+        const reviewerText = reasonText.dataset.reviewer || "HR Team";
+        const reviewerLabelText = reasonText.dataset.reviewerLabel || "";
         const updatedCount = Number.parseInt(reasonText.dataset.updatedCount || "0", 10) || 0;
         const useMobileReasonLabels = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
         const scheduleDateText = (reasonText.dataset.scheduleDate || "-").replace(/\s*->\s*/g, " \u27F6 ");
@@ -5325,6 +5336,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         {
             decisionCard.hidden = !hasDecision;
         }
+        if (reviewerCard)
+        {
+            reviewerCard.hidden = !hasDecision;
+        }
 
         modal.classList.toggle("reason-has-decision", hasDecision);
 
@@ -5342,6 +5357,14 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         if (decisionTime)
         {
             decisionTime.textContent = hasDecision ? formatPopupClockTime(decisionIso, reasonText.dataset.decision || "") : "-";
+        }
+        if (reviewerLabel)
+        {
+            window.setSafeHTML(reviewerLabel, `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>${reviewerLabelText || "Reviewed By"}</span></span>`);
+        }
+        if (reviewer)
+        {
+            reviewer.textContent = hasDecision ? reviewerText : "-";
         }
         window.setSafeHTML(fieldLabel, `<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">${contextCopy.icon}</span><span>${contextCopy.label}</span></span>`);
         content.textContent = reasonText.dataset.full || reasonText.textContent || "";
@@ -5365,6 +5388,8 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const updatedLabel = document.getElementById("reasonModalUpdatedLabel");
         const decisionCard = document.getElementById("reasonModalDecisionCard");
         const decisionLabel = document.getElementById("reasonModalDecisionLabel");
+        const reviewerCard = document.getElementById("reasonModalReviewerCard");
+        const reviewerLabel = document.getElementById("reasonModalReviewerLabel");
         const scheduleDate = document.getElementById("reasonModalScheduleDate");
         const scheduleTime = document.getElementById("reasonModalScheduleTime");
         const days = document.getElementById("reasonModalDays");
@@ -5374,6 +5399,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const updatedTime = document.getElementById("reasonModalUpdatedTime");
         const decision = document.getElementById("reasonModalDecision");
         const decisionTime = document.getElementById("reasonModalDecisionTime");
+        const reviewer = document.getElementById("reasonModalReviewer");
         const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
         modal.classList.remove("is-open");
@@ -5399,6 +5425,14 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             {
                 decisionCard.hidden = true;
             }
+            if (reviewerLabel)
+            {
+                window.setSafeHTML(reviewerLabel, '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>Approved By</span></span>');
+            }
+            if (reviewerCard)
+            {
+                reviewerCard.hidden = true;
+            }
             window.setSafeHTML(fieldLabel, '<span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128221;</span><span>Reason</span></span>');
             scheduleDate.textContent = "-";
             scheduleTime.textContent = "-";
@@ -5416,6 +5450,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             if (decisionTime)
             {
                 decisionTime.textContent = "-";
+            }
+            if (reviewer)
+            {
+                reviewer.textContent = "-";
             }
             modal.classList.remove(
                 "reason-theme-sick", "reason-theme-unpaid", "reason-theme-earned", "reason-theme-short", "reason-theme-half",

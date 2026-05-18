@@ -116,7 +116,7 @@
     </nav>
     <div class="header-actions">
         {% include "includes/communication_dropdown.html" %}
-        <div class="notification-dropdown" data-notification-api="{% url 'employee_notifications' %}" data-notification-empty="No leave updates right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
+        <div class="notification-dropdown employee-notification-dropdown" data-notification-api="{% url 'employee_notifications' %}" data-notification-empty="No leave updates right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
             <button type="button" class="notification-trigger" aria-label="Leave status notifications" aria-expanded="false">
                 <span class="notification-bell"></span>
                 <span class="notification-count{% if not employee_notification_count %} hidden{% endif %}" data-countup data-countup-target="{{ employee_notification_count }}">{{ employee_notification_count }}</span>
@@ -153,6 +153,7 @@
                                 <small class="notification-meta-line">
                                     <span class="notification-time">{% if item.updated_text %}Updated {{ item.updated_text }}{% else %}Applied {{ item.applied_text }}{% endif %}</span>
                                 </small>
+                                <small class="notification-reviewer-line">Reviewed by {{ item.reviewer_name }}</small>
                             </div>
                         </a>
                     {% empty %}
@@ -313,7 +314,7 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Sn.No.</th>
+                        <th aria-label="Serial number"></th>
                         <th>Type</th>
                         <th>Schedule</th>
                         <th>Days</th>
@@ -405,16 +406,18 @@
                     <col class="col-days">
                     <col class="col-applied">
                     <col class="col-status-meta">
+                    <col class="col-reviewer">
                     <col class="col-reason">
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Sn.No.</th>
+                        <th aria-label="Serial number"></th>
                         <th>Type</th>
                         <th>Schedule</th>
                         <th>Days</th>
                         <th>Applied</th>
                         <th>Approved</th>
+                        <th>Approved By</th>
                         <th>Reason</th>
                     </tr>
                 </thead>
@@ -499,17 +502,19 @@
                     <col class="col-days">
                     <col class="col-applied">
                     <col class="col-status-meta">
+                    <col class="col-reviewer">
                     <col class="col-reason">
                     <col class="col-reason">
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Sn.No.</th>
+                        <th aria-label="Serial number"></th>
                         <th>Type</th>
                         <th>Schedule</th>
                         <th>Days</th>
                         <th>Applied</th>
                         <th>Rejected</th>
+                        <th>Rejected By</th>
                         <th>My Reason</th>
                         <th>Rejection Reason</th>
                     </tr>
@@ -715,6 +720,10 @@
                         <strong id="reasonModalDecision">-</strong>
                         <span id="reasonModalDecisionTime">-</span>
                     </div>
+                </div>
+                <div class="reason-meta-card reason-modal-reviewer-card" id="reasonModalReviewerCard" hidden>
+                    <span class="reason-meta-label" id="reasonModalReviewerLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>Approved By</span></span></span>
+                    <strong class="reason-meta-value" id="reasonModalReviewer">-</strong>
                 </div>
             </div>
             <div class="reason-field-card">

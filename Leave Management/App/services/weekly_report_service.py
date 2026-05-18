@@ -1,7 +1,9 @@
 import logging
 import os
+import time
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
+from pathlib import Path
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
@@ -10,6 +12,103 @@ from App.models import Leave, Profile
 from App.views import send_branded_email
 
 logger = logging.getLogger('lms_reports')
+
+
+def _get_recent_backup_files(today, days=7):
+    backup_dir = Path(settings.BASE_DIR) / "backups"
+    if not backup_dir.exists():
+        return []
+
+    start_day = today - timedelta(days=days - 1)
+    return [
+        backup
+        for backup in backup_dir.glob("LMS_backup_*.zip")
+        if start_day <= timezone.localdate(timezone.make_aware(
+            timezone.datetime.fromtimestamp(backup.stat().st_mtime)
+        )) <= today
+    ]
+
+
+def _build_backup_health(today):
+    recent_backups = _get_recent_backup_files(today)
+    backup_days = {
+        timezone.localdate(timezone.make_aware(
+            timezone.datetime.fromtimestamp(backup.stat().st_mtime)
+        ))
+        for backup in recent_backups
+    }
+    last_backup = max(recent_backups, key=lambda item: item.stat().st_mtime, default=None)
+
+    backup_summary = f"{len(backup_days)}/7 Successful"
+    if last_backup:
+        last_backup_dt = timezone.localtime(timezone.make_aware(
+            timezone.datetime.fromtimestamp(last_backup.stat().st_mtime)
+        ))
+        last_backup_text = last_backup_dt.strftime("%b %d, %I:%M %p")
+    else:
+        last_backup_text = "No backup found"
+
+    return backup_summary, last_backup_text
+
+
+def _count_recent_unauthorized_attempts(start_date):
+    security_log_dir = Path(settings.BASE_DIR) / "logs" / "security"
+    if not security_log_dir.exists():
+        return 0
+
+    attempts = 0
+    for log_file in security_log_dir.glob("unauthorized.log*"):
+        if timezone.make_aware(
+            timezone.datetime.fromtimestamp(log_file.stat().st_mtime)
+        ) < start_date:
+            continue
+
+        try:
+            for line in log_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+                if "UNAUTHORIZED_ACCESS_ATTEMPT" not in line:
+                    continue
+
+                try:
+                    timestamp_text = line.split(" | ", 1)[0].split("] ", 1)[1]
+                    line_timestamp = timezone.make_aware(
+                        datetime.strptime(timestamp_text, "%Y-%m-%d %H:%M:%S,%f")
+                    )
+                except (IndexError, ValueError):
+                    # Keep malformed matching entries visible rather than silently hiding them.
+                    attempts += 1
+                    continue
+
+                if line_timestamp >= start_date:
+                    attempts += 1
+        except OSError:
+            logger.warning("REPORTS | Could not read security log file: %s", log_file)
+
+    return attempts
+
+
+def _measure_database_latency_ms():
+    started = time.perf_counter()
+    Leave.objects.exists()
+    return max(round((time.perf_counter() - started) * 1000), 1)
+
+
+def _build_system_health(today, start_date):
+    backup_summary, last_backup_text = _build_backup_health(today)
+    unauthorized_attempts = _count_recent_unauthorized_attempts(start_date)
+    pending_notifications = Leave.objects.filter(
+        status="Pending",
+        user__is_active=True,
+    ).count()
+    db_latency_ms = _measure_database_latency_ms()
+
+    return {
+        "backups": backup_summary,
+        "last_backup": last_backup_text,
+        "security": f"{unauthorized_attempts} Unauthorized Attempts",
+        "uptime": "Not tracked",
+        "perf": f"{db_latency_ms}ms DB query",
+        "notifications": f"{pending_notifications} pending",
+    }
 
 def send_weekly_hr_report():
     """
@@ -23,11 +122,14 @@ def send_weekly_hr_report():
     hr_emails = list(User.objects.filter(role="HR", is_active=True).values_list("email", flat=True))
     if not hr_emails:
         logger.warning("REPORT | No active HR emails found. Skipping weekly report.")
-        return
+        return False
 
     # 2. Compile Global Analytics (Past 7 Days)
     all_employees = User.objects.filter(role="EMPLOYEE", is_active=True)
-    leave_queryset = Leave.objects.filter(created_at__gte=start_date, user__is_active=True)
+    leave_queryset = Leave.objects.filter(
+        created_at__gte=start_date,
+        user__is_active=True,
+    ).select_related("reviewed_by")
     
     reports = []
     for report_user in all_employees:
@@ -70,16 +172,8 @@ def send_weekly_hr_report():
     rejected_total = leave_queryset.filter(status="Rejected").count()
     employee_applied_count = leave_queryset.values("user").distinct().count()
 
-    # 3. System Health Stats (Dummy or Real if available)
-    # For now, using healthy placeholders to match 'Systems Nominal' theme
-    system_health = {
-        "backups": "7/7 Successful",
-        "last_backup": "Today, 03:00 AM",
-        "security": "0 Unauthorized Attempts",
-        "uptime": "99.9% Uptime",
-        "perf": "124ms (OPTIMAL)",
-        "notifications": "ONLINE"
-    }
+    # 3. System Health Stats
+    system_health = _build_system_health(today, start_date)
 
     # 4. Render and Send
     context = {
@@ -122,16 +216,6 @@ def send_weekly_hr_report():
         )
         email.content_subtype = "html"
         
-        # Attach the Logo as CID for the cover email
-        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ms-technology-logo.png')
-        if os.path.exists(logo_path):
-            with open(logo_path, 'rb') as f:
-                from email.mime.image import MIMEImage
-                img = MIMEImage(f.read())
-                img.add_header('Content-ID', '<logo_image>')
-                img.add_header('Content-Disposition', 'inline', filename='logo.png')
-                email.attach(img)
-
         # Attach the PDF
         filename = f"HR_Snapshot_{today.strftime('%Y%m%d')}.pdf"
         email.attach(filename, pdf_bytes, 'application/pdf')
@@ -139,6 +223,8 @@ def send_weekly_hr_report():
         email.send(fail_silently=False)
         
         logger.info(f"REPORTS | SUCCESS | Weekly report PDF sent to {to_email}")
+        return True
         
     except Exception as e:
         logger.error(f"REPORTS | FAILED | Could not send weekly report PDF: {e}")
+        return False

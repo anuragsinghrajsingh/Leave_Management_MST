@@ -128,6 +128,7 @@
                 String(item.created_at || ""),
                 String(item.status || ""),
                 String(item.status_class || ""),
+                String(item.reviewer_name || ""),
             ].join("|");
         }
 
@@ -401,6 +402,9 @@
                             '<small class="notification-meta-line">' +
                         '<span class="notification-time">' + timeText + '</span>' +
                             '</small>' +
+                            (isEmployeeDecisionNotification
+                                ? '<small class="notification-reviewer-line">Reviewed by ' + escapeHtml(item.reviewer_name || "HR Team") + '</small>'
+                                : '') +
                         '</div>' +
                     '</a>'
                 );

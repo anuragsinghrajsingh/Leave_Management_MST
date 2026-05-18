@@ -76,6 +76,15 @@
             {% endif %}
         </td>
         <td>
+            <div class="reviewer-block">
+                {% if leave.reviewed_by %}
+                    <strong>{{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}</strong>
+                {% else %}
+                    <strong>HR Team</strong>
+                {% endif %}
+            </div>
+        </td>
+        <td>
             <div class="reason-box">
                 <p class="reason-text js-inline-reason"
                    data-full="{{ leave.reason|escape }}"
@@ -92,6 +101,6 @@
     </tr>
 {% empty %}
     <tr class="table-empty-row">
-        <td colspan="8">No rejected leaves</td>
+        <td colspan="9">No rejected leaves</td>
     </tr>
 {% endfor %}

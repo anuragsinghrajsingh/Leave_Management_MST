@@ -22,6 +22,12 @@
             <div class="details-label">Dates:</div>
             <div class="details-value">{{ date_range }}</div>
         </div>
+        {% if reviewed_by %}
+        <div class="details-row">
+            <div class="details-label">Reviewed By:</div>
+            <div class="details-value">{{ reviewed_by }}</div>
+        </div>
+        {% endif %}
         {% if reason %}
         <div class="details-row">
             <div class="details-label">Reason:</div>

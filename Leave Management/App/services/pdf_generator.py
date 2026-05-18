@@ -23,6 +23,7 @@ def generate_pdf_from_html(html_content: str) -> bytes:
             # Generate the PDF byte stream
             pdf_bytes = page.pdf(
                 format="A4",
+                landscape=True,
                 print_background=True,  # Crucial for preserving background colors and gradients
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
             )

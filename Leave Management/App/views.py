@@ -553,6 +553,10 @@ def _serialize_leave_for_my_leave(leave):
     }.get(leave.leave_type, "✦")
 
     updated_count = leave.no_of_times_updated or 0
+    reviewed_by = getattr(leave, "reviewed_by", None)
+    reviewer_name = ""
+    if reviewed_by:
+        reviewer_name = reviewed_by.get_full_name().strip() or reviewed_by.username
 
     return {
         "id": leave.id,
@@ -574,6 +578,8 @@ def _serialize_leave_for_my_leave(leave):
         "updated_date_display": localtime(leave.updated_at).strftime("%b %d, %Y") if leave.updated_at else "-",
         "updated_time_display": localtime(leave.updated_at).strftime("%I:%M %p") if leave.updated_at else "",
         "updated_count": updated_count,
+        "reviewed_by_id": reviewed_by.id if reviewed_by else None,
+        "reviewed_by_name": reviewer_name,
         "days_value": day_display["days_value"],
         "days_value_display": day_display["days_value_display"],
         "days_target": day_display["days_target"],
@@ -1637,6 +1643,8 @@ def build_employee_notifications(leaves, viewer=None):
         headline_text = f"{leave.leave_type} Leave {leave.status}!"
         applied_text = localtime(leave.created_at).strftime("%b %d, %Y %I:%M %p")
         updated_text = localtime(leave.updated_at).strftime("%b %d, %Y %I:%M %p") if leave.updated_at else ""
+        reviewed_by = getattr(leave, "reviewed_by", None)
+        reviewer_name = reviewed_by.get_full_name().strip() or reviewed_by.username if reviewed_by else "HR Team"
         if not is_read:
             unread_count += 1
 
@@ -1657,6 +1665,7 @@ def build_employee_notifications(leaves, viewer=None):
             "schedule_text": schedule_text,
             "applied_text": applied_text,
             "updated_text": updated_text,
+            "reviewer_name": reviewer_name,
             "status": leave.status,
             "status_class": leave.status.lower(),
             "photo_url": _profile_photo_url(leave_profile),
@@ -1680,7 +1689,7 @@ def get_employee_notification_context(user, limit=MAX_NOTIFICATION_FEED_LIMIT):
     leaves = (
         Leave.objects
         .filter(user=user, status__in=["Approved", "Rejected"])
-        .select_related("user", "user__profile")
+        .select_related("user", "user__profile", "reviewed_by")
         .order_by("-created_at")
     )
     notification_payload = build_employee_notifications(leaves, user)
@@ -2132,7 +2141,7 @@ def employee_notifications(request):
             status__in=["Approved", "Rejected"],
         )
         .annotate(notification_activity_at=Coalesce("approved_at", "rejected_at", "created_at"))
-        .select_related("user", "user__profile")
+        .select_related("user", "user__profile", "reviewed_by")
         .order_by("-notification_activity_at", "-id")
     )
     limit = get_capped_positive_int(
@@ -2402,6 +2411,11 @@ def build_manage_employee_card(employee, employee_leaves, today=None):
                 "to_date": leave.to_date.strftime("%b %d, %Y"),
                 "reason": leave.reason,
                 "rejection_reason": leave.rejection_reason or "-",
+                "reviewed_by": (
+                    leave.reviewed_by.get_full_name().strip() or leave.reviewed_by.username
+                    if getattr(leave, "reviewed_by", None)
+                    else "HR Team"
+                ),
                 "applied_at": localtime(leave.created_at).strftime("%b %d, %Y %I:%M %p"),
                 "applied_at_iso": localtime(leave.created_at).isoformat(),
                 "updated_at": localtime(leave.updated_at).strftime("%b %d, %Y %I:%M %p") if getattr(leave, "updated_at", None) else "",
@@ -2428,7 +2442,7 @@ def manage_all(request):
     if request.user.role != "HR":
         return redirect("role_select")
 
-    leaves = Leave.objects.filter(user__is_active=True).select_related("user", "user__profile").order_by("-created_at")
+    leaves = Leave.objects.filter(user__is_active=True).select_related("user", "user__profile", "reviewed_by").order_by("-created_at")
     employees = User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile").order_by("username")
 
     employee_cards = []
@@ -2475,7 +2489,7 @@ def manage_all_employee_detail(request, user_id):
     employee_leaves = list(
         Leave.objects
         .filter(user_id=employee.id)
-        .select_related("user", "user__profile")
+        .select_related("user", "user__profile", "reviewed_by")
         .order_by("-created_at")
     )
 
@@ -3125,7 +3139,8 @@ def approve_leave(request, leave_id):
         leave.status = "Approved"
         leave.approved_at = timezone.now()
         leave.rejected_at = None
-        leave.save(update_fields=["status", "approved_at", "rejected_at"])
+        leave.reviewed_by = request.user
+        leave.save(update_fields=["status", "approved_at", "rejected_at", "reviewed_by"])
         log_leave_action(request.user, "APPROVE", leave.id, f"Employee: {leave.user.username}")
 
     # --- Notify Employee (Approved) ---
@@ -3137,6 +3152,7 @@ def approve_leave(request, leave_id):
         'employee_name': leave.user.get_full_name() or leave.user.username,
         'leave_type': leave.leave_type,
         'date_range': f"{leave.from_date.strftime('%d %b %Y')}",
+        'reviewed_by': request.user.get_full_name().strip() or request.user.username,
         'status_label': 'Approved',
         'status_class': 'approved',
         'portal_link': portal_link
@@ -3282,7 +3298,8 @@ def reject_leave(request, leave_id):
         leave.rejection_reason = rejection_reason
         leave.rejected_at = timezone.now()
         leave.approved_at = None
-        leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at"])
+        leave.reviewed_by = request.user
+        leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at", "reviewed_by"])
         log_leave_action(request.user, "REJECT", leave.id, f"Employee: {leave.user.username} | Reason: {leave.rejection_reason}")
 
     # --- Notify Employee (Rejected) ---
@@ -3295,6 +3312,7 @@ def reject_leave(request, leave_id):
         'employee_name': leave.user.get_full_name() or leave.user.username,
         'leave_type': leave.leave_type,
         'date_range': f"{leave.from_date.strftime('%d %b %Y')}",
+        'reviewed_by': request.user.get_full_name().strip() or request.user.username,
         'reason': rejection_reason,
         'status_label': 'Rejected',
         'status_class': 'rejected',
@@ -4657,7 +4675,7 @@ def leave_calendar_data(request):
     holidays = cache.get(HOLIDAY_CACHE_KEY)
 
     # 1️⃣ USER LEAVES
-    leaves = Leave.objects.filter(user=request.user)
+    leaves = Leave.objects.filter(user=request.user).select_related("reviewed_by")
     leave_data = [
         {
             "id": l.id,
@@ -4666,6 +4684,11 @@ def leave_calendar_data(request):
             "type": l.leave_type,
             "status": l.status,
             "reason": l.reason,
+            "reviewed_by": (
+                l.reviewed_by.get_full_name().strip() or l.reviewed_by.username
+                if l.reviewed_by
+                else ""
+            ),
             "from_datetime": localtime(l.from_datetime).isoformat() if l.from_datetime else "",
             "to_datetime": localtime(l.to_datetime).isoformat() if l.to_datetime else "",
             "created_at": l.created_at.isoformat() if l.created_at else "",
@@ -4812,9 +4835,15 @@ def _build_my_leave_context(request):
     
     pending_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Pending"),"Pending").order_by("-created_at")
 
-    approved_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Approved"),"Approved").order_by("-created_at")
+    approved_leaves = apply_filters(
+        Leave.objects.filter(user=request.user, status="Approved").select_related("reviewed_by"),
+        "Approved",
+    ).order_by("-created_at")
 
-    rejected_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Rejected"), "Rejected").order_by("-created_at")
+    rejected_leaves = apply_filters(
+        Leave.objects.filter(user=request.user, status="Rejected").select_related("reviewed_by"),
+        "Rejected",
+    ).order_by("-created_at")
 
     from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
 

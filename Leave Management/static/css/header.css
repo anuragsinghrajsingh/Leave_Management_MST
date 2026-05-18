@@ -568,18 +568,39 @@ header h1
     }
 }
 
-.dropdown-content::before
+.dropdown-content {
+    --profile-pointer-size: 8px;
+    --profile-pointer-right: 17px;
+}
+
+.dropdown-content::before,
+.dropdown-content::after
 {
     content: "";
     position: absolute;
-    top: -8px;
-    right: 16px;
-    width: 16px;
-    height: 16px;
-    background: rgba(255,255,255,0.98);
-    border-top: 1px solid rgba(203, 213, 225, 0.88);
-    border-left: 1px solid rgba(203, 213, 225, 0.88);
-    transform: rotate(45deg);
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.dropdown-content::before
+{
+    top: calc((var(--profile-pointer-size) * -1) - 1px);
+    right: calc(var(--profile-pointer-right) - 1px);
+    border-left: calc(var(--profile-pointer-size) + 1px) solid transparent;
+    border-right: calc(var(--profile-pointer-size) + 1px) solid transparent;
+    border-bottom: calc(var(--profile-pointer-size) + 1px) solid rgba(203, 213, 225, 0.88);
+    filter: drop-shadow(0 10px 14px rgba(15, 23, 42, 0.1));
+}
+
+.dropdown-content::after
+{
+    top: calc(var(--profile-pointer-size) * -1);
+    right: var(--profile-pointer-right);
+    border-left: var(--profile-pointer-size) solid transparent;
+    border-right: var(--profile-pointer-size) solid transparent;
+    border-bottom: var(--profile-pointer-size) solid rgba(255,255,255,0.98);
+    filter: drop-shadow(0 10px 14px rgba(15, 23, 42, 0.14));
 }
 
 #profile-toggle:checked + .profile-icon + .dropdown-content 
@@ -1994,6 +2015,14 @@ header .profile-dropdown .logout-btn::before
     margin-top: 0;
 }
 
+.notification-dropdown[data-notification-api*="employee_notifications"] .notification-reviewer-line
+{
+    color: #475569;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
 .notification-dropdown[data-notification-api*="employee_notifications"] .notification-item.is-new::after
 {
     top: 6px;
@@ -2020,6 +2049,11 @@ header .profile-dropdown .logout-btn::before
     margin-top: 1px;
     font-size: 0.72rem;
     font-weight: 800;
+}
+
+.notification-dropdown[data-notification-api*="employee_notifications"] .notification-copy .notification-reviewer-line
+{
+    font-size: 0.62rem;
 }
 
 .notification-subtitle
@@ -4125,4 +4159,96 @@ header .header-actions .profile-dropdown .profile-menu-trigger > img {
     object-fit: cover !important;
     transform: translateY(3px) scale(1.12) !important;
     transform-origin: center center !important;
+}
+
+/* Keep the employee notification reviewer line visibly smaller than the other metadata. */
+.employee-notification-dropdown .notification-copy small.notification-reviewer-line {
+    font-size: 0.7rem !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 48%, #db2777 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+
+/* Employee leave updates: stack a colorful leave-type symbol above the label. */
+.employee-notification-dropdown .notification-type-compact {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 25px;
+    line-height: 1.02;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-weight: 900;
+}
+
+.employee-notification-dropdown .employee-notification-panel {
+    width: min(266px, calc(100vw - 18px));
+    --employee-notification-pointer-size: 8px;
+    --employee-notification-pointer-right: 13px;
+}
+
+.employee-notification-dropdown .employee-notification-panel::before,
+.employee-notification-dropdown .employee-notification-panel::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.employee-notification-dropdown .employee-notification-panel::before {
+    top: calc((var(--employee-notification-pointer-size) * -1) - 1px);
+    right: calc(var(--employee-notification-pointer-right) - 1px);
+    border-left: calc(var(--employee-notification-pointer-size) + 1px) solid transparent;
+    border-right: calc(var(--employee-notification-pointer-size) + 1px) solid transparent;
+    border-bottom: calc(var(--employee-notification-pointer-size) + 1px) solid rgba(148, 163, 184, 0.24);
+    background: none;
+    transform: none;
+    filter: drop-shadow(0 10px 14px rgba(15, 23, 42, 0.1));
+}
+
+.employee-notification-dropdown .employee-notification-panel::after {
+    top: calc(var(--employee-notification-pointer-size) * -1);
+    right: var(--employee-notification-pointer-right);
+    border-left: var(--employee-notification-pointer-size) solid transparent;
+    border-right: var(--employee-notification-pointer-size) solid transparent;
+    border-bottom: var(--employee-notification-pointer-size) solid rgba(255,255,255,0.98);
+    filter: drop-shadow(0 10px 14px rgba(15, 23, 42, 0.14));
+}
+
+.employee-notification-dropdown .notification-type-compact::before {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    background-size: 9px 9px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        0 3px 7px rgba(15, 23, 42, 0.14);
+}
+
+.employee-notification-dropdown .notification-item-earned .notification-type-compact {
+    color: #047857;
+}
+
+.employee-notification-dropdown .notification-item-sick .notification-type-compact {
+    color: #dc2626;
+}
+
+.employee-notification-dropdown .notification-item-unpaid .notification-type-compact {
+    color: #b45309;
+}
+
+.employee-notification-dropdown .notification-item-short .notification-type-compact {
+    color: #2563eb;
+}
+
+.employee-notification-dropdown .notification-item-half .notification-type-compact {
+    color: #7c3aed;
+}
+
+.employee-notification-dropdown .notification-item-default .notification-type-compact {
+    color: #475569;
 }

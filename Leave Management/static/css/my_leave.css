@@ -1384,7 +1384,7 @@ table {
 /* Desktop table widths: use colgroup as the single source of truth. */
 
 .col-serial {
-    width: 7%;
+    width: 4%;
 }
 
 .col-type {
@@ -1407,6 +1407,22 @@ table {
     width: 13%;
 }
 
+.col-reviewer {
+    width: 13%;
+}
+
+.reviewer-block {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    color: #334155;
+}
+
+.reviewer-block strong {
+    font-weight: 700;
+    line-height: 1.35;
+}
+
 .col-reason {
     width: 24%;
 }
@@ -1419,25 +1435,17 @@ table {
     width: 11% !important;
 }
 
-#approved-panel col.col-serial {
-    width: 8.5% !important;
-}
-
 #approved-panel col.col-schedule {
     width: 16.5% !important;
 }
 
 #approved-panel .col-reason,
-#approved-panel .leave-table colgroup col:nth-child(7) {
-    width: 26% !important;
-}
-
-#rejected-panel col.col-serial {
-    width: 10.5% !important;
+#approved-panel .leave-table colgroup col:nth-child(8) {
+    width: 22% !important;
 }
 
 #rejected-panel col.col-type {
-    width: 13% !important;
+    width: 10% !important;
 }
 
 #rejected-panel col.col-schedule {
@@ -1449,19 +1457,23 @@ table {
 }
 
 #rejected-panel col.col-status-meta {
-    width: 17% !important;
+    width: 16% !important;
+}
+
+#rejected-panel col.col-reviewer {
+    width: 14% !important;
 }
 
 #rejected-panel .col-reason {
     width: 20%;
 }
 
-#rejected-panel .leave-table colgroup col:nth-child(7) {
-    width: 24.5% !important;
+#rejected-panel .leave-table colgroup col:nth-child(8) {
+    width: 20% !important;
 }
 
-#rejected-panel .leave-table colgroup col:nth-child(8) {
-    width: 25% !important;
+#rejected-panel .leave-table colgroup col:nth-child(9) {
+    width: 20% !important;
 }
 
 #rejected-panel col.col-days {
@@ -1562,7 +1574,7 @@ table {
     font-weight: 900;
 }
 
-.leave-table thead th:nth-child(1)::before { content: "#"; }
+.leave-table thead th:nth-child(1)::before { content: "\2116 #"; }
 .leave-table thead th:nth-child(2)::before { content: "\25C9"; }
 .leave-table thead th:nth-child(3)::before { content: "\25F7"; }
 .leave-table thead th:nth-child(4)::before { content: "\2116"; }
@@ -1570,6 +1582,7 @@ table {
 .leave-table thead th:nth-child(6)::before { content: "\270E"; }
 .leave-table thead th:nth-child(7)::before { content: "\270E"; }
 .leave-table thead th:nth-child(8)::before { content: "\2699"; }
+.leave-table thead th:nth-child(9)::before { content: "\2699"; }
 .schedule-block .meta-icon,
 .applied-block .meta-icon,
 .leave-pill-symbol {
@@ -2169,13 +2182,13 @@ table {
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-.leave-table tbody td:nth-child(7),
-.leave-table tbody td:nth-child(8) {
+.leave-table tbody td:nth-child(8),
+.leave-table tbody td:nth-child(9) {
     padding: 2px;
 }
 
-.leave-table tbody td:nth-child(7) .reason-box,
-.leave-table tbody td:nth-child(8) .reason-box {
+.leave-table tbody td:nth-child(8) .reason-box,
+.leave-table tbody td:nth-child(9) .reason-box {
     width: 100%;
     max-width: none;
     box-sizing: border-box;
@@ -3318,7 +3331,8 @@ textarea:focus {
     .leave-table tbody td:nth-child(5),
     .leave-table tbody td:nth-child(6),
     .leave-table tbody td:nth-child(7),
-    .leave-table tbody td:nth-child(8) {
+    .leave-table tbody td:nth-child(8),
+    .leave-table tbody td:nth-child(9) {
         padding: 4px 11px;
     }
 
@@ -3606,7 +3620,9 @@ textarea:focus {
     }
 
     #rejected-panel .leave-table {
-        min-width: 1360px;
+        width: 1510px;
+        min-width: 1510px;
+        table-layout: fixed;
     }
 
     .col-serial {
@@ -3614,7 +3630,7 @@ textarea:focus {
     }
 
     #rejected-panel col.col-serial {
-        width: 102px;
+        width: 64px;
     }
 
     .col-type {
@@ -3632,6 +3648,10 @@ textarea:focus {
 
     #rejected-panel col.col-schedule {
         width: 220px !important;
+    }
+
+    #rejected-panel col.col-type {
+        width: 98px !important;
     }
 
     .col-days {
@@ -3653,7 +3673,7 @@ textarea:focus {
     }
 
     #rejected-panel col.col-applied {
-        width: 185px !important;
+        width: 160px !important;
     }
 
     .col-status-meta {
@@ -3665,7 +3685,15 @@ textarea:focus {
     }
 
     #rejected-panel col.col-status-meta {
-        width: 216px !important;
+        width: 160px !important;
+    }
+
+    #rejected-panel col.col-reviewer {
+        width: 127px !important;
+    }
+
+    #rejected-panel col.col-days {
+        width: 76px !important;
     }
 
     .col-reason {
@@ -3677,8 +3705,12 @@ textarea:focus {
     }
 
     #rejected-panel .col-reason,
-    #rejected-panel .leave-table colgroup col:nth-child(7) {
-        width: 280px !important;
+    #rejected-panel .leave-table colgroup col:nth-child(8) {
+        width: 220px !important;
+    }
+
+    #rejected-panel .leave-table colgroup col:nth-child(9) {
+        width: 240px !important;
     }
 
     .col-action,
@@ -3694,7 +3726,9 @@ textarea:focus {
     .leave-table tbody td:nth-child(4),
     .leave-table tbody td:nth-child(5),
     .leave-table tbody td:nth-child(6),
-    .leave-table tbody td:nth-child(7) {
+    .leave-table tbody td:nth-child(7),
+    .leave-table tbody td:nth-child(8),
+    .leave-table tbody td:nth-child(9) {
         padding: 4px 11px;
     }
 
@@ -6167,8 +6201,9 @@ textarea:focus {
 
 .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(3),
 .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(4),
-.reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5) {
-    grid-column: span 2;
+.reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5),
+.reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(6) {
+    grid-column: span 3;
 }
 
 .reason-meta-card {
@@ -6434,6 +6469,10 @@ textarea:focus {
     }
 
     .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5) {
+        grid-column: span 9;
+    }
+
+    .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(6) {
         grid-column: 1 / -1;
     }
 
@@ -8356,6 +8395,19 @@ textarea:focus {
 .my-leave-page .leave-table thead th:nth-child(7) { color: #db2777 !important; }
 .my-leave-page .leave-table thead th:nth-child(8) { color: #dc2626 !important; }
 
+/* Rejected history has one extra column, so give its review fields their own colors. */
+.my-leave-page #rejected-panel .leave-table thead th:nth-child(7) {
+    color: #db2777 !important;
+}
+
+.my-leave-page #rejected-panel .leave-table thead th:nth-child(8) {
+    color: #7c3aed !important;
+}
+
+.my-leave-page #rejected-panel .leave-table thead th:nth-child(9) {
+    color: #dc2626 !important;
+}
+
 .my-leave-page .leave-table tbody td {
     padding: 2px 6px !important;
     border-top: 1px solid rgba(56, 189, 248, 0.46);
@@ -8867,8 +8919,8 @@ textarea:focus {
     }
 
     .my-leave-page #approved-panel .leave-table {
-        width: 1050px !important;
-        min-width: 1050px !important;
+        width: 1200px !important;
+        min-width: 1200px !important;
         table-layout: fixed !important;
     }
 
@@ -8878,7 +8930,8 @@ textarea:focus {
     .my-leave-page #approved-panel col.col-days { width: 82px !important; }
     .my-leave-page #approved-panel col.col-applied { width: 170px !important; }
     .my-leave-page #approved-panel col.col-status-meta { width: 170px !important; }
-    .my-leave-page #approved-panel col.col-reason { width: 205px !important; }
+    .my-leave-page #approved-panel col.col-reviewer { width: 138px !important; }
+    .my-leave-page #approved-panel col.col-reason { width: 217px !important; }
 
     .my-leave-page #approved-panel .leave-table thead th,
     .my-leave-page #approved-panel .leave-table tbody td {
