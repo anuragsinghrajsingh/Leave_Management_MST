@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <form method="get" style="margin: 0 0 16px;">
+    <label for="log-lines"><strong>Lines per file:</strong></label>
+    <input id="log-lines" type="number" name="lines" min="1" max="{{ max_lines }}" value="{{ line_count }}" style="width: 90px;">
+    <label for="log-query" style="margin-left: 12px;"><strong>Search:</strong></label>
+    <input id="log-query" type="search" name="q" value="{{ query }}" style="width: 240px;">
+    <label for="log-level" style="margin-left: 12px;"><strong>Level:</strong></label>
+    <select id="log-level" name="level">
+      <option value="">All</option>
+      {% for option in levels %}
+        <option value="{{ option }}" {% if option == level %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+    <label for="log-max-results" style="margin-left: 12px;"><strong>Max results:</strong></label>
+    <input id="log-max-results" type="number" name="max_results" min="1" max="{{ max_search_results }}" value="{{ max_results }}" style="width: 90px;">
+    <button type="submit" class="button">Refresh</button>
+    {% if is_searching %}
+      <a href="?" class="button" style="margin-left: 8px;">Clear search</a>
+    {% endif %}
+  </form>
+
+  {% for log_file in log_files %}
+    <div class="module" style="margin-bottom: 18px;">
+      <h2>{{ log_file.label }}</h2>
+      <div style="padding: 10px 12px; color: var(--body-quiet-color);">
+        {{ log_file.path }}
+      </div>
+      {% if log_file.exists %}
+        {% if log_file.searching %}
+          <div style="padding: 8px 12px; color: var(--body-quiet-color);">
+            Search results from current and rotated log files.
+          </div>
+        {% endif %}
+        <pre style="margin: 0; padding: 12px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; background: #111827; color: #e5e7eb; border-radius: 4px;">{% for line in log_file.lines %}{{ line }}{% empty %}No log lines found.{% endfor %}</pre>
+      {% else %}
+        <div style="padding: 12px;">Log file does not exist yet.</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

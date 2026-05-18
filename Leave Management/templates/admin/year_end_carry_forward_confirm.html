@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>The selected year-end carry-forward records will be processed. Completed records will be skipped.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Year</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+        <tr>
+          <td>{{ record.year }}</td>
+          <td>{% if record.completed_at %}Completed: {{ record.completed_at }}{% else %}Pending{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" style="margin-top: 16px;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action_name }}">
+    <input type="hidden" name="confirm_run" value="1">
+    {% for selected_id in selected_ids %}
+      <input type="hidden" name="_selected_action" value="{{ selected_id }}">
+    {% endfor %}
+
+    <div class="form-row">
+      <label for="action-reason"><strong>Audit reason:</strong></label>
+      <textarea id="action-reason" name="action_reason" rows="3" required style="width: 100%; max-width: 720px;"></textarea>
+    </div>
+
+    <button type="submit" class="default">Confirm and run</button>
+    <a href=".." class="button cancel-link">Cancel</a>
+  </form>
+</div>
+{% endblock %}

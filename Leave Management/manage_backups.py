@@ -5,6 +5,7 @@ import zipfile
 import logging
 import argparse
 import subprocess
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -155,28 +156,88 @@ def restore_database():
         print("Restore cancelled.")
         return
 
-    # 5. Perform Restore
-    logger = get_master_logger()
     try:
-        db_path = settings.DATABASES['default']['NAME']
-        
-        # Create a temporary backup of the current database just in case
-        if Path(db_path).exists():
-            shutil.copy2(db_path, f"{db_path}.pre_restore.bak")
-        
-        # Unzip and restore
-        with zipfile.ZipFile(selected_backup, 'r') as zip_ref:
-            zip_ref.extractall(settings.BASE_DIR)
-            
-        msg = f"RESTORE | SUCCESS | Database restored from {selected_backup.name}"
-        logger.info(msg)
+        msg = restore_backup_file(selected_backup)
         print(f"\n[SUCCESS] {msg}")
-        print("Current database has been replaced. A safety backup was saved as 'db.sqlite3.pre_restore.bak'.")
 
     except Exception as e:
         error_msg = f"RESTORE | FAILED | Error: {str(e)}"
-        logger.error(error_msg)
+        get_master_logger().error(error_msg)
         print(f"\n[ERROR] {error_msg}")
+
+
+def restore_backup_file(selected_backup):
+    selected_backup = Path(selected_backup)
+    if not selected_backup.exists() or selected_backup.suffix.lower() != ".zip":
+        raise Exception("Selected backup file does not exist or is not a ZIP file.")
+
+    db_engine = settings.DATABASES['default']['ENGINE']
+
+    if 'sqlite3' in db_engine:
+        restore_sqlite(selected_backup)
+    elif 'postgresql' in db_engine:
+        restore_postgres(selected_backup)
+    else:
+        raise Exception(f"Unsupported database engine: {db_engine}")
+
+    msg = f"RESTORE | SUCCESS | Database restored from {selected_backup.name}"
+    get_master_logger().info(msg)
+    return msg
+
+
+def restore_sqlite(selected_backup):
+    db_path = Path(settings.DATABASES['default']['NAME'])
+
+    with zipfile.ZipFile(selected_backup, 'r') as zip_ref:
+        sqlite_members = [
+            member for member in zip_ref.namelist()
+            if member.endswith(".sqlite3") and "/" not in member and "\\" not in member
+        ]
+
+        if len(sqlite_members) != 1:
+            raise Exception("Selected backup must contain exactly one SQLite .sqlite3 file.")
+
+        safety_backup = db_path.with_suffix(f"{db_path.suffix}.pre_restore.bak")
+        if db_path.exists():
+            shutil.copy2(db_path, safety_backup)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            extracted_path = Path(zip_ref.extract(sqlite_members[0], temp_dir))
+            shutil.copy2(extracted_path, db_path)
+
+    print(f"Current SQLite database has been replaced. Safety backup: {safety_backup}")
+
+
+def restore_postgres(selected_backup):
+    db_settings = settings.DATABASES['default']
+
+    with zipfile.ZipFile(selected_backup, 'r') as zip_ref:
+        sql_members = [
+            member for member in zip_ref.namelist()
+            if member.endswith(".sql") and "/" not in member and "\\" not in member
+        ]
+
+        if len(sql_members) != 1:
+            raise Exception("Selected backup must contain exactly one PostgreSQL .sql file.")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sql_path = Path(zip_ref.extract(sql_members[0], temp_dir))
+
+            env = os.environ.copy()
+            env['PGPASSWORD'] = db_settings.get('PASSWORD', '')
+
+            cmd = [
+                'psql',
+                '-U', db_settings.get('USER', ''),
+                '-h', db_settings.get('HOST', 'localhost') or 'localhost',
+                '-p', str(db_settings.get('PORT', '5432') or '5432'),
+                '-d', db_settings.get('NAME', ''),
+                '-f', str(sql_path),
+            ]
+
+            subprocess.run(cmd, env=env, check=True)
+
+    print("PostgreSQL database has been restored using psql.")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="LMS Database Backup & Restore Utility")

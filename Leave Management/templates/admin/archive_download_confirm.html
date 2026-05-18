@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>The employee archive PDF contains sensitive employee information.</p>
+
+  <table>
+    <tr><th>Username</th><td>{{ target_user.username }}</td></tr>
+    <tr><th>Name</th><td>{{ target_user.get_full_name }}</td></tr>
+    <tr><th>Email</th><td>{{ target_user.email }}</td></tr>
+    <tr><th>Role</th><td>{{ target_user.role }}</td></tr>
+  </table>
+
+  <form method="post" style="margin-top: 16px;">
+    {% csrf_token %}
+    <input type="hidden" name="confirm_download" value="1">
+    <div class="form-row">
+      <label for="download-reason"><strong>Audit reason:</strong></label>
+      <textarea id="download-reason" name="download_reason" rows="3" required style="width: 100%; max-width: 720px;"></textarea>
+    </div>
+    <button type="submit" class="default">Confirm and download</button>
+    <a href=".." class="button cancel-link">Cancel</a>
+  </form>
+</div>
+{% endblock %}

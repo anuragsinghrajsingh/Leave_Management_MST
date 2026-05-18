@@ -40,6 +40,8 @@
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="confirm_upload" value="1">
+    <input type="hidden" name="change_reason" value="{{ change_reason }}">
+    <p><strong>Audit reason:</strong> {{ change_reason }}</p>
     <button type="submit" class="default">Confirm Upload</button>
 </form>
 

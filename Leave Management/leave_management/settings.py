@@ -104,6 +104,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'App.middleware.MaintenanceModeMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'App.middleware.CorrelationMiddleware',
     'App.middleware.APILoggingMiddleware',
@@ -232,7 +233,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOG_BASE_DIR = BASE_DIR / "logs" / ("prod" if IS_PRODUCTION else "dev")
 
 # Ensure directories exist
-for sub in ["auth", "leave", "analytics", "email", "master", "profile", "security"]:
+for sub in ["auth", "leave", "analytics", "email", "master", "profile", "security", "maintenance"]:
     (LOG_BASE_DIR / sub).mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
@@ -262,7 +263,7 @@ LOGGING = {
             "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "simple",
-            "filters": ["noise_filter"],
+            "filters": ["noise_filter"] if IS_PRODUCTION else [],
         },
         "master": {
             "level": "INFO",
@@ -405,6 +406,15 @@ LOGGING = {
             "formatter": "verbose",
             "filters": ["request_id_filter"],
         },
+        "maintenance_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "maintenance" / "activity.log",
+            "maxBytes": 100 * 1024 * 1024,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "filters": ["request_id_filter"],
+        },
         "scheduler_file": {
             "level": "INFO",
             "class": "logging.handlers.RotatingFileHandler",
@@ -454,6 +464,7 @@ LOGGING = {
         "lms_email_admin": {"handlers": ["email_admin", "master", "console"], "level": "INFO", "propagate": False},
         "lms_email_system": {"handlers": ["email_system", "master", "console"], "level": "INFO", "propagate": False},
         "lms_backups": {"handlers": ["backup_file", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_maintenance": {"handlers": ["maintenance_file", "master", "console"], "level": "INFO", "propagate": False},
         "lms_scheduler": {"handlers": ["scheduler_file", "master", "console"], "level": "INFO", "propagate": False},
         "lms_api": {"handlers": ["api_file", "master", "console"], "level": "INFO", "propagate": False},
 
@@ -464,6 +475,7 @@ LOGGING = {
 
         # Django Default
         "django": {"handlers": ["django_file", "master", "console"], "level": "INFO", "propagate": True},
+        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
 

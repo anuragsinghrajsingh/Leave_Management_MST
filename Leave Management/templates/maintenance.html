@@ -1,0 +1,503 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maintenance | Leave Management</title>
+  {% include "includes/favicon.html" %}
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #526170;
+      --surface: rgba(255, 255, 255, 0.84);
+      --line: rgba(23, 33, 43, 0.12);
+      --rose: #e11d48;
+      --amber: #f59e0b;
+      --cyan: #0891b2;
+      --green: #059669;
+      --shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(8, 145, 178, 0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(225, 29, 72, 0.15), transparent 28%),
+        linear-gradient(135deg, #eef7fb 0%, #fff8ee 48%, #f6f7fb 100%);
+      display: grid;
+      place-items: center;
+      overflow-x: hidden;
+      font-weight: 700;
+    }
+
+    .shell {
+      width: min(1160px, calc(100% - 32px));
+      padding: 28px 0;
+    }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      background: var(--surface);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+    }
+
+    .panel::before,
+    .panel::after {
+      content: "";
+      position: absolute;
+      top: 110px;
+      bottom: 72px;
+      width: 5px;
+      opacity: 0.92;
+    }
+
+    .panel::before {
+      left: 0;
+      background: linear-gradient(180deg, var(--cyan), var(--green), transparent);
+    }
+
+    .panel::after {
+      right: 0;
+      background: linear-gradient(180deg, var(--rose), var(--amber), transparent);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 22px 26px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 13px;
+      border: 1px solid rgba(245, 158, 11, 0.24);
+      background: rgba(255, 247, 237, 0.92);
+      color: #9a3412;
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+      animation: pulse 1.8s infinite;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 28px;
+      align-items: stretch;
+      padding: 34px 26px 26px;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow,
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 8px 11px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eyebrow {
+      color: #0e7490;
+      border-color: rgba(8, 145, 178, 0.2);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--cyan);
+    }
+
+    .meta-chip svg {
+      width: 14px;
+      height: 14px;
+      color: var(--green);
+    }
+
+    .hero-markers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .marker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .marker::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .marker:nth-child(1)::before { background: var(--cyan); }
+    .marker:nth-child(2)::before { background: var(--green); }
+    .marker:nth-child(3)::before { background: var(--rose); }
+
+    .symbol {
+      width: 76px;
+      height: 76px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+      border: 1px solid rgba(8, 145, 178, 0.2);
+      background: linear-gradient(135deg, rgba(8, 145, 178, 0.14), rgba(225, 29, 72, 0.1));
+    }
+
+    .symbol svg {
+      width: 45px;
+      height: 45px;
+      animation: rotateGear 7s linear infinite;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: none;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.08;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .lead {
+      max-width: 620px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+      font-weight: 700;
+    }
+
+    .signal {
+      margin-top: 28px;
+      max-width: 540px;
+    }
+
+    .signal-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .signal-track {
+      height: 10px;
+      overflow: hidden;
+      background: rgba(23, 33, 43, 0.08);
+    }
+
+    .signal-track::before {
+      content: "";
+      display: block;
+      width: 42%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--green), var(--amber), var(--rose));
+      animation: sweep 2.3s ease-in-out infinite;
+    }
+
+    .side {
+      display: grid;
+      gap: 12px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.7);
+      padding: 16px;
+    }
+
+    .item-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 9px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .mini-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      color: white;
+    }
+
+    .mini-icon.cyan { background: var(--cyan); }
+    .mini-icon.green { background: var(--green); }
+    .mini-icon.rose { background: var(--rose); }
+
+    .mini-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .mini-icon.cyan svg { animation: shieldPulse 2s ease-in-out infinite; }
+    .mini-icon.green svg { animation: chartSpin 2.8s linear infinite; }
+    .mini-icon.rose svg { animation: bellRing 1.8s ease-in-out infinite; transform-origin: 50% 20%; }
+
+    .item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 26px 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.42); }
+      70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+
+    @keyframes sweep {
+      0%, 100% { transform: translateX(-10%); }
+      50% { transform: translateX(150%); }
+    }
+
+    @keyframes rotateGear {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes shieldPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    @keyframes chartSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes bellRing {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(12deg); }
+      75% { transform: rotate(-12deg); }
+    }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100%, calc(100% - 24px)); padding: 12px 0; }
+      .topbar, .footer { padding-left: 18px; padding-right: 18px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .content {
+        grid-template-columns: 1fr;
+        padding: 24px 18px 18px;
+      }
+      .symbol {
+        width: 64px;
+        height: 64px;
+      }
+      h1 {
+        white-space: normal;
+      }
+      .footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .status-pill::before,
+      .signal-track::before,
+      .symbol svg,
+      .mini-icon svg {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <header class="topbar">
+        <div class="brand">
+          <img src="{% static 'images/ms-technology-logo.svg' %}" alt="MS Technology logo">
+          <div>
+            <strong>MS Technology</strong>
+            <span>Leave Management Portal</span>
+          </div>
+        </div>
+        <span class="status-pill">Maintenance Active</span>
+      </header>
+
+      <div class="content">
+        <section class="hero">
+          <div class="hero-meta">
+            <span class="eyebrow">Portal status</span>
+            <span class="meta-chip">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3Zm1 0v10h10A10 10 0 0 0 13 3Z"/></svg>
+              Controlled maintenance window
+            </span>
+          </div>
+          <div class="symbol" aria-hidden="true">
+            <svg viewBox="0 0 64 64">
+              <defs>
+                <linearGradient id="maintenanceGear" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0891b2"/>
+                  <stop offset="100%" stop-color="#e11d48"/>
+                </linearGradient>
+              </defs>
+              <path fill="url(#maintenanceGear)" d="M56 35.5v-7l-5.3-.9a20.5 20.5 0 0 0-2.3-5.5l3.1-4.4-5-5-4.4 3.1a20.5 20.5 0 0 0-5.5-2.3L35.5 8h-7l-.9 5.3a20.5 20.5 0 0 0-5.5 2.3l-4.4-3.1-5 5 3.1 4.4a20.5 20.5 0 0 0-2.3 5.5L8 28.5v7l5.3.9a20.5 20.5 0 0 0 2.3 5.5l-3.1 4.4 5 5 4.4-3.1a20.5 20.5 0 0 0 5.5 2.3l.9 5.5h7l.9-5.5a20.5 20.5 0 0 0 5.5-2.3l4.4 3.1 5-5-3.1-4.4a20.5 20.5 0 0 0 2.3-5.5l5.3-.9ZM32 42a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/>
+            </svg>
+          </div>
+          <h1>System maintenance in progress</h1>
+          <p class="lead">The portal is temporarily paused while system maintenance is completed. Employee and HR actions are safely held until service is restored.</p>
+
+          <div class="hero-markers" aria-hidden="true">
+            <span class="marker">Portal paused</span>
+            <span class="marker">Admin access active</span>
+            <span class="marker">Restore protection enabled</span>
+          </div>
+
+          <div class="signal" aria-hidden="true">
+            <div class="signal-head">
+              <span>Service recovery</span>
+              <span>In progress</span>
+            </div>
+            <div class="signal-track"></div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <article class="item">
+            <div class="item-head">
+              <span class="mini-icon cyan">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 4 5v6c0 5.1 3.4 9.9 8 11 4.6-1.1 8-5.9 8-11V5l-8-3Zm0 17.9c-3.1-1-5.5-4.5-5.5-8.9V6.7L12 4.6l5.5 2.1V11c0 4.4-2.4 7.9-5.5 8.9Z"/></svg>
+              </span>
+              <span>Data protected</span>
+            </div>
+            <p>Live actions are paused to prevent conflicting updates while maintenance is underway.</p>
+          </article>
+
+          <article class="item">
+            <div class="item-head">
+              <span class="mini-icon green">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 6a6 6 0 1 0 6 6h-2a4 4 0 1 1-4-4V6Zm1-4v8h8A10 10 0 0 0 13 2Z"/></svg>
+              </span>
+              <span>Controlled work</span>
+            </div>
+            <p>Administrative maintenance can continue while normal portal traffic remains blocked.</p>
+          </article>
+
+          <article class="item">
+            <div class="item-head">
+              <span class="mini-icon rose">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a8 8 0 0 0-8 8v4l-2 3v1h20v-1l-2-3v-4a8 8 0 0 0-8-8Zm0 20a3 3 0 0 0 2.8-2H9.2A3 3 0 0 0 12 22Z"/></svg>
+              </span>
+              <span>Return shortly</span>
+            </div>
+            <p>Please retry after maintenance is complete. Access returns automatically once service resumes.</p>
+          </article>
+        </aside>
+      </div>
+
+      <footer class="footer">
+        <span class="live">Maintenance controls active</span>
+        <span>Thank you for your patience.</span>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>

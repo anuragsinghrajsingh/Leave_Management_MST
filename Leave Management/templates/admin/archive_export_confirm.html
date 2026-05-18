@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>The selected employee archive PDFs will be generated and downloaded as one ZIP file.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.username }}</td>
+          <td>{{ user.get_full_name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.role }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" style="margin-top: 16px;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action_name }}">
+    <input type="hidden" name="confirm_export" value="1">
+    {% for selected_id in selected_ids %}
+      <input type="hidden" name="_selected_action" value="{{ selected_id }}">
+    {% endfor %}
+
+    <div class="form-row">
+      <label for="export-reason"><strong>Audit reason:</strong></label>
+      <textarea id="export-reason" name="export_reason" rows="3" required style="width: 100%; max-width: 720px;"></textarea>
+    </div>
+
+    <button type="submit" class="default">Confirm and export</button>
+    <a href=".." class="button cancel-link">Cancel</a>
+  </form>
+</div>
+{% endblock %}

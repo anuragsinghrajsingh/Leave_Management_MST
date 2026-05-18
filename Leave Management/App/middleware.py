@@ -4,6 +4,9 @@ import logging
 import threading
 from django.utils.timezone import now
 from django.urls import resolve
+from django.shortcuts import render
+
+from App.services.maintenance_mode import is_maintenance_mode_enabled
 
 # Thread-local storage for request IDs
 _thread_locals = threading.local()
@@ -62,6 +65,34 @@ class CorrelationMiddleware:
             del _thread_locals.request_id
 
         return response
+
+
+class MaintenanceModeMiddleware:
+    """
+    Blocks normal app traffic while a controlled database restore is in progress.
+    """
+    allowed_prefixes = (
+        "/admin/",
+        "/admin-login/",
+        "/admin-logout/",
+        "/static/",
+        "/media/",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not is_maintenance_mode_enabled():
+            return self.get_response(request)
+
+        if request.path.startswith(self.allowed_prefixes):
+            return self.get_response(request)
+
+        if getattr(request, "user", None) and request.user.is_authenticated and request.user.is_superuser:
+            return self.get_response(request)
+
+        return render(request, "maintenance.html", status=503)
 
 
 class APILoggingMiddleware:

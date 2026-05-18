@@ -1,0 +1,76 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><strong>Database engine:</strong> {{ database_engine }}</p>
+  <p><strong>Warning:</strong> restore can overwrite current database data, remove newer records, and disrupt active users. Use this only during a controlled maintenance window when you are sure.</p>
+  <p><strong>Maintenance mode:</strong>
+    {% if maintenance_mode_enabled %}
+      Enabled
+    {% else %}
+      Disabled. Restore is blocked until you enable it from Backup Management &gt; Maintenance mode.
+    {% endif %}
+  </p>
+
+  <form method="get" style="margin: 0 0 16px;">
+    <label for="backup-search"><strong>Search backup filename:</strong></label>
+    <input id="backup-search" type="search" name="q" value="{{ query }}" style="width: 280px;">
+    <button type="submit" class="button">Search</button>
+    {% if query %}
+      <a href="?" class="button">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if backups %}
+    <table>
+      <thead>
+        <tr>
+          <th>Backup</th>
+          <th>Size</th>
+          <th>Modified</th>
+          <th>Restore</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for backup in backups %}
+          <tr>
+            <td>{{ backup.name }}</td>
+            <td>{{ backup.size_kb }} KB</td>
+            <td>{{ backup.modified_at }}</td>
+            <td>
+              <form method="post" style="margin: 0;">
+                {% csrf_token %}
+                <input type="hidden" name="backup_name" value="{{ backup.name }}">
+                <div style="margin-bottom: 8px;">
+                  <label><strong>Reason:</strong></label><br>
+                  <textarea name="restore_reason" rows="2" required style="width: 100%; max-width: 520px;"></textarea>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <label><strong>Type RESTORE:</strong></label><br>
+                  <input type="text" name="confirmation" required autocomplete="off">
+                </div>
+                <button type="submit" class="deletelink">Restore this backup</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <p class="paginator" style="margin-top: 16px;">
+        {% if page_obj.has_previous %}
+          <a href="?q={{ query|urlencode }}&page=1">First</a>
+          <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+          <a href="?q={{ query|urlencode }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+        {% endif %}
+      </p>
+    {% endif %}
+  {% else %}
+    <p>No backup ZIP files found.</p>
+  {% endif %}
+</div>
+{% endblock %}

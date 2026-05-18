@@ -244,6 +244,157 @@ class LeaveBalance(models.Model):
         return f"{self.user.username} Leave Balance"
 
 
+class LeaveBalanceAudit(models.Model):
+    balance = models.ForeignKey(LeaveBalance, on_delete=models.CASCADE, related_name="audit_entries")
+    employee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="leave_balance_audit_entries",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leave_balance_updates_made",
+    )
+    changed_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField()
+    changes = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ["-changed_at", "-id"]
+        verbose_name = "Leave balance audit entry"
+        verbose_name_plural = "Leave balance audit entries"
+
+    def __str__(self):
+        actor = self.updated_by.username if self.updated_by else "system"
+        return f"{self.employee.username} balance updated by {actor}"
+
+
+class AdminAuditLog(models.Model):
+    model_label = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=100)
+    object_repr = models.CharField(max_length=255)
+    action = models.CharField(max_length=20, default="CHANGE")
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="admin_audit_entries",
+    )
+    changed_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField(blank=True)
+    changes = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ["-changed_at", "-id"]
+        verbose_name = "All admin audit"
+        verbose_name_plural = "All admin audit"
+
+    def __str__(self):
+        return f"{self.model_label} {self.object_repr} {self.action.lower()}"
+
+
+class UserAdminAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "User audit"
+        verbose_name_plural = "User audit"
+
+
+class ProfileAdminAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Profile audit"
+        verbose_name_plural = "Profile audit"
+
+
+class LeaveAdminAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Leave audit"
+        verbose_name_plural = "Leave audit"
+
+
+class HolidayAdminAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Holiday audit"
+        verbose_name_plural = "Holiday audit"
+
+
+class WorkFromHomeAdminAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Work from home audit"
+        verbose_name_plural = "Work from home audit"
+
+
+class LeaveBalanceAdminAudit(LeaveBalanceAudit):
+    class Meta:
+        proxy = True
+        verbose_name = "Leave balance audit"
+        verbose_name_plural = "Leave balance audit"
+
+
+class DeleteAdminAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Delete audit"
+        verbose_name_plural = "Delete audit"
+
+
+class EmployeeCommunicationAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee communication audit"
+        verbose_name_plural = "Employee communication audit"
+
+
+class HRCommunicationAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "HR communication audit"
+        verbose_name_plural = "HR communication audit"
+
+
+class EmployeeCommunicationReadSeenAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee communication read/seen audit"
+        verbose_name_plural = "Employee communication read/seen audit"
+
+
+class HRCommunicationReadSeenAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "HR communication read/seen audit"
+        verbose_name_plural = "HR communication read/seen audit"
+
+
+class EmployeeLeaveNotificationReadSeenAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee leave notification read/seen audit"
+        verbose_name_plural = "Employee leave notification read/seen audit"
+
+
+class HRLeaveNotificationReadSeenAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "HR leave notification read/seen audit"
+        verbose_name_plural = "HR leave notification read/seen audit"
+
+
+class AllCommunicationNotificationAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "All communication notification audit"
+        verbose_name_plural = "All communication notification audit"
+
+
 
 
 
@@ -263,7 +414,7 @@ class YearEndCarryForwardRun(models.Model):
     class Meta:
         ordering = ["-year"]
         verbose_name = "Year-end carry forward run"
-        verbose_name_plural = "Year-end carry forward runs"
+        verbose_name_plural = "Year-end carry forward"
 
     def __str__(self):
         status = "completed" if self.completed_at else "pending"
@@ -602,3 +753,180 @@ class LeaveNotificationSeen(models.Model):
     class Meta:
         unique_together = [("user", "leave")]
         ordering = ["-seen_at"]
+
+
+class EmployeeCommunication(Communication):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee communication"
+        verbose_name_plural = "Employee communications"
+
+
+class HRCommunication(Communication):
+    class Meta:
+        proxy = True
+        verbose_name = "HR communication"
+        verbose_name_plural = "HR communications"
+
+
+class EmployeeCommunicationRead(CommunicationRead):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee communication read"
+        verbose_name_plural = "Employee communication reads"
+
+
+class HRCommunicationRead(CommunicationRead):
+    class Meta:
+        proxy = True
+        verbose_name = "HR communication read"
+        verbose_name_plural = "HR communication reads"
+
+
+class EmployeeCommunicationSeen(CommunicationSeen):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee communication seen"
+        verbose_name_plural = "Employee communication seen"
+
+
+class HRCommunicationSeen(CommunicationSeen):
+    class Meta:
+        proxy = True
+        verbose_name = "HR communication seen"
+        verbose_name_plural = "HR communication seen"
+
+
+class EmployeeLeaveNotificationRead(LeaveNotificationRead):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee leave notification read"
+        verbose_name_plural = "Employee leave notification reads"
+
+
+class HRLeaveNotificationRead(LeaveNotificationRead):
+    class Meta:
+        proxy = True
+        verbose_name = "HR leave notification read"
+        verbose_name_plural = "HR leave notification reads"
+
+
+class EmployeeLeaveNotificationSeen(LeaveNotificationSeen):
+    class Meta:
+        proxy = True
+        verbose_name = "Employee leave notification seen"
+        verbose_name_plural = "Employee leave notification seen"
+
+
+class HRLeaveNotificationSeen(LeaveNotificationSeen):
+    class Meta:
+        proxy = True
+        verbose_name = "HR leave notification seen"
+        verbose_name_plural = "HR leave notification seen"
+
+
+class LogViewer(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    class Meta:
+        managed = False
+        verbose_name = "All logs"
+        verbose_name_plural = "All logs"
+
+
+class SecurityLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Security logs"
+        verbose_name_plural = "Security logs"
+
+
+class AuthLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Authentication logs"
+        verbose_name_plural = "Authentication logs"
+
+
+class LeaveLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Leave logs"
+        verbose_name_plural = "Leave logs"
+
+
+class EmailLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Email logs"
+        verbose_name_plural = "Email logs"
+
+
+class BackupLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Backup logs"
+        verbose_name_plural = "Backup logs"
+
+
+class MaintenanceLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Maintenance logs"
+        verbose_name_plural = "Maintenance logs"
+
+
+class SchedulerLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Scheduler logs"
+        verbose_name_plural = "Scheduler logs"
+
+
+class ApiLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "API logs"
+        verbose_name_plural = "API logs"
+
+
+class ProfileLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Profile logs"
+        verbose_name_plural = "Profile logs"
+
+
+class AnalyticsLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Analytics logs"
+        verbose_name_plural = "Analytics logs"
+
+
+class MasterLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Master logs"
+        verbose_name_plural = "Master logs"
+
+
+class DjangoErrorLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Django error logs"
+        verbose_name_plural = "Django error logs"
+
+
+class BackupRestoreControl(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Backup restore"
+        verbose_name_plural = "Backup restore"
+
+
+class MaintenanceModeControl(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Maintenance mode"
+        verbose_name_plural = "Maintenance mode"

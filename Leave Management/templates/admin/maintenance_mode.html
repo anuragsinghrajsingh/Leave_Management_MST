@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><strong>Current status:</strong>
+    {% if maintenance_mode_enabled %}
+      Enabled
+    {% else %}
+      Disabled
+    {% endif %}
+  </p>
+
+  {% if maintenance_mode_enabled %}
+    <p>Normal portal traffic is blocked. Django admin remains available so you can complete maintenance and turn this off afterward.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="maintenance_action" value="disable">
+      <div class="form-row">
+        <label for="disable-reason"><strong>Reason:</strong></label>
+        <textarea id="disable-reason" name="reason" rows="3" required style="width: 100%; max-width: 720px;"></textarea>
+      </div>
+      <button type="submit" class="default">Disable maintenance mode</button>
+    </form>
+  {% else %}
+    <p>Enable this before using database restore. Normal employees and HR users will receive a maintenance page until you disable it again.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="maintenance_action" value="enable">
+      <div class="form-row">
+        <label for="enable-reason"><strong>Reason:</strong></label>
+        <textarea id="enable-reason" name="reason" rows="3" required style="width: 100%; max-width: 720px;"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="maintenance-confirmation"><strong>Type MAINTENANCE:</strong></label>
+        <input id="maintenance-confirmation" type="text" name="confirmation" required autocomplete="off">
+      </div>
+      <button type="submit" class="deletelink">Enable maintenance mode</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}
