@@ -1,6 +1,8 @@
 (function () {
     const POLL_INTERVAL = 60000;
     const NOTIFICATION_PAGE_SIZE = 50;
+    let notificationAudioContext = null;
+    let notificationAudioUnlocked = false;
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -15,32 +17,81 @@
         return metaToken ? String(metaToken.getAttribute("content") || "").trim() : "";
     }
 
-    function playNotificationTone() {
+    function getNotificationAudioContext() {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
 
         if (!AudioCtx) {
+            return null;
+        }
+
+        try {
+            if (!notificationAudioContext) {
+                notificationAudioContext = new AudioCtx();
+            }
+            return notificationAudioContext;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function unlockNotificationAudio() {
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
+            return;
+        }
+
+        const finishUnlock = function () {
+            notificationAudioUnlocked = true;
+        };
+
+        if (audioContext.state === "suspended") {
+            audioContext.resume().then(finishUnlock).catch(function () {});
+        } else {
+            finishUnlock();
+        }
+    }
+
+    ["pointerdown", "keydown", "touchstart"].forEach(function (eventName) {
+        window.addEventListener(eventName, unlockNotificationAudio, { once: true, passive: true });
+    });
+
+    function playNotificationTone(statusClass) {
+        if (!notificationAudioUnlocked) {
+            return;
+        }
+
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
             return;
         }
 
         try {
-            const audioContext = new AudioCtx();
             const oscillator = audioContext.createOscillator();
             const gain = audioContext.createGain();
+            const startFrequency = statusClass === "approved"
+                ? 740
+                : statusClass === "rejected"
+                    ? 440
+                    : 620;
+            const endFrequency = statusClass === "approved"
+                ? 988
+                : statusClass === "rejected"
+                    ? 392
+                    : 830;
 
             oscillator.type = "sine";
-            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(startFrequency, audioContext.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(endFrequency, audioContext.currentTime + 0.16);
             gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.18);
+            gain.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
 
             oscillator.connect(gain);
             gain.connect(audioContext.destination);
             oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.18);
-
-            oscillator.onended = function () {
-                audioContext.close().catch(function () {});
-            };
+            oscillator.stop(audioContext.currentTime + 0.22);
         } catch (error) {
             // Ignore audio failures silently.
         }
@@ -533,6 +584,8 @@
             const settings = options || {};
             const forceAcceptEmpty = settings.forceAcceptEmpty === true;
             const appendPage = settings.append === true;
+            const hadFetchedOnce = hasFetchedOnce;
+            const previousKnownIds = new Set(knownIds);
 
             if (!appendPage && Number.isFinite(fetchId) && fetchId < latestHandledFetchId) {
                 return;
@@ -635,6 +688,10 @@
             const ids = notifications.map(function (item) {
                 return String(item.id);
             });
+            const newNotifications = notifications.filter(function (item) {
+                const itemId = String(item.id);
+                return !previousKnownIds.has(itemId) && item.is_new && !item.is_read;
+            });
             serverReadIds = new Set(notifications.filter(function (item) {
                 return item.is_read;
             }).map(function (item) {
@@ -663,6 +720,12 @@
             renderNotifications(notifications);
             broadcastNotificationState();
             dropdown.classList.add("is-hydrated");
+
+            if (hadFetchedOnce && newNotifications.length) {
+                const latestNewNotification = newNotifications[0] || {};
+                playNotificationTone(latestNewNotification.status_class || "");
+                flashNotificationScreen(latestNewNotification.status_class || "");
+            }
         }
 
         function buildNotificationPageUrl(offset) {
