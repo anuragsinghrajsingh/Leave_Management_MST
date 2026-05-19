@@ -32,11 +32,15 @@ def is_maintenance_mode_enabled():
 
 def enable_maintenance_mode():
     MAINTENANCE_MODE_FLAG.write_text("enabled\n", encoding="utf-8")
+    maintenance_logger.info("MAINTENANCE | STATE | Flag file created at %s", MAINTENANCE_MODE_FLAG)
 
 
 def disable_maintenance_mode():
     if MAINTENANCE_MODE_FLAG.exists():
         MAINTENANCE_MODE_FLAG.unlink()
+        maintenance_logger.info("MAINTENANCE | STATE | Flag file removed from %s", MAINTENANCE_MODE_FLAG)
+    else:
+        maintenance_logger.info("MAINTENANCE | STATE | Disable requested but flag was already absent.")
 
 
 def _confirmation_phrase(action):
@@ -53,12 +57,15 @@ def confirm_maintenance_action(action):
     print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
     confirmation = input(f"Type {phrase} to {action} maintenance mode: ").strip()
     if confirmation != phrase:
+        maintenance_logger.info("MAINTENANCE | CONFIRMATION | %s cancelled by terminal confirmation.", action.upper())
         print(f"{action.title()} cancelled.")
         return False
+    maintenance_logger.info("MAINTENANCE | CONFIRMATION | %s accepted by terminal confirmation.", action.upper())
     return True
 
 
 def main():
+    maintenance_logger.info("MAINTENANCE | MANUAL_RUN | Opened direct runner.")
     parser = argparse.ArgumentParser(description="Control Leave Management maintenance mode.")
     parser.add_argument("action", nargs="?", choices=["status", "enable", "disable"], help="Maintenance mode action.")
     args = parser.parse_args()
@@ -68,6 +75,7 @@ def main():
         return
 
     if args.action == "status":
+        maintenance_logger.info("MAINTENANCE | STATUS | Checked by terminal | Enabled=%s", is_maintenance_mode_enabled())
         print("enabled" if is_maintenance_mode_enabled() else "disabled")
         return
 
@@ -87,6 +95,7 @@ def main():
 
 
 def run_interactive_menu():
+    maintenance_logger.info("MAINTENANCE | MENU | Interactive menu opened.")
     while True:
         status = "ENABLED" if is_maintenance_mode_enabled() else "DISABLED"
         print("\n--- MAINTENANCE MODE CONTROL ---")
@@ -100,6 +109,7 @@ def run_interactive_menu():
 
         if choice == "1":
             if is_maintenance_mode_enabled():
+                maintenance_logger.info("MAINTENANCE | MENU | Enable selected but already enabled.")
                 print("Maintenance mode is already enabled.")
                 continue
 
@@ -113,6 +123,7 @@ def run_interactive_menu():
 
         if choice == "2":
             if not is_maintenance_mode_enabled():
+                maintenance_logger.info("MAINTENANCE | MENU | Disable selected but already disabled.")
                 print("Maintenance mode is already disabled.")
                 continue
 
@@ -125,13 +136,16 @@ def run_interactive_menu():
             continue
 
         if choice == "3":
+            maintenance_logger.info("MAINTENANCE | STATUS | Checked from interactive menu | Enabled=%s", is_maintenance_mode_enabled())
             print(f"Maintenance mode is {status}.")
             continue
 
         if choice == "0":
+            maintenance_logger.info("MAINTENANCE | MENU | Exit selected.")
             print("Exiting maintenance mode control.")
             return
 
+        maintenance_logger.warning("MAINTENANCE | MENU | Invalid option selected | Value=%s", choice)
         print("Invalid option.")
 
 

@@ -29,7 +29,7 @@ from django.db import transaction
 from django.utils import timezone
 from App.models import LeaveBalance, YearEndCarryForwardRun
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lms_service_year_end")
 
 SKIP_YEAR_END_YEARS = {2026}
 
@@ -60,7 +60,7 @@ def get_year_end_carry_forward_status(today=None):
         reason = "not completed"
         should_run = True
 
-    return {
+    status = {
         "year": processing_year,
         "today": today,
         "is_protected": is_protected,
@@ -70,6 +70,16 @@ def get_year_end_carry_forward_status(today=None):
         "should_run": should_run,
         "reason": reason,
     }
+    logger.info(
+        "YEAR_END | STATUS | Year=%s | Protected=%s | Completed=%s | Eligible=%s | ShouldRun=%s | Reason=%s",
+        processing_year,
+        is_protected,
+        is_completed,
+        eligible_count,
+        should_run,
+        reason,
+    )
+    return status
 
 
 def process_year_end_carry_forward(user, today=None, balance=None):
@@ -80,11 +90,12 @@ def process_year_end_carry_forward(user, today=None, balance=None):
     processing_year = today.year
 
     if balance.last_year_end_processed == processing_year:
+        logger.info("YEAR_END | BALANCE_SKIP | User=%s | Year=%s | Already processed.", user.pk, processing_year)
         return False
 
     profile = getattr(user, "profile", None)
     if not profile or not profile.date_of_joining:
-        logger.warning("Skipping year-end carry forward for user %s due to missing profile or date_of_joining.", user.pk)
+        logger.warning("YEAR_END | BALANCE_SKIP | User=%s | Missing profile/date_of_joining.", user.pk)
         return False
 
     years_of_service = (today - profile.date_of_joining).days // 365
@@ -121,6 +132,13 @@ def process_year_end_carry_forward(user, today=None, balance=None):
         "last_year_end_processed",
     ])
 
+    logger.info(
+        "YEAR_END | BALANCE_PROCESSED | User=%s | Year=%s | YearsOfService=%s | CarryForward=%s",
+        user.pk,
+        processing_year,
+        years_of_service,
+        carry_forward,
+    )
     return True
 
 
@@ -131,7 +149,7 @@ def run_year_end_carry_forward_if_due(today=None):
 
     if processing_year in SKIP_YEAR_END_YEARS:
         logger.info(
-            "Year-end carry forward skipped for protected year %s.",
+            "YEAR_END | SKIPPED | Protected year %s.",
             processing_year,
         )
         return False
@@ -142,6 +160,7 @@ def run_year_end_carry_forward_if_due(today=None):
             year=processing_year, defaults={"completed_at": None},)
 
         if run_record.completed_at:
+            logger.info("YEAR_END | SKIPPED | Year=%s | Already completed at %s.", processing_year, run_record.completed_at)
             return False
 
         eligible_balances = (
@@ -167,7 +186,7 @@ def run_year_end_carry_forward_if_due(today=None):
         run_record.save(update_fields=["completed_at"])
 
     logger.info(
-        "Year-end carry forward completed for %s. Processed=%s, Skipped=%s",
+        "YEAR_END | COMPLETED | Year=%s | Processed=%s | Skipped=%s",
         processing_year, processed_count,skipped_count,
     )
     return True
@@ -175,6 +194,13 @@ def run_year_end_carry_forward_if_due(today=None):
 
 def print_year_end_dry_run():
     status = get_year_end_carry_forward_status()
+    logger.info(
+        "YEAR_END | DRY_RUN | Year=%s | Decision=%s | Reason=%s | Eligible=%s",
+        status["year"],
+        "would run" if status["should_run"] else "would skip",
+        status["reason"],
+        status["eligible_count"],
+    )
     completed_at = status["completed_at"]
     completed_text = (
         timezone.localtime(completed_at).strftime("%b %d, %Y %I:%M %p")
@@ -195,6 +221,7 @@ def print_year_end_dry_run():
 
 
 def main():
+    logger.info("YEAR_END | MANUAL_RUN | Opened direct runner.")
     parser = argparse.ArgumentParser(description="Inspect or run year-end leave carry forward.")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen and exit.")
     args = parser.parse_args()
@@ -202,9 +229,11 @@ def main():
     status = print_year_end_dry_run()
 
     if args.dry_run:
+        logger.info("YEAR_END | MANUAL_RUN | Dry-run only requested.")
         return
 
     if not status["should_run"]:
+        logger.info("YEAR_END | MANUAL_RUN | No action needed | Reason=%s", status["reason"])
         print("No action needed. Year-end carry forward was not run.")
         return
 
@@ -221,9 +250,11 @@ def main():
     confirmation = input(f"Type {confirmation_phrase} to continue: ").strip()
 
     if confirmation != confirmation_phrase:
+        logger.info("YEAR_END | MANUAL_RUN | Cancelled by confirmation.")
         print("Cancelled. Year-end carry forward was not run.")
         return
 
+    logger.info("YEAR_END | MANUAL_RUN | Confirmation accepted.")
     did_run = run_year_end_carry_forward_if_due()
     if did_run:
         print("SUCCESS: Year-end carry forward completed.")

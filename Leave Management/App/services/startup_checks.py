@@ -27,7 +27,7 @@ if __name__ == "__main__":
 from django.utils.timezone import localdate
 from django.conf import settings
 
-logger = logging.getLogger('lms_scheduler')
+logger = logging.getLogger('lms_service_startup_checks')
 
 
 def get_backup_catchup_status():
@@ -85,7 +85,7 @@ def run_startup_catchup():
     """
     Checks for missed scheduled tasks during server downtime and runs them if necessary.
     """
-    logger.info("SCHEDULER | Starting startup catch-up checks...")
+    logger.info("STARTUP_CHECKS | AUTO | Starting startup catch-up checks.")
     
     # 1. Check for missed Backup
     check_and_run_missed_backup()
@@ -105,14 +105,15 @@ def check_and_run_missed_backup():
         backup_dir.mkdir(parents=True, exist_ok=True)
     
     if status["should_run"]:
-        logger.info(f"SCHEDULER | Catch-up | No backup found for {status['today']}. Triggering missed backup...")
+        logger.info("STARTUP_CHECKS | BACKUP | No backup found for %s. Triggering missed backup.", status["today"])
         try:
             from manage_backups import run_backup
-            run_backup()
+            did_backup = run_backup()
+            logger.info("STARTUP_CHECKS | BACKUP | Backup result=%s", did_backup)
         except Exception as e:
-            logger.error(f"SCHEDULER | Catch-up | Missed backup failed: {e}")
+            logger.error(f"STARTUP_CHECKS | BACKUP | Missed backup failed: {e}")
     else:
-        logger.info(f"SCHEDULER | Catch-up | Backup for {status['today']} already exists. Skipping.")
+        logger.info("STARTUP_CHECKS | BACKUP | Backup for %s already exists. Skipping.", status["today"])
 
 def check_and_run_missed_weekly_report():
     """Runs the weekly report if it's past Monday 9 AM and hasn't been sent this week."""
@@ -121,19 +122,20 @@ def check_and_run_missed_weekly_report():
     if status["should_run"]:
         # Check if it's actually Monday 9 AM yet (or any time after that)
         # For simplicity, if it's Monday and we haven't sent it, we send it on startup
-        logger.info(f"SCHEDULER | Catch-up | Weekly report for week of {status['monday_str']} not sent. Triggering now...")
+        logger.info("STARTUP_CHECKS | WEEKLY_REPORT | Week of %s not sent. Triggering now.", status["monday_str"])
         try:
             from App.services.weekly_report_service import send_weekly_hr_report
             sent = send_weekly_hr_report()
             if sent:
                 status["tracking_file"].parent.mkdir(parents=True, exist_ok=True)
                 status["tracking_file"].write_text(status["monday_str"])
+                logger.info("STARTUP_CHECKS | WEEKLY_REPORT | Sent and tracking marker updated to %s.", status["monday_str"])
             else:
-                logger.error("SCHEDULER | Catch-up | Weekly report send returned false. Tracking file was not updated.")
+                logger.error("STARTUP_CHECKS | WEEKLY_REPORT | Send returned false. Tracking file was not updated.")
         except Exception as e:
-            logger.error(f"SCHEDULER | Catch-up | Missed weekly report failed: {e}")
+            logger.error(f"STARTUP_CHECKS | WEEKLY_REPORT | Missed weekly report failed: {e}")
     else:
-        logger.info(f"SCHEDULER | Catch-up | Weekly report for week of {status['monday_str']} already sent. Skipping.")
+        logger.info("STARTUP_CHECKS | WEEKLY_REPORT | Week of %s already sent. Skipping.", status["monday_str"])
 
 
 def check_and_run_year_end_carry_forward():
@@ -141,11 +143,11 @@ def check_and_run_year_end_carry_forward():
         from App.services.year_end_service import run_year_end_carry_forward_if_due
         did_run = run_year_end_carry_forward_if_due()
         if did_run:
-            logger.info("SCHEDULER | Catch-up | Year-end carry forward completed.")
+            logger.info("STARTUP_CHECKS | YEAR_END | Year-end carry forward completed.")
         else:
-            logger.info("SCHEDULER | Catch-up | Year-end carry forward not due or already completed. Skipping.")
+            logger.info("STARTUP_CHECKS | YEAR_END | Year-end carry forward not due or already completed. Skipping.")
     except Exception as e:
-        logger.error(f"SCHEDULER | Catch-up | Year-end check failed: {e}")
+        logger.error(f"STARTUP_CHECKS | YEAR_END | Year-end check failed: {e}")
 
 
 def _selected_checks(args):
@@ -162,6 +164,7 @@ def _selected_checks(args):
 
 
 def print_startup_check_dry_run(selected):
+    logger.info("STARTUP_CHECKS | DRY_RUN | Selected=%s", selected)
     print("--- Startup Checks Dry Run ---")
     print("No backup, email, or balance changes will be made.\n")
 
@@ -185,6 +188,7 @@ def print_startup_check_dry_run(selected):
 
 
 def run_selected_startup_checks(selected):
+    logger.info("STARTUP_CHECKS | MANUAL_RUN | Running selected checks=%s", selected)
     if selected["backup"]:
         check_and_run_missed_backup()
     if selected["weekly_report"]:
@@ -194,6 +198,7 @@ def run_selected_startup_checks(selected):
 
 
 def main():
+    logger.info("STARTUP_CHECKS | MANUAL_RUN | Opened direct runner.")
     parser = argparse.ArgumentParser(description="Inspect or run startup catch-up checks.")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen and exit without confirmation.")
     parser.add_argument("--run", action="store_true", help="Deprecated: real run is now the default after confirmation.")
@@ -206,6 +211,7 @@ def main():
 
     if args.dry_run:
         print_startup_check_dry_run(selected)
+        logger.info("STARTUP_CHECKS | MANUAL_RUN | Dry-run only requested.")
         return
 
     print_startup_check_dry_run(selected)
@@ -217,9 +223,11 @@ def main():
     confirmation = input(f"Type {confirmation_phrase} to continue: ").strip()
 
     if confirmation != confirmation_phrase:
+        logger.info("STARTUP_CHECKS | MANUAL_RUN | Cancelled by confirmation.")
         print("Cancelled. Startup checks were not run.")
         return
 
+    logger.info("STARTUP_CHECKS | MANUAL_RUN | Confirmation accepted.")
     run_selected_startup_checks(selected)
     print("Startup checks finished. Review logs for details.")
 

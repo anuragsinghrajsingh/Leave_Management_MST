@@ -6,11 +6,13 @@ from django_apscheduler.jobstores import DjangoJobStore, register_events
 logger = logging.getLogger('lms_scheduler')
 
 def start_scheduler():
+    logger.info("SCHEDULER | START | Preparing in-app background scheduler.")
     from manage_backups import run_backup
     from App.services.year_end_service import run_year_end_carry_forward_if_due
 
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
+    logger.info("SCHEDULER | JOBSTORE | DjangoJobStore attached.")
 
     # Run catch-up checks for missed tasks during downtime
     try:
@@ -29,6 +31,7 @@ def start_scheduler():
         max_instances=1,
         replace_existing=True,
     )
+    logger.info("SCHEDULER | JOB_ADDED | year_end_carry_forward | Daily 01:00")
 
     # Schedule the backup job at 2:00 AM every night
     scheduler.add_job(
@@ -40,6 +43,7 @@ def start_scheduler():
         max_instances=1,
         replace_existing=True,
     )
+    logger.info("SCHEDULER | JOB_ADDED | nightly_backup | Daily 02:00")
 
     # Schedule the Weekly HR Report at 9:00 AM every Monday
     from App.services.weekly_report_service import send_weekly_hr_report
@@ -53,6 +57,7 @@ def start_scheduler():
         max_instances=1,
         replace_existing=True,
     )
+    logger.info("SCHEDULER | JOB_ADDED | weekly_hr_report | Monday 09:00")
     
     # Add a sanity check job that runs every 6 hours just to confirm the scheduler is alive
     scheduler.add_job(
@@ -63,6 +68,7 @@ def start_scheduler():
         max_instances=1,
         replace_existing=True,
     )
+    logger.info("SCHEDULER | JOB_ADDED | scheduler_keepalive | Every 6 hours")
 
     register_events(scheduler)
     scheduler.start()

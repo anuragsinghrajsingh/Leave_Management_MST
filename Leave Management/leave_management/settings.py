@@ -249,7 +249,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOG_BASE_DIR = BASE_DIR / "logs" / ("prod" if IS_PRODUCTION else "dev")
 
 # Ensure directories exist
-for sub in ["auth", "leave", "analytics", "email", "master", "profile", "security", "maintenance"]:
+for sub in ["auth", "leave", "analytics", "email", "master", "profile", "security", "maintenance", "backups", "scheduler", "api", "services"]:
     (LOG_BASE_DIR / sub).mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
@@ -449,6 +449,79 @@ LOGGING = {
             "formatter": "verbose",
             "filters": ["request_id_filter"],
         },
+        # --- Direct Service Workflow Logs ---
+        "service_backups": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "backups.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_restore_db": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "restore_db.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_maintenance_mode": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "maintenance_mode.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_startup_checks": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "startup_checks.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_year_end": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "year_end.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_weekly_report": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "weekly_report.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_pdf_generator": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "pdf_generator.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_uptime_tracker": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "uptime_tracker.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
+        "service_scheduler": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_BASE_DIR / "services" / "scheduler.log",
+            "maxBytes": 50 * 1024 * 1024,
+            "backupCount": 20,
+            "formatter": "simple",
+        },
         # --- Django Default Errors ---
         "django_file": {
             "level": "ERROR",
@@ -479,10 +552,16 @@ LOGGING = {
         "lms_email_hr": {"handlers": ["email_hr", "master", "console"], "level": "INFO", "propagate": False},
         "lms_email_admin": {"handlers": ["email_admin", "master", "console"], "level": "INFO", "propagate": False},
         "lms_email_system": {"handlers": ["email_system", "master", "console"], "level": "INFO", "propagate": False},
-        "lms_backups": {"handlers": ["backup_file", "master", "console"], "level": "INFO", "propagate": False},
-        "lms_maintenance": {"handlers": ["maintenance_file", "master", "console"], "level": "INFO", "propagate": False},
-        "lms_scheduler": {"handlers": ["scheduler_file", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_backups": {"handlers": ["backup_file", "service_backups", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_maintenance": {"handlers": ["maintenance_file", "service_maintenance_mode", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_scheduler": {"handlers": ["scheduler_file", "service_scheduler", "master", "console"], "level": "INFO", "propagate": False},
         "lms_api": {"handlers": ["api_file", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_service_restore_db": {"handlers": ["service_restore_db", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_service_startup_checks": {"handlers": ["service_startup_checks", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_service_year_end": {"handlers": ["service_year_end", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_service_weekly_report": {"handlers": ["service_weekly_report", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_service_pdf_generator": {"handlers": ["service_pdf_generator", "master", "console"], "level": "INFO", "propagate": False},
+        "lms_service_uptime_tracker": {"handlers": ["service_uptime_tracker", "master", "console"], "level": "INFO", "propagate": False},
 
         # Analytics & Profile
         "lms_analytics": {"handlers": ["analytics_nav", "master", "console"], "level": "INFO", "propagate": False},

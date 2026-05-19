@@ -42,6 +42,7 @@ def backup_sqlite():
     backup_filename = f"LMS_backup_dev_{timestamp}.sqlite3"
     backup_path = BACKUP_DIR / backup_filename
     
+    get_master_logger().info("BACKUP | SQLITE | Copying database | Source=%s | RawBackup=%s", db_path, backup_path)
     shutil.copy2(db_path, backup_path)
     return backup_path
 
@@ -63,6 +64,7 @@ def backup_postgres():
         db_settings.get('NAME', ''),
     ]
     
+    get_master_logger().info("BACKUP | POSTGRES | Running pg_dump | Host=%s | Port=%s | Database=%s | RawBackup=%s", db_settings.get('HOST', 'localhost'), db_settings.get('PORT', '5432'), db_settings.get('NAME', ''), backup_path)
     with open(backup_path, 'w') as f:
         subprocess.run(cmd, stdout=f, env=env, check=True)
     
@@ -70,6 +72,7 @@ def backup_postgres():
 
 def compress_file(file_path):
     zip_path = file_path.with_suffix('.zip')
+    get_master_logger().info("BACKUP | COMPRESS | Source=%s | Zip=%s", file_path, zip_path)
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(file_path, arcname=file_path.name)
     os.remove(file_path)
@@ -81,6 +84,7 @@ def cleanup_old_backups():
     for file in BACKUP_DIR.glob('LMS_backup_*'):
         file_time = datetime.fromtimestamp(file.stat().st_mtime)
         if file_time < cutoff:
+            get_master_logger().info("BACKUP | CLEANUP | Removing old backup | File=%s", file)
             os.remove(file)
             deleted_count += 1
     return deleted_count
@@ -88,6 +92,7 @@ def cleanup_old_backups():
 def run_backup():
     logger = get_master_logger()
     db_engine = settings.DATABASES['default']['ENGINE']
+    logger.info("BACKUP | START | Engine=%s | BackupDir=%s", db_engine, BACKUP_DIR)
     
     try:
         if 'sqlite3' in db_engine:
@@ -128,6 +133,7 @@ def run_backup():
 
 def restore_database():
     """Restores the database from a selected backup file."""
+    get_master_logger().info("RESTORE | MANUAL_RUN | Opened restore utility.")
     print("\n--- DATABASE RESTORE UTILITY ---")
 
     if not is_maintenance_mode_enabled():
@@ -138,6 +144,7 @@ def restore_database():
     # 1. Check for backups
     backups = sorted(list(BACKUP_DIR.glob("*.zip")), reverse=True)
     if not backups:
+        get_master_logger().warning("RESTORE | BLOCKED | No backup files found | Dir=%s", BACKUP_DIR)
         print("[ERROR] No backup files found in the 'backups/' directory.")
         return
 
@@ -151,10 +158,13 @@ def restore_database():
     try:
         choice = int(input("\nEnter the number of the backup to restore (or -1 to cancel): "))
         if choice == -1:
+            get_master_logger().info("RESTORE | CANCELLED | User selected cancel before choosing backup.")
             print("Restore cancelled.")
             return
         selected_backup = backups[choice]
+        get_master_logger().info("RESTORE | SELECTED | Backup=%s", selected_backup)
     except (ValueError, IndexError):
+        get_master_logger().warning("RESTORE | BLOCKED | Invalid backup selection.")
         print("[ERROR] Invalid selection.")
         return
 
@@ -162,10 +172,12 @@ def restore_database():
     print("Confirmation is case-sensitive. Type YES exactly as shown.")
     confirm = input(f"\nWARNING: This will overwrite your current database with '{selected_backup.name}'.\nAre you absolutely sure? (type 'YES' to confirm): ")
     if confirm != "YES":
+        get_master_logger().info("RESTORE | CANCELLED | Final YES confirmation declined | Backup=%s", selected_backup)
         print("Restore cancelled.")
         return
 
     try:
+        get_master_logger().info("RESTORE | START | Backup=%s", selected_backup)
         msg = restore_backup_file(selected_backup)
         print(f"\n[SUCCESS] {msg}")
 
@@ -178,9 +190,11 @@ def restore_database():
 def restore_backup_file(selected_backup):
     selected_backup = Path(selected_backup)
     if not selected_backup.exists() or selected_backup.suffix.lower() != ".zip":
+        get_master_logger().error("RESTORE | BLOCKED | Invalid selected backup | File=%s", selected_backup)
         raise Exception("Selected backup file does not exist or is not a ZIP file.")
 
     db_engine = settings.DATABASES['default']['ENGINE']
+    get_master_logger().info("RESTORE | ENGINE | Engine=%s | Backup=%s", db_engine, selected_backup)
 
     if 'sqlite3' in db_engine:
         restore_sqlite(selected_backup)
@@ -196,6 +210,7 @@ def restore_backup_file(selected_backup):
 
 def restore_sqlite(selected_backup):
     db_path = Path(settings.DATABASES['default']['NAME'])
+    get_master_logger().info("RESTORE | SQLITE | Preparing restore | DbPath=%s | Backup=%s", db_path, selected_backup)
 
     with zipfile.ZipFile(selected_backup, 'r') as zip_ref:
         sqlite_members = [
@@ -204,11 +219,13 @@ def restore_sqlite(selected_backup):
         ]
 
         if len(sqlite_members) != 1:
+            get_master_logger().error("RESTORE | SQLITE | Invalid archive member count | Count=%s", len(sqlite_members))
             raise Exception("Selected backup must contain exactly one SQLite .sqlite3 file.")
 
         safety_backup = db_path.with_suffix(f"{db_path.suffix}.pre_restore.bak")
         if db_path.exists():
             shutil.copy2(db_path, safety_backup)
+            get_master_logger().info("RESTORE | SQLITE | Safety backup created | File=%s", safety_backup)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             extracted_path = Path(zip_ref.extract(sqlite_members[0], temp_dir))
@@ -219,6 +236,7 @@ def restore_sqlite(selected_backup):
 
 def restore_postgres(selected_backup):
     db_settings = settings.DATABASES['default']
+    get_master_logger().info("RESTORE | POSTGRES | Preparing restore | Backup=%s | Database=%s", selected_backup, db_settings.get('NAME', ''))
 
     with zipfile.ZipFile(selected_backup, 'r') as zip_ref:
         sql_members = [
@@ -227,6 +245,7 @@ def restore_postgres(selected_backup):
         ]
 
         if len(sql_members) != 1:
+            get_master_logger().error("RESTORE | POSTGRES | Invalid archive member count | Count=%s", len(sql_members))
             raise Exception("Selected backup must contain exactly one PostgreSQL .sql file.")
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -244,6 +263,7 @@ def restore_postgres(selected_backup):
                 '-f', str(sql_path),
             ]
 
+            get_master_logger().info("RESTORE | POSTGRES | Running psql restore | Host=%s | Port=%s | Database=%s", db_settings.get('HOST', 'localhost') or 'localhost', db_settings.get('PORT', '5432') or '5432', db_settings.get('NAME', ''))
             subprocess.run(cmd, env=env, check=True)
 
     print("PostgreSQL database has been restored using psql.")
@@ -254,6 +274,7 @@ if __name__ == '__main__':
     parser.add_argument("--restore", action="store_true", help="Restore the database from a backup file")
     
     args = parser.parse_args()
+    get_master_logger().info("BACKUP_SCRIPT | MANUAL_RUN | Args=%s", vars(args))
     
     # Ensure backup directory exists
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)

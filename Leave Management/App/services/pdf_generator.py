@@ -7,7 +7,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lms_service_pdf_generator")
 
 def generate_pdf_from_html(html_content: str) -> bytes:
     """
@@ -15,6 +15,7 @@ def generate_pdf_from_html(html_content: str) -> bytes:
     This preserves modern CSS, flexbox, grid, and web-fonts.
     """
     try:
+        logger.info("PDF_GENERATOR | START | Rendering HTML to PDF bytes.")
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
@@ -35,6 +36,7 @@ def generate_pdf_from_html(html_content: str) -> bytes:
             )
             
             browser.close()
+            logger.info("PDF_GENERATOR | SUCCESS | PDF bytes generated.")
             return pdf_bytes
             
     except Exception as e:
@@ -129,6 +131,7 @@ def _confirm(prompt, phrase):
 def _write_pdf_bytes(pdf_bytes, output_path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(pdf_bytes)
+    logger.info("PDF_GENERATOR | SAVED | Output=%s | Size=%s bytes", output_path, len(pdf_bytes))
     print(f"SUCCESS: PDF saved to {output_path}")
 
 
@@ -137,6 +140,14 @@ def _generate_weekly_report_pdf():
 
     context = build_weekly_hr_report_context()
     output_path = _generated_pdf_dir() / f"weekly_hr_report_{_timestamp()}.pdf"
+    logger.info(
+        "PDF_GENERATOR | DRY_RUN | Weekly report | Period=%s to %s | Requests=%s | Employees=%s | Output=%s",
+        context["period_start"],
+        context["period_end"],
+        context["total_requests"],
+        context["employee_count"],
+        output_path,
+    )
 
     print("")
     print("--- Weekly Report PDF Dry Run ---")
@@ -149,9 +160,11 @@ def _generate_weekly_report_pdf():
     print("")
 
     if not _confirm("Proceed to generate weekly report PDF?", "GENERATE_PDF"):
+        logger.info("PDF_GENERATOR | CANCELLED | Weekly report PDF confirmation declined.")
         print("Cancelled. No PDF was generated.")
         return
 
+    logger.info("PDF_GENERATOR | CONFIRMED | Weekly report PDF generation accepted.")
     html_content = render_weekly_hr_report_html(context)
     _write_pdf_bytes(generate_pdf_from_html(html_content), output_path)
 
@@ -186,6 +199,12 @@ def _generate_custom_template_pdf():
 
     template_path = _resolve_template_path(path_text)
     output_path = _generated_pdf_dir() / f"{_safe_file_stem(template_path.stem)}_{_timestamp()}.pdf"
+    logger.info(
+        "PDF_GENERATOR | DRY_RUN | Custom template | Input=%s | Exists=%s | Output=%s",
+        template_path,
+        template_path.exists(),
+        output_path,
+    )
 
     print("")
     print("--- Custom Template PDF Dry Run ---")
@@ -197,13 +216,16 @@ def _generate_custom_template_pdf():
     print("")
 
     if not template_path.exists():
+        logger.warning("PDF_GENERATOR | BLOCKED | Custom template input missing | Input=%s", template_path)
         print("Stopped. Input file does not exist.")
         return
 
     if not _confirm("Proceed to generate this PDF?", "GENERATE_PDF"):
+        logger.info("PDF_GENERATOR | CANCELLED | Custom template PDF confirmation declined | Input=%s", template_path)
         print("Cancelled. No PDF was generated.")
         return
 
+    logger.info("PDF_GENERATOR | CONFIRMED | Custom template PDF generation accepted | Input=%s", template_path)
     html_content = _render_template_or_read_html(template_path)
     _write_pdf_bytes(generate_pdf_from_html(html_content), output_path)
 
@@ -211,6 +233,7 @@ def _generate_custom_template_pdf():
 def main():
     _setup_django_for_direct_run()
 
+    logger.info("PDF_GENERATOR | MANUAL_RUN | Opened direct runner.")
     _print_direct_run_intro()
     print("What do you want to do?")
     print("1. Generate weekly report PDF")
@@ -221,12 +244,16 @@ def main():
         return
 
     if choice == "1":
+        logger.info("PDF_GENERATOR | OPTION | Weekly report selected.")
         _generate_weekly_report_pdf()
     elif choice == "2":
+        logger.info("PDF_GENERATOR | OPTION | Custom template selected.")
         _generate_custom_template_pdf()
     elif choice == "3":
+        logger.info("PDF_GENERATOR | OPTION | Exit selected.")
         print("Exited. No PDF was generated.")
     else:
+        logger.warning("PDF_GENERATOR | OPTION | Invalid option selected | Value=%s", choice)
         print("Invalid option. No PDF was generated.")
 
 

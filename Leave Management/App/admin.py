@@ -50,6 +50,7 @@ from .models import (
     ProfileLogViewer,
     SchedulerLogViewer,
     SecurityLogViewer,
+    ServiceLogViewer,
     CustomUser,
     UserAdminAudit,
     WorkFromHomeAdminAudit,
@@ -108,6 +109,15 @@ LOG_VIEWER_FILES = {
         ("Backup", "backups/activity.log"),
         ("Maintenance", "maintenance/activity.log"),
         ("Scheduler", "scheduler/tasks.log"),
+        ("Service backups", "services/backups.log"),
+        ("Service restore DB", "services/restore_db.log"),
+        ("Service maintenance mode", "services/maintenance_mode.log"),
+        ("Service startup checks", "services/startup_checks.log"),
+        ("Service year-end", "services/year_end.log"),
+        ("Service weekly report", "services/weekly_report.log"),
+        ("Service PDF generator", "services/pdf_generator.log"),
+        ("Service uptime tracker", "services/uptime_tracker.log"),
+        ("Service scheduler", "services/scheduler.log"),
         ("API", "api/requests.log"),
         ("Email employee", "email/employee.log"),
         ("Email HR", "email/hr.log"),
@@ -142,6 +152,17 @@ LOG_VIEWER_FILES = {
     "backup": [("Backup", "backups/activity.log")],
     "maintenance": [("Maintenance", "maintenance/activity.log")],
     "scheduler": [("Scheduler", "scheduler/tasks.log")],
+    "services": [
+        ("Backups", "services/backups.log"),
+        ("Restore DB", "services/restore_db.log"),
+        ("Maintenance mode", "services/maintenance_mode.log"),
+        ("Startup checks", "services/startup_checks.log"),
+        ("Year-end", "services/year_end.log"),
+        ("Weekly report", "services/weekly_report.log"),
+        ("PDF generator", "services/pdf_generator.log"),
+        ("Uptime tracker", "services/uptime_tracker.log"),
+        ("Scheduler", "services/scheduler.log"),
+    ],
     "api": [("API", "api/requests.log")],
     "profile": [("Profile", "profile/updates.log")],
     "analytics": [("Analytics", "analytics/navigation.log")],
@@ -1955,6 +1976,14 @@ class SchedulerLogViewerAdmin(BaseLogViewerAdmin):
 
 @login_required
 @never_cache
+@admin.register(ServiceLogViewer)
+class ServiceLogViewerAdmin(BaseLogViewerAdmin):
+    log_key = "services"
+    log_title = "Service logs"
+
+
+@login_required
+@never_cache
 @admin.register(ApiLogViewer)
 class ApiLogViewerAdmin(BaseLogViewerAdmin):
     log_key = "api"
@@ -2191,6 +2220,7 @@ LOG_VIEWER_OBJECT_NAMES = {
     "BackupLogViewer",
     "MaintenanceLogViewer",
     "SchedulerLogViewer",
+    "ServiceLogViewer",
     "ApiLogViewer",
     "ProfileLogViewer",
     "AnalyticsLogViewer",

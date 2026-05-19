@@ -883,6 +883,13 @@ class SchedulerLogViewer(LogViewer):
         verbose_name_plural = "Scheduler logs"
 
 
+class ServiceLogViewer(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Service logs"
+        verbose_name_plural = "Service logs"
+
+
 class ApiLogViewer(LogViewer):
     class Meta:
         proxy = True

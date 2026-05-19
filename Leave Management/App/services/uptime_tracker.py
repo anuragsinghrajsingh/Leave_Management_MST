@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -27,6 +28,7 @@ from django.utils import timezone
 
 
 UPTIME_STATE_FILE = Path(settings.BASE_DIR) / "runtime" / "app_startup.json"
+logger = logging.getLogger("lms_service_uptime_tracker")
 
 
 def _is_managed_server_process():
@@ -48,9 +50,11 @@ def _is_managed_server_process():
 
 def record_app_startup():
     if os.environ.get("LMS_SKIP_UPTIME_RECORD") == "1":
+        logger.info("UPTIME | STARTUP_RECORD | Skipped because LMS_SKIP_UPTIME_RECORD=1.")
         return
 
     if not _is_managed_server_process():
+        logger.info("UPTIME | STARTUP_RECORD | Skipped because process is not managed server process.")
         return
 
     UPTIME_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -58,10 +62,12 @@ def record_app_startup():
         "started_at": timezone.now().isoformat(),
     }
     UPTIME_STATE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    logger.info("UPTIME | STARTUP_RECORD | Recorded app startup at %s.", payload["started_at"])
 
 
 def get_app_started_at():
     if not UPTIME_STATE_FILE.exists():
+        logger.info("UPTIME | READ | Startup state file missing.")
         return None
 
     try:
@@ -74,6 +80,7 @@ def get_app_started_at():
             started_at = timezone.make_aware(started_at)
         return started_at
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        logger.warning("UPTIME | READ | Could not parse startup state file.")
         return None
 
 
@@ -100,16 +107,19 @@ def format_current_uptime():
 
 
 def main():
+    logger.info("UPTIME | MANUAL_RUN | Opened direct viewer.")
     print("--- App Uptime Manual Viewer ---")
     print("This only reads uptime. It will not overwrite the recorded app startup time.")
     print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
     confirmation = input("Type SHOW to continue: ").strip()
 
     if confirmation != "SHOW":
+        logger.info("UPTIME | MANUAL_RUN | Cancelled by confirmation.")
         print("Cancelled. Uptime was not shown.")
         return
 
     started_at = get_app_started_at()
+    logger.info("UPTIME | MANUAL_RUN | Shown | StartedAt=%s | Uptime=%s", started_at, format_current_uptime())
     print(f"Startup Time: {timezone.localtime(started_at).strftime('%b %d, %Y %I:%M %p') if started_at else 'Not tracked yet'}")
     print(f"Current Uptime: {format_current_uptime()}")
 

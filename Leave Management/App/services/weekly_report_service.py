@@ -33,7 +33,7 @@ from App.models import Leave, Profile
 from App.services.uptime_tracker import format_current_uptime
 from App.views import send_branded_email
 
-logger = logging.getLogger('lms_reports')
+logger = logging.getLogger('lms_service_weekly_report')
 
 
 def _get_recent_backup_files(today, days=7):
@@ -115,6 +115,7 @@ def _measure_database_latency_ms():
 
 
 def _build_system_health(today, start_date):
+    logger.info("WEEKLY_REPORT | HEALTH | Building system health | Today=%s | Start=%s", today, start_date)
     backup_summary, last_backup_text = _build_backup_health(today)
     unauthorized_attempts = _count_recent_unauthorized_attempts(start_date)
     pending_notifications = Leave.objects.filter(
@@ -139,6 +140,7 @@ def build_weekly_hr_report_context():
     User = get_user_model()
     today = timezone.localdate()
     start_date = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())) - timedelta(days=7)
+    logger.info("WEEKLY_REPORT | CONTEXT | Building report context | Start=%s | End=%s", start_date, today)
 
     # 1. Compile Global Analytics (Past 7 Days)
     all_employees = User.objects.filter(role="EMPLOYEE", is_active=True)
@@ -180,6 +182,7 @@ def build_weekly_hr_report_context():
             "earned_used": balance.earned_used if balance else 0,
             "unpaid_used": balance.unpaid if balance else 0,
         })
+    logger.info("WEEKLY_REPORT | CONTEXT | Employee report rows built | Count=%s", len(reports))
 
     # Global Totals (Past 7 Days)
     total_requests = leave_queryset.count()
@@ -191,7 +194,7 @@ def build_weekly_hr_report_context():
     # 2. System Health Stats
     system_health = _build_system_health(today, start_date)
 
-    return {
+    context = {
         "period_start": start_date.strftime("%b %d, %Y"),
         "period_end": today.strftime("%b %d, %Y"),
         "total_requests": total_requests,
@@ -203,9 +206,19 @@ def build_weekly_hr_report_context():
         "system_health": system_health,
         "portal_link": settings.SITE_URL if hasattr(settings, 'SITE_URL') else "http://localhost:8000"
     }
+    logger.info(
+        "WEEKLY_REPORT | CONTEXT | Totals | Requests=%s | Approved=%s | Pending=%s | Rejected=%s | Employees=%s",
+        total_requests,
+        approved_total,
+        pending_total,
+        rejected_total,
+        employee_applied_count,
+    )
+    return context
 
 
 def render_weekly_hr_report_html(context=None):
+    logger.info("WEEKLY_REPORT | RENDER | Rendering dashboard HTML.")
     context = context or build_weekly_hr_report_context()
     return render_to_string('emails/weekly_hr_report.html', context)
 
@@ -213,6 +226,7 @@ def render_weekly_hr_report_html(context=None):
 def generate_weekly_hr_report_pdf_bytes():
     from App.services.pdf_generator import generate_pdf_from_html
 
+    logger.info("WEEKLY_REPORT | PDF | Generating weekly report PDF bytes.")
     return generate_pdf_from_html(render_weekly_hr_report_html())
 
 
@@ -226,6 +240,7 @@ def send_weekly_hr_report():
 
     # 1. Fetch HR Recipients
     hr_emails = list(User.objects.filter(role="HR", is_active=True).values_list("email", flat=True))
+    logger.info("WEEKLY_REPORT | EMAIL | Active HR recipient count=%s", len(hr_emails))
     if not hr_emails:
         logger.warning("REPORT | No active HR emails found. Skipping weekly report.")
         return False
@@ -265,7 +280,7 @@ def send_weekly_hr_report():
         
         email.send(fail_silently=False)
         
-        logger.info(f"REPORTS | SUCCESS | Weekly report PDF sent to {to_email}")
+        logger.info("REPORTS | SUCCESS | Weekly report PDF sent | Recipients=%s | Attachment=%s", len(to_email), filename)
         return True
         
     except Exception as e:
@@ -274,15 +289,18 @@ def send_weekly_hr_report():
 
 
 def main():
+    logger.info("WEEKLY_REPORT | MANUAL_RUN | Opened direct runner.")
     print("--- Weekly HR Report Manual Runner ---")
     print("This will send the weekly report email to all active HR users.")
     print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
     confirmation = input("Type SEND to continue: ").strip()
 
     if confirmation != "SEND":
+        logger.info("WEEKLY_REPORT | MANUAL_RUN | Cancelled by confirmation.")
         print("Cancelled. Weekly report was not sent.")
         return
 
+    logger.info("WEEKLY_REPORT | MANUAL_RUN | Confirmation accepted.")
     sent = send_weekly_hr_report()
     if sent:
         print("SUCCESS: Weekly HR report sent.")
