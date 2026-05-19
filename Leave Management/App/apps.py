@@ -8,6 +8,13 @@ class AppConfig(AppConfig):
     def ready(self):
         import App.signals.db_signals
         import App.signals.logging_signals
+
+        try:
+            from .services.uptime_tracker import record_app_startup
+            record_app_startup()
+        except Exception as e:
+            import logging
+            logging.getLogger('lms_master').error(f"UPTIME | Failed to record startup: {e}")
         
         # Start the background scheduler (only in main process to avoid duplicates)
         if os.environ.get('RUN_MAIN') == 'true' or not os.environ.get('DJANGO_SETTINGS_MODULE'):

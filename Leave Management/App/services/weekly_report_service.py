@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
 from django.conf import settings
 from App.models import Leave, Profile
+from App.services.uptime_tracker import format_current_uptime
 from App.views import send_branded_email
 
 logger = logging.getLogger('lms_reports')
@@ -105,7 +106,7 @@ def _build_system_health(today, start_date):
         "backups": backup_summary,
         "last_backup": last_backup_text,
         "security": f"{unauthorized_attempts} Unauthorized Attempts",
-        "uptime": "Not tracked",
+        "uptime": format_current_uptime(),
         "perf": f"{db_latency_ms}ms DB query",
         "notifications": f"{pending_notifications} pending",
     }

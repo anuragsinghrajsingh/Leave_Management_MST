@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,6 +40,10 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default=DEFAULT_DEV_SECRET_KEY)
 # Security Configuration
 DEBUG = env("DJANGO_DEBUG")
 IS_PRODUCTION = not DEBUG
+IS_TESTING = (
+    os.environ.get("LMS_USE_SQLITE_TEST_DB") == "1"
+    or any(arg == "test" or arg.endswith("manage.py test") for arg in sys.argv)
+)
 
 ADMINS = [('Admin', env("ADMIN_EMAIL", default="admin@example.com"))]
 MANAGERS = ADMINS
@@ -141,7 +146,17 @@ WSGI_APPLICATION = 'leave_management.wsgi.application'
 
 DB_ENGINE = env("DB_ENGINE", default="postgresql" if IS_PRODUCTION else "sqlite").strip().lower()
 
-if DB_ENGINE == "postgresql":
+if IS_TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "runtime" / "test.sqlite3",
+            "TEST": {
+                "NAME": ":memory:",
+            },
+        }
+    }
+elif DB_ENGINE == "postgresql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
