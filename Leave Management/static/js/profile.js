@@ -2010,7 +2010,8 @@ launchConfetti();
                     /* UPDATE PROFILE PHOTO IN UI */
                     const avatar = document.getElementById("profileViewPhotoTrigger");
                     const viewPhoto = document.getElementById("viewProfileImg");
-                    const headerAvatar = document.querySelector(".profile-icon img");
+                    const headerAvatar = document.querySelector(".profile-icon img, .profile-icon .profile-avatar-initials");
+                    const dropdownAvatar = document.querySelector(".user-info-media img, .user-info .dropdown-avatar-initials");
 
                     const newURL = data.photo_url + "?t=" + Date.now();
 
@@ -2039,7 +2040,18 @@ launchConfetti();
                             image.id = element.id || "";
                             image.className = className;
                             image.alt = element.getAttribute("aria-label") || "Profile";
-                            element.replaceWith(image);
+
+                            if (element.classList.contains("dropdown-avatar-initials"))
+                            {
+                                const media = document.createElement("span");
+                                media.className = "user-info-media";
+                                media.appendChild(image);
+                                element.replaceWith(media);
+                            }
+                            else
+                            {
+                                element.replaceWith(image);
+                            }
                         }
 
                         image.classList.remove("avatar-updating", "profile-photo-initials", "profile-photo-view-initials");
@@ -2054,6 +2066,7 @@ launchConfetti();
                     updatePhotoElement(avatar, "avatar");
                     updatePhotoElement(viewPhoto, "photo-view-img");
                     updatePhotoElement(headerAvatar, "avatar");
+                    updatePhotoElement(dropdownAvatar, "");
 
                     if(data.completion !== undefined)
                     {
