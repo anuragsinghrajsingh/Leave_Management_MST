@@ -44,7 +44,7 @@ def _get_recent_backup_files(today, days=7):
     start_day = today - timedelta(days=days - 1)
     return [
         backup
-        for backup in backup_dir.glob("LMS_backup_*.zip")
+        for backup in backup_dir.glob("backup_*.zip")
         if start_day <= timezone.localdate(timezone.make_aware(
             timezone.datetime.fromtimestamp(backup.stat().st_mtime)
         )) <= today

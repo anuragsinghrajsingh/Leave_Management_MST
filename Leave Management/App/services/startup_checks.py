@@ -32,9 +32,9 @@ logger = logging.getLogger('lms_service_startup_checks')
 
 def get_backup_catchup_status():
     today = localdate()
-    today_str = today.strftime('%Y%m%d')
+    today_str = today.strftime('%Y-%m-%d')
     backup_dir = Path(settings.BASE_DIR) / 'backups'
-    today_backups = list(backup_dir.glob(f"*_{today_str}_*.zip")) if backup_dir.exists() else []
+    today_backups = list(backup_dir.glob(f"backup_*_{today_str}_*.zip")) if backup_dir.exists() else []
 
     return {
         "today": today,

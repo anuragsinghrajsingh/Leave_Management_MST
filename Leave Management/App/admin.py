@@ -250,7 +250,7 @@ def _get_backup_restore_files(query=""):
         return []
 
     backups = []
-    for backup in sorted(backup_dir.glob("*.zip"), key=lambda path: path.stat().st_mtime, reverse=True):
+    for backup in sorted(backup_dir.glob("backup_*.zip"), key=lambda path: path.stat().st_mtime, reverse=True):
         if query and query.lower() not in backup.name.lower():
             continue
         backups.append({
@@ -264,7 +264,7 @@ def _get_backup_restore_files(query=""):
 def _get_safe_backup_path(filename):
     backup_dir = (settings.BASE_DIR / "backups").resolve()
     backup_path = (backup_dir / filename).resolve()
-    if backup_dir not in backup_path.parents or backup_path.suffix.lower() != ".zip":
+    if backup_dir not in backup_path.parents or backup_path.suffix.lower() != ".zip" or not backup_path.name.startswith("backup_"):
         return None
     if not backup_path.exists() or not backup_path.is_file():
         return None
@@ -2209,7 +2209,7 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "title": "Service actions",
             "opts": self.model._meta,
             "maintenance_mode_enabled": is_maintenance_mode_enabled(),
-            "latest_backup": _get_latest_file_info(settings.BASE_DIR / "backups", "*.zip"),
+            "latest_backup": _get_latest_file_info(settings.BASE_DIR / "backups", "backup_*.zip"),
             "latest_pdf": _get_latest_file_info(settings.BASE_DIR / "generated_pdfs", "*.pdf"),
             "startup_status": startup_status,
             "weekly_report_preview": weekly_context,

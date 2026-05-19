@@ -36,10 +36,13 @@ def get_master_logger():
 def get_email_logger():
     return logging.getLogger('lms_email_system')
 
+def backup_timestamp():
+    return datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
 def backup_sqlite():
     db_path = settings.DATABASES['default']['NAME']
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_filename = f"LMS_backup_dev_{timestamp}.sqlite3"
+    timestamp = backup_timestamp()
+    backup_filename = f"backup_dev_{timestamp}.sqlite3"
     backup_path = BACKUP_DIR / backup_filename
     
     get_master_logger().info("BACKUP | SQLITE | Copying database | Source=%s | RawBackup=%s", db_path, backup_path)
@@ -48,8 +51,8 @@ def backup_sqlite():
 
 def backup_postgres():
     db_settings = settings.DATABASES['default']
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_filename = f"LMS_backup_prod_{timestamp}.sql"
+    timestamp = backup_timestamp()
+    backup_filename = f"backup_prod_{timestamp}.sql"
     backup_path = BACKUP_DIR / backup_filename
     
     # pg_dump command
@@ -81,7 +84,7 @@ def compress_file(file_path):
 def cleanup_old_backups():
     cutoff = datetime.now() - timedelta(days=RETENTION_DAYS)
     deleted_count = 0
-    for file in BACKUP_DIR.glob('LMS_backup_*'):
+    for file in BACKUP_DIR.glob('backup_*'):
         file_time = datetime.fromtimestamp(file.stat().st_mtime)
         if file_time < cutoff:
             get_master_logger().info("BACKUP | CLEANUP | Removing old backup | File=%s", file)
