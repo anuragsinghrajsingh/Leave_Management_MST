@@ -937,3 +937,10 @@ class MaintenanceModeControl(LogViewer):
         proxy = True
         verbose_name = "Maintenance mode"
         verbose_name_plural = "Maintenance mode"
+
+
+class ServiceActionControl(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Service actions"
+        verbose_name_plural = "Service actions"

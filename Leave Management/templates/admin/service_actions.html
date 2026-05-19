@@ -1,0 +1,147 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .service-card {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      padding: 16px;
+      background: var(--body-bg, #fff);
+    }
+    .service-card h2 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+    }
+    .service-card p {
+      margin: 6px 0;
+    }
+    .service-card textarea,
+    .service-card input[type="text"] {
+      width: 100%;
+      max-width: 520px;
+      box-sizing: border-box;
+    }
+    .service-status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .service-status-item {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(127, 127, 127, 0.06);
+    }
+  </style>
+
+  <p>Run protected service workflows from admin. Every action requires a reason and an exact confirmation phrase.</p>
+
+  <div class="service-status">
+    <div class="service-status-item">
+      <strong>Maintenance mode</strong><br>
+      {% if maintenance_mode_enabled %}Enabled{% else %}Disabled{% endif %}
+    </div>
+    <div class="service-status-item">
+      <strong>Uptime</strong><br>
+      {{ uptime_text }}{% if started_at %}<br><small>Started: {{ started_at }}</small>{% endif %}
+    </div>
+    <div class="service-status-item">
+      <strong>Latest backup</strong><br>
+      {% if latest_backup %}
+        {{ latest_backup.name }}<br><small>{{ latest_backup.modified_at }} | {{ latest_backup.size_kb }} KB</small>
+      {% else %}
+        No backup found
+      {% endif %}
+    </div>
+    <div class="service-status-item">
+      <strong>Latest generated PDF</strong><br>
+      {% if latest_pdf %}
+        {{ latest_pdf.name }}<br><small>{{ latest_pdf.modified_at }} | {{ latest_pdf.size_kb }} KB</small>
+      {% else %}
+        No generated PDF found
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="service-grid">
+    <section class="service-card">
+      <h2>Backup Database</h2>
+      <p>Creates a database backup immediately. Restore is handled separately from Services &gt; Backup restore.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_action" value="backup">
+        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
+        <p><label><strong>Type RUN_BACKUP:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
+        <button type="submit" class="default">Run backup</button>
+      </form>
+    </section>
+
+    <section class="service-card">
+      <h2>Weekly Report Email</h2>
+      <p>Period: {{ weekly_report_preview.period_start }} to {{ weekly_report_preview.period_end }}</p>
+      <p>Requests: {{ weekly_report_preview.total_requests }} | Employees: {{ weekly_report_preview.employee_count }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_action" value="weekly_report">
+        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
+        <p><label><strong>Type SEND_WEEKLY_REPORT:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
+        <button type="submit" class="default">Send weekly report</button>
+      </form>
+    </section>
+
+    <section class="service-card">
+      <h2>Weekly Report PDF</h2>
+      <p>Generates and saves the weekly report PDF in <code>generated_pdfs/</code>.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_action" value="weekly_pdf">
+        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
+        <p><label><strong>Type GENERATE_WEEKLY_PDF:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
+        <button type="submit" class="default">Generate PDF</button>
+      </form>
+    </section>
+
+    <section class="service-card">
+      <h2>Startup Checks</h2>
+      <p>Backup: {% if startup_status.backup.should_run %}would run{% else %}would skip{% endif %}</p>
+      <p>Weekly report: {% if startup_status.weekly_report.should_run %}would send{% else %}would skip{% endif %}</p>
+      <p>Year-end: {% if startup_status.year_end.should_run %}would run{% else %}would skip{% endif %} ({{ startup_status.year_end.reason }})</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_action" value="startup_checks">
+        <p>
+          <label><input type="checkbox" name="check_backup" checked> Backup</label><br>
+          <label><input type="checkbox" name="check_weekly_report" checked> Weekly report</label><br>
+          <label><input type="checkbox" name="check_year_end" checked> Year-end carry forward</label>
+        </p>
+        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
+        <p><label><strong>Type RUN_STARTUP_CHECKS:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
+        <button type="submit" class="default">Run selected checks</button>
+      </form>
+    </section>
+
+    <section class="service-card">
+      <h2>Year-End Carry Forward</h2>
+      <p>Year: {{ year_end_status.year }}</p>
+      <p>Decision: {% if year_end_status.should_run %}would run{% else %}would skip{% endif %}</p>
+      <p>Reason: {{ year_end_status.reason }}</p>
+      <p>Eligible balances: {{ year_end_status.eligible_count }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_action" value="year_end">
+        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
+        <p><label><strong>Type RUN_YEAR_END_CARRY_FORWARD:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
+        <button type="submit" class="deletelink">Run year-end carry forward</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

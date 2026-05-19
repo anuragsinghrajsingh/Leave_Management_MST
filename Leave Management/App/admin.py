@@ -50,6 +50,7 @@ from .models import (
     ProfileLogViewer,
     SchedulerLogViewer,
     SecurityLogViewer,
+    ServiceActionControl,
     ServiceLogViewer,
     CustomUser,
     UserAdminAudit,
@@ -86,6 +87,7 @@ from App.services.maintenance_mode import (
 
 
 maintenance_logger = logging.getLogger("lms_maintenance")
+service_admin_logger = logging.getLogger("lms_service_startup_checks")
 
 
 
@@ -267,6 +269,32 @@ def _get_safe_backup_path(filename):
     if not backup_path.exists() or not backup_path.is_file():
         return None
     return backup_path
+
+
+def _get_latest_file_info(directory, pattern):
+    if not directory.exists():
+        return None
+    files = sorted(directory.glob(pattern), key=lambda path: path.stat().st_mtime, reverse=True)
+    if not files:
+        return None
+    latest = files[0]
+    return {
+        "name": latest.name,
+        "path": latest,
+        "size_kb": round(latest.stat().st_size / 1024, 2),
+        "modified_at": datetime.fromtimestamp(latest.stat().st_mtime),
+    }
+
+
+def _save_admin_weekly_report_pdf():
+    from App.services.weekly_report_service import generate_weekly_hr_report_pdf_bytes
+
+    output_dir = settings.BASE_DIR / "generated_pdfs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"weekly_hr_report_admin_{now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    pdf_bytes = generate_weekly_hr_report_pdf_bytes()
+    output_path.write_bytes(pdf_bytes)
+    return output_path
 
 
 def _sanitize_admin_profile_photo_upload(photo):
@@ -2024,6 +2052,185 @@ class DjangoErrorLogViewerAdmin(BaseLogViewerAdmin):
 
 @login_required
 @never_cache
+@admin.register(ServiceActionControl)
+class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can run service actions.", level=messages.ERROR)
+            return redirect("admin:index")
+
+        if request.method == "POST":
+            service_action = (request.POST.get("service_action") or "").strip()
+            confirmation = (request.POST.get("confirmation") or "").strip()
+            reason = (request.POST.get("reason") or "").strip()
+
+            if not reason:
+                self.message_user(request, "Reason is required.", level=messages.ERROR)
+                return redirect(request.path)
+
+            try:
+                if service_action == "backup":
+                    if confirmation != "RUN_BACKUP":
+                        self.message_user(request, "Type RUN_BACKUP to run backup.", level=messages.ERROR)
+                        return redirect(request.path)
+                    from manage_backups import run_backup
+
+                    did_backup = run_backup()
+                    if did_backup:
+                        _create_admin_audit_log(
+                            request,
+                            request.user,
+                            {"service_action": {"old": None, "new": {"action": "backup"}}},
+                            reason,
+                            action="SERVICE_BACKUP",
+                        )
+                        service_admin_logger.info("SERVICE_ADMIN | BACKUP | Run by=%s | Reason=%s", request.user.username, reason)
+                        self.message_user(request, "Backup completed.", level=messages.SUCCESS)
+                    else:
+                        self.message_user(request, "Backup failed. Check service logs.", level=messages.ERROR)
+
+                elif service_action == "weekly_report":
+                    if confirmation != "SEND_WEEKLY_REPORT":
+                        self.message_user(request, "Type SEND_WEEKLY_REPORT to send weekly report.", level=messages.ERROR)
+                        return redirect(request.path)
+                    from App.services.weekly_report_service import send_weekly_hr_report
+
+                    sent = send_weekly_hr_report()
+                    if sent:
+                        _create_admin_audit_log(
+                            request,
+                            request.user,
+                            {"service_action": {"old": None, "new": {"action": "weekly_report"}}},
+                            reason,
+                            action="SERVICE_WEEKLY_REPORT",
+                        )
+                        service_admin_logger.info("SERVICE_ADMIN | WEEKLY_REPORT | Sent by=%s | Reason=%s", request.user.username, reason)
+                        self.message_user(request, "Weekly report sent.", level=messages.SUCCESS)
+                    else:
+                        self.message_user(request, "Weekly report was not sent. Check service/email logs.", level=messages.ERROR)
+
+                elif service_action == "weekly_pdf":
+                    if confirmation != "GENERATE_WEEKLY_PDF":
+                        self.message_user(request, "Type GENERATE_WEEKLY_PDF to generate weekly PDF.", level=messages.ERROR)
+                        return redirect(request.path)
+
+                    output_path = _save_admin_weekly_report_pdf()
+                    _create_admin_audit_log(
+                        request,
+                        request.user,
+                        {"service_action": {"old": None, "new": {"action": "weekly_pdf", "file": output_path.name}}},
+                        reason,
+                        action="SERVICE_WEEKLY_PDF",
+                    )
+                    service_admin_logger.info("SERVICE_ADMIN | WEEKLY_PDF | Generated by=%s | File=%s | Reason=%s", request.user.username, output_path, reason)
+                    self.message_user(request, f"Weekly PDF generated: {output_path.name}", level=messages.SUCCESS)
+
+                elif service_action == "startup_checks":
+                    if confirmation != "RUN_STARTUP_CHECKS":
+                        self.message_user(request, "Type RUN_STARTUP_CHECKS to run startup checks.", level=messages.ERROR)
+                        return redirect(request.path)
+                    from App.services.startup_checks import run_selected_startup_checks
+
+                    selected = {
+                        "backup": request.POST.get("check_backup") == "on",
+                        "weekly_report": request.POST.get("check_weekly_report") == "on",
+                        "year_end": request.POST.get("check_year_end") == "on",
+                    }
+                    if not any(selected.values()):
+                        self.message_user(request, "Select at least one startup check.", level=messages.ERROR)
+                        return redirect(request.path)
+
+                    run_selected_startup_checks(selected)
+                    _create_admin_audit_log(
+                        request,
+                        request.user,
+                        {"service_action": {"old": None, "new": {"action": "startup_checks", "selected": selected}}},
+                        reason,
+                        action="SERVICE_STARTUP_CHECKS",
+                    )
+                    service_admin_logger.info("SERVICE_ADMIN | STARTUP_CHECKS | Run by=%s | Selected=%s | Reason=%s", request.user.username, selected, reason)
+                    self.message_user(request, "Startup checks finished. Review service logs for details.", level=messages.SUCCESS)
+
+                elif service_action == "year_end":
+                    if confirmation != "RUN_YEAR_END_CARRY_FORWARD":
+                        self.message_user(request, "Type RUN_YEAR_END_CARRY_FORWARD to run year-end carry forward.", level=messages.ERROR)
+                        return redirect(request.path)
+                    from App.services.year_end_service import run_year_end_carry_forward_if_due
+
+                    did_run = run_year_end_carry_forward_if_due()
+                    _create_admin_audit_log(
+                        request,
+                        request.user,
+                        {"service_action": {"old": None, "new": {"action": "year_end", "did_run": did_run}}},
+                        reason,
+                        action="SERVICE_YEAR_END",
+                    )
+                    service_admin_logger.info("SERVICE_ADMIN | YEAR_END | Run by=%s | DidRun=%s | Reason=%s", request.user.username, did_run, reason)
+                    self.message_user(
+                        request,
+                        "Year-end carry forward completed." if did_run else "Year-end carry forward skipped. Check status/logs.",
+                        level=messages.SUCCESS if did_run else messages.WARNING,
+                    )
+
+                else:
+                    self.message_user(request, "Unknown service action.", level=messages.ERROR)
+
+            except Exception as exc:
+                service_admin_logger.error("SERVICE_ADMIN | FAILED | Action=%s | By=%s | Error=%s", service_action, request.user.username, exc)
+                _create_admin_audit_log(
+                    request,
+                    request.user,
+                    {"service_action": {"old": None, "new": {"action": service_action, "error": str(exc)}}},
+                    reason,
+                    action="SERVICE_ACTION_FAILED",
+                )
+                self.message_user(request, f"Service action failed: {exc}", level=messages.ERROR)
+
+            return redirect(request.path)
+
+        from App.services.startup_checks import (
+            get_backup_catchup_status,
+            get_weekly_report_catchup_status,
+            get_year_end_catchup_status,
+        )
+        from App.services.uptime_tracker import format_current_uptime, get_app_started_at
+        from App.services.weekly_report_service import build_weekly_hr_report_context
+        from App.services.year_end_service import get_year_end_carry_forward_status
+
+        weekly_context = build_weekly_hr_report_context()
+        startup_status = {
+            "backup": get_backup_catchup_status(),
+            "weekly_report": get_weekly_report_catchup_status(),
+            "year_end": get_year_end_catchup_status(),
+        }
+        started_at = get_app_started_at()
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Service actions",
+            "opts": self.model._meta,
+            "maintenance_mode_enabled": is_maintenance_mode_enabled(),
+            "latest_backup": _get_latest_file_info(settings.BASE_DIR / "backups", "*.zip"),
+            "latest_pdf": _get_latest_file_info(settings.BASE_DIR / "generated_pdfs", "*.pdf"),
+            "startup_status": startup_status,
+            "weekly_report_preview": weekly_context,
+            "year_end_status": get_year_end_carry_forward_status(),
+            "uptime_text": format_current_uptime(),
+            "started_at": localtime(started_at) if started_at else None,
+        }
+        return TemplateResponse(request, "admin/service_actions.html", context)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@login_required
+@never_cache
 @admin.register(BackupRestoreControl)
 class BackupRestoreControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
@@ -2229,6 +2436,7 @@ LOG_VIEWER_OBJECT_NAMES = {
 }
 
 BACKUP_MANAGEMENT_OBJECT_NAMES = {
+    "ServiceActionControl",
     "BackupRestoreControl",
     "MaintenanceModeControl",
 }
@@ -2334,8 +2542,8 @@ def get_grouped_admin_app_list(request, app_label=None):
         if log_viewer_models:
             insert_at += 1
         grouped_app_list.insert(insert_at, {
-            "name": "Backup Management",
-            "app_label": "backup_management",
+            "name": "Services",
+            "app_label": "services",
             "app_url": "",
             "has_module_perms": True,
             "models": backup_management_models,

@@ -7,8 +7,8 @@ logger = logging.getLogger('lms_scheduler')
 
 def start_scheduler():
     logger.info("SCHEDULER | START | Preparing in-app background scheduler.")
-    from manage_backups import run_backup
     from App.services.year_end_service import run_year_end_carry_forward_if_due
+    from App.services.startup_checks import check_and_run_missed_backup, check_and_run_missed_weekly_report
 
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
@@ -35,7 +35,7 @@ def start_scheduler():
 
     # Schedule the backup job at 2:00 AM every night
     scheduler.add_job(
-        run_backup,
+        check_and_run_missed_backup,
         trigger="cron",
         hour=2,
         minute=0,
@@ -46,9 +46,8 @@ def start_scheduler():
     logger.info("SCHEDULER | JOB_ADDED | nightly_backup | Daily 02:00")
 
     # Schedule the Weekly HR Report at 9:00 AM every Monday
-    from App.services.weekly_report_service import send_weekly_hr_report
     scheduler.add_job(
-        send_weekly_hr_report,
+        check_and_run_missed_weekly_report,
         trigger="cron",
         day_of_week="mon",
         hour=9,
