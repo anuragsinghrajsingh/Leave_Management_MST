@@ -454,14 +454,14 @@
             <div class="employee-modal-header">
                 <div class="employee-modal-profile">
                     <div class="detail-avatar-shell compact-avatar-shell">
-                        <img id="detailPhoto" src="{% static 'images/user.jpg' %}" alt="Employee" class="detail-photo">
+                        <img id="detailPhoto" src="" alt="Employee" class="detail-photo hidden">
                         <span
                             id="detailPhotoFallback"
-                            class="detail-photo-fallback hidden"
+                            class="detail-photo-fallback"
                             aria-label="Employee"
-                            data-full-name=""
-                            data-username=""
-                        ></span>
+                            data-full-name="Employee"
+                            data-username="Employee"
+                        >EM</span>
                     </div>
                     <div class="detail-copy detail-copy-shifted">
                         <p class="eyebrow detail-title-eyebrow">Employee detail</p>
@@ -918,7 +918,7 @@
     <div
         id="manage-all-js-config"
         data-csrf-token="{{ csrf_token }}"
-        data-default-profile-image="{% static 'images/user.jpg' %}"
+        data-default-profile-image=""
         data-employee-detail-url-template="{% url 'manage_all_employee_detail' 0 %}"
         data-summary-url="{% url 'manage_all_summary' %}"
         data-approve-leave-url-template="{% url 'approve_leave' 0 %}"

@@ -217,7 +217,14 @@
                         {% if profile.has_profile_photo_file %}
                         <img src="{{ profile.profile_photo.url }}" id="profileViewPhotoTrigger" class="avatar">
                         {% else %}
-                        <img src="{% static 'images/user.jpg' %}" id="profileViewPhotoTrigger" class="avatar">
+                        <span
+                            id="profileViewPhotoTrigger"
+                            class="avatar profile-photo-initials"
+                            data-user-initials
+                            data-full-name="{{ request.user.get_full_name }}"
+                            data-username="{{ request.user.username }}"
+                            aria-label="{{ request.user.get_full_name|default:request.user.username }}"
+                        ></span>
                         {% endif %}
 
                         <div id="profileEditPhotoTrigger" class="avatar-edit-overlay" role="button" tabindex="0" data-action="edit-photo-key">
@@ -495,7 +502,14 @@
                 {% if request.user.profile.has_profile_photo_file %}
                     <img src="{{ request.user.profile.profile_photo.url }}" id="viewProfileImg" class="photo-view-img">
                 {% else %}
-                    <img src="{% static 'images/user.jpg' %}" id="viewProfileImg" class="photo-view-img">
+                    <span
+                        id="viewProfileImg"
+                        class="photo-view-img profile-photo-view-initials"
+                        data-user-initials
+                        data-full-name="{{ request.user.get_full_name }}"
+                        data-username="{{ request.user.username }}"
+                        aria-label="{{ request.user.get_full_name|default:request.user.username }}"
+                    ></span>
                 {% endif %}
                 
             </div>

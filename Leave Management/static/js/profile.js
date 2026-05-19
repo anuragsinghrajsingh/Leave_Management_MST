@@ -2008,25 +2008,52 @@ launchConfetti();
                     }
 
                     /* UPDATE PROFILE PHOTO IN UI */
-                    const avatar = document.querySelector(".avatar");
+                    const avatar = document.getElementById("profileViewPhotoTrigger");
                     const viewPhoto = document.getElementById("viewProfileImg");
                     const headerAvatar = document.querySelector(".profile-icon img");
 
                     const newURL = data.photo_url + "?t=" + Date.now();
 
-                    /* update all profile images */
-                    [avatar, viewPhoto, headerAvatar].forEach(img =>
+                    function updatePhotoElement(element, className)
                     {
-                        if(!img) return;
+                        if (!element) return;
 
-                        img.classList.remove("avatar-updating");
+                        if (element.id === "profileViewPhotoTrigger" && element.tagName !== "IMG")
+                        {
+                            element.textContent = "";
+                            element.classList.remove("profile-photo-initials", "avatar-updating");
+                            setTimeout(() =>
+                            {
+                                element.style.backgroundImage = `url("${newURL}")`;
+                                element.style.backgroundSize = "cover";
+                                element.style.backgroundPosition = "center";
+                                element.classList.add("avatar-updating");
+                            }, 50);
+                            return;
+                        }
+
+                        let image = element;
+                        if (element.tagName !== "IMG")
+                        {
+                            image = document.createElement("img");
+                            image.id = element.id || "";
+                            image.className = className;
+                            image.alt = element.getAttribute("aria-label") || "Profile";
+                            element.replaceWith(image);
+                        }
+
+                        image.classList.remove("avatar-updating", "profile-photo-initials", "profile-photo-view-initials");
 
                         setTimeout(() =>
                         {
-                            img.src = newURL;
-                            img.classList.add("avatar-updating");
+                            image.src = newURL;
+                            image.classList.add("avatar-updating");
                         }, 50);
-                    });
+                    }
+
+                    updatePhotoElement(avatar, "avatar");
+                    updatePhotoElement(viewPhoto, "photo-view-img");
+                    updatePhotoElement(headerAvatar, "avatar");
 
                     if(data.completion !== undefined)
                     {

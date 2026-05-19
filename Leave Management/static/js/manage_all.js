@@ -3702,7 +3702,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             return;
         }
 
-        photo.src = defaultProfileImage;
+        photo.removeAttribute("src");
         photo.classList.add("hidden");
         fallback.classList.remove("hidden");
     }
