@@ -10,6 +10,7 @@ def _setup_django():
     if str(project_root) not in sys.path:
         sys.path.append(str(project_root))
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
     import django
 
     django.setup()
@@ -38,6 +39,25 @@ def disable_maintenance_mode():
         MAINTENANCE_MODE_FLAG.unlink()
 
 
+def _confirmation_phrase(action):
+    action_text = action.upper()
+    if settings.DEBUG:
+        return f"{action_text}_MAINTENANCE"
+    return f"PRODUCTION_{action_text}_MAINTENANCE"
+
+
+def confirm_maintenance_action(action):
+    phrase = _confirmation_phrase(action)
+    if not settings.DEBUG:
+        print("PRODUCTION MODE DETECTED.")
+    print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
+    confirmation = input(f"Type {phrase} to {action} maintenance mode: ").strip()
+    if confirmation != phrase:
+        print(f"{action.title()} cancelled.")
+        return False
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Control Leave Management maintenance mode.")
     parser.add_argument("action", nargs="?", choices=["status", "enable", "disable"], help="Maintenance mode action.")
@@ -52,11 +72,15 @@ def main():
         return
 
     if args.action == "enable":
+        if not confirm_maintenance_action("enable"):
+            return
         enable_maintenance_mode()
         maintenance_logger.info("MAINTENANCE | ENABLED | By: terminal | Reason: direct CLI action")
         print("Maintenance mode enabled.")
         return
 
+    if not confirm_maintenance_action("disable"):
+        return
     disable_maintenance_mode()
     maintenance_logger.info("MAINTENANCE | DISABLED | By: terminal | Reason: direct CLI action")
     print("Maintenance mode disabled.")
@@ -79,9 +103,7 @@ def run_interactive_menu():
                 print("Maintenance mode is already enabled.")
                 continue
 
-            confirm = input("Type MAINTENANCE to enable maintenance mode: ").strip()
-            if confirm != "MAINTENANCE":
-                print("Enable cancelled.")
+            if not confirm_maintenance_action("enable"):
                 continue
 
             enable_maintenance_mode()
@@ -94,9 +116,7 @@ def run_interactive_menu():
                 print("Maintenance mode is already disabled.")
                 continue
 
-            confirm = input("Type DISABLE to turn maintenance mode off: ").strip()
-            if confirm != "DISABLE":
-                print("Disable cancelled.")
+            if not confirm_maintenance_action("disable"):
                 continue
 
             disable_maintenance_mode()

@@ -1,4 +1,10 @@
 import logging
+import os
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger(__name__)
@@ -34,3 +40,195 @@ def generate_pdf_from_html(html_content: str) -> bytes:
     except Exception as e:
         logger.error(f"PDF_GENERATOR | Failed to generate PDF: {e}")
         raise
+
+
+def _setup_django_for_direct_run():
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
+
+    import django
+    from django.apps import apps
+
+    if not apps.ready:
+        django.setup()
+
+
+def _project_root():
+    return Path(__file__).resolve().parents[2]
+
+
+def _generated_pdf_dir():
+    output_dir = _project_root() / "generated_pdfs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def _safe_file_stem(value):
+    stem = re.sub(r"[^A-Za-z0-9_-]+", "_", value).strip("_")
+    return stem or "manual_pdf"
+
+
+def _timestamp():
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _read_last_weekly_report_info():
+    tracking_file = _project_root() / "backups" / "last_weekly_report.txt"
+    if not tracking_file.exists():
+        return "No weekly report tracking file found yet."
+
+    try:
+        content = tracking_file.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        return f"Could not read weekly report tracking file: {exc}"
+
+    return content or "Weekly report tracking file is empty."
+
+
+def _latest_generated_pdf_info():
+    output_dir = _generated_pdf_dir()
+    pdf_files = list(output_dir.glob("*.pdf"))
+    if not pdf_files:
+        return "No manually generated PDFs found yet."
+
+    latest_pdf = max(pdf_files, key=lambda item: item.stat().st_mtime)
+    generated_at = datetime.fromtimestamp(latest_pdf.stat().st_mtime).strftime("%d %b %Y, %I:%M %p")
+    return f"{latest_pdf.name} | {generated_at}"
+
+
+def _print_direct_run_intro():
+    print("--- PDF Generator Manual Runner ---")
+    print("Last weekly report info:")
+    print(f"  {_read_last_weekly_report_info()}")
+    print("Last manually generated PDF:")
+    print(f"  {_latest_generated_pdf_info()}")
+    print("")
+
+
+def _safe_input(prompt):
+    try:
+        return input(prompt).strip()
+    except EOFError:
+        print("")
+        print("No input received. Exiting without generating a PDF.")
+        return None
+
+
+def _confirm(prompt, phrase):
+    print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
+    confirmation = _safe_input(f"{prompt} Type {phrase}: ")
+    if confirmation is None:
+        return False
+    return confirmation == phrase
+
+
+def _write_pdf_bytes(pdf_bytes, output_path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(pdf_bytes)
+    print(f"SUCCESS: PDF saved to {output_path}")
+
+
+def _generate_weekly_report_pdf():
+    from App.services.weekly_report_service import build_weekly_hr_report_context, render_weekly_hr_report_html
+
+    context = build_weekly_hr_report_context()
+    output_path = _generated_pdf_dir() / f"weekly_hr_report_{_timestamp()}.pdf"
+
+    print("")
+    print("--- Weekly Report PDF Dry Run ---")
+    print(f"Period: {context['period_start']} to {context['period_end']}")
+    print(f"Total requests: {context['total_requests']}")
+    print(f"Employees with activity: {context['employee_count']}")
+    print(f"Output folder: {_generated_pdf_dir()}")
+    print(f"Output file: {output_path.name}")
+    print("Action: No PDF created yet.")
+    print("")
+
+    if not _confirm("Proceed to generate weekly report PDF?", "GENERATE_PDF"):
+        print("Cancelled. No PDF was generated.")
+        return
+
+    html_content = render_weekly_hr_report_html(context)
+    _write_pdf_bytes(generate_pdf_from_html(html_content), output_path)
+
+
+def _resolve_template_path(path_text):
+    candidate = Path(path_text.strip().strip('"'))
+    if candidate.is_absolute():
+        return candidate
+    return _project_root() / candidate
+
+
+def _render_template_or_read_html(template_path):
+    from django.template.loader import render_to_string
+
+    project_root = _project_root()
+    templates_root = project_root / "templates"
+
+    try:
+        template_name = template_path.resolve().relative_to(templates_root.resolve()).as_posix()
+        return render_to_string(template_name, {})
+    except ValueError:
+        return template_path.read_text(encoding="utf-8")
+
+
+def _generate_custom_template_pdf():
+    path_text = _safe_input("Enter HTML/template path: ")
+    if path_text is None:
+        return
+    if not path_text:
+        print("Cancelled. No path entered.")
+        return
+
+    template_path = _resolve_template_path(path_text)
+    output_path = _generated_pdf_dir() / f"{_safe_file_stem(template_path.stem)}_{_timestamp()}.pdf"
+
+    print("")
+    print("--- Custom Template PDF Dry Run ---")
+    print(f"Input path: {template_path}")
+    print(f"Input exists: {'Yes' if template_path.exists() else 'No'}")
+    print(f"Output folder: {_generated_pdf_dir()}")
+    print(f"Output file: {output_path.name}")
+    print("Action: No PDF created yet.")
+    print("")
+
+    if not template_path.exists():
+        print("Stopped. Input file does not exist.")
+        return
+
+    if not _confirm("Proceed to generate this PDF?", "GENERATE_PDF"):
+        print("Cancelled. No PDF was generated.")
+        return
+
+    html_content = _render_template_or_read_html(template_path)
+    _write_pdf_bytes(generate_pdf_from_html(html_content), output_path)
+
+
+def main():
+    _setup_django_for_direct_run()
+
+    _print_direct_run_intro()
+    print("What do you want to do?")
+    print("1. Generate weekly report PDF")
+    print("2. Generate PDF from another HTML/template")
+    print("3. Exit")
+    choice = _safe_input("Choose option 1, 2, or 3: ")
+    if choice is None:
+        return
+
+    if choice == "1":
+        _generate_weekly_report_pdf()
+    elif choice == "2":
+        _generate_custom_template_pdf()
+    elif choice == "3":
+        print("Exited. No PDF was generated.")
+    else:
+        print("Invalid option. No PDF was generated.")
+
+
+if __name__ == "__main__":
+    main()

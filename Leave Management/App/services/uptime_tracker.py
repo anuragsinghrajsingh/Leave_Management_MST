@@ -1,6 +1,26 @@
 import json
+import os
 import sys
 from pathlib import Path
+
+
+def _setup_django_for_direct_run():
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
+
+    import django
+    from django.apps import apps
+
+    if not apps.ready:
+        django.setup()
+
+
+if __name__ == "__main__":
+    _setup_django_for_direct_run()
 
 from django.conf import settings
 from django.utils import timezone
@@ -27,6 +47,9 @@ def _is_managed_server_process():
 
 
 def record_app_startup():
+    if os.environ.get("LMS_SKIP_UPTIME_RECORD") == "1":
+        return
+
     if not _is_managed_server_process():
         return
 
@@ -74,3 +97,22 @@ def format_current_uptime():
         parts.append(f"{minutes} min")
 
     return "Running for " + " ".join(parts[:3])
+
+
+def main():
+    print("--- App Uptime Manual Viewer ---")
+    print("This only reads uptime. It will not overwrite the recorded app startup time.")
+    print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
+    confirmation = input("Type SHOW to continue: ").strip()
+
+    if confirmation != "SHOW":
+        print("Cancelled. Uptime was not shown.")
+        return
+
+    started_at = get_app_started_at()
+    print(f"Startup Time: {timezone.localtime(started_at).strftime('%b %d, %Y %I:%M %p') if started_at else 'Not tracked yet'}")
+    print(f"Current Uptime: {format_current_uptime()}")
+
+
+if __name__ == "__main__":
+    main()

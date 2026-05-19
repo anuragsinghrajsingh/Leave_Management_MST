@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
 from django.conf import settings
 from django.core.mail import send_mail, mail_admins
+from App.services.maintenance_mode import is_maintenance_mode_enabled
 
 # Configuration
 BACKUP_DIR = settings.BASE_DIR / 'backups'
@@ -104,6 +105,7 @@ def run_backup():
         msg = f"BACKUP | SUCCESS | Created: {zip_path.name} | Old backups cleaned: {deleted}"
         logger.info(msg)
         print(msg)
+        return True
         
     except Exception as e:
         error_msg = f"BACKUP | FAILED | Error: {str(e)}"
@@ -122,10 +124,16 @@ def run_backup():
             
         except Exception as mail_err:
             email_logger.error(f"EMAIL | FAILED | Could not send backup failure alert: {str(mail_err)}")
+        return False
 
 def restore_database():
     """Restores the database from a selected backup file."""
     print("\n--- DATABASE RESTORE UTILITY ---")
+
+    if not is_maintenance_mode_enabled():
+        print("[ERROR] Enable maintenance mode before restoring a database backup.")
+        get_master_logger().warning("RESTORE | BLOCKED | Maintenance mode is not enabled.")
+        return
     
     # 1. Check for backups
     backups = sorted(list(BACKUP_DIR.glob("*.zip")), reverse=True)
@@ -151,6 +159,7 @@ def restore_database():
         return
 
     # 4. Confirmation
+    print("Confirmation is case-sensitive. Type YES exactly as shown.")
     confirm = input(f"\nWARNING: This will overwrite your current database with '{selected_backup.name}'.\nAre you absolutely sure? (type 'YES' to confirm): ")
     if confirm != "YES":
         print("Restore cancelled.")

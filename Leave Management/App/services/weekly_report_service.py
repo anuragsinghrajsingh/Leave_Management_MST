@@ -1,9 +1,30 @@
 import logging
 import os
+import sys
 import time
-from django.utils import timezone
 from datetime import datetime, timedelta
 from pathlib import Path
+
+
+def _setup_django_for_direct_run():
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
+
+    import django
+    from django.apps import apps
+
+    if not apps.ready:
+        django.setup()
+
+
+if __name__ == "__main__":
+    _setup_django_for_direct_run()
+
+from django.utils import timezone
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
@@ -111,21 +132,15 @@ def _build_system_health(today, start_date):
         "notifications": f"{pending_notifications} pending",
     }
 
-def send_weekly_hr_report():
+def build_weekly_hr_report_context():
     """
-    Compiles data for the 'Human Capital Operational Snapshot' and sends it to all HR users.
+    Compiles data for the 'Human Capital Operational Snapshot'.
     """
     User = get_user_model()
     today = timezone.localdate()
     start_date = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())) - timedelta(days=7)
-    
-    # 1. Fetch HR Recipients
-    hr_emails = list(User.objects.filter(role="HR", is_active=True).values_list("email", flat=True))
-    if not hr_emails:
-        logger.warning("REPORT | No active HR emails found. Skipping weekly report.")
-        return False
 
-    # 2. Compile Global Analytics (Past 7 Days)
+    # 1. Compile Global Analytics (Past 7 Days)
     all_employees = User.objects.filter(role="EMPLOYEE", is_active=True)
     leave_queryset = Leave.objects.filter(
         created_at__gte=start_date,
@@ -173,11 +188,10 @@ def send_weekly_hr_report():
     rejected_total = leave_queryset.filter(status="Rejected").count()
     employee_applied_count = leave_queryset.values("user").distinct().count()
 
-    # 3. System Health Stats
+    # 2. System Health Stats
     system_health = _build_system_health(today, start_date)
 
-    # 4. Render and Send
-    context = {
+    return {
         "period_start": start_date.strftime("%b %d, %Y"),
         "period_end": today.strftime("%b %d, %Y"),
         "total_requests": total_requests,
@@ -190,8 +204,36 @@ def send_weekly_hr_report():
         "portal_link": settings.SITE_URL if hasattr(settings, 'SITE_URL') else "http://localhost:8000"
     }
 
+
+def render_weekly_hr_report_html(context=None):
+    context = context or build_weekly_hr_report_context()
+    return render_to_string('emails/weekly_hr_report.html', context)
+
+
+def generate_weekly_hr_report_pdf_bytes():
+    from App.services.pdf_generator import generate_pdf_from_html
+
+    return generate_pdf_from_html(render_weekly_hr_report_html())
+
+
+def send_weekly_hr_report():
+    """
+    Compiles data for the 'Human Capital Operational Snapshot' and sends it to all HR users.
+    """
+    User = get_user_model()
+    today = timezone.localdate()
+    start_date = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())) - timedelta(days=7)
+
+    # 1. Fetch HR Recipients
+    hr_emails = list(User.objects.filter(role="HR", is_active=True).values_list("email", flat=True))
+    if not hr_emails:
+        logger.warning("REPORT | No active HR emails found. Skipping weekly report.")
+        return False
+
+    context = build_weekly_hr_report_context()
+
     # Render the gorgeous HTML
-    dashboard_html = render_to_string('emails/weekly_hr_report.html', context)
+    dashboard_html = render_weekly_hr_report_html(context)
     
     # Render the simple cover email
     cover_html = render_to_string('emails/weekly_hr_report_cover.html', context)
@@ -229,3 +271,24 @@ def send_weekly_hr_report():
     except Exception as e:
         logger.error(f"REPORTS | FAILED | Could not send weekly report PDF: {e}")
         return False
+
+
+def main():
+    print("--- Weekly HR Report Manual Runner ---")
+    print("This will send the weekly report email to all active HR users.")
+    print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
+    confirmation = input("Type SEND to continue: ").strip()
+
+    if confirmation != "SEND":
+        print("Cancelled. Weekly report was not sent.")
+        return
+
+    sent = send_weekly_hr_report()
+    if sent:
+        print("SUCCESS: Weekly HR report sent.")
+    else:
+        print("FAILED: Weekly HR report was not sent. Check logs/settings.")
+
+
+if __name__ == "__main__":
+    main()

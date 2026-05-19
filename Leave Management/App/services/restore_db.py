@@ -3,6 +3,45 @@ import subprocess
 import sys
 from pathlib import Path
 
+
+def _setup_django():
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
+
+    import django
+    from django.apps import apps
+
+    if not apps.ready:
+        django.setup()
+
+
+if __name__ == "__main__":
+    _setup_django()
+
+from django.conf import settings
+from App.services.maintenance_mode import is_maintenance_mode_enabled
+
+
+def confirm_restore():
+    phrase = "RESTORE_DATABASE" if settings.DEBUG else "PRODUCTION_RESTORE_DATABASE"
+    if not settings.DEBUG:
+        print("PRODUCTION MODE DETECTED.")
+    if not is_maintenance_mode_enabled():
+        print("[ERROR] Enable maintenance mode before restoring a database backup.")
+        return False
+    print("This can overwrite the current database after you select a backup.")
+    print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
+    confirmation = input(f"Type {phrase} to continue: ").strip()
+    if confirmation != phrase:
+        print("[INFO] Restore cancelled.")
+        return False
+    return True
+
+
 def main():
     """
     Emergency Database Restore Wrapper.
@@ -20,6 +59,9 @@ def main():
     
     if not backup_script.exists():
         print(f"[ERROR] Could not find {backup_script.name} in the current directory.")
+        return
+
+    if not confirm_restore():
         return
 
     try:
