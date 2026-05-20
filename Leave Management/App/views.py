@@ -1892,21 +1892,37 @@ def get_communication_badge_count(queryset, user):
 
 
 def get_communication_recipients_for_user(user):
-    if user.role != "HR":
+    if user.role == "HR":
+        allowed_roles = ["EMPLOYEE", "Admin"]
+    elif user.role == "EMPLOYEE":
+        allowed_roles = ["HR", "Admin"]
+    else:
         return []
 
-    employees = (
+    users = (
         get_user_model().objects
-        .filter(role="EMPLOYEE", is_active=True)
+        .filter(role__in=allowed_roles, is_active=True)
+        .exclude(id=user.id)
         .select_related("profile")
-        .order_by("first_name", "username")
+        .order_by("role", "first_name", "username")
     )
     recipients = []
 
-    for employee in employees:
+    for recipient in users:
+        try:
+            profile = recipient.profile
+        except Profile.DoesNotExist:
+            profile = None
+
+        employee_id = getattr(profile, "employee_id", "") if profile else ""
+        role_label = "Admin" if recipient.role == "Admin" else ("HR" if recipient.role == "HR" else "Employee")
+        name = recipient.get_full_name().strip() or recipient.username
+        label_parts = [name, role_label]
+        if employee_id:
+            label_parts.append(employee_id)
         recipients.append({
-            "id": employee.id,
-            "label": employee.get_full_name().strip() or employee.username,
+            "id": recipient.id,
+            "label": " | ".join(label_parts),
         })
 
     return recipients
@@ -2039,7 +2055,7 @@ def communications_send(request):
                 if not recipient_id:
                     return JsonResponse({"error": "Recipient is required."}, status=400)
 
-                recipient = get_object_or_404(User, id=recipient_id, role="EMPLOYEE", is_active=True)
+                recipient = get_object_or_404(User, id=recipient_id, role__in=["EMPLOYEE", "Admin"], is_active=True)
                 Communication.objects.create(
                     sender=user,
                     recipient=recipient,
@@ -2054,10 +2070,19 @@ def communications_send(request):
             if message_type != "DIRECT":
                 return JsonResponse({"error": "Employees can only send direct messages."}, status=403)
 
+            try:
+                recipient_id = normalize_action_id_for_model(request.POST.get("recipient_id"), User)
+            except ValueError:
+                return JsonResponse({"error": "Invalid recipient."}, status=400)
+
+            if not recipient_id:
+                return JsonResponse({"error": "Recipient is required."}, status=400)
+
+            recipient = get_object_or_404(User, id=recipient_id, role__in=["HR", "Admin"], is_active=True)
             Communication.objects.create(
                 sender=user,
+                recipient=recipient,
                 message_type="DIRECT",
-                audience_role="HR",
                 title=title,
                 body=body,
             )

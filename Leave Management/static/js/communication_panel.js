@@ -355,6 +355,7 @@
 
         function updateFormCopy() {
             if (role !== "HR") {
+                updateSubmitButtonLabel();
                 return;
             }
 
@@ -381,6 +382,30 @@
             if (submitButton) {
                 submitButton.textContent = currentMode === "DIRECT" ? "Send message" : "Send update";
             }
+        }
+
+        function updateSubmitButtonLabel() {
+            if (!submitButton || role === "HR" || !form.elements.recipient_id) {
+                return;
+            }
+
+            const select = form.elements.recipient_id;
+            const selectedOption = select.options && select.selectedIndex >= 0
+                ? select.options[select.selectedIndex]
+                : null;
+            const label = selectedOption ? String(selectedOption.textContent || "") : "";
+
+            if (/\|\s*Admin(?:\s*\||$)/i.test(label)) {
+                submitButton.textContent = "Send to Admin";
+                return;
+            }
+
+            if (/\|\s*HR(?:\s*\||$)/i.test(label)) {
+                submitButton.textContent = "Send to HR";
+                return;
+            }
+
+            submitButton.textContent = "Send message";
         }
 
         function updateSectionCounts(items) {
@@ -747,8 +772,8 @@
             setFeedback("", false);
 
             const formData = new FormData(form);
-            if (role === "HR" && typeInput.value === "DIRECT" && !String(formData.get("recipient_id") || "").trim()) {
-                setFeedback("Select an employee for a personal message.", true);
+            if (typeInput.value === "DIRECT" && form.elements.recipient_id && !String(formData.get("recipient_id") || "").trim()) {
+                setFeedback("Select a recipient for a personal message.", true);
                 return;
             }
 
@@ -783,7 +808,7 @@
                     if (bodyInput) {
                         bodyInput.value = "";
                     }
-                    if (role === "HR" && form.elements.recipient_id) {
+                    if (form.elements.recipient_id) {
                         form.elements.recipient_id.value = "";
                     }
                     setFeedback("Sent successfully.", false);
@@ -903,6 +928,10 @@
         });
 
         form.addEventListener("submit", submitForm);
+        if (form.elements.recipient_id) {
+            form.elements.recipient_id.addEventListener("change", updateSubmitButtonLabel);
+            updateSubmitButtonLabel();
+        }
         fetchFeed();
         window.setInterval(fetchFeed, POLL_INTERVAL);
     }

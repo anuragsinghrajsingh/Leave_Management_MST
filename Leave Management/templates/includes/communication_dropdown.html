@@ -58,9 +58,9 @@
                     {% if request.user.role == "HR" %}
                         <input type="hidden" name="message_type" value="ANNOUNCEMENT" data-communication-type-input>
                         <div class="communication-field communication-recipient-field hidden" data-communication-recipient-field>
-                            <label for="communicationRecipientSelect">Employee</label>
+                            <label for="communicationRecipientSelect">Recipient</label>
                             <select id="communicationRecipientSelect" name="recipient_id">
-                                <option value="">Select employee</option>
+                                <option value="">Select recipient</option>
                                 {% for item in communication_recipients %}
                                     <option value="{{ item.id }}">{{ item.label }}</option>
                                 {% endfor %}
@@ -68,6 +68,15 @@
                         </div>
                     {% else %}
                         <input type="hidden" name="message_type" value="DIRECT" data-communication-type-input>
+                        <div class="communication-field communication-recipient-field" data-communication-recipient-field>
+                            <label for="communicationRecipientSelect-{{ request.user.id }}">Recipient</label>
+                            <select id="communicationRecipientSelect-{{ request.user.id }}" name="recipient_id">
+                                <option value="">Select recipient</option>
+                                {% for item in communication_recipients %}
+                                    <option value="{{ item.id }}">{{ item.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     {% endif %}
 
                     <div class="communication-field">
@@ -83,7 +92,7 @@
                     <div class="communication-form-actions">
                         <p class="communication-feedback hidden" data-communication-feedback></p>
                         <button type="submit" class="communication-submit-btn" data-communication-submit-btn>
-                            {% if request.user.role == "HR" %}Send update{% else %}Send to HR{% endif %}
+                            {% if request.user.role == "HR" %}Send update{% else %}Send message{% endif %}
                         </button>
                     </div>
                 </form>
