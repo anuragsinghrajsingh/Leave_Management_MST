@@ -1,0 +1,129 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+  {{ block.super }}
+  {% if admin_leave_workflow_urls %}
+    {% for workflow in admin_leave_workflow_urls %}
+      <li>
+        <a href="{{ workflow.url }}" class="{% if workflow.key == 'delete' %}deletelink{% else %}historylink{% endif %}">
+          {{ workflow.label }}
+        </a>
+      </li>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+{% block after_related_objects %}
+  {{ block.super }}
+  {% if show_admin_leave_workflow_prompt and admin_leave_workflow_urls %}
+    <style>
+      .admin-leave-workflow-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(15, 23, 42, 0.42);
+      }
+      .admin-leave-workflow-modal {
+        width: min(760px, 94vw);
+        border-radius: 10px;
+        background: var(--body-bg);
+        color: var(--body-fg);
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+        border: 1px solid var(--hairline-color);
+        overflow: hidden;
+      }
+      .admin-leave-workflow-modal header {
+        padding: 18px 22px;
+        background: var(--primary);
+        color: var(--primary-fg);
+      }
+      .admin-leave-workflow-modal header h2 {
+        margin: 0;
+        color: inherit;
+      }
+      .admin-leave-workflow-modal .content {
+        padding: 20px 22px;
+      }
+      .admin-leave-workflow-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .admin-leave-workflow-actions a,
+      .admin-leave-workflow-actions button {
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        background: var(--button-bg);
+        color: var(--button-fg);
+        cursor: pointer;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .admin-leave-workflow-actions a.delete-action {
+        background: var(--delete-button-bg);
+        color: var(--button-fg);
+      }
+      .admin-leave-workflow-actions a.recommended-action {
+        outline: 3px solid #f5dd5d;
+        box-shadow: 0 0 0 4px rgba(245, 221, 93, 0.22);
+      }
+      .admin-leave-workflow-actions button {
+        background: var(--darkened-bg);
+        color: var(--body-fg);
+      }
+    </style>
+    <div class="admin-leave-workflow-backdrop" id="admin-leave-workflow-prompt" role="dialog" aria-modal="true">
+      <section class="admin-leave-workflow-modal">
+        <header>
+          <h2>Run admin workflow?</h2>
+        </header>
+        <div class="content">
+          <p><strong>The leave record was saved.</strong> If this edit affects status, date, type, deduction source, email, notification, or balance, run the relevant admin workflow now.</p>
+          {% if recommended_workflow_url %}
+            <p><strong>Recommended:</strong> {{ recommended_workflow_url.label }}<br>{{ recommendation_reason }}</p>
+          {% endif %}
+          <p>Options like email and notifications appear after you choose an action.</p>
+          <div class="admin-leave-workflow-actions">
+            {% for workflow in admin_leave_workflow_urls %}
+              <a href="{{ workflow.url }}" class="{% if workflow.key == 'delete' %}delete-action {% endif %}{% if workflow.key == recommended_workflow_key %}recommended-action{% endif %}">
+                {{ workflow.label }}
+              </a>
+            {% endfor %}
+            <button type="button" onclick="document.getElementById('admin-leave-workflow-prompt').remove();">Skip workflow</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  {% endif %}
+  {% if recent_admin_leave_workflow_audits %}
+    <fieldset class="module aligned">
+      <h2>Recent admin workflow history</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>By</th>
+            <th>At</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for audit in recent_admin_leave_workflow_audits %}
+            <tr>
+              <td>{{ audit.action }}</td>
+              <td>{{ audit.updated_by|default:"-" }}</td>
+              <td>{{ audit.changed_at }}</td>
+              <td>{{ audit.reason|default:"-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+  {% endif %}
+{% endblock %}

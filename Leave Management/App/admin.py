@@ -78,12 +78,14 @@ import logging
 import os
 import re
 import zipfile
+from urllib.parse import urlencode
 from django.utils.timezone import now, localtime
 from App.services.maintenance_mode import (
     disable_maintenance_mode,
     enable_maintenance_mode,
     is_maintenance_mode_enabled,
 )
+from App.services import admin_leave_workflow
 
 
 maintenance_logger = logging.getLogger("lms_maintenance")
@@ -855,6 +857,14 @@ class LeaveBalanceAuditInline(admin.TabularInline):
 @admin.register(Leave)
 class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
     form = LeaveAdminForm
+    change_form_template = "admin/leave_change_form.html"
+    actions = [
+        "admin_approve_selected_leaves",
+        "admin_reject_selected_leaves",
+        "admin_sync_selected_leaves",
+        "admin_delete_selected_leaves_with_workflow",
+        "admin_recalculate_selected_leave_balances",
+    ]
 
     class Media:
         js = ("/static/admin/js/leave_toggle.js",)
@@ -923,6 +933,141 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
         return ist_time.strftime("%d %b %Y, %I:%M %p")
 
     created_at_display.short_description = "Created At"
+
+    def _normalize_admin_leave_status_fields(self, obj, request):
+        if obj.status == "Pending":
+            obj.approved_at = None
+            obj.rejected_at = None
+            obj.rejection_reason = ""
+            obj.reviewed_by = None
+            return
+
+        if obj.status == "Approved":
+            obj.rejected_at = None
+            obj.rejection_reason = ""
+            if not obj.approved_at:
+                obj.approved_at = now()
+            if not obj.reviewed_by_id:
+                obj.reviewed_by = request.user
+            return
+
+        if obj.status == "Rejected":
+            obj.approved_at = None
+            if not obj.rejected_at:
+                obj.rejected_at = now()
+            if not obj.reviewed_by_id:
+                obj.reviewed_by = request.user
+
+    admin_workflow_configs = {
+        "approve": {
+            "title": "Confirm admin leave approval workflow",
+            "action_name": "admin_approve_selected_leaves",
+            "label": "Approve workflow",
+            "needs_rejection_reason": False,
+            "show_delivery_options": True,
+        },
+        "reject": {
+            "title": "Confirm admin leave rejection workflow",
+            "action_name": "admin_reject_selected_leaves",
+            "label": "Reject workflow",
+            "needs_rejection_reason": True,
+            "show_delivery_options": True,
+        },
+        "sync": {
+            "title": "Confirm admin leave sync workflow",
+            "action_name": "admin_sync_selected_leaves",
+            "label": "Sync/recalculate workflow",
+            "needs_rejection_reason": False,
+            "show_delivery_options": True,
+        },
+        "delete": {
+            "title": "Confirm admin leave delete workflow",
+            "action_name": "admin_delete_selected_leaves_with_workflow",
+            "label": "Delete workflow",
+            "needs_rejection_reason": False,
+            "show_delivery_options": True,
+        },
+        "recalculate": {
+            "title": "Confirm admin balance recalculation",
+            "action_name": "admin_recalculate_selected_leave_balances",
+            "label": "Recalculate balance only",
+            "needs_rejection_reason": False,
+            "show_delivery_options": False,
+        },
+    }
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<path:object_id>/admin-workflow/<str:workflow_action>/",
+                self.admin_site.admin_view(self.single_leave_workflow_view),
+                name="app_leave_admin_workflow",
+            ),
+        ]
+        return custom_urls + urls
+
+    def _get_single_workflow_urls(self, obj):
+        if not obj or not obj.pk:
+            return []
+        return [
+            {
+                "key": key,
+                "label": config["label"],
+                "url": reverse("admin:app_leave_admin_workflow", args=[obj.pk, key]),
+            }
+            for key, config in self.admin_workflow_configs.items()
+        ]
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        obj = self.get_object(request, object_id)
+        workflow_urls = self._get_single_workflow_urls(obj)
+        recommended_key = request.GET.get("recommended") or self._default_workflow_recommendation(obj)
+        recent_workflow_audits = []
+        if obj and obj.pk:
+            recent_workflow_audits = AdminAuditLog.objects.filter(
+                model_label=obj._meta.label,
+                object_id=str(obj.pk),
+                action__in=[
+                    "ADMIN_APPROVE",
+                    "ADMIN_REJECT",
+                    "ADMIN_SYNC",
+                    "ADMIN_DELETE_WF",
+                    "ADMIN_EMAIL_FAIL",
+                ],
+            ).order_by("-changed_at")[:5]
+        extra_context.update({
+            "admin_leave_workflow_urls": workflow_urls,
+            "recommended_workflow_key": recommended_key,
+            "recommended_workflow_url": next((item for item in workflow_urls if item["key"] == recommended_key), None),
+            "recommendation_reason": request.GET.get("recommendation_reason") or self._default_workflow_recommendation_reason(obj),
+            "show_admin_leave_workflow_prompt": request.GET.get("workflow_prompt") == "1",
+            "recent_admin_leave_workflow_audits": recent_workflow_audits,
+        })
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+
+    def response_change(self, request, obj):
+        response = super().response_change(request, obj)
+        if "_save" in request.POST or "_continue" in request.POST:
+            change_url = reverse("admin:App_leave_change", args=[obj.pk])
+            query = urlencode({
+                "workflow_prompt": "1",
+                "recommended": getattr(request, "_admin_leave_recommended_workflow", self._default_workflow_recommendation(obj)),
+                "recommendation_reason": getattr(request, "_admin_leave_recommendation_reason", self._default_workflow_recommendation_reason(obj)),
+            })
+            return redirect(f"{change_url}?{query}")
+        return response
+
+    def _default_workflow_recommendation(self, obj):
+        if obj and obj.status == "Pending":
+            return "approve"
+        return "sync"
+
+    def _default_workflow_recommendation_reason(self, obj):
+        if obj and obj.status == "Pending":
+            return "Pending leave is waiting for an approve or reject decision."
+        return "Saved leave may affect balance, email, or notification state."
     
 
     def save_model(self, request, obj, form, change):
@@ -944,6 +1089,7 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 )
 
         obj._skip_model_validation = True
+        self._normalize_admin_leave_status_fields(obj, request)
         obj.save(skip_validation=True)
         created_at_override = form.cleaned_data.get("created_at_override")
         if created_at_override:
@@ -957,9 +1103,292 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 _collect_model_changes(previous, obj, field_names),
                 form.cleaned_data.get("change_reason"),
             )
+            workflow_sensitive_fields = {
+                "status",
+                "leave_type",
+                "from_date",
+                "to_date",
+                "from_datetime",
+                "to_datetime",
+                "deducted_from",
+                "approved_at",
+                "rejected_at",
+                "rejection_reason",
+                "reviewed_by",
+            }
+            changed_sensitive_fields = sorted(workflow_sensitive_fields.intersection(form.changed_data))
+            if "status" in changed_sensitive_fields:
+                request._admin_leave_recommended_workflow = "sync"
+                request._admin_leave_recommendation_reason = "Status changed manually, so sync/recalculate is recommended."
+            elif changed_sensitive_fields:
+                request._admin_leave_recommended_workflow = "sync"
+                request._admin_leave_recommendation_reason = (
+                    f"Workflow-sensitive field(s) changed: {', '.join(changed_sensitive_fields)}."
+                )
+            elif obj.status == "Pending":
+                request._admin_leave_recommended_workflow = "approve"
+                request._admin_leave_recommendation_reason = "Pending leave is waiting for an approve or reject decision."
         elif obj.pk:
             self._log_create(request, obj, form.cleaned_data.get("change_reason") or "Created from Django admin.")
+            request._admin_leave_recommended_workflow = "sync"
+            request._admin_leave_recommendation_reason = "New admin-created leave should be synced with balance and notifications if needed."
         return
+
+    def _render_leave_workflow_confirmation(
+        self,
+        request,
+        queryset,
+        title,
+        action_name,
+        needs_rejection_reason=False,
+        show_delivery_options=True,
+    ):
+        selected_ids = list(queryset.values_list("pk", flat=True))
+        workflow_action_key = self._workflow_action_key_from_action_name(action_name)
+        context = {
+            **self.admin_site.each_context(request),
+            "title": title,
+            "opts": self.model._meta,
+            "preview": admin_leave_workflow.get_leave_admin_preview(
+                queryset.select_related("user").order_by("id"),
+                workflow_action=workflow_action_key,
+            ),
+            "selected_ids": selected_ids,
+            "selected_count": len(selected_ids),
+            "action_name": action_name,
+            "needs_rejection_reason": needs_rejection_reason,
+            "show_delivery_options": show_delivery_options,
+        }
+        return TemplateResponse(request, "admin/admin_leave_workflow_confirm.html", context)
+
+    def _workflow_action_key_from_action_name(self, action_name):
+        if "approve" in action_name:
+            return "approve"
+        if "reject" in action_name:
+            return "reject"
+        if "delete" in action_name:
+            return "delete"
+        if "recalculate" in action_name:
+            return "recalculate"
+        return "sync"
+
+    def single_leave_workflow_view(self, request, object_id, workflow_action):
+        config = self.admin_workflow_configs.get(workflow_action)
+        if not config:
+            self.message_user(request, "Unknown admin workflow action.", level=messages.ERROR)
+            return redirect("admin:App_leave_change", object_id)
+
+        queryset = Leave.objects.filter(pk=object_id)
+        if not queryset.exists():
+            self.message_user(request, "Leave record not found.", level=messages.ERROR)
+            return redirect("admin:App_leave_changelist")
+
+        if request.method != "POST" or not request.POST.get("admin_workflow_confirm"):
+            return self._render_leave_workflow_confirmation(
+                request,
+                queryset,
+                config["title"],
+                config["action_name"],
+                needs_rejection_reason=config["needs_rejection_reason"],
+                show_delivery_options=config["show_delivery_options"],
+            )
+
+        reason = (request.POST.get("workflow_reason") or "").strip()
+        if not reason:
+            self.message_user(request, "Admin reason is required.", level=messages.ERROR)
+            return redirect(request.path)
+
+        leave_ids = [object_id]
+        if workflow_action == "approve":
+            results = admin_leave_workflow.approve_selected_leaves(
+                leave_ids,
+                request.user,
+                reason,
+                self._workflow_options_from_request(request),
+            )
+        elif workflow_action == "reject":
+            rejection_reason = (request.POST.get("rejection_reason") or "").strip()
+            if not rejection_reason:
+                self.message_user(request, "Rejection reason is required.", level=messages.ERROR)
+                return redirect(request.path)
+            results = admin_leave_workflow.reject_selected_leaves(
+                leave_ids,
+                request.user,
+                reason,
+                rejection_reason,
+                self._workflow_options_from_request(request),
+            )
+        elif workflow_action == "sync":
+            results = admin_leave_workflow.sync_selected_leaves(
+                leave_ids,
+                request.user,
+                reason,
+                self._workflow_options_from_request(request),
+            )
+        elif workflow_action == "delete":
+            results = admin_leave_workflow.delete_selected_leaves_with_workflow(
+                leave_ids,
+                request.user,
+                reason,
+                self._workflow_options_from_request(request),
+            )
+            self._message_workflow_results(request, results)
+            return redirect("admin:App_leave_changelist")
+        else:
+            results = admin_leave_workflow.recalculate_balances_for_selected_leaves(
+                leave_ids,
+                request.user,
+                reason,
+            )
+
+        self._message_workflow_results(request, results)
+        return redirect("admin:App_leave_change", object_id)
+
+    def _workflow_options_from_request(self, request):
+        return {
+            "notify_employee": bool(request.POST.get("notify_employee")),
+            "notify_hr": bool(request.POST.get("notify_hr")),
+            "record_email": bool(request.POST.get("record_email")),
+            "employee_notification": bool(request.POST.get("employee_notification")),
+            "hr_notification": bool(request.POST.get("hr_notification")),
+        }
+
+    def _selected_leave_ids_from_request(self, request, queryset):
+        selected_ids = request.POST.getlist("_selected_action")
+        if selected_ids:
+            return selected_ids
+        return list(queryset.values_list("pk", flat=True))
+
+    def _message_workflow_results(self, request, results):
+        for result in results:
+            level = messages.WARNING if "failed" in result.lower() else messages.INFO
+            self.message_user(request, result, level=level)
+
+    @admin.action(description="Admin approve selected leaves with workflow")
+    def admin_approve_selected_leaves(self, request, queryset):
+        if not request.POST.get("admin_workflow_confirm"):
+            return self._render_leave_workflow_confirmation(
+                request,
+                queryset,
+                "Confirm admin leave approval workflow",
+                "admin_approve_selected_leaves",
+            )
+
+        reason = (request.POST.get("workflow_reason") or "").strip()
+        if not reason:
+            self.message_user(request, "Admin reason is required.", level=messages.ERROR)
+            return None
+
+        results = admin_leave_workflow.approve_selected_leaves(
+            self._selected_leave_ids_from_request(request, queryset),
+            request.user,
+            reason,
+            self._workflow_options_from_request(request),
+        )
+        self._message_workflow_results(request, results)
+        return None
+
+    @admin.action(description="Admin reject selected leaves with workflow")
+    def admin_reject_selected_leaves(self, request, queryset):
+        if not request.POST.get("admin_workflow_confirm"):
+            return self._render_leave_workflow_confirmation(
+                request,
+                queryset,
+                "Confirm admin leave rejection workflow",
+                "admin_reject_selected_leaves",
+                needs_rejection_reason=True,
+            )
+
+        reason = (request.POST.get("workflow_reason") or "").strip()
+        rejection_reason = (request.POST.get("rejection_reason") or "").strip()
+        if not reason:
+            self.message_user(request, "Admin reason is required.", level=messages.ERROR)
+            return None
+        if not rejection_reason:
+            self.message_user(request, "Rejection reason is required.", level=messages.ERROR)
+            return None
+
+        results = admin_leave_workflow.reject_selected_leaves(
+            self._selected_leave_ids_from_request(request, queryset),
+            request.user,
+            reason,
+            rejection_reason,
+            self._workflow_options_from_request(request),
+        )
+        self._message_workflow_results(request, results)
+        return None
+
+    @admin.action(description="Admin sync selected leaves and recalculate balance")
+    def admin_sync_selected_leaves(self, request, queryset):
+        if not request.POST.get("admin_workflow_confirm"):
+            return self._render_leave_workflow_confirmation(
+                request,
+                queryset,
+                "Confirm admin leave sync workflow",
+                "admin_sync_selected_leaves",
+            )
+
+        reason = (request.POST.get("workflow_reason") or "").strip()
+        if not reason:
+            self.message_user(request, "Admin reason is required.", level=messages.ERROR)
+            return None
+
+        results = admin_leave_workflow.sync_selected_leaves(
+            self._selected_leave_ids_from_request(request, queryset),
+            request.user,
+            reason,
+            self._workflow_options_from_request(request),
+        )
+        self._message_workflow_results(request, results)
+        return None
+
+    @admin.action(description="Admin delete selected leaves with workflow")
+    def admin_delete_selected_leaves_with_workflow(self, request, queryset):
+        if not request.POST.get("admin_workflow_confirm"):
+            return self._render_leave_workflow_confirmation(
+                request,
+                queryset,
+                "Confirm admin leave delete workflow",
+                "admin_delete_selected_leaves_with_workflow",
+            )
+
+        reason = (request.POST.get("workflow_reason") or "").strip()
+        if not reason:
+            self.message_user(request, "Admin reason is required.", level=messages.ERROR)
+            return None
+
+        results = admin_leave_workflow.delete_selected_leaves_with_workflow(
+            self._selected_leave_ids_from_request(request, queryset),
+            request.user,
+            reason,
+            self._workflow_options_from_request(request),
+        )
+        self._message_workflow_results(request, results)
+        return None
+
+    @admin.action(description="Admin recalculate balances for selected leave employees")
+    def admin_recalculate_selected_leave_balances(self, request, queryset):
+        if not request.POST.get("admin_workflow_confirm"):
+            return self._render_leave_workflow_confirmation(
+                request,
+                queryset,
+                "Confirm admin balance recalculation",
+                "admin_recalculate_selected_leave_balances",
+                show_delivery_options=False,
+            )
+
+        reason = (request.POST.get("workflow_reason") or "").strip()
+        if not reason:
+            self.message_user(request, "Admin reason is required.", level=messages.ERROR)
+            return None
+
+        results = admin_leave_workflow.recalculate_balances_for_selected_leaves(
+            self._selected_leave_ids_from_request(request, queryset),
+            request.user,
+            reason,
+        )
+        self._message_workflow_results(request, results)
+        return None
 
 
 

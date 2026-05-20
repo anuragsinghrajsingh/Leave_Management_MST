@@ -1,0 +1,97 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p><strong>This is an admin-only workflow.</strong> Normal HR and employee portal flows are not used by this action.</p>
+  {% if selected_count > 1 %}
+    <p class="messagelist">
+      <span class="warning">
+        Bulk safety: this action affects {{ selected_count }} leave records. Email and notification options may send multiple messages.
+      </span>
+    </p>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Leave ID</th>
+        <th>Employee</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Date range</th>
+        <th>Deducted from</th>
+        <th>Value</th>
+        <th>Current balance</th>
+        <th>Expected balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for leave in preview %}
+        <tr>
+          <td>#{{ leave.id }}</td>
+          <td>{{ leave.employee }}</td>
+          <td>{{ leave.leave_type }}</td>
+          <td>{{ leave.status }}</td>
+          <td>{{ leave.date_range }}</td>
+          <td>{{ leave.deducted_from }}</td>
+          <td>{{ leave.value }}</td>
+          <td>
+            Remaining: {{ leave.current_balance.total_leave_remaining|default:"-" }}<br>
+            Sick used: {{ leave.current_balance.sick_used|default:"-" }}<br>
+            Earned used: {{ leave.current_balance.earned_used|default:"-" }}<br>
+            Unpaid: {{ leave.current_balance.unpaid|default:"-" }}
+          </td>
+          <td>
+            Remaining: {{ leave.expected_balance.total_leave_remaining|default:"-" }}<br>
+            Sick used: {{ leave.expected_balance.sick_used|default:"-" }}<br>
+            Earned used: {{ leave.expected_balance.earned_used|default:"-" }}<br>
+            Unpaid: {{ leave.expected_balance.unpaid|default:"-" }}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action_name }}">
+    <input type="hidden" name="admin_workflow_confirm" value="1">
+    {% for selected_id in selected_ids %}
+      <input type="hidden" name="_selected_action" value="{{ selected_id }}">
+    {% endfor %}
+
+    <div class="form-row">
+      <label for="workflow-reason"><strong>Admin reason:</strong></label>
+      <textarea id="workflow-reason" name="workflow_reason" rows="4" required style="width: 100%;"></textarea>
+      <p>
+        <button type="button" onclick="document.getElementById('workflow-reason').value='Correction of wrong status';">Wrong status</button>
+        <button type="button" onclick="document.getElementById('workflow-reason').value='Correction of wrong leave type';">Wrong leave type</button>
+        <button type="button" onclick="document.getElementById('workflow-reason').value='Manual admin adjustment';">Manual adjustment</button>
+        <button type="button" onclick="document.getElementById('workflow-reason').value='Data repair after restore/import';">Restore/import repair</button>
+      </p>
+    </div>
+
+    {% if needs_rejection_reason %}
+      <div class="form-row">
+        <label for="rejection-reason"><strong>Rejection reason:</strong></label>
+        <textarea id="rejection-reason" name="rejection_reason" rows="4" required style="width: 100%;"></textarea>
+      </div>
+    {% endif %}
+
+    {% if show_delivery_options %}
+      <fieldset class="module aligned" style="margin-top: 16px;">
+        <h2>Email and notification options</h2>
+        <label><input type="checkbox" name="notify_employee" checked> Notify employee by email</label><br>
+        <label><input type="checkbox" name="notify_hr"> Notify HR by email</label><br>
+        <label><input type="checkbox" name="record_email" checked> Send leave-record email copy</label><br>
+        <label><input type="checkbox" name="employee_notification" checked> Create employee notification</label><br>
+        <label><input type="checkbox" name="hr_notification"> Create HR notification</label>
+      </fieldset>
+    {% endif %}
+
+    <div class="submit-row">
+      <input type="submit" class="default" value="Confirm admin workflow">
+      <a href="../">Cancel</a>
+    </div>
+  </form>
+{% endblock %}
