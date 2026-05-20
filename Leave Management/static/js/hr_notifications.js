@@ -62,6 +62,34 @@
         }
     }
 
+    function runWhenNotificationAudioReady(callback) {
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
+            return;
+        }
+
+        const runCallback = function () {
+            notificationAudioUnlocked = true;
+            try {
+                callback(audioContext);
+            } catch (error) {
+                // Ignore audio failures silently.
+            }
+        };
+
+        if (audioContext.state === "suspended") {
+            audioContext.resume().then(runCallback).catch(function () {
+                pendingNotificationAudio.push(function () {
+                    runWhenNotificationAudioReady(callback);
+                });
+            });
+            return;
+        }
+
+        runCallback();
+    }
+
     ["pointerdown", "keydown", "touchstart"].forEach(function (eventName) {
         window.addEventListener(eventName, unlockNotificationAudio, { once: true, passive: true });
     });
@@ -217,7 +245,7 @@
 
     function playLeaveActionTone(action) {
         if (!notificationAudioUnlocked) {
-            pendingNotificationAudio.push(function () {
+            runWhenNotificationAudioReady(function () {
                 playLeaveActionTone(action);
             });
             return;
@@ -226,6 +254,13 @@
         const audioContext = getNotificationAudioContext();
 
         if (!audioContext) {
+            return;
+        }
+
+        if (audioContext.state === "suspended") {
+            runWhenNotificationAudioReady(function () {
+                playLeaveActionTone(action);
+            });
             return;
         }
 
@@ -289,13 +324,18 @@
 
     function playLeaveErrorTone() {
         if (!notificationAudioUnlocked) {
-            pendingNotificationAudio.push(playLeaveErrorTone);
+            runWhenNotificationAudioReady(playLeaveErrorTone);
             return;
         }
 
         const audioContext = getNotificationAudioContext();
 
         if (!audioContext) {
+            return;
+        }
+
+        if (audioContext.state === "suspended") {
+            runWhenNotificationAudioReady(playLeaveErrorTone);
             return;
         }
 
@@ -332,12 +372,18 @@
 
     function playDataUpdateTone() {
         if (!notificationAudioUnlocked) {
+            runWhenNotificationAudioReady(playDataUpdateTone);
             return;
         }
 
         const audioContext = getNotificationAudioContext();
 
         if (!audioContext) {
+            return;
+        }
+
+        if (audioContext.state === "suspended") {
+            runWhenNotificationAudioReady(playDataUpdateTone);
             return;
         }
 
