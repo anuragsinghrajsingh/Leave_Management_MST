@@ -1866,6 +1866,26 @@ class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path(
+                "feed/",
+                self.admin_site.admin_view(self.admin_notifications_feed),
+                name="App_admincommunicationcenter_feed",
+            ),
+            path(
+                "seen/",
+                self.admin_site.admin_view(self.admin_notifications_seen),
+                name="App_admincommunicationcenter_seen",
+            ),
+            path(
+                "read/",
+                self.admin_site.admin_view(self.admin_notifications_read),
+                name="App_admincommunicationcenter_read",
+            ),
+            path(
+                "read-all/",
+                self.admin_site.admin_view(self.admin_notifications_read_all),
+                name="App_admincommunicationcenter_read_all",
+            ),
+            path(
                 "message/<int:communication_id>/view-log/",
                 self.admin_site.admin_view(self.log_message_detail_view),
                 name="App_admincommunicationcenter_view_log",
@@ -1902,6 +1922,163 @@ class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "message_view_log_url_template": reverse("admin:App_admincommunicationcenter_view_log", args=[0]),
         }
         return TemplateResponse(request, self.change_list_template, context)
+
+    def _admin_allowed_communications(self, user):
+        return (
+            Communication.objects.select_related("sender", "recipient")
+            .filter(Q(recipient=user) | Q(message_type="ANNOUNCEMENT", audience_role="Admin"))
+            .exclude(sender=user)
+            .order_by("-created_at")
+        )
+
+    def _serialize_admin_communication(self, communication, read_ids, seen_ids):
+        sender = communication.sender.get_full_name().strip() or communication.sender.username
+        target = str(communication.recipient) if communication.recipient else (communication.audience_role or "-")
+        return {
+            "id": communication.id,
+            "message_type": communication.message_type,
+            "type_label": "Announcement" if communication.message_type == "ANNOUNCEMENT" else "Direct message",
+            "title": communication.title or "Message",
+            "sender": sender,
+            "target": target,
+            "created_at": localtime(communication.created_at).strftime("%b %d, %Y %I:%M %p"),
+            "body_preview": (communication.body[:140] + "...") if len(communication.body) > 140 else communication.body,
+            "body_full": communication.body,
+            "is_read": communication.id in read_ids,
+            "is_seen": communication.id in seen_ids,
+        }
+
+    def _admin_notification_payload(self, request, offset=0, limit=10):
+        offset = max(0, min(int(offset or 0), 1000))
+        limit = max(1, min(int(limit or 10), 10))
+        queryset = self._admin_allowed_communications(request.user)
+        total_available = queryset.count()
+        communications = list(queryset[offset:offset + limit])
+        ids = [communication.id for communication in communications]
+        read_ids = set(CommunicationRead.objects.filter(user=request.user, communication_id__in=ids).values_list("communication_id", flat=True))
+        seen_ids = set(CommunicationSeen.objects.filter(user=request.user, communication_id__in=ids).values_list("communication_id", flat=True))
+        unread_count = queryset.exclude(read_receipts__user=request.user).count()
+        unseen_count = sum(1 for communication in communications if communication.id not in seen_ids)
+        return {
+            "count": unread_count,
+            "new_count": unseen_count,
+            "items": [self._serialize_admin_communication(communication, read_ids, seen_ids) for communication in communications],
+            "offset": offset,
+            "limit": limit,
+            "has_more": offset + limit < total_available,
+        }
+
+    def admin_notifications_feed(self, request):
+        if request.method != "GET":
+            return JsonResponse({"error": "GET required."}, status=405)
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return JsonResponse({"error": "Not allowed."}, status=403)
+        try:
+            offset = int(request.GET.get("offset", 0))
+            limit = int(request.GET.get("limit", 10))
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "Invalid pagination."}, status=400)
+        return JsonResponse(self._admin_notification_payload(request, offset=offset, limit=limit))
+
+    def admin_notifications_seen(self, request):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return JsonResponse({"error": "Not allowed."}, status=403)
+
+        communication_ids = list(self._admin_allowed_communications(request.user).values_list("id", flat=True)[:10])
+        existing_seen_ids = set(CommunicationSeen.objects.filter(user=request.user, communication_id__in=communication_ids).values_list("communication_id", flat=True))
+        newly_seen_ids = [communication_id for communication_id in communication_ids if communication_id not in existing_seen_ids]
+        CommunicationSeen.objects.bulk_create(
+            [CommunicationSeen(user=request.user, communication_id=communication_id) for communication_id in communication_ids],
+            ignore_conflicts=True,
+        )
+        for communication in Communication.objects.filter(id__in=newly_seen_ids):
+            _create_admin_audit_log(
+                request,
+                communication,
+                {"admin_communication_seen": {"old": "unseen", "new": "seen"}},
+                "New admin message arrived and was shown in admin bell.",
+                action="SEEN",
+            )
+        return JsonResponse(self._admin_notification_payload(request))
+
+    def admin_notifications_read(self, request):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return JsonResponse({"error": "Not allowed."}, status=403)
+
+        communication_id = request.POST.get("communication_id")
+        if not communication_id:
+            return JsonResponse({"error": "Message id is required."}, status=400)
+        if not str(communication_id).isdigit():
+            return JsonResponse({"error": "Invalid message id."}, status=400)
+
+        communication = self._admin_allowed_communications(request.user).filter(pk=communication_id).first()
+        if not communication:
+            return JsonResponse({"error": "Message not found."}, status=404)
+
+        _, read_created = CommunicationRead.objects.get_or_create(user=request.user, communication=communication)
+        CommunicationSeen.objects.get_or_create(user=request.user, communication=communication)
+        if read_created:
+            _create_admin_audit_log(
+                request,
+                communication,
+                {
+                    "admin_communication_read": {
+                        "old": "unread",
+                        "new": "read",
+                    },
+                    "admin_communication_detail": {
+                        "old": None,
+                        "new": {
+                            "message_type": communication.message_type,
+                            "title": communication.title or "",
+                            "sender": str(communication.sender),
+                            "recipient": str(communication.recipient) if communication.recipient else "",
+                            "audience_role": communication.audience_role or "",
+                            "created_at": _audit_value(communication.created_at),
+                        },
+                    },
+                },
+                "Opened admin bell message detail and marked it as read.",
+                action="READ",
+            )
+        return JsonResponse(self._admin_notification_payload(request))
+
+    def admin_notifications_read_all(self, request):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return JsonResponse({"error": "Not allowed."}, status=403)
+
+        communication_ids = list(self._admin_allowed_communications(request.user).values_list("id", flat=True))
+        existing_read_ids = set(CommunicationRead.objects.filter(user=request.user, communication_id__in=communication_ids).values_list("communication_id", flat=True))
+        newly_read_ids = [communication_id for communication_id in communication_ids if communication_id not in existing_read_ids]
+        CommunicationRead.objects.bulk_create(
+            [CommunicationRead(user=request.user, communication_id=communication_id) for communication_id in communication_ids],
+            ignore_conflicts=True,
+        )
+        CommunicationSeen.objects.bulk_create(
+            [CommunicationSeen(user=request.user, communication_id=communication_id) for communication_id in communication_ids],
+            ignore_conflicts=True,
+        )
+        first_communication = Communication.objects.filter(id__in=newly_read_ids).first()
+        if first_communication:
+            _create_admin_audit_log(
+                request,
+                first_communication,
+                {
+                    "admin_communication_mark_all_read": {
+                        "old": f"{len(newly_read_ids)} unread",
+                        "new": "read",
+                    }
+                },
+                "Marked all admin bell messages as read.",
+                action="READ",
+            )
+        return JsonResponse(self._admin_notification_payload(request))
 
     def log_message_detail_view(self, request, communication_id):
         if request.method != "POST":
@@ -2406,6 +2583,12 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             return "Admin communication sent"
         if "admin_communication_view" in obj.changes:
             return "Admin communication viewed"
+        if "admin_communication_seen" in obj.changes:
+            return "Admin communication seen"
+        if "admin_communication_read" in obj.changes:
+            return "Admin communication read"
+        if "admin_communication_mark_all_read" in obj.changes:
+            return "Admin communication mark all read"
         return ", ".join(obj.changes.keys())
 
 
@@ -2536,6 +2719,9 @@ class AdminCommunicationAuditAdmin(BaseAdminAuditLogAdmin):
         return super().get_queryset(request).filter(
             Q(changes__has_key="admin_communication")
             | Q(changes__has_key="admin_communication_view")
+            | Q(changes__has_key="admin_communication_seen")
+            | Q(changes__has_key="admin_communication_read")
+            | Q(changes__has_key="admin_communication_mark_all_read")
         )
 
 

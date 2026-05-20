@@ -1,4 +1,5 @@
 {% extends "admin/base.html" %}
+{% load static %}
 
 {% block extrahead %}
     {{ block.super }}
@@ -22,10 +23,349 @@
         .maintenance-admin-alert span {
             opacity: 0.92;
         }
+
+        .admin-topbar-bell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 14px;
+            vertical-align: middle;
+        }
+
+        .admin-bell-btn {
+            position: relative;
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba(255,255,255,0.22);
+            border-radius: 999px;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(135deg, #2563eb, #7c3aed 52%, #db2777);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+            font: inherit;
+        }
+
+        .admin-bell-btn::before {
+            content: "🔔";
+            font-size: 17px;
+            line-height: 1;
+        }
+
+        .admin-bell-btn.has-new {
+            animation: adminBellPulse 1.1s ease-in-out infinite;
+        }
+
+        .admin-bell-count {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 18px;
+            text-align: center;
+            box-shadow: 0 0 0 2px var(--header-bg, #417690);
+        }
+
+        .admin-bell-count.hidden {
+            display: none;
+        }
+
+        .admin-bell-panel {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            z-index: 10000;
+            display: none;
+            width: min(390px, 92vw);
+            border: 1px solid var(--border-color, #d1d5db);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--body-bg, #fff);
+            color: var(--body-fg, #111827);
+            box-shadow: 0 20px 48px rgba(15, 23, 42, 0.26);
+        }
+
+        .admin-topbar-bell.is-open .admin-bell-panel {
+            display: block;
+        }
+
+        .admin-bell-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(219, 39, 119, 0.10));
+            border-bottom: 1px solid var(--hairline-color, #e5e7eb);
+        }
+
+        .admin-bell-panel-header strong {
+            font-weight: 900;
+        }
+
+        .admin-bell-mark-read {
+            border: 0;
+            border-radius: 999px;
+            padding: 6px 10px;
+            cursor: pointer;
+            background: var(--button-bg, #0c4b33);
+            color: var(--button-fg, #fff);
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .admin-bell-list {
+            max-height: 475px;
+            overflow-y: auto;
+        }
+
+        .admin-bell-item {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: 10px;
+            border: 0;
+            border-bottom: 1px solid var(--hairline-color, #e5e7eb);
+            padding: 11px 14px;
+            background: transparent;
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .admin-bell-item:hover {
+            background: var(--darkened-bg, #f3f4f6);
+        }
+
+        .admin-bell-item.is-unread {
+            background: rgba(37, 99, 235, 0.07);
+        }
+
+        .admin-bell-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            color: white;
+            font-weight: 900;
+            font-size: 12px;
+        }
+
+        .admin-bell-copy strong,
+        .admin-bell-copy span,
+        .admin-bell-copy small {
+            display: block;
+        }
+
+        .admin-bell-copy strong {
+            font-weight: 900;
+            overflow-wrap: anywhere;
+        }
+
+        .admin-bell-copy span {
+            margin-top: 3px;
+            font-size: 12px;
+            color: var(--body-quiet-color, #6b7280);
+            overflow-wrap: anywhere;
+        }
+
+        .admin-bell-message-preview {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            white-space: pre-wrap;
+            line-height: 1.35;
+            max-height: 4.05em;
+        }
+
+        .admin-bell-more-label {
+            display: inline-flex !important;
+            width: fit-content;
+            margin-top: 4px !important;
+            color: var(--link-fg, #2563eb) !important;
+            font-size: 11px !important;
+            font-weight: 900;
+        }
+
+        .admin-bell-copy small {
+            margin-top: 5px;
+            font-size: 11px;
+            color: var(--body-quiet-color, #6b7280);
+        }
+
+        .admin-bell-new-label {
+            display: inline-flex;
+            width: fit-content;
+            margin-top: 6px;
+            border-radius: 999px;
+            padding: 2px 7px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .admin-bell-empty {
+            padding: 24px 14px;
+            text-align: center;
+            color: var(--body-quiet-color, #6b7280);
+            font-weight: 800;
+        }
+
+        .admin-bell-detail-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.62);
+        }
+
+        .admin-bell-detail-backdrop.is-open {
+            display: flex;
+        }
+
+        .admin-bell-detail {
+            width: min(720px, 96vw);
+            max-height: 86vh;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--body-bg, #fff);
+            color: var(--body-fg, #111827);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+        }
+
+        .admin-bell-detail header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--hairline-color, #e5e7eb);
+            background: var(--darkened-bg, #f3f4f6);
+        }
+
+        .admin-bell-detail h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .admin-bell-detail-close {
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 999px;
+            cursor: pointer;
+            background: var(--button-bg, #0c4b33);
+            color: var(--button-fg, #fff);
+            font-weight: 900;
+        }
+
+        .admin-bell-detail-body {
+            padding: 18px;
+            max-height: calc(86vh - 78px);
+            overflow-y: auto;
+        }
+
+        .admin-bell-detail-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .admin-bell-detail-card,
+        .admin-bell-detail-message {
+            border: 1px solid var(--hairline-color, #e5e7eb);
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: var(--body-bg, #fff);
+            overflow-wrap: anywhere;
+        }
+
+        .admin-bell-detail-card strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--body-quiet-color, #6b7280);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+        }
+
+        .admin-bell-detail-message {
+            white-space: pre-wrap;
+            line-height: 1.55;
+            min-height: 120px;
+        }
+
+        @keyframes adminBellPulse {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-9deg) scale(1.04); }
+            75% { transform: rotate(9deg) scale(1.04); }
+        }
+
+        @media (max-width: 700px) {
+            .admin-bell-detail-meta {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
+    <script src="{% static 'admin/js/admin_notification_bell.js' %}" defer></script>
 {% endblock %}
 
 {% block userlinks %}
+    {% if user.is_authenticated and user.is_active and user.role == "Admin" or user.is_superuser %}
+        <span
+            class="admin-topbar-bell"
+            data-admin-notification-bell
+            data-feed-url="{% url 'admin:App_admincommunicationcenter_feed' %}"
+            data-seen-url="{% url 'admin:App_admincommunicationcenter_seen' %}"
+            data-read-url="{% url 'admin:App_admincommunicationcenter_read' %}"
+            data-read-all-url="{% url 'admin:App_admincommunicationcenter_read_all' %}"
+            data-view-log-url-template="{% url 'admin:App_admincommunicationcenter_view_log' 0 %}"
+        >
+            <button type="button" class="admin-bell-btn" data-admin-bell-toggle aria-label="Open admin messages" aria-expanded="false">
+                <span class="admin-bell-count hidden" data-admin-bell-count>0</span>
+            </button>
+            <span class="admin-bell-panel" data-admin-bell-panel>
+                <span class="admin-bell-panel-header">
+                    <strong>Admin messages</strong>
+                    <button type="button" class="admin-bell-mark-read" data-admin-bell-mark-all>Mark all as read</button>
+                </span>
+                <span class="admin-bell-list" data-admin-bell-list>
+                    <span class="admin-bell-empty">Loading messages...</span>
+                </span>
+            </span>
+        </span>
+        <div class="admin-bell-detail-backdrop" data-admin-bell-detail-modal role="dialog" aria-modal="true" aria-labelledby="admin-bell-detail-title">
+            <section class="admin-bell-detail">
+                <header>
+                    <h2 id="admin-bell-detail-title" data-admin-bell-detail-title>Message detail</h2>
+                    <button type="button" class="admin-bell-detail-close" data-admin-bell-detail-close aria-label="Close message detail">x</button>
+                </header>
+                <div class="admin-bell-detail-body">
+                    <div class="admin-bell-detail-meta">
+                        <div class="admin-bell-detail-card"><strong>Type</strong><span data-admin-bell-detail-type></span></div>
+                        <div class="admin-bell-detail-card"><strong>Created</strong><span data-admin-bell-detail-created></span></div>
+                        <div class="admin-bell-detail-card"><strong>From</strong><span data-admin-bell-detail-sender></span></div>
+                        <div class="admin-bell-detail-card"><strong>To/Audience</strong><span data-admin-bell-detail-target></span></div>
+                    </div>
+                    <div class="admin-bell-detail-message" data-admin-bell-detail-body></div>
+                </div>
+            </section>
+        </div>
+    {% endif %}
     <form method="post" action="{% url 'admin_logout_custom' %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to log out?');">
         {% csrf_token %}
         <button type="submit" style="background: none; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0;">Logout</button>
