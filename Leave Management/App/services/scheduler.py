@@ -1,7 +1,5 @@
-import os
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from django_apscheduler.jobstores import DjangoJobStore, register_events
 
 logger = logging.getLogger('lms_scheduler')
 
@@ -11,8 +9,7 @@ def start_scheduler():
     from App.services.startup_checks import check_and_run_missed_backup, check_and_run_missed_weekly_report
 
     scheduler = BackgroundScheduler()
-    scheduler.add_jobstore(DjangoJobStore(), "default")
-    logger.info("SCHEDULER | JOBSTORE | DjangoJobStore attached.")
+    logger.info("SCHEDULER | JOBSTORE | Using in-memory job store.")
 
     # Run catch-up checks for missed tasks during downtime
     try:
@@ -69,6 +66,10 @@ def start_scheduler():
     )
     logger.info("SCHEDULER | JOB_ADDED | scheduler_keepalive | Every 6 hours")
 
-    register_events(scheduler)
+    logger.info("SCHEDULER | STARTING | Starting scheduler with %s job(s).", len(scheduler.get_jobs()))
     scheduler.start()
-    logger.info("SCHEDULER | In-app background scheduler started successfully.")
+    logger.info(
+        "SCHEDULER | STARTED | In-app background scheduler started successfully | Running=%s | Jobs=%s",
+        scheduler.running,
+        len(scheduler.get_jobs()),
+    )
