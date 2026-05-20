@@ -649,6 +649,12 @@
 
         function handlePayload(payload) {
             const items = Array.isArray(payload.items) ? payload.items : [];
+            const previousKnownIds = new Set(knownIds);
+            const hadFetchedOnce = hasFetchedOnce;
+            const newIncomingItems = items.filter(function (item) {
+                const itemId = String(item.id);
+                return !item.is_outgoing && item.is_new && !item.is_read && !previousKnownIds.has(itemId);
+            });
             const nextIds = items
                 .filter(function (item) { return !item.is_outgoing; })
                 .map(function (item) { return String(item.id); });
@@ -694,6 +700,15 @@
             updateNewBadge();
             dropdown.classList.add("is-hydrated");
             hasFetchedOnce = true;
+
+            if (hadFetchedOnce && newIncomingItems.length && typeof window.playCommunicationTone === "function") {
+                const latestNewAnnouncement = newIncomingItems.find(function (item) {
+                    return item.type_class === "announcement";
+                });
+                const latestNewItem = latestNewAnnouncement || newIncomingItems[0] || {};
+
+                window.playCommunicationTone(latestNewItem.type_class || "direct");
+            }
         }
 
         function fetchFeed() {

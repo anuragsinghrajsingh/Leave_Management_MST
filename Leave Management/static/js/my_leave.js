@@ -3227,6 +3227,10 @@ const exportWrapper = document.createElement("div");
         if (!response.ok || payload.success === false)
         {
             showAjaxMessages(payload.messages);
+            if (typeof window.playLeaveErrorTone === "function")
+            {
+                window.playLeaveErrorTone();
+            }
             return payload;
         }
         showAjaxMessages(payload.messages);
@@ -3336,6 +3340,17 @@ const exportWrapper = document.createElement("div");
                 activePanel: "pending-panel"
             });
         });
+        document.addEventListener("invalid", (event) =>
+        {
+            if (!event.target.closest("#edit-leave-form"))
+            {
+                return;
+            }
+            if (typeof window.playLeaveErrorTone === "function")
+            {
+                window.playLeaveErrorTone();
+            }
+        }, true);
         document.addEventListener("click", async (event) =>
         {
             const clearControl = event.target.closest('.filter-badges [data-filter-field], .filter-badges form[action*="clear-status-filter-field"] button');

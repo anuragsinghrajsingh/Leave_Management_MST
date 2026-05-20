@@ -1493,13 +1493,40 @@
 
             if (hasError) {
                 event.preventDefault();
+                if (typeof window.playLeaveErrorTone === "function") {
+                    window.playLeaveErrorTone();
+                }
                 return;
             }
 
-            if (typeof window.playLeaveActionTone === "function") {
-                window.playLeaveActionTone("apply");
+            try {
+                window.sessionStorage.setItem("leave-apply-success-tone-pending", "1");
+            } catch (error) {
+                // Ignore storage failures.
             }
         });
+
+        try {
+            const shouldPlayApplySuccessTone = window.sessionStorage.getItem("leave-apply-success-tone-pending") === "1";
+            const successFlashText = Array.from(document.querySelectorAll(".flash-success"))
+                .map((flash) => flash.textContent || "")
+                .join(" ");
+            const hasApplySuccess = /leave\s+applied|applied\s+successfully|applied\s+range/i.test(successFlashText);
+
+            if (shouldPlayApplySuccessTone && hasApplySuccess) {
+                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
+                if (typeof window.playLeaveActionTone === "function") {
+                    window.playLeaveActionTone("apply");
+                }
+            } else if (shouldPlayApplySuccessTone && document.querySelector(".flash-error, .flash-warning")) {
+                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
+                if (typeof window.playLeaveErrorTone === "function") {
+                    window.playLeaveErrorTone();
+                }
+            }
+        } catch (error) {
+            // Ignore storage/audio failures.
+        }
 
         const savedFromDatetime = fromDateTime.value ? new Date(fromDateTime.value) : null;
         const applyLeaveConfig = document.getElementById("apply-leave-js-config");

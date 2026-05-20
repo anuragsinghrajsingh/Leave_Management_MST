@@ -337,6 +337,10 @@
                     }
                 }
                 setInlineEditState(container, false);
+                if (typeof window.playDataUpdateTone === "function")
+                {
+                    window.playDataUpdateTone();
+                }
             }).catch(function (error)
             {
                 showEmployeeDetailsToast("Unable to save", error.message || "Unable to save changes.", "error");
@@ -1686,6 +1690,10 @@
                     addressModalEditForm.hidden = true;
                     addressModalText.hidden = false;
                     addressModalEditButton.hidden = false;
+                    if (typeof window.playDataUpdateTone === "function")
+                    {
+                        window.playDataUpdateTone();
+                    }
                 }).catch(function (error)
                 {
                     showEmployeeDetailsToast("Unable to save", error.message || "Unable to save address.", "error");

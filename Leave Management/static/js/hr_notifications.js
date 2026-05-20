@@ -3,6 +3,7 @@
     const NOTIFICATION_PAGE_SIZE = 50;
     let notificationAudioContext = null;
     let notificationAudioUnlocked = false;
+    let pendingNotificationAudio = [];
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -43,6 +44,15 @@
 
         const finishUnlock = function () {
             notificationAudioUnlocked = true;
+            const queuedAudio = pendingNotificationAudio.slice();
+            pendingNotificationAudio = [];
+            queuedAudio.forEach(function (callback) {
+                try {
+                    callback();
+                } catch (error) {
+                    // Ignore queued audio failures silently.
+                }
+            });
         };
 
         if (audioContext.state === "suspended") {
@@ -68,36 +78,60 @@
         }
 
         try {
-            const oscillator = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-            const startFrequency = statusClass === "approved"
-                ? 740
+            const now = audioContext.currentTime;
+            const masterGain = audioContext.createGain();
+            const bellLayers = statusClass === "approved"
+                ? [
+                    { frequency: 659, volume: 0.03, start: 0, duration: 0.5 },
+                    { frequency: 880, volume: 0.034, start: 0.16, duration: 0.58 },
+                    { frequency: 1175, volume: 0.026, start: 0.34, duration: 0.62 },
+                    { frequency: 1760, volume: 0.01, start: 0.38, duration: 0.42 },
+                ]
                 : statusClass === "rejected"
-                    ? 440
-                    : 620;
-            const endFrequency = statusClass === "approved"
-                ? 988
-                : statusClass === "rejected"
-                    ? 392
-                    : 830;
+                    ? [
+                        { frequency: 494, volume: 0.032, start: 0, duration: 0.66 },
+                        { frequency: 392, volume: 0.034, start: 0.2, duration: 0.78 },
+                        { frequency: 330, volume: 0.024, start: 0.44, duration: 0.7 },
+                        { frequency: 247, volume: 0.012, start: 0.5, duration: 0.56 },
+                    ]
+                    : [
+                        { frequency: 740, volume: 0.036, start: 0, duration: 1.08 },
+                        { frequency: 1110, volume: 0.018, start: 0.01, duration: 0.86 },
+                        { frequency: 1495, volume: 0.012, start: 0.02, duration: 0.7 },
+                        { frequency: 932, volume: 0.014, start: 0.22, duration: 0.72 },
+                    ];
 
-            oscillator.type = "sine";
-            oscillator.frequency.setValueAtTime(startFrequency, audioContext.currentTime);
-            oscillator.frequency.linearRampToValueAtTime(endFrequency, audioContext.currentTime + 0.16);
-            gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+            masterGain.gain.setValueAtTime(0.85, now);
+            masterGain.connect(audioContext.destination);
 
-            oscillator.connect(gain);
-            gain.connect(audioContext.destination);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.22);
+            bellLayers.forEach(function (layer) {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const startAt = now + layer.start;
+                const stopAt = startAt + layer.duration;
+
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(layer.frequency, startAt);
+                oscillator.frequency.exponentialRampToValueAtTime(
+                    layer.frequency * (statusClass === "approved" ? 1.006 : 0.992),
+                    stopAt
+                );
+
+                gain.gain.setValueAtTime(0.0001, startAt);
+                gain.gain.exponentialRampToValueAtTime(layer.volume, startAt + 0.025);
+                gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+
+                oscillator.connect(gain);
+                gain.connect(masterGain);
+                oscillator.start(startAt);
+                oscillator.stop(stopAt + 0.03);
+            });
         } catch (error) {
             // Ignore audio failures silently.
         }
     }
 
-    function playLeaveActionTone(action) {
+    function playCommunicationTone(typeClass) {
         if (!notificationAudioUnlocked) {
             return;
         }
@@ -108,18 +142,136 @@
             return;
         }
 
-        const toneMap = {
-            apply: [660, 880],
-            edit: [560, 740],
-            delete: [520, 330],
-        };
-        const frequencies = toneMap[action] || toneMap.apply;
+        try {
+            const now = audioContext.currentTime;
+            const isAnnouncement = typeClass === "announcement";
+            const baseFrequency = isAnnouncement ? 880 : 784;
+            const masterGain = audioContext.createGain();
+            const bellLayers = isAnnouncement
+                ? [0, 1.15, 2.3].flatMap(function (repeatStart) {
+                    return [
+                        { frequency: baseFrequency, volume: 0.05, start: repeatStart, duration: 0.22 },
+                        { frequency: baseFrequency * 1.34, volume: 0.046, start: repeatStart + 0.23, duration: 0.24 },
+                        { frequency: baseFrequency * 1.5, volume: 0.034, start: repeatStart + 0.52, duration: 0.32 },
+                    ];
+                })
+                : [
+                    { frequency: 660, volume: 0.028, start: 0, duration: 0.28 },
+                    { frequency: 880, volume: 0.032, start: 0.22, duration: 0.48 },
+                    { frequency: 1320, volume: 0.01, start: 0.24, duration: 0.34 },
+                ];
+
+            masterGain.gain.setValueAtTime(0.82, now);
+            masterGain.connect(audioContext.destination);
+
+            bellLayers.forEach(function (layer) {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const startAt = now + layer.start;
+                const stopAt = startAt + layer.duration;
+
+                oscillator.type = isAnnouncement ? "triangle" : "sine";
+                oscillator.frequency.setValueAtTime(layer.frequency, startAt);
+                oscillator.frequency.exponentialRampToValueAtTime(layer.frequency * (isAnnouncement ? 1.006 : 0.988), stopAt);
+
+                gain.gain.setValueAtTime(0.0001, startAt);
+                gain.gain.exponentialRampToValueAtTime(layer.volume, startAt + 0.018);
+                gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+
+                oscillator.connect(gain);
+                gain.connect(masterGain);
+                oscillator.start(startAt);
+                oscillator.stop(stopAt + 0.03);
+            });
+
+            if (isAnnouncement) {
+                [760, 1900, 3040].forEach(function (delay) {
+                    window.setTimeout(speakAnnouncementAlert, delay);
+                });
+            }
+        } catch (error) {
+            // Ignore audio failures silently.
+        }
+    }
+
+    function speakAnnouncementAlert() {
+        const speech = window.speechSynthesis;
+
+        if (!speech || typeof window.SpeechSynthesisUtterance !== "function") {
+            return;
+        }
 
         try {
+            speech.cancel();
+
+            const message = new SpeechSynthesisUtterance("Announcement");
+            message.volume = 1;
+            message.rate = 0.94;
+            message.pitch = 1.08;
+
+            speech.speak(message);
+        } catch (error) {
+            // Ignore speech failures silently.
+        }
+    }
+
+    function playLeaveActionTone(action) {
+        if (!notificationAudioUnlocked) {
+            pendingNotificationAudio.push(function () {
+                playLeaveActionTone(action);
+            });
+            return;
+        }
+
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
+            return;
+        }
+
+        try {
+            if (action === "delete") {
+                const duration = 0.62;
+                const sampleRate = audioContext.sampleRate;
+                const frameCount = Math.floor(sampleRate * duration);
+                const noiseBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                const noise = audioContext.createBufferSource();
+                const filter = audioContext.createBiquadFilter();
+                const gain = audioContext.createGain();
+                const now = audioContext.currentTime;
+
+                for (let i = 0; i < frameCount; i += 1) {
+                    output[i] = (Math.random() * 2 - 1) * (1 - i / frameCount);
+                }
+
+                noise.buffer = noiseBuffer;
+                filter.type = "bandpass";
+                filter.frequency.setValueAtTime(5200, now);
+                filter.frequency.exponentialRampToValueAtTime(1100, now + duration);
+                filter.Q.setValueAtTime(1.8, now);
+
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.075, now + 0.035);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioContext.destination);
+                noise.start(now);
+                noise.stop(now + duration);
+                return;
+            }
+
+            const toneMap = {
+                apply: [660, 880],
+                edit: [560, 740],
+            };
+            const frequencies = toneMap[action] || toneMap.apply;
             const oscillator = audioContext.createOscillator();
             const gain = audioContext.createGain();
 
-            oscillator.type = action === "delete" ? "triangle" : "sine";
+            oscillator.type = "sine";
             oscillator.frequency.setValueAtTime(frequencies[0], audioContext.currentTime);
             oscillator.frequency.linearRampToValueAtTime(frequencies[1], audioContext.currentTime + 0.18);
             gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
@@ -135,6 +287,95 @@
         }
     }
 
+    function playLeaveErrorTone() {
+        if (!notificationAudioUnlocked) {
+            pendingNotificationAudio.push(playLeaveErrorTone);
+            return;
+        }
+
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
+            return;
+        }
+
+        try {
+            const now = audioContext.currentTime;
+            const layers = [
+                { frequency: 440, endFrequency: 260, volume: 0.04, start: 0, duration: 0.46 },
+                { frequency: 330, endFrequency: 185, volume: 0.03, start: 0.08, duration: 0.5 },
+            ];
+
+            layers.forEach(function (layer) {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const startAt = now + layer.start;
+                const stopAt = startAt + layer.duration;
+
+                oscillator.type = "sawtooth";
+                oscillator.frequency.setValueAtTime(layer.frequency, startAt);
+                oscillator.frequency.exponentialRampToValueAtTime(layer.endFrequency, stopAt);
+
+                gain.gain.setValueAtTime(0.0001, startAt);
+                gain.gain.exponentialRampToValueAtTime(layer.volume, startAt + 0.025);
+                gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                oscillator.start(startAt);
+                oscillator.stop(stopAt + 0.03);
+            });
+        } catch (error) {
+            // Ignore audio failures silently.
+        }
+    }
+
+    function playDataUpdateTone() {
+        if (!notificationAudioUnlocked) {
+            return;
+        }
+
+        const audioContext = getNotificationAudioContext();
+
+        if (!audioContext) {
+            return;
+        }
+
+        try {
+            const now = audioContext.currentTime;
+            const layers = [
+                { frequency: 587, volume: 0.024, start: 0, duration: 0.22 },
+                { frequency: 784, volume: 0.028, start: 0.12, duration: 0.34 },
+                { frequency: 1175, volume: 0.01, start: 0.18, duration: 0.24 },
+            ];
+
+            layers.forEach(function (layer) {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const startAt = now + layer.start;
+                const stopAt = startAt + layer.duration;
+
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(layer.frequency, startAt);
+                oscillator.frequency.exponentialRampToValueAtTime(layer.frequency * 1.004, stopAt);
+
+                gain.gain.setValueAtTime(0.0001, startAt);
+                gain.gain.exponentialRampToValueAtTime(layer.volume, startAt + 0.018);
+                gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                oscillator.start(startAt);
+                oscillator.stop(stopAt + 0.03);
+            });
+        } catch (error) {
+            // Ignore audio failures silently.
+        }
+    }
+
+    window.playCommunicationTone = playCommunicationTone;
+    window.playDataUpdateTone = playDataUpdateTone;
+    window.playLeaveErrorTone = playLeaveErrorTone;
     window.playLeaveActionTone = playLeaveActionTone;
 
     function flashNotificationScreen(statusClass) {

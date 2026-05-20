@@ -1091,6 +1091,11 @@ launchConfetti();
                         indicator.classList.add("hidden");
                     },2000);
                 }
+
+                if (typeof window.playDataUpdateTone === "function")
+                {
+                    window.playDataUpdateTone();
+                }
             })
             .catch(err => console.error(err));
         }
@@ -2090,6 +2095,11 @@ launchConfetti();
                     }
 
                     closeEditPhoto();
+
+                    if (typeof window.playDataUpdateTone === "function")
+                    {
+                        window.playDataUpdateTone();
+                    }
                 })
                 .catch(() =>
                 {
