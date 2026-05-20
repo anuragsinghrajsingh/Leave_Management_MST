@@ -279,11 +279,29 @@ def send_weekly_hr_report():
         email.attach(filename, pdf_bytes, 'application/pdf')
         
         email.send(fail_silently=False)
+        from App.services.email_delivery_log import record_email_delivery
+        record_email_delivery(
+            subject=subject,
+            recipients=to_email,
+            status="sent",
+            email_type="weekly_hr_report",
+            from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
+            metadata={"attachment": filename},
+        )
         
         logger.info("REPORTS | SUCCESS | Weekly report PDF sent | Recipients=%s | Attachment=%s", len(to_email), filename)
         return True
         
     except Exception as e:
+        from App.services.email_delivery_log import record_email_delivery
+        record_email_delivery(
+            subject=locals().get("subject", "Weekly Operational Snapshot"),
+            recipients=to_email,
+            status="failed",
+            email_type="weekly_hr_report",
+            from_email=f"HR Portal <{settings.DEFAULT_FROM_EMAIL}>",
+            error_message=str(e),
+        )
         logger.error(f"REPORTS | FAILED | Could not send weekly report PDF: {e}")
         return False
 

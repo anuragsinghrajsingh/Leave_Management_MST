@@ -1,6 +1,87 @@
 {% extends "admin/base_site.html" %}
 
 {% block content %}
+  <style>
+    .bulk-preview-status {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .bulk-preview-status.safe {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .bulk-preview-status.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .bulk-preview-status.conflict {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .bulk-detail-button {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      background: var(--button-bg);
+      color: var(--button-fg);
+    }
+    .bulk-preview-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.48);
+    }
+    .bulk-preview-backdrop.is-open {
+      display: flex;
+    }
+    .bulk-preview-modal {
+      width: min(980px, 96vw);
+      max-height: 86vh;
+      overflow: auto;
+      border-radius: 10px;
+      background: var(--body-bg);
+      border: 1px solid var(--hairline-color);
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.3);
+    }
+    .bulk-preview-modal header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      background: var(--primary);
+      color: var(--primary-fg);
+    }
+    .bulk-preview-modal header h2 {
+      margin: 0;
+      color: inherit;
+    }
+    .bulk-preview-modal .content {
+      padding: 18px;
+    }
+    .bulk-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .bulk-preview-card {
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--darkened-bg);
+    }
+  </style>
+
   <h1>{{ title }}</h1>
   <p><strong>This is an admin-only workflow.</strong> Normal HR and employee portal flows are not used by this action.</p>
   {% if selected_count > 1 %}
@@ -52,6 +133,54 @@
     </tbody>
   </table>
 
+  <h2>Conflict / impact preview</h2>
+  <p>This uses the same admin leave checker as the single Leave add/edit preview.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Leave ID</th>
+        <th>Employee</th>
+        <th>Type</th>
+        <th>Status flow</th>
+        <th>Date range</th>
+        <th>Preview status</th>
+        <th>Important details</th>
+        <th>Full details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in conflict_previews %}
+        <tr>
+          <td>#{{ item.leave_id }}</td>
+          <td>{{ item.employee }}</td>
+          <td>{{ item.leave_type }}</td>
+          <td>{{ item.current_status }} -> {{ item.preview_status }}</td>
+          <td>{{ item.date_range }}</td>
+          <td><span class="bulk-preview-status {{ item.status }}">{{ item.status }}</span></td>
+          <td>
+            {% if item.conflicts %}
+              <strong style="color:#991b1b;">{{ item.conflicts|length }} conflict(s)</strong><br>
+            {% endif %}
+            {% if item.warnings %}
+              <strong style="color:#92400e;">{{ item.warnings|length }} warning(s)</strong><br>
+            {% endif %}
+            {% if item.auto_added_dates %}
+              Bridge: {{ item.auto_added_dates|join:", " }}<br>
+            {% endif %}
+            Working days: {{ item.breakdown.working_days|default:"-" }}
+          </td>
+          <td>
+            <button type="button" class="bulk-detail-button" data-preview-index="{{ forloop.counter0 }}">View details</button>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="8">No selected leave records found.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <form method="post" style="margin-top: 20px;">
     {% csrf_token %}
     <input type="hidden" name="action" value="{{ action_name }}">
@@ -84,14 +213,101 @@
         <label><input type="checkbox" name="notify_employee" checked> Notify employee by email</label><br>
         <label><input type="checkbox" name="notify_hr"> Notify HR by email</label><br>
         <label><input type="checkbox" name="record_email" checked> Send leave-record email copy</label><br>
-        <label><input type="checkbox" name="employee_notification" checked> Create employee notification</label><br>
+        <label><input type="checkbox" name="employee_message" checked> Inform the employee by message</label><br>
+        <label><input type="checkbox" name="employee_notification"> Refresh employee decision bell (Approved/Rejected only)</label><br>
         <label><input type="checkbox" name="hr_notification"> Create HR notification</label>
       </fieldset>
     {% endif %}
 
     <div class="submit-row">
       <input type="submit" class="default" value="Confirm admin workflow">
-      <a href="../">Cancel</a>
+      <button type="submit" name="admin_workflow_skip" value="1" formnovalidate>Skip workflow actions</button>
     </div>
   </form>
+
+  <div class="bulk-preview-backdrop" data-bulk-preview-modal>
+    <section class="bulk-preview-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-preview-title">
+      <header>
+        <h2 id="bulk-preview-title">Leave Preview Details</h2>
+        <button type="button" data-close-bulk-preview>Close</button>
+      </header>
+      <div class="content" data-bulk-preview-content></div>
+    </section>
+  </div>
+
+  {{ conflict_previews|json_script:"bulk-conflict-previews" }}
+  <script>
+    (function () {
+      const modal = document.querySelector("[data-bulk-preview-modal]");
+      const closeButton = document.querySelector("[data-close-bulk-preview]");
+      const content = document.querySelector("[data-bulk-preview-content]");
+      const dataNode = document.getElementById("bulk-conflict-previews");
+      const previews = dataNode ? JSON.parse(dataNode.textContent || "[]") : [];
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function listItems(items) {
+        if (!items || !items.length) return "<p>-</p>";
+        return "<ul>" + items.map(function (item) {
+          return "<li>" + escapeHtml(item) + "</li>";
+        }).join("") + "</ul>";
+      }
+
+      function renderPreview(item) {
+        const overlaps = (item.overlaps || []).map(function (overlap) {
+          return "<tr>" +
+            "<td>" + escapeHtml(overlap.leave_type) + "</td>" +
+            "<td>" + escapeHtml(overlap.status) + "</td>" +
+            "<td>" + escapeHtml(overlap.existing_from) + " to " + escapeHtml(overlap.existing_to) + "</td>" +
+            "<td>" + escapeHtml(overlap.overlap_from) + " to " + escapeHtml(overlap.overlap_to) + "</td>" +
+            "<td>" + escapeHtml(overlap.overlap_days) + "</td>" +
+          "</tr>";
+        }).join("");
+
+        return "<h3>Leave #" + escapeHtml(item.leave_id) + " - " + escapeHtml(item.employee) + "</h3>" +
+          "<p><strong>Status flow:</strong> " + escapeHtml(item.current_status) + " -> " + escapeHtml(item.preview_status) + "</p>" +
+          "<p><strong>Preview status:</strong> " + escapeHtml(item.status) + "</p>" +
+          "<div class='bulk-preview-grid'>" +
+            "<div class='bulk-preview-card'><strong>Warnings</strong>" + listItems(item.warnings) + "</div>" +
+            "<div class='bulk-preview-card'><strong>Conflicts</strong>" + listItems(item.conflicts) + "</div>" +
+            "<div class='bulk-preview-card'><strong>Effective range</strong><p>" + escapeHtml(item.effective_range && item.effective_range.from) + " to " + escapeHtml(item.effective_range && item.effective_range.to) + "</p><p>Bridge dates: " + escapeHtml((item.auto_added_dates || []).join(', ') || '-') + "</p></div>" +
+            "<div class='bulk-preview-card'><strong>Breakdown</strong><p>Working days: " + escapeHtml(item.breakdown && item.breakdown.working_days) + "</p><p>Company holidays: " + escapeHtml(item.breakdown && item.breakdown.company_holiday_days) + "</p><p>Included WFH days: " + escapeHtml(item.breakdown && item.breakdown.included_wfh_days) + "</p></div>" +
+            "<div class='bulk-preview-card'><strong>Current balance</strong><p>Remaining: " + escapeHtml(item.current_balance && item.current_balance.total_leave_remaining) + "</p><p>Sick remaining: " + escapeHtml(item.current_balance && item.current_balance.sick_remaining) + "</p><p>Earned remaining: " + escapeHtml(item.current_balance && item.current_balance.earned_remaining) + "</p><p>Unpaid: " + escapeHtml(item.current_balance && item.current_balance.unpaid) + "</p></div>" +
+            "<div class='bulk-preview-card'><strong>Expected balance</strong><p>Remaining: " + escapeHtml(item.expected_balance && item.expected_balance.total_leave_remaining) + "</p><p>Sick remaining: " + escapeHtml(item.expected_balance && item.expected_balance.sick_remaining) + "</p><p>Earned remaining: " + escapeHtml(item.expected_balance && item.expected_balance.earned_remaining) + "</p><p>Unpaid: " + escapeHtml(item.expected_balance && item.expected_balance.unpaid) + "</p></div>" +
+          "</div>" +
+          "<h3>Overlaps</h3>" +
+          "<table><thead><tr><th>Type</th><th>Status</th><th>Existing range</th><th>Overlap range</th><th>Days</th></tr></thead><tbody>" +
+          (overlaps || "<tr><td colspan='5'>No overlaps found.</td></tr>") +
+          "</tbody></table>";
+      }
+
+      document.querySelectorAll("[data-preview-index]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          const item = previews[Number(button.dataset.previewIndex)];
+          if (!item || !modal || !content) return;
+          content.innerHTML = renderPreview(item);
+          modal.classList.add("is-open");
+        });
+      });
+
+      if (closeButton && modal) {
+        closeButton.addEventListener("click", function () {
+          modal.classList.remove("is-open");
+        });
+      }
+      if (modal) {
+        modal.addEventListener("click", function (event) {
+          if (event.target === modal) {
+            modal.classList.remove("is-open");
+          }
+        });
+      }
+    })();
+  </script>
 {% endblock %}

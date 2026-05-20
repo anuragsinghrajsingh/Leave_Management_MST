@@ -14,6 +14,7 @@ from App.models import (
     LeaveNotificationRead,
     LeaveNotificationSeen,
 )
+from App.services.email_delivery_log import record_email_delivery
 from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
 
 
@@ -331,16 +332,72 @@ def _create_leave_admin_audit(actor, leave, action, reason, old, new):
     )
 
 
+def log_workflow_skipped(leave_ids, actor, workflow_action, reason="Admin skipped workflow confirmation."):
+    leaves = Leave.objects.select_related("user").filter(id__in=leave_ids).order_by("id")
+    count = 0
+    for leave in leaves:
+        AdminAuditLog.objects.create(
+            model_label=leave._meta.label,
+            object_id=str(leave.pk),
+            object_repr=str(leave),
+            action="ADMIN_WORKFLOW_SKIPPED",
+            updated_by=actor,
+            reason=reason,
+            changes={
+                "admin_leave_workflow_skipped": {
+                    "old": None,
+                    "new": {
+                        "workflow_action": workflow_action,
+                        "leave": _leave_snapshot(leave),
+                    },
+                }
+            },
+        )
+        count += 1
+    return f"Skipped admin workflow actions for {count} leave(s). Audit recorded."
+
+
 def _apply_notification_options(leave, actor, options, action_label, admin_reason):
     if options.get("employee_notification"):
         LeaveNotificationRead.objects.filter(user=leave.user, leave=leave).delete()
         LeaveNotificationSeen.objects.filter(user=leave.user, leave=leave).delete()
+
+    if options.get("employee_message"):
+        _create_employee_communication(actor, leave, action_label, admin_reason)
 
     if options.get("hr_notification"):
         hr_ids = get_user_model().objects.filter(role="HR", is_active=True).values_list("id", flat=True)
         LeaveNotificationRead.objects.filter(user_id__in=hr_ids, leave=leave).delete()
         LeaveNotificationSeen.objects.filter(user_id__in=hr_ids, leave=leave).delete()
         _create_hr_communication(actor, leave, action_label, admin_reason)
+
+
+def _create_employee_communication(actor, leave, action_label, admin_reason):
+    leave_value = _get_leave_value(leave)
+    requested_range = _format_requested_leave_range(leave)
+    effective_range = _format_leave_range(leave)
+    lines = [
+        f"Admin {actor.username} {action_label} leave #{leave.id}.",
+        "",
+        f"Leave type: {leave.leave_type}",
+        f"Status: {leave.status}",
+        f"Requested date: {requested_range}",
+        f"Effective date: {effective_range}",
+        f"Deducted from: {leave.deducted_from or 'Not set'}",
+        f"Leave value: {leave_value:g} day(s)",
+        f"Employee reason: {leave.reason or 'Not provided'}",
+    ]
+    if leave.rejection_reason:
+        lines.append(f"Rejection reason: {leave.rejection_reason}")
+    lines.append(f"Admin reason: {admin_reason or 'Not provided'}")
+
+    Communication.objects.create(
+        sender=actor,
+        recipient=leave.user,
+        message_type="DIRECT",
+        title=f"Admin leave {action_label}: {leave.leave_type} - {leave.status}",
+        body="\n".join(lines),
+    )
 
 
 def _create_hr_communication(actor, leave, action_label, admin_reason):
@@ -368,18 +425,30 @@ def _create_hr_communication(actor, leave, action_label, admin_reason):
 
 
 def _create_delete_communications(email_snapshots, actor, options):
-    if not options.get("employee_notification"):
+    if not options.get("employee_message"):
         return
     User = get_user_model()
     usernames = [snapshot["employee"] for _, snapshot in email_snapshots]
-    users = User.objects.filter(username__in=usernames)
-    for user in users:
+    users_by_username = {user.username: user for user in User.objects.filter(username__in=usernames)}
+    for _, snapshot in email_snapshots:
+        user = users_by_username.get(snapshot["employee"])
+        if not user:
+            continue
+        date_range = _format_snapshot_date_range(snapshot)
+        body = (
+            f"Admin {actor.username} deleted leave #{snapshot['id']}.\n\n"
+            f"Leave type: {snapshot['leave_type']}\n"
+            f"Previous status: {snapshot['status']}\n"
+            f"Date: {date_range}\n"
+            f"Deducted from: {snapshot['deducted_from'] or 'Not set'}\n"
+            f"Rejection reason: {snapshot['rejection_reason'] or 'Not provided'}"
+        )
         Communication.objects.create(
             sender=actor,
             recipient=user,
             message_type="DIRECT",
             title="Leave record deleted by admin",
-            body=f"Admin {actor.username} deleted a leave record. Contact HR/admin if you need details.",
+            body=body,
         )
 
 
@@ -412,7 +481,18 @@ def _send_leave_workflow_emails(leaves, actor, action_label, options):
                         "portal_link": f"{settings.PORTAL_BASE_URL}/" if settings.PORTAL_BASE_URL else "",
                     },
                 )
-            except Exception:
+            except Exception as exc:
+                record_email_delivery(
+                    subject=f"Admin leave {action_label}: {leave.leave_type}",
+                    recipients=recipients,
+                    status="failed",
+                    email_type=f"admin_leave_{action_label}",
+                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    error_message=str(exc),
+                    related_user=leave.user,
+                    related_leave=leave,
+                    triggered_by=actor,
+                )
                 AdminAuditLog.objects.create(
                     model_label=leave._meta.label,
                     object_id=str(leave.pk),
@@ -424,6 +504,16 @@ def _send_leave_workflow_emails(leaves, actor, action_label, options):
                 )
                 results.append(f"Email failed for leave #{leave.id}. Check Admin Audit.")
             else:
+                record_email_delivery(
+                    subject=f"Admin leave {action_label}: {leave.leave_type}",
+                    recipients=recipients,
+                    status="sent",
+                    email_type=f"admin_leave_{action_label}",
+                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    related_user=leave.user,
+                    related_leave=leave,
+                    triggered_by=actor,
+                )
                 results.append(f"Email sent for leave #{leave.id} to {len(recipients)} recipient(s).")
     return results
 
@@ -457,7 +547,17 @@ def _send_delete_emails(email_snapshots, actor, options):
                         "portal_link": f"{settings.PORTAL_BASE_URL}/" if settings.PORTAL_BASE_URL else "",
                     },
                 )
-            except Exception:
+            except Exception as exc:
+                record_email_delivery(
+                    subject=f"Admin leave deleted: {snapshot['leave_type']}",
+                    recipients=recipients,
+                    status="failed",
+                    email_type="admin_leave_deleted",
+                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    error_message=str(exc),
+                    triggered_by=actor,
+                    metadata={"leave_snapshot": snapshot},
+                )
                 AdminAuditLog.objects.create(
                     model_label="App.Leave",
                     object_id=str(snapshot["id"]),
@@ -469,6 +569,15 @@ def _send_delete_emails(email_snapshots, actor, options):
                 )
                 results.append(f"Email failed for deleted leave #{snapshot['id']}. Check Admin Audit.")
             else:
+                record_email_delivery(
+                    subject=f"Admin leave deleted: {snapshot['leave_type']}",
+                    recipients=recipients,
+                    status="sent",
+                    email_type="admin_leave_deleted",
+                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    triggered_by=actor,
+                    metadata={"leave_snapshot": snapshot},
+                )
                 results.append(f"Email sent for deleted leave #{snapshot['id']} to {len(recipients)} recipient(s).")
     return results
 
@@ -480,7 +589,8 @@ def _summarize_options(options, item_count):
             ("notify_employee", "employee email"),
             ("notify_hr", "HR email"),
             ("record_email", "leave-record copy"),
-            ("employee_notification", "employee notification"),
+            ("employee_message", "employee direct message"),
+            ("employee_notification", "employee decision bell refresh"),
             ("hr_notification", "HR notification"),
         )
         if options.get(key)
@@ -515,3 +625,19 @@ def _format_leave_range(leave):
     if leave.from_date == leave.to_date:
         return leave.from_date.strftime("%d %b %Y")
     return f"{leave.from_date.strftime('%d %b %Y')} to {leave.to_date.strftime('%d %b %Y')}"
+
+
+def _format_requested_leave_range(leave):
+    from_date = leave.requested_from_date or leave.from_date
+    to_date = leave.requested_to_date or leave.to_date
+    if from_date == to_date:
+        return from_date.strftime("%d %b %Y")
+    return f"{from_date.strftime('%d %b %Y')} to {to_date.strftime('%d %b %Y')}"
+
+
+def _format_snapshot_date_range(snapshot):
+    from_date = snapshot.get("from_date") or "-"
+    to_date = snapshot.get("to_date") or "-"
+    if from_date == to_date:
+        return from_date
+    return f"{from_date} to {to_date}"

@@ -95,6 +95,7 @@ def expand_full_day_leave_range(user, start_date, end_date, exclude_id=None):
         user=user,
         status__in=["Pending", "Approved"],
         leave_type__in=FULL_DAY_LEAVE_TYPES,
+        admin_skip_wfh_bridge=False,
     ).order_by("from_date")
 
     if exclude_id:
@@ -145,7 +146,13 @@ def expand_full_day_leave_range(user, start_date, end_date, exclude_id=None):
     }
 
 
-def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, requested_end_date=None):
+def calculate_leave_breakdown(
+    start_date,
+    end_date,
+    requested_start_date=None,
+    requested_end_date=None,
+    company_holidays_override=None,
+):
     """
     Returns detailed breakdown of leave days.
 
@@ -168,9 +175,16 @@ def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, r
         requested_end_date=requested_end_date,
     )
 
-    company_holidays = set(
-        CompanyHoliday.objects.filter(date__range=(start_date, end_date)).values_list("date", flat=True)
-    )
+    if company_holidays_override is None:
+        company_holidays = set(
+            CompanyHoliday.objects.filter(date__range=(start_date, end_date)).values_list("date", flat=True)
+        )
+    else:
+        company_holidays = {
+            item
+            for item in set(company_holidays_override)
+            if start_date <= item <= end_date
+        }
     work_from_home_weekdays = get_work_from_home_weekdays()
     all_dates = list(_iter_dates(start_date, end_date))
     requested_dates = list(_iter_dates(requested_start_date, requested_end_date))
@@ -198,6 +212,8 @@ def calculate_leave_breakdown(start_date, end_date, requested_start_date=None, r
 
         if is_company_holiday:
             company_holiday_days += 1
+            excluded_dates.append((current, "Company Holiday"))
+            continue
 
         if is_weekend and current not in included_weekend_dates:
             weekend_days += 1
@@ -252,6 +268,7 @@ def reconcile_user_full_day_leave_bridges(user):
                     user=user,
                     status__in=["Pending", "Approved"],
                     leave_type__in=FULL_DAY_LEAVE_TYPES,
+                    admin_skip_wfh_bridge=False,
                 )
                 .order_by("from_date", "id")
             )
@@ -303,3 +320,106 @@ def reconcile_user_full_day_leave_bridges(user):
         balance.save()
 
     return changed_leave_ids
+
+
+def preview_user_full_day_leave_bridge_reconciliation(user):
+    """
+    Simulate reconcile_user_full_day_leave_bridges() without saving.
+    Returns the final per-leave ranges after resolving bridge ownership across
+    all active full-day leaves for the employee.
+    """
+
+    leaves = list(
+        Leave.objects
+        .filter(
+            user=user,
+            status__in=["Pending", "Approved"],
+            leave_type__in=FULL_DAY_LEAVE_TYPES,
+            admin_skip_wfh_bridge=False,
+        )
+        .order_by("from_date", "id")
+    )
+    ranges = {
+        leave.id: {
+            "from_date": leave.requested_from_date or leave.from_date,
+            "to_date": leave.requested_to_date or leave.to_date,
+            "requested_from_date": leave.requested_from_date or leave.from_date,
+            "requested_to_date": leave.requested_to_date or leave.to_date,
+        }
+        for leave in leaves
+    }
+
+    def bridge_dates_between(start_date, end_date, holidays, work_from_home_weekdays):
+        gap_dates = list(_iter_dates(start_date, end_date))
+        if not gap_dates:
+            return []
+        has_wfh = any(
+            current not in holidays and current.weekday() in work_from_home_weekdays
+            for current in gap_dates
+        )
+        all_bridge = all(
+            current in holidays
+            or current.weekday() in WEEKEND_WEEKDAYS
+            or (current not in holidays and current.weekday() in work_from_home_weekdays)
+            for current in gap_dates
+        )
+        return gap_dates if has_wfh and all_bridge else []
+
+    changed = True
+    while changed:
+        changed = False
+        work_from_home_weekdays = get_work_from_home_weekdays()
+        min_date = min(item["requested_from_date"] for item in ranges.values()) if ranges else None
+        max_date = max(item["requested_to_date"] for item in ranges.values()) if ranges else None
+        holidays = set()
+        if min_date and max_date:
+            holidays = set(
+                CompanyHoliday.objects.filter(
+                    date__range=(min_date - timedelta(days=10), max_date + timedelta(days=10))
+                ).values_list("date", flat=True)
+            )
+
+        ordered = sorted(leaves, key=lambda leave: (ranges[leave.id]["from_date"], leave.id))
+        for index, leave in enumerate(ordered):
+            current_range = ranges[leave.id]
+
+            previous_leave = None
+            for candidate in reversed(ordered[:index]):
+                if ranges[candidate.id]["to_date"] < current_range["from_date"]:
+                    previous_leave = candidate
+                    break
+            if previous_leave:
+                previous_end = ranges[previous_leave.id]["to_date"]
+                gap_dates = bridge_dates_between(
+                    previous_end + timedelta(days=1),
+                    current_range["from_date"] - timedelta(days=1),
+                    holidays,
+                    work_from_home_weekdays,
+                )
+                if gap_dates:
+                    current_range["from_date"] = gap_dates[0]
+                    changed = True
+
+            next_leave = None
+            for candidate in ordered[index + 1:]:
+                if ranges[candidate.id]["from_date"] > current_range["to_date"]:
+                    next_leave = candidate
+                    break
+            if next_leave:
+                next_start = ranges[next_leave.id]["from_date"]
+                gap_dates = bridge_dates_between(
+                    current_range["to_date"] + timedelta(days=1),
+                    next_start - timedelta(days=1),
+                    holidays,
+                    work_from_home_weekdays,
+                )
+                if gap_dates:
+                    current_range["to_date"] = gap_dates[-1]
+                    changed = True
+
+    for leave_id, item in ranges.items():
+        requested_dates = set(_iter_dates(item["requested_from_date"], item["requested_to_date"]))
+        final_dates = set(_iter_dates(item["from_date"], item["to_date"]))
+        item["auto_added_dates"] = sorted(final_dates - requested_dates)
+
+    return ranges

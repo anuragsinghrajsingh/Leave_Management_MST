@@ -337,7 +337,18 @@ def _profile_photo_url(profile):
     return None
 
 
-def send_branded_email(subject, template_name, context, to_email, reply_to=None, from_email=None):
+def send_branded_email(
+    subject,
+    template_name,
+    context,
+    to_email,
+    reply_to=None,
+    from_email=None,
+    email_type="branded",
+    related_user=None,
+    related_leave=None,
+    triggered_by=None,
+):
     """Helper to send a branded HTML email with an embedded logo."""
     html_content = render_to_string(template_name, context)
     
@@ -345,10 +356,11 @@ def send_branded_email(subject, template_name, context, to_email, reply_to=None,
     if isinstance(to_email, str):
         to_email = [to_email]
         
+    sender = f"HR Portal <{from_email or settings.DEFAULT_FROM_EMAIL}>"
     email = EmailMessage(
         subject=subject,
         body=html_content,
-        from_email=f"HR Portal <{from_email or settings.DEFAULT_FROM_EMAIL}>",
+        from_email=sender,
         to=to_email,
     )
     if reply_to:
@@ -366,16 +378,31 @@ def send_branded_email(subject, template_name, context, to_email, reply_to=None,
             img.add_header('Content-Disposition', 'inline', filename='logo.png')
             email.attach(img)
             
+    from App.services.email_delivery_log import record_email_delivery
     from App.utils.logger_utils import log_email_sent_by_email
+    error_message = ""
     try:
         sent_count = email.send(fail_silently=False)
         send_succeeded = sent_count > 0
-    except Exception:
+    except Exception as exc:
         send_succeeded = False
+        error_message = str(exc)
         security_logger.exception("BRANDED_EMAIL_SEND_FAILED | Subject: %s", subject)
 
     for addr in to_email:
         log_email_sent_by_email(addr, subject, success=send_succeeded)
+    record_email_delivery(
+        subject=subject,
+        recipients=to_email,
+        status="sent" if send_succeeded else "failed",
+        email_type=email_type,
+        from_email=sender,
+        error_message=error_message,
+        related_user=related_user,
+        related_leave=related_leave,
+        triggered_by=triggered_by,
+        metadata={"template": template_name, "reply_to": reply_to or ""},
+    )
 
 
 def _get_leave_day_display(leave):
@@ -781,6 +808,15 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts):
             from_email=getattr(settings, "SERVER_EMAIL", settings.DEFAULT_FROM_EMAIL),
             to=recipients,
         ).send(fail_silently=False)
+        from App.services.email_delivery_log import record_email_delivery
+        record_email_delivery(
+            subject=subject,
+            recipients=recipients,
+            status="sent",
+            email_type="login_security_alert",
+            from_email=getattr(settings, "SERVER_EMAIL", settings.DEFAULT_FROM_EMAIL),
+            metadata={"portal": portal, "username": username or "(blank)", "ip_address": ip_address, "reason": reason, "attempts": attempts},
+        )
         security_logger.info(
             "LOGIN_ALERT_EMAIL_SENT | portal=%s | username=%s | ip=%s | reason=%s | recipients=%s",
             portal,
@@ -789,7 +825,17 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts):
             reason,
             ",".join(recipients),
         )
-    except Exception:
+    except Exception as exc:
+        from App.services.email_delivery_log import record_email_delivery
+        record_email_delivery(
+            subject=subject,
+            recipients=recipients,
+            status="failed",
+            email_type="login_security_alert",
+            from_email=getattr(settings, "SERVER_EMAIL", settings.DEFAULT_FROM_EMAIL),
+            error_message=str(exc),
+            metadata={"portal": portal, "username": username or "(blank)", "ip_address": ip_address, "reason": reason, "attempts": attempts},
+        )
         security_logger.exception(
             "LOGIN_ALERT_EMAIL_FAILED | portal=%s | username=%s | ip=%s | reason=%s",
             portal,

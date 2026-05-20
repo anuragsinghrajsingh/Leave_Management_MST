@@ -15,6 +15,113 @@
 
 {% block after_related_objects %}
   {{ block.super }}
+  <style>
+    .admin-conflict-checker {
+      border: 1px solid var(--hairline-color);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 18px 0;
+      background: var(--body-bg);
+    }
+    .admin-conflict-checker h2 {
+      margin-top: 0;
+    }
+    .admin-conflict-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 12px 0;
+    }
+    .admin-conflict-actions button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-weight: 700;
+      background: var(--button-bg);
+      color: var(--button-fg);
+    }
+    .admin-conflict-actions button.secondary {
+      background: var(--darkened-bg);
+      color: var(--body-fg);
+    }
+    .admin-conflict-result {
+      display: none;
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+      background: var(--darkened-bg);
+    }
+    .admin-conflict-result.is-visible {
+      display: block;
+    }
+    .admin-conflict-result.safe {
+      border-left: 5px solid #16a34a;
+    }
+    .admin-conflict-result.warning {
+      border-left: 5px solid #f59e0b;
+    }
+    .admin-conflict-result.conflict {
+      border-left: 5px solid #dc2626;
+    }
+    .admin-conflict-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .admin-conflict-card {
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--body-bg);
+      overflow-wrap: anywhere;
+    }
+    .admin-conflict-card strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--body-quiet-color);
+      text-transform: uppercase;
+      font-size: 0.78rem;
+    }
+    .admin-conflict-list {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+    .admin-conflict-decision {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      background: var(--body-bg);
+      font-weight: 700;
+    }
+    .admin-conflict-error {
+      color: #dc2626;
+      font-weight: 800;
+    }
+    @media (max-width: 800px) {
+      .admin-conflict-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <fieldset
+    class="module aligned admin-conflict-checker"
+    data-admin-leave-conflict-checker
+    data-preview-url="{% url 'admin:app_leave_conflict_preview' %}"
+    data-object-id="{% if original %}{{ original.pk }}{% endif %}"
+  >
+    <h2>Admin conflict / impact preview</h2>
+    <p><strong>Required before save.</strong> This checks employee-style WFH bridge logic, overlaps, leave count, and balance impact. Admin can still override warnings/conflicts after review.</p>
+    <div class="admin-conflict-actions">
+      <button type="button" data-admin-conflict-check>Check conflicts / preview impact</button>
+      <button type="button" class="secondary" data-admin-conflict-apply style="display: none;">Apply calculated range to form</button>
+      <span data-admin-conflict-state>Preview not checked yet.</span>
+    </div>
+    <div class="admin-conflict-result" data-admin-conflict-result></div>
+  </fieldset>
   {% if show_admin_leave_workflow_prompt and admin_leave_workflow_urls %}
     <style>
       .admin-leave-workflow-backdrop {
@@ -95,11 +202,54 @@
                 {{ workflow.label }}
               </a>
             {% endfor %}
-            <button type="button" onclick="document.getElementById('admin-leave-workflow-prompt').remove();">Skip workflow</button>
+            <button
+              type="button"
+              data-admin-workflow-prompt-skip
+              data-skip-url="{{ admin_leave_workflow_skip_url }}"
+              data-workflow-action="{{ recommended_workflow_key }}"
+            >Skip workflow and audit</button>
           </div>
         </div>
       </section>
     </div>
+    <script>
+      (function () {
+        const button = document.querySelector("[data-admin-workflow-prompt-skip]");
+        const modal = document.getElementById("admin-leave-workflow-prompt");
+        if (!button || !modal) return;
+
+        function getCookie(name) {
+          const value = "; " + document.cookie;
+          const parts = value.split("; " + name + "=");
+          return parts.length === 2 ? parts.pop().split(";").shift() : "";
+        }
+
+        button.addEventListener("click", function () {
+          const skipUrl = button.dataset.skipUrl || "";
+          const workflowAction = button.dataset.workflowAction || "post_save_prompt";
+          if (!skipUrl) {
+            modal.remove();
+            return;
+          }
+
+          button.disabled = true;
+          const formData = new FormData();
+          formData.append("workflow_action", workflowAction);
+
+          fetch(skipUrl, {
+            method: "POST",
+            body: formData,
+            credentials: "same-origin",
+            headers: {
+              "X-CSRFToken": getCookie("csrftoken"),
+              "X-Requested-With": "XMLHttpRequest"
+            }
+          }).finally(function () {
+            modal.remove();
+          });
+        });
+      })();
+    </script>
   {% endif %}
   {% if recent_admin_leave_workflow_audits %}
     <fieldset class="module aligned">

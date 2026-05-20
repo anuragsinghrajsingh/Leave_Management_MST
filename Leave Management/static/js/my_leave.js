@@ -2955,6 +2955,8 @@ const exportWrapper = document.createElement("div");
     }
     let myLeaveLiveNotificationSignature = "";
     let myLeaveLiveNotificationInitialized = false;
+    let myLeaveLiveCountsSignature = "";
+    let myLeaveLiveCountsInitialized = false;
     let myLeaveRefreshInFlight = false;
     let myLeaveRefreshQueued = null;
     function getMyLeaveDecisionNotifications(notifications)
@@ -2979,6 +2981,16 @@ const exportWrapper = document.createElement("div");
             ].join(":"))
             .join("|");
         return `${totalCount}:${itemsSig}`;
+    }
+    function buildMyLeaveCountsSignature(counts = {})
+    {
+        return ["pending", "approved", "rejected"]
+            .map((key) =>
+            {
+                const value = Number(counts[key]);
+                return `${key}:${Number.isFinite(value) ? value : 0}`;
+            })
+            .join("|");
     }
     function getActiveMyLeavePanelId()
     {
@@ -3423,6 +3435,19 @@ const exportWrapper = document.createElement("div");
         if (detail.leaveCounts)
         {
             syncMyLeaveStatusTabCounts(detail.leaveCounts);
+            const nextCountsSignature = buildMyLeaveCountsSignature(detail.leaveCounts);
+            if (!myLeaveLiveCountsInitialized)
+            {
+                myLeaveLiveCountsInitialized = true;
+                myLeaveLiveCountsSignature = nextCountsSignature;
+            }
+            else if (nextCountsSignature && nextCountsSignature !== myLeaveLiveCountsSignature)
+            {
+                myLeaveLiveCountsSignature = nextCountsSignature;
+                refreshMyLeaveLiveData({
+                    activePanel: getActiveMyLeavePanelId()
+                });
+            }
         }
         if (!Array.isArray(detail.notifications))
         {

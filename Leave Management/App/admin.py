@@ -22,6 +22,7 @@ from .models import (
     EmployeeCommunicationRead,
     EmployeeCommunicationReadSeenAudit,
     EmployeeCommunicationSeen,
+    EmailDeliveryLog,
     EmployeeLeaveNotificationReadSeenAudit,
     EmployeeLeaveNotificationRead,
     EmployeeLeaveNotificationSeen,
@@ -65,23 +66,28 @@ from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth import get_user_model
 from django import forms
 from django.conf import settings
+from django.core import signing
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import path, reverse
 from django.http import HttpResponse, JsonResponse
 from django.utils.html import format_html
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.template.response import TemplateResponse
-from datetime import date, datetime
+from datetime import date, datetime, time
 from io import BytesIO
 import csv
+import json
 import logging
 import os
 import re
 import zipfile
 from urllib.parse import urlencode
 from django.utils.timezone import now, localtime
+from django.utils import timezone
 from App.services.maintenance_mode import (
     disable_maintenance_mode,
     enable_maintenance_mode,
@@ -787,6 +793,13 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
 class LeaveAdminForm(AdminReasonFormMixin, forms.ModelForm):
     change_reason = admin_reason_field()
+    admin_conflict_preview_token = forms.CharField(required=False, widget=forms.HiddenInput)
+    admin_conflict_preview_decision = forms.CharField(required=False, widget=forms.HiddenInput)
+    admin_skip_wfh_bridge = forms.BooleanField(
+        required=False,
+        label="Do not auto-expand WFH bridge for this save",
+        help_text="Admin-only override. Keeps the entered full-day range instead of joining nearby leaves through WFH bridge days.",
+    )
 
     created_at_override = forms.DateTimeField(
         required=False,
@@ -805,7 +818,50 @@ class LeaveAdminForm(AdminReasonFormMixin, forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         self.instance._skip_model_validation = True
+        token = cleaned_data.get("admin_conflict_preview_token") or ""
+        decision = cleaned_data.get("admin_conflict_preview_decision") or ""
+
+        if not token:
+            raise ValidationError("Run admin conflict/impact preview before saving this leave.")
+
+        if decision not in {"reviewed", "override"}:
+            raise ValidationError("Confirm the admin conflict/impact preview decision before saving this leave.")
+
+        try:
+            preview = signing.loads(token, salt="admin-leave-conflict-preview", max_age=1800)
+        except signing.BadSignature as exc:
+            raise ValidationError("Admin conflict/impact preview expired or is invalid. Run preview again.") from exc
+
+        current_signature = _admin_leave_preview_signature_from_cleaned_data(cleaned_data, self.instance.pk)
+        if preview.get("signature") != current_signature:
+            raise ValidationError("Leave fields changed after preview. Run admin conflict/impact preview again.")
+
+        if preview.get("status") in {"warning", "conflict"} and decision != "override":
+            raise ValidationError("This preview has warnings/conflicts. Confirm override before saving.")
+
+        cleaned_data["admin_conflict_preview_payload"] = preview
         return cleaned_data
+
+
+def _admin_leave_preview_signature_from_cleaned_data(cleaned_data, leave_id=None):
+    user = cleaned_data.get("user")
+    from_date_value = cleaned_data.get("from_date")
+    to_date_value = cleaned_data.get("to_date")
+    from_datetime_value = cleaned_data.get("from_datetime")
+    to_datetime_value = cleaned_data.get("to_datetime")
+    payload = {
+        "leave_id": str(leave_id or ""),
+        "user_id": str(user.pk if user else ""),
+        "leave_type": cleaned_data.get("leave_type") or "",
+        "status": cleaned_data.get("status") or "",
+        "deducted_from": cleaned_data.get("deducted_from") or "",
+        "admin_skip_wfh_bridge": bool(cleaned_data.get("admin_skip_wfh_bridge")),
+        "from_date": from_date_value.isoformat() if from_date_value else "",
+        "to_date": to_date_value.isoformat() if to_date_value else "",
+        "from_datetime": from_datetime_value.isoformat() if from_datetime_value else "",
+        "to_datetime": to_datetime_value.isoformat() if to_datetime_value else "",
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 LEAVE_BALANCE_AUDIT_FIELDS = (
     "total_leave_balance",
     "total_leave_remaining",
@@ -898,6 +954,7 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 ('requested_from_date', 'requested_to_date',),
                 'reason',
                 'deducted_from',
+                'admin_skip_wfh_bridge',
             )
         }),
 
@@ -917,7 +974,7 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
             'classes': ('collapse',),   # 👈 collapsible (clean UI)
         }),
         ("Audit reason", {
-            'fields': ('change_reason',),
+            'fields': ('change_reason', 'admin_conflict_preview_token', 'admin_conflict_preview_decision'),
         }),
     )
 
@@ -1002,12 +1059,317 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path(
+                "conflict-preview/",
+                self.admin_site.admin_view(self.conflict_preview_view),
+                name="app_leave_conflict_preview",
+            ),
+            path(
                 "<path:object_id>/admin-workflow/<str:workflow_action>/",
                 self.admin_site.admin_view(self.single_leave_workflow_view),
                 name="app_leave_admin_workflow",
             ),
+            path(
+                "<path:object_id>/admin-workflow-skip/",
+                self.admin_site.admin_view(self.skip_leave_workflow_prompt_view),
+                name="app_leave_admin_workflow_skip",
+            ),
         ]
         return custom_urls + urls
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
+
+    def delete_view(self, request, object_id, extra_context=None):
+        self.message_user(
+            request,
+            "Leave records must be deleted through the admin delete workflow.",
+            level=messages.INFO,
+        )
+        return redirect(reverse("admin:app_leave_admin_workflow", args=[object_id, "delete"]))
+
+    def delete_model(self, request, obj):
+        raise PermissionDenied("Leave records must be deleted through the admin delete workflow.")
+
+    def delete_queryset(self, request, queryset):
+        raise PermissionDenied("Leave records must be deleted through the admin delete workflow.")
+
+    def _parse_preview_datetime(self, request, prefix):
+        date_value = (request.POST.get(f"{prefix}_0") or "").strip()
+        time_value = (request.POST.get(f"{prefix}_1") or "").strip()
+        if not date_value or not time_value:
+            return None
+        parsed = datetime.combine(date.fromisoformat(date_value), time.fromisoformat(time_value))
+        return timezone.make_aware(parsed) if timezone.is_naive(parsed) else parsed
+
+    def _parse_preview_date(self, request, name):
+        value = (request.POST.get(name) or "").strip()
+        return date.fromisoformat(value) if value else None
+
+    def _preview_signature_from_values(self, values):
+        payload = {
+            "leave_id": str(values.get("leave_id") or ""),
+            "user_id": str(values["user"].pk if values.get("user") else ""),
+            "leave_type": values.get("leave_type") or "",
+            "status": values.get("status") or "",
+            "deducted_from": values.get("deducted_from") or "",
+            "admin_skip_wfh_bridge": bool(values.get("admin_skip_wfh_bridge")),
+            "from_date": values.get("from_date").isoformat() if values.get("from_date") else "",
+            "to_date": values.get("to_date").isoformat() if values.get("to_date") else "",
+            "from_datetime": values.get("from_datetime").isoformat() if values.get("from_datetime") else "",
+            "to_datetime": values.get("to_datetime").isoformat() if values.get("to_datetime") else "",
+        }
+        return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+    def _format_date_list(self, dates):
+        return [item.strftime("%d %b %Y") for item in dates]
+
+    def _format_range(self, start_date, end_date):
+        if start_date == end_date:
+            return start_date.strftime("%d %b %Y")
+        return f"{start_date.strftime('%d %b %Y')} to {end_date.strftime('%d %b %Y')}"
+
+    def _admin_leave_conflict_preview(self, values):
+        from App.services.leave_breakdown import calculate_leave_breakdown, expand_full_day_leave_range
+        from App.services.overlap_service import get_overlap_details
+
+        user = values["user"]
+        leave_id = values.get("leave_id")
+        leave_type = values["leave_type"]
+        status = values["status"]
+        deducted_from = values["deducted_from"]
+        from_date = values["from_date"]
+        to_date = values["to_date"]
+        from_datetime = values["from_datetime"]
+        to_datetime = values["to_datetime"]
+        skip_wfh_bridge = bool(values.get("admin_skip_wfh_bridge"))
+        active_status = status in {"Pending", "Approved"}
+        full_day = leave_type in {"Sick", "Earned", "Unpaid"}
+        warnings = []
+        conflicts = []
+        auto_added_dates = []
+        requested_from = from_date
+        requested_to = to_date
+        effective_from = from_date
+        effective_to = to_date
+
+        if full_day:
+            if skip_wfh_bridge:
+                warnings.append("Admin override selected: WFH bridge auto-expansion will be skipped for this save.")
+            else:
+                expanded = expand_full_day_leave_range(user=user, start_date=from_date, end_date=to_date, exclude_id=leave_id)
+                effective_from = expanded["start_date"]
+                effective_to = expanded["end_date"]
+                auto_added_dates = expanded["auto_added_dates"]
+            breakdown = calculate_leave_breakdown(
+                effective_from,
+                effective_to,
+                requested_start_date=requested_from,
+                requested_end_date=requested_to,
+            )
+            leave_value = float(breakdown["working_days"] or 0)
+        else:
+            breakdown = calculate_leave_breakdown(from_date, to_date)
+            leave_value = 0.25 if leave_type == "Short" else 0.5 if leave_type == "Half" else float(breakdown["working_days"] or 0)
+
+        if auto_added_dates:
+            warnings.append(
+                "WFH bridge expanded the effective leave range with: "
+                + ", ".join(self._format_date_list(auto_added_dates))
+            )
+
+        overlaps = get_overlap_details(user=user, start_date=effective_from, end_date=effective_to, exclude_id=leave_id)
+        if overlaps and active_status:
+            conflicts.append(f"{len(overlaps)} overlapping pending/approved leave record(s) found.")
+
+        if leave_type in {"Short", "Half"} and active_status:
+            same_day_opposite_type = "Half" if leave_type == "Short" else "Short"
+            if Leave.objects.filter(user=user, leave_type=leave_type, from_date=from_date, status__in=["Pending", "Approved"]).exclude(pk=leave_id).exists():
+                conflicts.append(f"Employee already has a {leave_type} leave on this date.")
+            if Leave.objects.filter(user=user, leave_type=same_day_opposite_type, from_date=from_date, status__in=["Pending", "Approved"]).exclude(pk=leave_id).exists():
+                conflicts.append(f"Employee already has a {same_day_opposite_type} leave on this date.")
+
+            monthly_count = Leave.objects.filter(
+                user=user,
+                leave_type=leave_type,
+                from_date__month=from_date.month,
+                from_date__year=from_date.year,
+                status__in=["Pending", "Approved"],
+            ).exclude(pk=leave_id).count()
+            monthly_limit = 2 if leave_type == "Short" else 1
+            if monthly_count >= monthly_limit:
+                conflicts.append(f"Monthly {leave_type} limit is already reached ({monthly_count}/{monthly_limit}).")
+
+        try:
+            balance = user.leavebalance
+        except LeaveBalance.DoesNotExist:
+            balance = None
+        current_balance = {}
+        expected_balance = {}
+        if balance:
+            current_balance = {
+                "total_leave_remaining": round(float(balance.total_leave_remaining or 0), 2),
+                "sick_remaining": round(float(balance.sick_total or 0) - float(balance.sick_used or 0), 2),
+                "sick_used": round(float(balance.sick_used or 0), 2),
+                "earned_remaining": round(float(balance.earned_total or 0) - float(balance.earned_used or 0), 2),
+                "earned_used": round(float(balance.earned_used or 0), 2),
+                "unpaid": round(float(balance.unpaid or 0), 2),
+            }
+            expected_balance = dict(current_balance)
+            old_value = 0.0
+            old_deducted_from = ""
+            old_status_active = False
+            if leave_id:
+                old_leave = Leave.objects.filter(pk=leave_id).first()
+                if old_leave:
+                    old_status_active = old_leave.status in {"Pending", "Approved"}
+                    old_deducted_from = old_leave.deducted_from
+                    if old_leave.leave_type == "Short":
+                        old_value = 0.25
+                    elif old_leave.leave_type == "Half":
+                        old_value = 0.5
+                    else:
+                        from App.services.leave_breakdown import calculate_leave_breakdown_for_leave
+                        old_value = float(calculate_leave_breakdown_for_leave(old_leave)["working_days"] or 0)
+
+            def apply_delta(target, source, value):
+                if source == "Sick":
+                    expected_balance["sick_used"] = round(expected_balance["sick_used"] + target * value, 2)
+                    expected_balance["total_leave_remaining"] = round(expected_balance["total_leave_remaining"] - target * value, 2)
+                elif source == "Earned":
+                    expected_balance["earned_used"] = round(expected_balance["earned_used"] + target * value, 2)
+                    expected_balance["total_leave_remaining"] = round(expected_balance["total_leave_remaining"] - target * value, 2)
+                elif source == "Unpaid":
+                    expected_balance["unpaid"] = round(expected_balance["unpaid"] + target * value, 2)
+
+            if old_status_active:
+                apply_delta(-1, old_deducted_from, old_value)
+            if active_status:
+                apply_delta(1, deducted_from if leave_type in {"Short", "Half"} else leave_type, leave_value)
+
+            if expected_balance["total_leave_remaining"] < 0:
+                conflicts.append("Expected paid leave balance goes below zero.")
+
+            expected_balance["sick_remaining"] = round(float(balance.sick_total or 0) - expected_balance["sick_used"], 2)
+            expected_balance["earned_remaining"] = round(float(balance.earned_total or 0) - expected_balance["earned_used"], 2)
+
+            if expected_balance["sick_remaining"] < 0:
+                conflicts.append("Expected Sick remaining balance goes below zero.")
+            if expected_balance["earned_remaining"] < 0:
+                conflicts.append("Expected Earned remaining balance goes below zero.")
+
+        status_label = "conflict" if conflicts else "warning" if warnings else "safe"
+        signature = self._preview_signature_from_values(values)
+        token = signing.dumps({
+            "signature": signature,
+            "status": status_label,
+            "warnings": warnings,
+            "conflicts": conflicts,
+            "requested_range": {
+                "from": requested_from.isoformat(),
+                "to": requested_to.isoformat(),
+            },
+            "effective_range": {
+                "from": effective_from.isoformat(),
+                "to": effective_to.isoformat(),
+            },
+            "auto_added_dates": [item.isoformat() for item in auto_added_dates],
+            "working_days": leave_value,
+            "admin_skip_wfh_bridge": skip_wfh_bridge,
+        }, salt="admin-leave-conflict-preview")
+
+        return {
+            "token": token,
+            "status": status_label,
+            "warnings": warnings,
+            "conflicts": conflicts,
+            "requested_range": {"from": requested_from.isoformat(), "to": requested_to.isoformat()},
+            "effective_range": {"from": effective_from.isoformat(), "to": effective_to.isoformat()},
+            "admin_skip_wfh_bridge": skip_wfh_bridge,
+            "effective_datetime": {
+                "from_date": effective_from.isoformat(),
+                "to_date": effective_to.isoformat(),
+                "from_time": "10:00:00" if full_day else (localtime(from_datetime).strftime("%H:%M:%S") if from_datetime else ""),
+                "to_time": "19:00:00" if full_day else (localtime(to_datetime).strftime("%H:%M:%S") if to_datetime else ""),
+            },
+            "auto_added_dates": self._format_date_list(auto_added_dates),
+            "breakdown": {
+                "working_days": leave_value,
+                "weekend_days": breakdown.get("weekend_days", 0),
+                "company_holiday_days": breakdown.get("company_holiday_days", 0),
+                "included_wfh_days": breakdown.get("included_wfh_days", 0),
+                "included_wfh_dates": self._format_date_list(breakdown.get("included_wfh_dates", [])),
+                "included_weekend_dates": self._format_date_list(breakdown.get("included_weekend_dates", [])),
+            },
+            "overlaps": [
+                {
+                    "leave_type": item["leave_type"],
+                    "status": item["status"],
+                    "existing_from": item["existing_from"].isoformat(),
+                    "existing_to": item["existing_to"].isoformat(),
+                    "overlap_from": item["overlap_from"].isoformat(),
+                    "overlap_to": item["overlap_to"].isoformat(),
+                    "overlap_days": item["overlap_days"],
+                }
+                for item in overlaps
+            ],
+            "current_balance": current_balance,
+            "expected_balance": expected_balance,
+        }
+
+    def conflict_preview_view(self, request):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+
+        try:
+            user_id = request.POST.get("user")
+            user = get_user_model().objects.select_related("leavebalance").get(pk=user_id)
+            leave_type = (request.POST.get("leave_type") or "").strip()
+            status = (request.POST.get("status") or "Pending").strip()
+            deducted_from = (request.POST.get("deducted_from") or "None").strip()
+            skip_wfh_bridge = request.POST.get("admin_skip_wfh_bridge") in {"on", "true", "1", "yes"}
+            object_id = (request.POST.get("object_id") or "").strip()
+            leave_id = int(object_id) if object_id.isdigit() else None
+            full_day = leave_type in {"Sick", "Earned", "Unpaid"}
+
+            if leave_type in {"Short", "Half"}:
+                from_datetime = self._parse_preview_datetime(request, "from_datetime")
+                to_datetime = self._parse_preview_datetime(request, "to_datetime")
+                if not from_datetime or not to_datetime:
+                    return JsonResponse({"error": "From/to date-time is required."}, status=400)
+                from_date = localtime(from_datetime).date()
+                to_date = localtime(to_datetime).date()
+            else:
+                if not full_day:
+                    return JsonResponse({"error": "Select a valid leave type."}, status=400)
+                from_date = self._parse_preview_date(request, "from_date")
+                to_date = self._parse_preview_date(request, "to_date")
+                if not from_date or not to_date:
+                    return JsonResponse({"error": "From/to date is required."}, status=400)
+                from_datetime = timezone.make_aware(datetime.combine(from_date, time(10, 0)))
+                to_datetime = timezone.make_aware(datetime.combine(to_date, time(19, 0)))
+
+            if to_date < from_date:
+                return JsonResponse({"error": "To date cannot be before from date."}, status=400)
+            if to_datetime <= from_datetime:
+                return JsonResponse({"error": "Leave end must be after leave start."}, status=400)
+
+            values = {
+                "leave_id": leave_id,
+                "user": user,
+                "leave_type": leave_type,
+                "status": status,
+                "deducted_from": deducted_from,
+                "admin_skip_wfh_bridge": skip_wfh_bridge,
+                "from_date": from_date,
+                "to_date": to_date,
+                "from_datetime": from_datetime,
+                "to_datetime": to_datetime,
+            }
+            return JsonResponse({"success": True, "preview": self._admin_leave_conflict_preview(values)})
+        except Exception as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
 
     def _get_single_workflow_urls(self, obj):
         if not obj or not obj.pk:
@@ -1037,17 +1399,41 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                     "ADMIN_SYNC",
                     "ADMIN_DELETE_WF",
                     "ADMIN_EMAIL_FAIL",
+                    "ADMIN_WORKFLOW_SKIPPED",
                 ],
             ).order_by("-changed_at")[:5]
         extra_context.update({
             "admin_leave_workflow_urls": workflow_urls,
             "recommended_workflow_key": recommended_key,
             "recommended_workflow_url": next((item for item in workflow_urls if item["key"] == recommended_key), None),
+            "admin_leave_workflow_skip_url": reverse("admin:app_leave_admin_workflow_skip", args=[obj.pk]) if obj else "",
             "recommendation_reason": request.GET.get("recommendation_reason") or self._default_workflow_recommendation_reason(obj),
             "show_admin_leave_workflow_prompt": request.GET.get("workflow_prompt") == "1",
             "recent_admin_leave_workflow_audits": recent_workflow_audits,
         })
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
+
+    def skip_leave_workflow_prompt_view(self, request, object_id):
+        if request.method != "POST":
+            self.message_user(request, "POST required to skip workflow.", level=messages.ERROR)
+            return redirect("admin:App_leave_change", object_id)
+
+        if not Leave.objects.filter(pk=object_id).exists():
+            self.message_user(request, "Leave record not found.", level=messages.ERROR)
+            return redirect("admin:App_leave_changelist")
+
+        workflow_action = (request.POST.get("workflow_action") or "post_save_prompt").strip()
+        result = admin_leave_workflow.log_workflow_skipped(
+            [object_id],
+            request.user,
+            workflow_action,
+            reason="Admin skipped post-save workflow prompt.",
+        )
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "message": result})
+
+        self.message_user(request, result, level=messages.INFO)
+        return redirect("admin:App_leave_change", object_id)
 
     def response_change(self, request, obj):
         response = super().response_change(request, obj)
@@ -1057,6 +1443,22 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "workflow_prompt": "1",
                 "recommended": getattr(request, "_admin_leave_recommended_workflow", self._default_workflow_recommendation(obj)),
                 "recommendation_reason": getattr(request, "_admin_leave_recommendation_reason", self._default_workflow_recommendation_reason(obj)),
+            })
+            return redirect(f"{change_url}?{query}")
+        return response
+
+    def response_add(self, request, obj, post_url_continue=None):
+        response = super().response_add(request, obj, post_url_continue=post_url_continue)
+        if "_save" in request.POST or "_continue" in request.POST:
+            change_url = reverse("admin:App_leave_change", args=[obj.pk])
+            query = urlencode({
+                "workflow_prompt": "1",
+                "recommended": getattr(request, "_admin_leave_recommended_workflow", "sync"),
+                "recommendation_reason": getattr(
+                    request,
+                    "_admin_leave_recommendation_reason",
+                    "New admin-created leave should be synced with balance, email, and notifications if needed.",
+                ),
             })
             return redirect(f"{change_url}?{query}")
         return response
@@ -1074,6 +1476,24 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         previous = Leave.objects.get(pk=obj.pk) if change and obj.pk else None
+        preview_payload = form.cleaned_data.get("admin_conflict_preview_payload") or {}
+        skip_wfh_bridge = bool(form.cleaned_data.get("admin_skip_wfh_bridge"))
+        if obj.leave_type in {"Sick", "Earned", "Unpaid"}:
+            obj.deducted_from = obj.leave_type
+            obj.admin_skip_wfh_bridge = skip_wfh_bridge
+            requested_range = preview_payload.get("requested_range") or {}
+            effective_range = preview_payload.get("effective_range") or {}
+            requested_from = date.fromisoformat(requested_range["from"]) if requested_range.get("from") else form.cleaned_data.get("from_date")
+            requested_to = date.fromisoformat(requested_range["to"]) if requested_range.get("to") else form.cleaned_data.get("to_date")
+            effective_from = date.fromisoformat(effective_range["from"]) if effective_range.get("from") else form.cleaned_data.get("from_date")
+            effective_to = date.fromisoformat(effective_range["to"]) if effective_range.get("to") else form.cleaned_data.get("to_date")
+            obj.requested_from_date = requested_from
+            obj.requested_to_date = requested_to
+            if not skip_wfh_bridge and effective_from and effective_to:
+                obj.from_date = effective_from
+                obj.to_date = effective_to
+                obj.from_datetime = timezone.make_aware(datetime.combine(effective_from, time(10, 0)))
+                obj.to_datetime = timezone.make_aware(datetime.combine(effective_to, time(19, 0)))
         if obj.leave_type in ["Short", "Half"] and obj.user_id and obj.from_date:
             count = Leave.objects.filter(
                 user=obj.user,
@@ -1099,10 +1519,26 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
             obj.created_at = created_at_override
         if previous:
             field_names = [field.name for field in obj._meta.fields if field.name != "id"]
+            changes = _collect_model_changes(previous, obj, field_names)
+            if preview_payload:
+                changes["admin_conflict_preview"] = {
+                    "old": None,
+                    "new": {
+                        "status": preview_payload.get("status"),
+                        "decision": form.cleaned_data.get("admin_conflict_preview_decision"),
+                        "warnings": preview_payload.get("warnings", []),
+                        "conflicts": preview_payload.get("conflicts", []),
+                        "requested_range": preview_payload.get("requested_range"),
+                        "effective_range": preview_payload.get("effective_range"),
+                        "auto_added_dates": preview_payload.get("auto_added_dates", []),
+                        "working_days": preview_payload.get("working_days"),
+                        "admin_skip_wfh_bridge": preview_payload.get("admin_skip_wfh_bridge", False),
+                    },
+                }
             _create_admin_audit_log(
                 request,
                 obj,
-                _collect_model_changes(previous, obj, field_names),
+                changes,
                 form.cleaned_data.get("change_reason"),
             )
             workflow_sensitive_fields = {
@@ -1132,8 +1568,50 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 request._admin_leave_recommendation_reason = "Pending leave is waiting for an approve or reject decision."
         elif obj.pk:
             self._log_create(request, obj, form.cleaned_data.get("change_reason") or "Created from Django admin.")
+            if preview_payload:
+                _create_admin_audit_log(
+                    request,
+                    obj,
+                    {
+                        "admin_conflict_preview": {
+                            "old": None,
+                            "new": {
+                                "status": preview_payload.get("status"),
+                                "decision": form.cleaned_data.get("admin_conflict_preview_decision"),
+                                "warnings": preview_payload.get("warnings", []),
+                                "conflicts": preview_payload.get("conflicts", []),
+                                "requested_range": preview_payload.get("requested_range"),
+                                "effective_range": preview_payload.get("effective_range"),
+                                "auto_added_dates": preview_payload.get("auto_added_dates", []),
+                                "working_days": preview_payload.get("working_days"),
+                                "admin_skip_wfh_bridge": preview_payload.get("admin_skip_wfh_bridge", False),
+                            },
+                        }
+                    },
+                    form.cleaned_data.get("change_reason") or "Created from Django admin.",
+                    action="ADMIN_PREVIEW",
+                )
             request._admin_leave_recommended_workflow = "sync"
             request._admin_leave_recommendation_reason = "New admin-created leave should be synced with balance and notifications if needed."
+        if obj.user_id and obj.leave_type in {"Sick", "Earned", "Unpaid"}:
+            admin_leave_workflow.recalculate_employee_balance(
+                obj.user,
+                request.user,
+                form.cleaned_data.get("change_reason") or "Admin leave save",
+                "Admin leave save bridge bypass" if skip_wfh_bridge else "Admin leave save preview range",
+            )
+            if skip_wfh_bridge:
+                self.message_user(
+                    request,
+                    "WFH bridge auto-expansion was skipped for this admin save.",
+                    level=messages.WARNING,
+                )
+            elif preview_payload.get("auto_added_dates"):
+                self.message_user(
+                    request,
+                    "WFH bridge preview range was applied to this leave only.",
+                    level=messages.INFO,
+                )
         return
 
     def _render_leave_workflow_confirmation(
@@ -1147,14 +1625,16 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
     ):
         selected_ids = list(queryset.values_list("pk", flat=True))
         workflow_action_key = self._workflow_action_key_from_action_name(action_name)
+        ordered_queryset = queryset.select_related("user").order_by("id")
         context = {
             **self.admin_site.each_context(request),
             "title": title,
             "opts": self.model._meta,
             "preview": admin_leave_workflow.get_leave_admin_preview(
-                queryset.select_related("user").order_by("id"),
+                ordered_queryset,
                 workflow_action=workflow_action_key,
             ),
+            "conflict_previews": self._bulk_leave_conflict_previews(ordered_queryset, workflow_action_key),
             "selected_ids": selected_ids,
             "selected_count": len(selected_ids),
             "action_name": action_name,
@@ -1162,6 +1642,66 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
             "show_delivery_options": show_delivery_options,
         }
         return TemplateResponse(request, "admin/admin_leave_workflow_confirm.html", context)
+
+    def _bulk_leave_conflict_previews(self, queryset, workflow_action_key):
+        previews = []
+        for leave in queryset:
+            preview_status = leave.status
+            if workflow_action_key == "approve":
+                preview_status = "Approved"
+            elif workflow_action_key in {"reject", "delete"}:
+                preview_status = "Rejected"
+
+            values = {
+                "leave_id": leave.id,
+                "user": leave.user,
+                "leave_type": leave.leave_type,
+                "status": preview_status,
+                "deducted_from": leave.deducted_from,
+                "admin_skip_wfh_bridge": bool(getattr(leave, "admin_skip_wfh_bridge", False)),
+                "from_date": leave.requested_from_date or leave.from_date,
+                "to_date": leave.requested_to_date or leave.to_date,
+                "from_datetime": leave.from_datetime,
+                "to_datetime": leave.to_datetime,
+            }
+            try:
+                result = self._admin_leave_conflict_preview(values)
+                previews.append({
+                    "leave_id": leave.id,
+                    "employee": leave.user.get_full_name().strip() or leave.user.username,
+                    "leave_type": leave.leave_type,
+                    "current_status": leave.status,
+                    "preview_status": preview_status,
+                    "date_range": self._format_range(leave.from_date, leave.to_date),
+                    "status": result["status"],
+                    "warnings": result["warnings"],
+                    "conflicts": result["conflicts"],
+                    "effective_range": result["effective_range"],
+                    "auto_added_dates": result["auto_added_dates"],
+                    "breakdown": result["breakdown"],
+                    "overlaps": result["overlaps"],
+                    "current_balance": result["current_balance"],
+                    "expected_balance": result["expected_balance"],
+                })
+            except Exception as exc:
+                previews.append({
+                    "leave_id": leave.id,
+                    "employee": leave.user.get_full_name().strip() or leave.user.username,
+                    "leave_type": leave.leave_type,
+                    "current_status": leave.status,
+                    "preview_status": preview_status,
+                    "date_range": self._format_range(leave.from_date, leave.to_date),
+                    "status": "conflict",
+                    "warnings": [],
+                    "conflicts": [f"Could not build conflict preview: {exc}"],
+                    "effective_range": {},
+                    "auto_added_dates": [],
+                    "breakdown": {},
+                    "overlaps": [],
+                    "current_balance": {},
+                    "expected_balance": {},
+                })
+        return previews
 
     def _workflow_action_key_from_action_name(self, action_name):
         if "approve" in action_name:
@@ -1194,6 +1734,15 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 needs_rejection_reason=config["needs_rejection_reason"],
                 show_delivery_options=config["show_delivery_options"],
             )
+
+        if request.POST.get("admin_workflow_skip"):
+            result = admin_leave_workflow.log_workflow_skipped(
+                [object_id],
+                request.user,
+                workflow_action,
+            )
+            self.message_user(request, result, level=messages.INFO)
+            return redirect("admin:App_leave_change", object_id)
 
         reason = (request.POST.get("workflow_reason") or "").strip()
         if not reason:
@@ -1251,6 +1800,7 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
             "notify_employee": bool(request.POST.get("notify_employee")),
             "notify_hr": bool(request.POST.get("notify_hr")),
             "record_email": bool(request.POST.get("record_email")),
+            "employee_message": bool(request.POST.get("employee_message")),
             "employee_notification": bool(request.POST.get("employee_notification")),
             "hr_notification": bool(request.POST.get("hr_notification")),
         }
@@ -1276,6 +1826,15 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "admin_approve_selected_leaves",
             )
 
+        if request.POST.get("admin_workflow_skip"):
+            result = admin_leave_workflow.log_workflow_skipped(
+                self._selected_leave_ids_from_request(request, queryset),
+                request.user,
+                "approve",
+            )
+            self.message_user(request, result, level=messages.INFO)
+            return None
+
         reason = (request.POST.get("workflow_reason") or "").strip()
         if not reason:
             self.message_user(request, "Admin reason is required.", level=messages.ERROR)
@@ -1300,6 +1859,15 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "admin_reject_selected_leaves",
                 needs_rejection_reason=True,
             )
+
+        if request.POST.get("admin_workflow_skip"):
+            result = admin_leave_workflow.log_workflow_skipped(
+                self._selected_leave_ids_from_request(request, queryset),
+                request.user,
+                "reject",
+            )
+            self.message_user(request, result, level=messages.INFO)
+            return None
 
         reason = (request.POST.get("workflow_reason") or "").strip()
         rejection_reason = (request.POST.get("rejection_reason") or "").strip()
@@ -1330,6 +1898,15 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "admin_sync_selected_leaves",
             )
 
+        if request.POST.get("admin_workflow_skip"):
+            result = admin_leave_workflow.log_workflow_skipped(
+                self._selected_leave_ids_from_request(request, queryset),
+                request.user,
+                "sync",
+            )
+            self.message_user(request, result, level=messages.INFO)
+            return None
+
         reason = (request.POST.get("workflow_reason") or "").strip()
         if not reason:
             self.message_user(request, "Admin reason is required.", level=messages.ERROR)
@@ -1353,6 +1930,15 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "Confirm admin leave delete workflow",
                 "admin_delete_selected_leaves_with_workflow",
             )
+
+        if request.POST.get("admin_workflow_skip"):
+            result = admin_leave_workflow.log_workflow_skipped(
+                self._selected_leave_ids_from_request(request, queryset),
+                request.user,
+                "delete",
+            )
+            self.message_user(request, result, level=messages.INFO)
+            return None
 
         reason = (request.POST.get("workflow_reason") or "").strip()
         if not reason:
@@ -1378,6 +1964,15 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "admin_recalculate_selected_leave_balances",
                 show_delivery_options=False,
             )
+
+        if request.POST.get("admin_workflow_skip"):
+            result = admin_leave_workflow.log_workflow_skipped(
+                self._selected_leave_ids_from_request(request, queryset),
+                request.user,
+                "recalculate",
+            )
+            self.message_user(request, result, level=messages.INFO)
+            return None
 
         reason = (request.POST.get("workflow_reason") or "").strip()
         if not reason:
@@ -2395,6 +2990,18 @@ class CompanyHolidayAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/companyholiday_changelist.html"
     fields = ("name", "date", "is_optional", "change_reason")
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path("upload-csv/", self.upload_csv, name="companyholiday_upload_csv"),
+            path(
+                "impact/",
+                self.admin_site.admin_view(self.holiday_impact_view),
+                name="app_companyholiday_impact",
+            ),
+        ]
+        return custom_urls + urls
+
     def save_model(self, request, obj, form, change):
         previous = CompanyHoliday.objects.get(pk=obj.pk) if change and obj.pk else None
         super().save_model(request, obj, form, change)
@@ -2406,14 +3013,485 @@ class CompanyHolidayAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 _collect_model_changes(previous, obj, field_names),
                 form.cleaned_data.get("change_reason"),
             )
+            changed_dates = sorted({previous.date.isoformat(), obj.date.isoformat()})
+            if previous.date != obj.date or previous.is_optional != obj.is_optional:
+                request._holiday_impact_prompt = {
+                    "mode": "changed",
+                    "holiday": obj.name,
+                    "old_date": previous.date.isoformat(),
+                    "new_date": obj.date.isoformat(),
+                    "changed_dates": changed_dates,
+                    "change_reason": form.cleaned_data.get("change_reason") or "Holiday changed from Django admin.",
+                }
         elif obj.pk:
             self._log_create(request, obj, form.cleaned_data.get("change_reason") or "Created from Django admin.")
+            request._holiday_impact_prompt = {
+                "mode": "created",
+                "holiday": obj.name,
+                "old_date": None,
+                "new_date": obj.date.isoformat(),
+                "changed_dates": [obj.date.isoformat()],
+                "change_reason": form.cleaned_data.get("change_reason") or "Holiday created from Django admin.",
+            }
 
-    def get_urls(self):
-        
-        urls = super().get_urls()
-        custom_urls = [path("upload-csv/", self.upload_csv, name="companyholiday_upload_csv"),]
-        return custom_urls + urls
+    def response_change(self, request, obj):
+        response = super().response_change(request, obj)
+        prompt = getattr(request, "_holiday_impact_prompt", None)
+        if prompt and ("_save" in request.POST or "_continue" in request.POST):
+            request.session["holiday_impact_prompt"] = prompt
+            return redirect(reverse("admin:app_companyholiday_impact"))
+        return response
+
+    def response_add(self, request, obj, post_url_continue=None):
+        response = super().response_add(request, obj, post_url_continue=post_url_continue)
+        prompt = getattr(request, "_holiday_impact_prompt", None)
+        if prompt and ("_save" in request.POST or "_continue" in request.POST):
+            request.session["holiday_impact_prompt"] = prompt
+            return redirect(reverse("admin:app_companyholiday_impact"))
+        return response
+
+    def delete_model(self, request, obj):
+        prompt = {
+            "mode": "deleted",
+            "holiday": obj.name,
+            "old_date": obj.date.isoformat(),
+            "new_date": None,
+            "changed_dates": [obj.date.isoformat()],
+            "change_reason": (request.POST.get("delete_reason") or "").strip() or "Holiday deleted from Django admin.",
+        }
+        request._holiday_impact_prompt = prompt
+        request.session["holiday_impact_prompt"] = prompt
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        holidays = list(queryset)
+        if holidays:
+            changed_dates = sorted({item.date.isoformat() for item in holidays})
+            names = [item.name for item in holidays[:5]]
+            extra_count = max(len(holidays) - len(names), 0)
+            holiday_label = ", ".join(names)
+            if extra_count:
+                holiday_label = f"{holiday_label} and {extra_count} more"
+            prompt = {
+                "mode": "bulk_deleted",
+                "holiday": holiday_label,
+                "old_date": None,
+                "new_date": None,
+                "changed_dates": changed_dates,
+                "change_reason": (request.POST.get("delete_reason") or "").strip() or "Holiday bulk deleted from Django admin.",
+                "deleted_count": len(holidays),
+            }
+            request._holiday_impact_prompt = prompt
+            request.session["holiday_impact_prompt"] = prompt
+        super().delete_queryset(request, queryset)
+
+    def response_delete(self, request, obj_display, obj_id):
+        response = super().response_delete(request, obj_display, obj_id)
+        prompt = getattr(request, "_holiday_impact_prompt", None) or request.session.get("holiday_impact_prompt")
+        if prompt:
+            request.session["holiday_impact_prompt"] = prompt
+            return redirect(reverse("admin:app_companyholiday_impact"))
+        return response
+
+    def response_action(self, request, queryset):
+        response = super().response_action(request, queryset)
+        if request.session.get("holiday_impact_prompt"):
+            return redirect(reverse("admin:app_companyholiday_impact"))
+        return response
+
+    def _format_range(self, start_date, end_date):
+        if start_date == end_date:
+            return start_date.strftime("%d %b %Y")
+        return f"{start_date.strftime('%d %b %Y')} to {end_date.strftime('%d %b %Y')}"
+
+    def _holiday_dates_before_prompt(self, start_date, end_date, prompt):
+        holidays = set(
+            CompanyHoliday.objects.filter(date__range=(start_date, end_date)).values_list("date", flat=True)
+        )
+        changed_dates = {
+            date.fromisoformat(item)
+            for item in prompt.get("changed_dates", [])
+            if item
+        }
+        mode = prompt.get("mode")
+
+        if mode in {"created", "csv_import"}:
+            holidays.difference_update(changed_dates)
+        elif mode in {"deleted", "bulk_deleted"}:
+            holidays.update(changed_dates)
+        elif mode == "changed":
+            old_date = date.fromisoformat(prompt["old_date"]) if prompt.get("old_date") else None
+            new_date = date.fromisoformat(prompt["new_date"]) if prompt.get("new_date") else None
+            if old_date:
+                holidays.add(old_date)
+            if new_date:
+                holidays.discard(new_date)
+
+        return holidays
+
+    def _holiday_impact_preview(self, prompt=None):
+        from App.services.leave_breakdown import calculate_leave_breakdown, calculate_leave_breakdown_for_leave, preview_user_full_day_leave_bridge_reconciliation
+
+        prompt = prompt or {}
+        changed_dates = {
+            date.fromisoformat(item)
+            for item in prompt.get("changed_dates", [])
+            if item
+        }
+        today = timezone.localdate()
+        leaves = (
+            Leave.objects
+            .select_related("user", "user__leavebalance")
+            .filter(
+                status__in=["Pending", "Approved"],
+                leave_type__in=["Sick", "Earned", "Unpaid"],
+                to_date__gte=today,
+            )
+            .order_by("user_id", "from_date", "id")
+        )
+        skipped = {
+            "past": Leave.objects.filter(
+                status__in=["Pending", "Approved"],
+                leave_type__in=["Sick", "Earned", "Unpaid"],
+                to_date__lt=today,
+            ).count(),
+            "admin_bypass": Leave.objects.filter(
+                status__in=["Pending", "Approved"],
+                leave_type__in=["Sick", "Earned", "Unpaid"],
+                to_date__gte=today,
+                admin_skip_wfh_bridge=True,
+            ).count(),
+        }
+        rows = []
+        risk_by_user = {}
+        reconciled_ranges_by_user = {}
+
+        for leave in leaves:
+            requested_start = leave.requested_from_date or leave.from_date
+            requested_end = leave.requested_to_date or leave.to_date
+            if leave.user_id not in reconciled_ranges_by_user:
+                reconciled_ranges_by_user[leave.user_id] = preview_user_full_day_leave_bridge_reconciliation(leave.user)
+
+            if leave.admin_skip_wfh_bridge:
+                proposed_from = leave.from_date
+                proposed_to = leave.to_date
+                auto_added_dates = []
+            else:
+                reconciled = reconciled_ranges_by_user[leave.user_id].get(leave.id, {})
+                proposed_from = reconciled.get("from_date", leave.from_date)
+                proposed_to = reconciled.get("to_date", leave.to_date)
+                auto_added_dates = reconciled.get("auto_added_dates", [])
+            current_days = float(calculate_leave_breakdown(
+                leave.from_date,
+                leave.to_date,
+                requested_start_date=requested_start,
+                requested_end_date=requested_end,
+                company_holidays_override=self._holiday_dates_before_prompt(leave.from_date, leave.to_date, prompt),
+            )["working_days"] or 0)
+            proposed_days = float(calculate_leave_breakdown(
+                proposed_from,
+                proposed_to,
+                requested_start_date=requested_start,
+                requested_end_date=requested_end,
+            )["working_days"] or 0)
+            range_changed = leave.from_date != proposed_from or leave.to_date != proposed_to
+            touches_changed_date = any(leave.from_date <= changed_date <= leave.to_date for changed_date in changed_dates)
+            bridge_touches_changed_date = any(changed_date in auto_added_dates for changed_date in changed_dates)
+            if not range_changed and not touches_changed_date and not bridge_touches_changed_date:
+                continue
+
+            employee_name = leave.user.get_full_name().strip() or leave.user.username
+            balance = getattr(leave.user, "leavebalance", None)
+            row = {
+                "leave_id": leave.id,
+                "employee": employee_name,
+                "employee_id": leave.user_id,
+                "status": leave.status,
+                "leave_type": leave.leave_type,
+                "deducted_from": leave.deducted_from,
+                "current_range": self._format_range(leave.from_date, leave.to_date),
+                "proposed_range": self._format_range(proposed_from, proposed_to),
+                "proposed_from": proposed_from.isoformat(),
+                "proposed_to": proposed_to.isoformat(),
+                "bridge_dates": [item.strftime("%d %b %Y") for item in auto_added_dates],
+                "changed_holiday_dates": [item.strftime("%d %b %Y") for item in sorted(changed_dates)],
+                "current_days": current_days,
+                "proposed_days": proposed_days,
+                "range_changed": range_changed,
+                "holiday_inside_range": touches_changed_date,
+                "current_sick_remaining": round(float((balance.sick_total - balance.sick_used) if balance else 0), 2),
+                "current_earned_remaining": round(float((balance.earned_total - balance.earned_used) if balance else 0), 2),
+                "proposed_remaining": "-",
+                "risk": "",
+            }
+            rows.append(row)
+
+        affected_user_ids = {row["employee_id"] for row in rows}
+        proposed_by_leave_id = {
+            row["leave_id"]: (date.fromisoformat(row["proposed_from"]), date.fromisoformat(row["proposed_to"]))
+            for row in rows
+        }
+        if affected_user_ids:
+            active_leaves = (
+                Leave.objects
+                .select_related("user", "user__leavebalance")
+                .filter(user_id__in=affected_user_ids, status__in=["Pending", "Approved"])
+                .order_by("user_id", "from_date", "id")
+            )
+            projected = {}
+            for leave in active_leaves:
+                balance = getattr(leave.user, "leavebalance", None)
+                user_state = projected.setdefault(
+                    leave.user_id,
+                    {
+                        "employee": leave.user.get_full_name().strip() or leave.user.username,
+                        "sick_total": float(balance.sick_total if balance else 0),
+                        "earned_total": float(balance.earned_total if balance else 0),
+                        "sick_used": 0.0,
+                        "earned_used": 0.0,
+                        "unpaid": 0.0,
+                    },
+                )
+                if leave.id in proposed_by_leave_id:
+                    proposed_from, proposed_to = proposed_by_leave_id[leave.id]
+                    requested_start = leave.requested_from_date or leave.from_date
+                    requested_end = leave.requested_to_date or leave.to_date
+                    value = float(calculate_leave_breakdown(
+                        proposed_from,
+                        proposed_to,
+                        requested_start_date=requested_start,
+                        requested_end_date=requested_end,
+                    )["working_days"] or 0)
+                else:
+                    value = float(calculate_leave_breakdown_for_leave(leave)["working_days"] or 0)
+
+                if leave.leave_type == "Sick":
+                    user_state["sick_used"] += value
+                elif leave.leave_type == "Earned":
+                    user_state["earned_used"] += value
+                elif leave.leave_type == "Unpaid":
+                    user_state["unpaid"] += value
+                elif leave.leave_type in ["Short", "Half"]:
+                    if leave.deducted_from == "Sick":
+                        user_state["sick_used"] += value
+                    elif leave.deducted_from == "Earned":
+                        user_state["earned_used"] += value
+                    elif leave.deducted_from == "Unpaid":
+                        user_state["unpaid"] += value
+
+            for row in rows:
+                user_state = projected.get(row["employee_id"], {})
+                sick_remaining = round(user_state.get("sick_total", 0) - user_state.get("sick_used", 0), 2)
+                earned_remaining = round(user_state.get("earned_total", 0) - user_state.get("earned_used", 0), 2)
+                if row["deducted_from"] == "Sick":
+                    row["proposed_remaining"] = sick_remaining
+                elif row["deducted_from"] == "Earned":
+                    row["proposed_remaining"] = earned_remaining
+                elif row["deducted_from"] == "Unpaid":
+                    row["proposed_remaining"] = "Unpaid"
+                risks = []
+                if sick_remaining < 0:
+                    risks.append("Sick below zero")
+                if earned_remaining < 0:
+                    risks.append("Earned below zero")
+                row["risk"] = ", ".join(risks)
+                if row["risk"]:
+                    risk_by_user.setdefault(row["employee_id"], {"employee": row["employee"], "rows": []})["rows"].append(row)
+
+        return {
+            "rows": rows,
+            "risk_groups": list(risk_by_user.values()),
+            "risk_count": len(risk_by_user),
+            "affected_employee_count": len({row["employee_id"] for row in rows}),
+            "affected_leave_count": len(rows),
+            "skipped": skipped,
+        }
+
+    def _holiday_impact_snapshot(self, prompt, preview):
+        return {
+            "prompt": {
+                "mode": prompt.get("mode"),
+                "holiday": prompt.get("holiday"),
+                "old_date": prompt.get("old_date"),
+                "new_date": prompt.get("new_date"),
+                "changed_dates": sorted(prompt.get("changed_dates", [])),
+                "created_count": prompt.get("created_count"),
+                "skipped_count": prompt.get("skipped_count"),
+            },
+            "affected_employee_count": preview["affected_employee_count"],
+            "affected_leave_count": preview["affected_leave_count"],
+            "risk_count": preview["risk_count"],
+            "skipped": preview["skipped"],
+            "rows": [
+                {
+                    "leave_id": row["leave_id"],
+                    "employee_id": row["employee_id"],
+                    "status": row["status"],
+                    "leave_type": row["leave_type"],
+                    "deducted_from": row["deducted_from"],
+                    "current_range": row["current_range"],
+                    "proposed_from": row["proposed_from"],
+                    "proposed_to": row["proposed_to"],
+                    "current_days": row["current_days"],
+                    "proposed_days": row["proposed_days"],
+                    "range_changed": row["range_changed"],
+                    "holiday_inside_range": row["holiday_inside_range"],
+                    "proposed_remaining": row["proposed_remaining"],
+                    "risk": row["risk"],
+                }
+                for row in sorted(preview["rows"], key=lambda item: item["leave_id"])
+            ],
+        }
+
+    def _holiday_impact_snapshot_token(self, prompt, preview):
+        return signing.dumps(
+            self._holiday_impact_snapshot(prompt, preview),
+            salt="admin-holiday-impact-preview",
+        )
+
+    def holiday_impact_view(self, request):
+        prompt = request.session.get("holiday_impact_prompt", {})
+        preview = self._holiday_impact_preview(prompt)
+
+        if request.method == "POST":
+            action = request.POST.get("holiday_action")
+            reason = (request.POST.get("holiday_reason") or "").strip()
+            has_risk = preview["risk_count"] > 0
+
+            if action == "skip":
+                _create_admin_audit_log(
+                    request,
+                    request.user,
+                    {
+                        "holiday_impact_recalculation": {
+                            "old": "pending",
+                            "new": "skipped",
+                            "prompt": prompt,
+                            "preview": {
+                                "affected_leave_count": preview["affected_leave_count"],
+                                "affected_employee_count": preview["affected_employee_count"],
+                                "risk_count": preview["risk_count"],
+                            },
+                        }
+                    },
+                    reason or "Admin skipped holiday impact recalculation.",
+                    action="SKIP",
+                )
+                request.session.pop("holiday_impact_prompt", None)
+                self.message_user(request, "Holiday impact recalculation skipped and audited.", level=messages.INFO)
+                return redirect("admin:App_companyholiday_changelist")
+
+            if action == "apply":
+                snapshot_token = request.POST.get("holiday_preview_snapshot") or ""
+                try:
+                    reviewed_snapshot = signing.loads(
+                        snapshot_token,
+                        salt="admin-holiday-impact-preview",
+                        max_age=1800,
+                    )
+                except signing.BadSignature:
+                    self.message_user(
+                        request,
+                        "Holiday impact preview expired or is invalid. Review the refreshed preview before applying.",
+                        level=messages.ERROR,
+                    )
+                    return redirect(request.path)
+
+                current_snapshot = self._holiday_impact_snapshot(prompt, preview)
+                if reviewed_snapshot != current_snapshot:
+                    self.message_user(
+                        request,
+                        "Holiday impact preview is stale because leave or holiday data changed. Review the refreshed preview before applying.",
+                        level=messages.ERROR,
+                    )
+                    return redirect(request.path)
+
+                if not reason:
+                    self.message_user(request, "Admin reason is required before applying holiday impact recalculation.", level=messages.ERROR)
+                    return redirect(request.path)
+                if has_risk and request.POST.get("balance_risk_override") != "1":
+                    self.message_user(request, "Balance risk override confirmation is required.", level=messages.ERROR)
+                    return redirect(request.path)
+
+                from App.services.admin_leave_workflow import recalculate_employee_balance
+                from App.services.leave_breakdown import reconcile_user_full_day_leave_bridges
+
+                affected_users = set()
+                changed_rows = []
+                preview_user_ids = {row["employee_id"] for row in preview["rows"]}
+                with transaction.atomic():
+                    users = list(get_user_model().objects.select_for_update().filter(id__in=preview_user_ids))
+                    preview_rows_by_id = {row["leave_id"]: row for row in preview["rows"]}
+                    for user in users:
+                        before = {
+                            leave.id: {
+                                "employee": leave.user.get_full_name().strip() or leave.user.username,
+                                "from_date": leave.from_date.isoformat(),
+                                "to_date": leave.to_date.isoformat(),
+                                "from_datetime": _audit_value(leave.from_datetime),
+                                "to_datetime": _audit_value(leave.to_datetime),
+                            }
+                            for leave in Leave.objects.select_for_update().select_related("user").filter(
+                                user=user,
+                                status__in=["Pending", "Approved"],
+                                leave_type__in=["Sick", "Earned", "Unpaid"],
+                            )
+                        }
+                        changed_leave_ids = set(reconcile_user_full_day_leave_bridges(user))
+                        row_leave_ids = set(
+                            Leave.objects.filter(id__in=preview_rows_by_id.keys(), user=user).values_list("id", flat=True)
+                        )
+                        after_leaves = Leave.objects.select_related("user").filter(id__in=changed_leave_ids.union(row_leave_ids))
+                        for leave in after_leaves:
+                            old = before.get(leave.id, {})
+                            preview_row = preview_rows_by_id.get(leave.id, {})
+                            changed_rows.append({
+                                "leave_id": leave.id,
+                                "employee": old.get("employee") or leave.user.get_full_name().strip() or leave.user.username,
+                                "old": old,
+                                "new": {
+                                    "from_date": leave.from_date.isoformat(),
+                                    "to_date": leave.to_date.isoformat(),
+                                    "from_datetime": _audit_value(leave.from_datetime),
+                                    "to_datetime": _audit_value(leave.to_datetime),
+                                    "working_days": preview_row.get("proposed_days"),
+                                },
+                            })
+                        affected_users.add(user.id)
+                    for user in users:
+                        recalculate_employee_balance(user, request.user, reason, "Holiday schedule recalculation")
+
+                _create_admin_audit_log(
+                    request,
+                    request.user,
+                    {
+                        "holiday_impact_recalculation": {
+                            "old": "preview",
+                            "new": "applied",
+                            "prompt": prompt,
+                            "balance_risk_override": has_risk,
+                            "snapshot_verified": True,
+                            "changed_rows": changed_rows,
+                            "risk_count": preview["risk_count"],
+                        }
+                    },
+                    reason,
+                    action="APPLY",
+                )
+                request.session.pop("holiday_impact_prompt", None)
+                self.message_user(request, f"Applied holiday impact recalculation to {len(changed_rows)} leave(s).", level=messages.SUCCESS)
+                return redirect("admin:App_companyholiday_changelist")
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Upcoming Holiday Impact Preview",
+            "opts": self.model._meta,
+            "prompt": prompt,
+            "preview": preview,
+            "preview_snapshot_token": self._holiday_impact_snapshot_token(prompt, preview),
+            "risk_groups_json": preview["risk_groups"],
+        }
+        return TemplateResponse(request, "admin/holiday_impact.html", context)
 
     def upload_csv(self, request):
 
@@ -2470,6 +3548,18 @@ class CompanyHolidayAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 )
 
                 self.message_user(request, f"Upload completed. Created: {created}, Skipped: {skipped}", level=messages.SUCCESS)
+                if created_rows:
+                    request.session["holiday_impact_prompt"] = {
+                        "mode": "csv_import",
+                        "holiday": f"{created} holiday(s) imported",
+                        "old_date": None,
+                        "new_date": None,
+                        "changed_dates": [item["date"] for item in created_rows],
+                        "change_reason": change_reason,
+                        "created_count": created,
+                        "skipped_count": skipped,
+                    }
+                    return redirect(reverse("admin:app_companyholiday_impact"))
                 return redirect("..")
 
             form = HolidayUploadForm(request.POST, request.FILES)
@@ -2535,6 +3625,22 @@ class WorkFromHomeDayAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
     ordering = ("weekday",)
     fields = ("weekday", "is_active", "change_reason")
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "bridge-impact/",
+                self.admin_site.admin_view(self.bridge_impact_view),
+                name="app_workfromhomeday_bridge_impact_global",
+            ),
+            path(
+                "<path:object_id>/bridge-impact/",
+                self.admin_site.admin_view(self.bridge_impact_view),
+                name="app_workfromhomeday_bridge_impact",
+            ),
+        ]
+        return custom_urls + urls
+
     def save_model(self, request, obj, form, change):
         previous = WorkFromHomeDay.objects.get(pk=obj.pk) if change and obj.pk else None
         super().save_model(request, obj, form, change)
@@ -2546,18 +3652,357 @@ class WorkFromHomeDayAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 _collect_model_changes(previous, obj, field_names),
                 form.cleaned_data.get("change_reason"),
             )
+            if previous.is_active != obj.is_active or previous.weekday != obj.weekday:
+                request._wfh_bridge_impact_prompt = {
+                    "object_id": obj.pk,
+                    "change_reason": form.cleaned_data.get("change_reason") or "WFH setting changed from Django admin.",
+                    "weekday": obj.get_weekday_display(),
+                    "old_weekday": previous.get_weekday_display(),
+                    "new_weekday": obj.get_weekday_display(),
+                    "old_active": previous.is_active,
+                    "new_active": obj.is_active,
+                }
         elif obj.pk:
             self._log_create(request, obj, form.cleaned_data.get("change_reason") or "Created from Django admin.")
+            request._wfh_bridge_impact_prompt = {
+                "object_id": obj.pk,
+                "change_reason": form.cleaned_data.get("change_reason") or "WFH setting created from Django admin.",
+                "weekday": obj.get_weekday_display(),
+                "old_active": None,
+                "new_active": obj.is_active,
+            }
+
+    def delete_model(self, request, obj):
+        prompt = {
+            "mode": "deleted",
+            "change_reason": (request.POST.get("delete_reason") or "").strip() or "WFH setting deleted from Django admin.",
+            "weekday": obj.get_weekday_display(),
+            "old_active": obj.is_active,
+            "new_active": None,
+        }
+        request._wfh_bridge_impact_prompt = prompt
+        request.session["wfh_bridge_impact_prompt"] = prompt
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        wfh_days = list(queryset)
+        if wfh_days:
+            weekday_labels = [item.get_weekday_display() for item in wfh_days]
+            prompt = {
+                "mode": "bulk_deleted",
+                "change_reason": (request.POST.get("delete_reason") or "").strip() or "WFH settings bulk deleted from Django admin.",
+                "weekday": ", ".join(weekday_labels[:5]) + (f" and {len(weekday_labels) - 5} more" if len(weekday_labels) > 5 else ""),
+                "old_active": any(item.is_active for item in wfh_days),
+                "new_active": None,
+                "deleted_count": len(wfh_days),
+            }
+            request._wfh_bridge_impact_prompt = prompt
+            request.session["wfh_bridge_impact_prompt"] = prompt
+        super().delete_queryset(request, queryset)
+
+    def response_change(self, request, obj):
+        response = super().response_change(request, obj)
+        prompt = getattr(request, "_wfh_bridge_impact_prompt", None)
+        if prompt and ("_save" in request.POST or "_continue" in request.POST):
+            request.session["wfh_bridge_impact_prompt"] = prompt
+            return redirect(reverse("admin:app_workfromhomeday_bridge_impact", args=[obj.pk]))
+        return response
+
+    def response_add(self, request, obj, post_url_continue=None):
+        response = super().response_add(request, obj, post_url_continue=post_url_continue)
+        prompt = getattr(request, "_wfh_bridge_impact_prompt", None)
+        if prompt and ("_save" in request.POST or "_continue" in request.POST):
+            request.session["wfh_bridge_impact_prompt"] = prompt
+            return redirect(reverse("admin:app_workfromhomeday_bridge_impact", args=[obj.pk]))
+        return response
+
+    def response_delete(self, request, obj_display, obj_id):
+        response = super().response_delete(request, obj_display, obj_id)
+        prompt = getattr(request, "_wfh_bridge_impact_prompt", None) or request.session.get("wfh_bridge_impact_prompt")
+        if prompt:
+            request.session["wfh_bridge_impact_prompt"] = prompt
+            return redirect(reverse("admin:app_workfromhomeday_bridge_impact_global"))
+        return response
+
+    def response_action(self, request, queryset):
+        response = super().response_action(request, queryset)
+        if request.session.get("wfh_bridge_impact_prompt"):
+            return redirect(reverse("admin:app_workfromhomeday_bridge_impact_global"))
+        return response
+
+    def _wfh_bridge_preview(self):
+        from App.services.leave_breakdown import calculate_leave_breakdown, calculate_leave_breakdown_for_leave, preview_user_full_day_leave_bridge_reconciliation
+
+        today = timezone.localdate()
+        leaves = (
+            Leave.objects
+            .select_related("user", "user__leavebalance")
+            .filter(
+                status__in=["Pending", "Approved"],
+                leave_type__in=["Sick", "Earned", "Unpaid"],
+                to_date__gte=today,
+                admin_skip_wfh_bridge=False,
+            )
+            .order_by("user_id", "from_date", "id")
+        )
+        skipped = {
+            "past": Leave.objects.filter(
+                status__in=["Pending", "Approved"],
+                leave_type__in=["Sick", "Earned", "Unpaid"],
+                to_date__lt=today,
+            ).count(),
+            "admin_bypass": Leave.objects.filter(
+                status__in=["Pending", "Approved"],
+                leave_type__in=["Sick", "Earned", "Unpaid"],
+                to_date__gte=today,
+                admin_skip_wfh_bridge=True,
+            ).count(),
+        }
+        rows = []
+        risk_by_user = {}
+        balance_state = {}
+        reconciled_ranges_by_user = {}
+
+        for leave in leaves:
+            requested_start = leave.requested_from_date or leave.from_date
+            requested_end = leave.requested_to_date or leave.to_date
+            if leave.user_id not in reconciled_ranges_by_user:
+                reconciled_ranges_by_user[leave.user_id] = preview_user_full_day_leave_bridge_reconciliation(leave.user)
+            reconciled = reconciled_ranges_by_user[leave.user_id].get(leave.id, {})
+            proposed_from = reconciled.get("from_date", leave.from_date)
+            proposed_to = reconciled.get("to_date", leave.to_date)
+            if leave.from_date == proposed_from and leave.to_date == proposed_to:
+                continue
+
+            current_days = float(calculate_leave_breakdown_for_leave(leave)["working_days"] or 0)
+            proposed_days = float(calculate_leave_breakdown(
+                proposed_from,
+                proposed_to,
+                requested_start_date=requested_start,
+                requested_end_date=requested_end,
+            )["working_days"] or 0)
+            delta = round(proposed_days - current_days, 2)
+            balance = getattr(leave.user, "leavebalance", None)
+            if leave.user_id not in balance_state:
+                balance_state[leave.user_id] = {
+                    "sick_remaining": float((balance.sick_total - balance.sick_used) if balance else 0),
+                    "earned_remaining": float((balance.earned_total - balance.earned_used) if balance else 0),
+                    "unpaid": float(balance.unpaid if balance else 0),
+                }
+            proposed_remaining = "-"
+            risk_label = ""
+            if leave.deducted_from == "Sick":
+                balance_state[leave.user_id]["sick_remaining"] = round(balance_state[leave.user_id]["sick_remaining"] - delta, 2)
+                proposed_remaining = balance_state[leave.user_id]["sick_remaining"]
+                if proposed_remaining < 0:
+                    risk_label = "Sick below zero"
+            elif leave.deducted_from == "Earned":
+                balance_state[leave.user_id]["earned_remaining"] = round(balance_state[leave.user_id]["earned_remaining"] - delta, 2)
+                proposed_remaining = balance_state[leave.user_id]["earned_remaining"]
+                if proposed_remaining < 0:
+                    risk_label = "Earned below zero"
+            elif leave.deducted_from == "Unpaid":
+                balance_state[leave.user_id]["unpaid"] = round(balance_state[leave.user_id]["unpaid"] + delta, 2)
+                proposed_remaining = "Unpaid"
+
+            employee_name = leave.user.get_full_name().strip() or leave.user.username
+            row = {
+                "leave_id": leave.id,
+                "employee": employee_name,
+                "employee_id": leave.user_id,
+                "status": leave.status,
+                "leave_type": leave.leave_type,
+                "deducted_from": leave.deducted_from,
+                "current_range": self._format_range(leave.from_date, leave.to_date),
+                "proposed_range": self._format_range(proposed_from, proposed_to),
+                "proposed_from": proposed_from.isoformat(),
+                "proposed_to": proposed_to.isoformat(),
+                "bridge_dates": [item.strftime("%d %b %Y") for item in reconciled.get("auto_added_dates", [])],
+                "current_days": current_days,
+                "proposed_days": proposed_days,
+                "delta": delta,
+                "current_sick_remaining": round(float((balance.sick_total - balance.sick_used) if balance else 0), 2),
+                "current_earned_remaining": round(float((balance.earned_total - balance.earned_used) if balance else 0), 2),
+                "proposed_remaining": proposed_remaining,
+                "risk": risk_label,
+            }
+            rows.append(row)
+            if risk_label:
+                risk_by_user.setdefault(leave.user_id, {"employee": employee_name, "rows": []})["rows"].append(row)
+
+        return {
+            "rows": rows,
+            "risk_groups": list(risk_by_user.values()),
+            "risk_count": len(risk_by_user),
+            "affected_employee_count": len({row["employee_id"] for row in rows}),
+            "affected_leave_count": len(rows),
+            "skipped": skipped,
+        }
+
+    def _format_range(self, start_date, end_date):
+        if start_date == end_date:
+            return start_date.strftime("%d %b %Y")
+        return f"{start_date.strftime('%d %b %Y')} to {end_date.strftime('%d %b %Y')}"
+
+    def bridge_impact_view(self, request, object_id=None):
+        wfh_day = get_object_or_404(WorkFromHomeDay, pk=object_id) if object_id else None
+        prompt = request.session.get("wfh_bridge_impact_prompt", {})
+        preview = self._wfh_bridge_preview()
+        audit_target = wfh_day or request.user
+
+        if request.method == "POST":
+            action = request.POST.get("bridge_action")
+            reason = (request.POST.get("bridge_reason") or "").strip()
+            has_risk = preview["risk_count"] > 0
+
+            if action == "skip":
+                _create_admin_audit_log(
+                    request,
+                    audit_target,
+                    {
+                        "wfh_bridge_recalculation": {
+                            "old": "pending",
+                            "new": "skipped",
+                            "preview": {
+                                "affected_leave_count": preview["affected_leave_count"],
+                                "affected_employee_count": preview["affected_employee_count"],
+                                "risk_count": preview["risk_count"],
+                            },
+                        }
+                    },
+                    reason or "Admin skipped WFH bridge recalculation.",
+                    action="SKIP",
+                )
+                request.session.pop("wfh_bridge_impact_prompt", None)
+                self.message_user(request, "WFH bridge recalculation skipped and audited.", level=messages.INFO)
+                return redirect("admin:App_workfromhomeday_changelist")
+
+            if action == "apply":
+                if not reason:
+                    self.message_user(request, "Admin reason is required before applying WFH bridge recalculation.", level=messages.ERROR)
+                    return redirect(request.path)
+                if has_risk and request.POST.get("balance_risk_override") != "1":
+                    self.message_user(request, "Balance risk override confirmation is required.", level=messages.ERROR)
+                    return redirect(request.path)
+
+                from App.services.admin_leave_workflow import recalculate_employee_balance
+                from App.services.leave_breakdown import reconcile_user_full_day_leave_bridges
+
+                affected_users = set()
+                changed_rows = []
+                preview_user_ids = {row["employee_id"] for row in preview["rows"]}
+                with transaction.atomic():
+                    users = list(get_user_model().objects.select_for_update().filter(id__in=preview_user_ids))
+                    for user in users:
+                        before = {
+                            leave.id: {
+                                "employee": leave.user.get_full_name().strip() or leave.user.username,
+                                "from_date": leave.from_date.isoformat(),
+                                "to_date": leave.to_date.isoformat(),
+                                "from_datetime": _audit_value(leave.from_datetime),
+                                "to_datetime": _audit_value(leave.to_datetime),
+                            }
+                            for leave in Leave.objects.select_for_update().select_related("user").filter(
+                                user=user,
+                                status__in=["Pending", "Approved"],
+                                leave_type__in=["Sick", "Earned", "Unpaid"],
+                                admin_skip_wfh_bridge=False,
+                            )
+                        }
+                        changed_leave_ids = reconcile_user_full_day_leave_bridges(user)
+                        after_leaves = Leave.objects.select_related("user").filter(id__in=changed_leave_ids)
+                        for leave in after_leaves:
+                            old = before.get(leave.id, {})
+                            changed_rows.append({
+                                "leave_id": leave.id,
+                                "employee": old.get("employee") or leave.user.get_full_name().strip() or leave.user.username,
+                                "old": old,
+                                "new": {
+                                    "from_date": leave.from_date.isoformat(),
+                                    "to_date": leave.to_date.isoformat(),
+                                    "from_datetime": _audit_value(leave.from_datetime),
+                                    "to_datetime": _audit_value(leave.to_datetime),
+                                },
+                            })
+                        affected_users.add(user.id)
+                    for user in users:
+                        recalculate_employee_balance(user, request.user, reason, "WFH bridge schedule recalculation")
+
+                _create_admin_audit_log(
+                    request,
+                    audit_target,
+                    {
+                        "wfh_bridge_recalculation": {
+                            "old": "preview",
+                            "new": "applied",
+                            "balance_risk_override": has_risk,
+                            "changed_rows": changed_rows,
+                            "risk_count": preview["risk_count"],
+                        }
+                    },
+                    reason,
+                    action="APPLY",
+                )
+                request.session.pop("wfh_bridge_impact_prompt", None)
+                self.message_user(request, f"Applied WFH bridge recalculation to {len(changed_rows)} leave(s).", level=messages.SUCCESS)
+                return redirect("admin:App_workfromhomeday_changelist")
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Upcoming WFH Bridge Impact Preview",
+            "opts": self.model._meta,
+            "wfh_day": wfh_day,
+            "prompt": prompt,
+            "preview": preview,
+            "risk_groups_json": preview["risk_groups"],
+        }
+        return TemplateResponse(request, "admin/wfh_bridge_impact.html", context)
 
 
 class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
     model_label_filter = None
     model_label_filters = None
     action_filter = None
-    list_display = ("model_label", "object_repr", "action", "change_summary", "updated_by", "changed_at", "reason")
+    list_display = ("model_label", "object_repr", "action_label", "change_summary", "updated_by", "changed_at", "reason")
     list_filter = ("model_label", "action", "updated_by", "changed_at")
     search_fields = ("model_label", "object_repr", "updated_by__username", "reason")
     readonly_fields = ("model_label", "object_id", "object_repr", "action", "updated_by", "changed_at", "reason", "changes")
+    action_labels = {
+        "CREATE": "Record created",
+        "UPDATE": "Record updated",
+        "DELETE": "Record deleted",
+        "IMPORT": "CSV import",
+        "APPLY": "Recalculation applied",
+        "SKIP": "Recalculation skipped",
+        "VIEW": "Record viewed",
+        "READ": "Marked as read",
+        "SEEN": "Marked as seen",
+        "ADMIN_APPROVE": "Leave approved by admin",
+        "ADMIN_REJECT": "Leave rejected by admin",
+        "ADMIN_SYNC": "Leave synced by admin",
+        "ADMIN_DELETE_WF": "Leave deleted through workflow",
+        "ADMIN_PREVIEW": "Leave preview reviewed",
+        "ADMIN_WORKFLOW_SKIPPED": "Workflow skipped by admin",
+    }
+    change_summary_labels = {
+        "created_record": "Record created",
+        "deleted_record": "Record deleted",
+        "archive_pdf": "Archive PDF",
+        "year_end_carry_forward": "Year-end carry forward",
+        "admin_communication": "Admin communication sent",
+        "admin_communication_view": "Admin communication viewed",
+        "admin_communication_seen": "Admin communication seen",
+        "admin_communication_read": "Admin communication read",
+        "admin_communication_mark_all_read": "Admin communication mark all read",
+        "admin_conflict_preview": "Leave conflict/impact preview",
+        "admin_leave_workflow_skipped": "Admin leave workflow skipped",
+        "holiday_impact_recalculation": "Holiday impact recalculation",
+        "holiday_csv_upload_summary": "Holiday CSV upload summary",
+        "wfh_bridge_recalculation": "WFH bridge recalculation",
+        "csv_upload": "CSV upload row created",
+        "backup_restore": "Backup restore",
+        "maintenance_mode": "Maintenance mode",
+    }
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -2569,27 +4014,19 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             queryset = queryset.filter(action=self.action_filter)
         return queryset
 
+    @admin.display(description="Action", ordering="action")
+    def action_label(self, obj):
+        return self.action_labels.get(obj.action, obj.action or "-")
+
     @admin.display(description="Summary")
     def change_summary(self, obj):
         if not obj.changes:
             return "-"
-        if "deleted_record" in obj.changes:
-            return "Deleted record"
-        if "archive_pdf" in obj.changes:
-            return "Archive PDF"
-        if "year_end_carry_forward" in obj.changes:
-            return "Year-end carry forward"
-        if "admin_communication" in obj.changes:
-            return "Admin communication sent"
-        if "admin_communication_view" in obj.changes:
-            return "Admin communication viewed"
-        if "admin_communication_seen" in obj.changes:
-            return "Admin communication seen"
-        if "admin_communication_read" in obj.changes:
-            return "Admin communication read"
-        if "admin_communication_mark_all_read" in obj.changes:
-            return "Admin communication mark all read"
-        return ", ".join(obj.changes.keys())
+        labels = [
+            self.change_summary_labels.get(key, key.replace("_", " ").title())
+            for key in obj.changes.keys()
+        ]
+        return ", ".join(labels)
 
 
 @login_required
@@ -2723,6 +4160,54 @@ class AdminCommunicationAuditAdmin(BaseAdminAuditLogAdmin):
             | Q(changes__has_key="admin_communication_read")
             | Q(changes__has_key="admin_communication_mark_all_read")
         )
+
+
+@login_required
+@never_cache
+@admin.register(EmailDeliveryLog)
+class EmailDeliveryLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "email_type",
+        "recipient",
+        "status",
+        "subject",
+        "related_user",
+        "related_leave",
+        "triggered_by",
+        "short_error",
+    )
+    list_filter = ("status", "email_type", "created_at")
+    search_fields = (
+        "recipient",
+        "subject",
+        "from_email",
+        "error_message",
+        "related_user__username",
+        "related_user__email",
+        "triggered_by__username",
+    )
+    readonly_fields = (
+        "created_at",
+        "email_type",
+        "subject",
+        "from_email",
+        "recipient",
+        "status",
+        "error_message",
+        "related_user",
+        "related_leave",
+        "triggered_by",
+        "metadata",
+    )
+    date_hierarchy = "created_at"
+    ordering = ("-created_at", "-id")
+
+    @admin.display(description="Error")
+    def short_error(self, obj):
+        if not obj.error_message:
+            return "-"
+        return obj.error_message[:80] + ("..." if len(obj.error_message) > 80 else "")
 
 
 @login_required
@@ -3287,6 +4772,10 @@ COMMUNICATION_NOTIFICATION_AUDIT_OBJECT_NAMES = {
     "HRLeaveNotificationReadSeenAudit",
 }
 
+EMAIL_DELIVERY_OBJECT_NAMES = {
+    "EmailDeliveryLog",
+}
+
 LOG_VIEWER_OBJECT_NAMES = {
     "LogViewer",
     "SecurityLogViewer",
@@ -3326,6 +4815,7 @@ def get_grouped_admin_app_list(request, app_label=None):
     audit_models = []
     communication_notification_models = []
     communication_notification_audit_models = []
+    email_delivery_models = []
     log_viewer_models = []
     backup_management_models = []
     grouped_app_list = []
@@ -3339,6 +4829,8 @@ def get_grouped_admin_app_list(request, app_label=None):
                 communication_notification_models.append(model)
             elif model.get("object_name") in COMMUNICATION_NOTIFICATION_AUDIT_OBJECT_NAMES:
                 communication_notification_audit_models.append(model)
+            elif model.get("object_name") in EMAIL_DELIVERY_OBJECT_NAMES:
+                email_delivery_models.append(model)
             elif model.get("object_name") in LOG_VIEWER_OBJECT_NAMES:
                 log_viewer_models.append(model)
             elif model.get("object_name") in BACKUP_MANAGEMENT_OBJECT_NAMES:
@@ -3392,12 +4884,30 @@ def get_grouped_admin_app_list(request, app_label=None):
             insert_at += 1
         if communication_notification_audit_models:
             insert_at += 1
+        if email_delivery_models:
+            insert_at += 1
         grouped_app_list.insert(insert_at, {
             "name": "Logs",
             "app_label": "logs",
             "app_url": "",
             "has_module_perms": True,
             "models": log_viewer_models,
+        })
+
+    if email_delivery_models:
+        insert_at = 0
+        if audit_models:
+            insert_at += 1
+        if communication_notification_models:
+            insert_at += 1
+        if communication_notification_audit_models:
+            insert_at += 1
+        grouped_app_list.insert(insert_at, {
+            "name": "Email Delivery Center",
+            "app_label": "email_delivery_center",
+            "app_url": "",
+            "has_module_perms": True,
+            "models": email_delivery_models,
         })
 
     if backup_management_models:
@@ -3407,6 +4917,8 @@ def get_grouped_admin_app_list(request, app_label=None):
         if communication_notification_models:
             insert_at += 1
         if communication_notification_audit_models:
+            insert_at += 1
+        if email_delivery_models:
             insert_at += 1
         if log_viewer_models:
             insert_at += 1

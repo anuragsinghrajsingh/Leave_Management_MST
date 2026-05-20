@@ -93,6 +93,10 @@ class Leave(models.Model):
     to_date = models.DateField()
     requested_from_date = models.DateField(blank=True, null=True)
     requested_to_date = models.DateField(blank=True, null=True)
+    admin_skip_wfh_bridge = models.BooleanField(
+        default=False,
+        help_text="Admin-only override to keep this leave out of WFH bridge auto-expansion.",
+    )
 
     # Time support
     from_datetime = models.DateTimeField()
@@ -367,6 +371,51 @@ class AdminCommunicationAudit(AdminAuditLog):
         verbose_name_plural = "Admin communication audit"
 
 
+class EmailDeliveryLog(models.Model):
+    STATUS_CHOICES = [
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+    ]
+
+    email_type = models.CharField(max_length=80, db_index=True)
+    subject = models.CharField(max_length=255)
+    from_email = models.CharField(max_length=255, blank=True)
+    recipient = models.EmailField(db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, db_index=True)
+    error_message = models.TextField(blank=True)
+    related_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="email_delivery_logs",
+    )
+    related_leave = models.ForeignKey(
+        "Leave",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="email_delivery_logs",
+    )
+    triggered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="email_delivery_logs_triggered",
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "Email delivery log"
+        verbose_name_plural = "Email delivery logs"
+
+    def __str__(self):
+        return f"{self.recipient} - {self.subject} - {self.status}"
+
+
 class EmployeeCommunicationReadSeenAudit(AdminAuditLog):
     class Meta:
         proxy = True
@@ -407,7 +456,7 @@ class AllCommunicationNotificationAudit(AdminAuditLog):
 
 
 # The CompanyHoliday model defines company-wide holidays with a name and date. Employees cannot apply for leave on these dates, 
-# but they still count if they fall within a leave range. The WorkFromHomeDay model specifies which weekdays are designated as 
+# and they are excluded from full-day leave working-day counts. The WorkFromHomeDay model specifies which weekdays are designated as 
 # work-from-home days, allowing for flexible leave calculations that can automatically include adjacent work-from-home days. 
 # When determining the effective leave period. This enables scenarios where a single day of leave can be surrounded by 
 # work-from-home days, effectively extending the leave duration without additional leave days being deducted from the employee's 
@@ -440,7 +489,7 @@ class CompanyHoliday(models.Model):
     """
     Company-wide holiday for a specific date.
     Employees cannot apply leave only for a blocked company holiday date,
-    but the day still counts when it falls inside a wider leave range.
+    and the day is excluded from full-day leave working-day counts.
     """
 
     name = models.CharField(max_length=200)

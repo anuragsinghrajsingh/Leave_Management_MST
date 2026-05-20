@@ -1,0 +1,267 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <style>
+    .holiday-impact-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .holiday-impact-card {
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 14px;
+      background: var(--body-bg);
+    }
+    .holiday-impact-card strong {
+      display: block;
+      font-size: 1.6rem;
+      margin-top: 6px;
+    }
+    .holiday-risk-btn {
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #b91c1c;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .holiday-impact-actions {
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 18px;
+      background: var(--darkened-bg);
+    }
+    .holiday-impact-actions textarea {
+      width: 100%;
+      max-width: 840px;
+    }
+    .holiday-risk-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.48);
+    }
+    .holiday-risk-backdrop.is-open {
+      display: flex;
+    }
+    .holiday-risk-modal {
+      width: min(980px, 96vw);
+      max-height: 86vh;
+      overflow: auto;
+      border-radius: 10px;
+      background: var(--body-bg);
+      border: 1px solid var(--hairline-color);
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.3);
+    }
+    .holiday-risk-modal header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      background: var(--primary);
+      color: var(--primary-fg);
+    }
+    .holiday-risk-modal header h2 {
+      margin: 0;
+      color: inherit;
+    }
+    .holiday-risk-modal .content {
+      padding: 18px;
+    }
+    .holiday-impact-note {
+      border-left: 4px solid var(--primary);
+      padding: 10px 12px;
+      background: var(--darkened-bg);
+    }
+    @media (max-width: 900px) {
+      .holiday-impact-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+
+  <h1>{{ title }}</h1>
+  {% if prompt %}
+    <p class="holiday-impact-note">
+      <strong>Saved holiday change:</strong>
+      {{ prompt.holiday }} -
+      {{ prompt.mode|title }}.
+      {% if prompt.old_date %}Old date: {{ prompt.old_date }}.{% endif %}
+      {% if prompt.new_date %}New date: {{ prompt.new_date }}.{% endif %}
+      {% if prompt.created_count %}Created: {{ prompt.created_count }}, skipped: {{ prompt.skipped_count }}.{% endif %}
+    </p>
+  {% endif %}
+
+  <div class="holiday-impact-summary">
+    <div class="holiday-impact-card">
+      Employees affected
+      <strong>{{ preview.affected_employee_count }}</strong>
+    </div>
+    <div class="holiday-impact-card">
+      Leaves affected
+      <strong>{{ preview.affected_leave_count }}</strong>
+    </div>
+    <div class="holiday-impact-card">
+      Balance risk
+      <strong>{{ preview.risk_count }}</strong>
+      {% if preview.risk_count %}
+        <button type="button" class="holiday-risk-btn" data-open-risk>View risk details</button>
+      {% endif %}
+    </div>
+    <div class="holiday-impact-card">
+      Skipped
+      <strong>{{ preview.skipped.past|add:preview.skipped.admin_bypass }}</strong>
+      <span>Past: {{ preview.skipped.past }} | Admin bypass: {{ preview.skipped.admin_bypass }}</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Leave ID</th>
+        <th>Status</th>
+        <th>Type</th>
+        <th>Current range</th>
+        <th>Proposed range</th>
+        <th>Changed holiday date</th>
+        <th>WFH/holiday bridge dates</th>
+        <th>Days</th>
+        <th>Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in preview.rows %}
+        <tr>
+          <td>{{ row.employee }}</td>
+          <td>#{{ row.leave_id }}</td>
+          <td>{{ row.status }}</td>
+          <td>{{ row.leave_type }}</td>
+          <td>{{ row.current_range }}</td>
+          <td>{{ row.proposed_range }}</td>
+          <td>{{ row.changed_holiday_dates|join:", "|default:"-" }}</td>
+          <td>{{ row.bridge_dates|join:", "|default:"-" }}</td>
+          <td>{{ row.current_days }} -> {{ row.proposed_days }}</td>
+          <td>
+            {% if row.range_changed %}Range may change{% endif %}
+            {% if row.holiday_inside_range %}{% if row.range_changed %}<br>{% endif %}Working-day count may change{% endif %}
+            <br>{{ row.deducted_from }} proposed remaining: {{ row.proposed_remaining }}
+            {% if row.risk %}
+              <br><strong style="color:#b91c1c;">{{ row.risk }}</strong>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="10">No upcoming leave changes found for this holiday change.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" class="holiday-impact-actions">
+    {% csrf_token %}
+    <input type="hidden" name="holiday_preview_snapshot" value="{{ preview_snapshot_token }}">
+    <label for="holiday-reason"><strong>Admin reason:</strong></label><br>
+    <textarea id="holiday-reason" name="holiday_reason" rows="4"></textarea>
+
+    {% if preview.risk_count %}
+      <p>
+        <label>
+          <input type="checkbox" name="balance_risk_override" value="1">
+          I reviewed the balance risk details and want to apply anyway.
+        </label>
+      </p>
+    {% endif %}
+
+    <div class="submit-row">
+      <button type="submit" class="default" name="holiday_action" value="apply" {% if not preview.rows %}disabled{% endif %}>
+        Apply recalculation
+      </button>
+      <button type="submit" name="holiday_action" value="skip">Skip recalculation and audit</button>
+      <a href="{% url 'admin:App_companyholiday_changelist' %}">Back to holidays</a>
+    </div>
+  </form>
+
+  <div class="holiday-risk-backdrop" data-risk-modal>
+    <section class="holiday-risk-modal" role="dialog" aria-modal="true" aria-labelledby="holiday-risk-title">
+      <header>
+        <h2 id="holiday-risk-title">Balance Risk Details</h2>
+        <button type="button" data-close-risk>Close</button>
+      </header>
+      <div class="content" data-risk-content></div>
+    </section>
+  </div>
+
+  {{ risk_groups_json|json_script:"holiday-risk-groups" }}
+  <script>
+    (function () {
+      const openButton = document.querySelector("[data-open-risk]");
+      const modal = document.querySelector("[data-risk-modal]");
+      const closeButton = document.querySelector("[data-close-risk]");
+      const content = document.querySelector("[data-risk-content]");
+      const dataNode = document.getElementById("holiday-risk-groups");
+      const groups = dataNode ? JSON.parse(dataNode.textContent || "[]") : [];
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function renderRiskDetails() {
+        if (!content) return;
+        if (!groups.length) {
+          content.innerHTML = "<p>No balance risks found.</p>";
+          return;
+        }
+        content.innerHTML = groups.map(function (group) {
+          const rows = (group.rows || []).map(function (row) {
+            return "<tr>" +
+              "<td>#" + escapeHtml(row.leave_id) + "</td>" +
+              "<td>" + escapeHtml(row.deducted_from) + "</td>" +
+              "<td>Sick " + escapeHtml(row.current_sick_remaining) + " | Earned " + escapeHtml(row.current_earned_remaining) + "</td>" +
+              "<td>" + escapeHtml(row.current_days) + " -> " + escapeHtml(row.proposed_days) + "</td>" +
+              "<td>" + escapeHtml(row.proposed_remaining) + "</td>" +
+              "<td><strong style='color:#b91c1c;'>" + escapeHtml(row.risk) + "</strong></td>" +
+            "</tr>";
+          }).join("");
+          return "<h3>" + escapeHtml(group.employee) + "</h3>" +
+            "<table><thead><tr><th>Leave</th><th>Deducted from</th><th>Current remaining</th><th>Days</th><th>Proposed remaining</th><th>Risk</th></tr></thead><tbody>" +
+            rows +
+            "</tbody></table>";
+        }).join("");
+      }
+
+      if (openButton && modal) {
+        openButton.addEventListener("click", function () {
+          renderRiskDetails();
+          modal.classList.add("is-open");
+        });
+      }
+      if (closeButton && modal) {
+        closeButton.addEventListener("click", function () {
+          modal.classList.remove("is-open");
+        });
+      }
+      if (modal) {
+        modal.addEventListener("click", function (event) {
+          if (event.target === modal) {
+            modal.classList.remove("is-open");
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}
