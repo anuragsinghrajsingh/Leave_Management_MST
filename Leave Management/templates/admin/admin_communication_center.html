@@ -1,0 +1,223 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p><strong>Admin-only communication center.</strong> This page does not change the employee or HR message screens.</p>
+  <style>
+    .admin-recipient-picker {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--body-bg);
+      margin: 8px 0 14px;
+    }
+    .admin-recipient-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 34px;
+      margin-bottom: 10px;
+    }
+    .admin-recipient-chip {
+      border: 1px solid var(--hairline-color);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: var(--darkened-bg);
+      font-weight: 700;
+    }
+    .admin-recipient-chip button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 900;
+      margin-left: 8px;
+    }
+    .admin-recipient-search {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+    .admin-recipient-browse-toggle {
+      margin-top: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 10px;
+      background: var(--button-bg);
+      color: var(--button-fg);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .admin-recipient-results {
+      max-height: 190px;
+      overflow-y: auto;
+      margin-top: 8px;
+      border: 1px solid var(--hairline-color);
+      border-radius: 6px;
+      display: none;
+    }
+    .admin-recipient-result {
+      display: block;
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--hairline-color);
+      padding: 9px 10px;
+      background: var(--body-bg);
+      color: var(--body-fg);
+      text-align: left;
+      cursor: pointer;
+    }
+    .admin-recipient-result:hover {
+      background: var(--darkened-bg);
+    }
+  </style>
+
+  <div style="display: grid; grid-template-columns: minmax(320px, 520px) 1fr; gap: 24px; align-items: start;">
+    <section class="module">
+      <h2>Compose</h2>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="submit-row">
+          <input type="submit" class="default" value="Send communication">
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <div class="module">
+        <h2>Inbox</h2>
+        {% include "admin/includes/admin_communication_table.html" with records=inbox empty_text="No admin inbox messages." %}
+      </div>
+
+      <div class="module" style="margin-top: 22px;">
+        <h2>Sent</h2>
+        {% include "admin/includes/admin_communication_table.html" with records=sent empty_text="No sent messages." %}
+      </div>
+
+      <div class="module" style="margin-top: 22px;">
+        <h2>Announcements</h2>
+        {% include "admin/includes/admin_communication_table.html" with records=announcements empty_text="No announcements." %}
+      </div>
+    </section>
+  </div>
+  <script>
+    (function () {
+      const select = document.getElementById("id_recipients");
+      const mode = document.getElementById("id_message_mode");
+      const audience = document.getElementById("id_audience");
+      if (!select) {
+        return;
+      }
+
+      const picker = document.createElement("div");
+      picker.className = "admin-recipient-picker";
+      picker.innerHTML = [
+        '<div class="admin-recipient-chips" data-recipient-chips></div>',
+        '<input type="search" class="admin-recipient-search" placeholder="Search by name, username, email, employee ID, phone or role">',
+        '<button type="button" class="admin-recipient-browse-toggle">Browse users dropdown</button>',
+        '<div class="admin-recipient-results" data-recipient-results></div>'
+      ].join("");
+
+      select.parentNode.insertBefore(picker, select);
+      select.style.display = "none";
+
+      const chips = picker.querySelector("[data-recipient-chips]");
+      const search = picker.querySelector(".admin-recipient-search");
+      const browseToggle = picker.querySelector(".admin-recipient-browse-toggle");
+      const results = picker.querySelector("[data-recipient-results]");
+      const options = Array.from(select.options);
+      let browsing = false;
+      const recipientFormRow = select.closest("p");
+      const audienceFormRow = audience ? audience.closest("p") : null;
+
+      function selectedOptions() {
+        return options.filter(function (option) { return option.selected; });
+      }
+
+      function renderChips() {
+        const selected = selectedOptions();
+        chips.innerHTML = selected.length
+          ? selected.map(function (option) {
+              return '<span class="admin-recipient-chip">' +
+                option.textContent.replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+                '<button type="button" data-remove-recipient="' + option.value + '">x</button></span>';
+            }).join("")
+          : '<span style="color: var(--body-quiet-color);">No recipients selected.</span>';
+      }
+
+      function renderResults() {
+        const query = search.value.trim().toLowerCase();
+        if (!query && !browsing) {
+          results.style.display = "none";
+          results.innerHTML = "";
+          return;
+        }
+
+        const matches = options.filter(function (option) {
+          return !option.selected && (!query || option.textContent.toLowerCase().includes(query));
+        }).slice(0, browsing ? 200 : 12);
+
+        results.innerHTML = matches.length
+          ? matches.map(function (option) {
+              return '<button type="button" class="admin-recipient-result" data-add-recipient="' +
+                option.value + '">' + option.textContent.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</button>';
+            }).join("")
+          : '<div style="padding: 10px;">No matching users.</div>';
+        results.style.display = "block";
+      }
+
+      picker.addEventListener("click", function (event) {
+        const addValue = event.target.getAttribute("data-add-recipient");
+        const removeValue = event.target.getAttribute("data-remove-recipient");
+        if (addValue) {
+          const option = options.find(function (item) { return item.value === addValue; });
+          if (option) {
+            option.selected = true;
+            search.value = "";
+            renderChips();
+            renderResults();
+          }
+        }
+        if (removeValue) {
+          const option = options.find(function (item) { return item.value === removeValue; });
+          if (option) {
+            option.selected = false;
+            renderChips();
+            renderResults();
+          }
+        }
+      });
+
+      search.addEventListener("input", renderResults);
+      browseToggle.addEventListener("click", function () {
+        browsing = !browsing;
+        browseToggle.textContent = browsing ? "Hide users dropdown" : "Browse users dropdown";
+        renderResults();
+      });
+      function syncModeFields() {
+        const selectedMode = mode ? mode.value : "";
+        const isAnnouncement = selectedMode === "ANNOUNCEMENT";
+        const isDirect = selectedMode === "DIRECT";
+        picker.style.display = isDirect ? "block" : "none";
+        select.disabled = !isDirect;
+        if (recipientFormRow) {
+          recipientFormRow.style.display = isDirect ? "" : "none";
+        }
+        if (audienceFormRow) {
+          audienceFormRow.style.display = isAnnouncement ? "" : "none";
+        }
+        if (audience) {
+          audience.disabled = !isAnnouncement;
+        }
+      }
+
+      if (mode) {
+        mode.addEventListener("change", syncModeFields);
+      }
+      syncModeFields();
+      renderChips();
+    })();
+  </script>
+{% endblock %}

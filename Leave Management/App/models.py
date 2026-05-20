@@ -602,6 +602,7 @@ class Communication(models.Model):
     AUDIENCE_ROLES = [
         ("HR", "HR"),
         ("EMPLOYEE", "Employee"),
+        ("Admin", "Admin"),
     ]
 
     sender = models.ForeignKey(
@@ -767,6 +768,13 @@ class HRCommunication(Communication):
         proxy = True
         verbose_name = "HR communication"
         verbose_name_plural = "HR communications"
+
+
+class AdminCommunicationCenter(Communication):
+    class Meta:
+        proxy = True
+        verbose_name = "Admin communication center"
+        verbose_name_plural = "Admin communication center"
 
 
 class EmployeeCommunicationRead(CommunicationRead):

@@ -3,6 +3,7 @@ from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
 from .models import (
     AdminAuditLog,
+    AdminCommunicationCenter,
     AllCommunicationNotificationAudit,
     AnalyticsLogViewer,
     ApiLogViewer,
@@ -1541,6 +1542,94 @@ class CommunicationSeenAdminForm(AdminReasonFormMixin, forms.ModelForm):
         fields = "__all__"
 
 
+class AdminCommunicationRecipientField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        try:
+            profile = obj.profile
+        except Profile.DoesNotExist:
+            profile = None
+
+        employee_id = getattr(profile, "employee_id", "") if profile else ""
+        phone = getattr(profile, "phone", "") if profile else ""
+        full_name = obj.get_full_name().strip() or obj.username
+        parts = [
+            full_name,
+            f"@{obj.username}",
+            obj.role,
+            employee_id,
+            phone,
+            obj.email,
+        ]
+        return " | ".join(str(part) for part in parts if part)
+
+
+class AdminCommunicationComposeForm(forms.Form):
+    MESSAGE_MODE_CHOICES = (
+        ("", "Select"),
+        ("DIRECT", "Direct message"),
+        ("ANNOUNCEMENT", "Announcement"),
+    )
+    AUDIENCE_CHOICES = (
+        ("EMPLOYEE", "All employees"),
+        ("HR", "All HR"),
+        ("Admin", "All admins"),
+        ("EVERYONE", "Everyone"),
+    )
+
+    message_mode = forms.ChoiceField(choices=MESSAGE_MODE_CHOICES, required=False)
+    audience = forms.MultipleChoiceField(
+        choices=AUDIENCE_CHOICES,
+        required=False,
+        widget=forms.SelectMultiple(attrs={
+            "size": "5",
+            "style": "min-width: 320px; max-width: 100%;",
+        }),
+    )
+    recipients = AdminCommunicationRecipientField(
+        queryset=CustomUser.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={
+            "size": "5",
+            "style": "min-width: 320px; max-width: 100%;",
+            "class": "admin-recipient-source",
+        }),
+        help_text="Used for direct messages only.",
+    )
+    title = forms.CharField(max_length=140, required=False)
+    body = forms.CharField(widget=forms.Textarea(attrs={"rows": 5}), max_length=1500)
+    change_reason = forms.CharField(
+        label="Admin reason",
+        widget=forms.Textarea(attrs={"rows": 3}),
+        max_length=1000,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["recipients"].queryset = CustomUser.objects.filter(is_active=True).order_by("role", "username")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        mode = cleaned_data.get("message_mode")
+        recipients = cleaned_data.get("recipients")
+        audience = cleaned_data.get("audience")
+
+        if not mode:
+            self.add_error("message_mode", "Select a message mode.")
+
+        if mode == "DIRECT" and not recipients:
+            self.add_error("recipients", "Select at least one recipient for direct messages.")
+
+        if mode == "ANNOUNCEMENT" and not audience:
+            self.add_error("audience", "Select at least one announcement audience.")
+
+        for field_name in ("title", "body"):
+            value = cleaned_data.get(field_name) or ""
+            if "<" in value or ">" in value:
+                self.add_error(field_name, "HTML markup is not allowed.")
+
+        return cleaned_data
+
+
 class LeaveNotificationReadAdminForm(AdminReasonFormMixin, forms.ModelForm):
     change_reason = admin_reason_field()
 
@@ -1764,6 +1853,103 @@ class HRCommunicationAdmin(RoleCommunicationAdmin):
             | Q(recipient__role="HR")
             | Q(audience_role="HR")
         ).distinct()
+
+
+@login_required
+@never_cache
+@admin.register(AdminCommunicationCenter)
+class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    change_list_template = "admin/admin_communication_center.html"
+
+    def changelist_view(self, request, extra_context=None):
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            self.message_user(request, "Only admins can use the admin communication center.", level=messages.ERROR)
+            return redirect("admin:index")
+
+        if request.method == "POST":
+            form = AdminCommunicationComposeForm(request.POST)
+            if form.is_valid():
+                created = self._send_admin_communication(request, form.cleaned_data)
+                self.message_user(request, f"Created {created} communication record(s).", level=messages.SUCCESS)
+                return redirect(request.path)
+        else:
+            form = AdminCommunicationComposeForm()
+
+        inbox = self._admin_inbox_queryset(request.user)[:25]
+        sent = Communication.objects.select_related("sender", "recipient").filter(sender=request.user).order_by("-created_at")[:25]
+        announcements = Communication.objects.select_related("sender", "recipient").filter(message_type="ANNOUNCEMENT").order_by("-created_at")[:25]
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Admin communication center",
+            "opts": self.model._meta,
+            "form": form,
+            "inbox": inbox,
+            "sent": sent,
+            "announcements": announcements,
+        }
+        return TemplateResponse(request, self.change_list_template, context)
+
+    def _admin_inbox_queryset(self, user):
+        return (
+            Communication.objects.select_related("sender", "recipient")
+            .filter(Q(recipient=user) | Q(message_type="ANNOUNCEMENT", audience_role="Admin"))
+            .exclude(sender=user)
+            .order_by("-created_at")
+        )
+
+    def _send_admin_communication(self, request, cleaned_data):
+        mode = cleaned_data["message_mode"]
+        title = cleaned_data.get("title") or ""
+        body = cleaned_data["body"]
+        reason = cleaned_data["change_reason"]
+        created_records = []
+
+        if mode == "DIRECT":
+            for recipient in cleaned_data["recipients"]:
+                created_records.append(Communication.objects.create(
+                    sender=request.user,
+                    recipient=recipient,
+                    message_type="DIRECT",
+                    title=title,
+                    body=body,
+                ))
+        else:
+            selected_audiences = cleaned_data["audience"]
+            audiences = []
+            for audience in selected_audiences:
+                if audience == "EVERYONE":
+                    audiences.extend(["EMPLOYEE", "HR", "Admin"])
+                else:
+                    audiences.append(audience)
+            audiences = list(dict.fromkeys(audiences))
+            for audience_role in audiences:
+                created_records.append(Communication.objects.create(
+                    sender=request.user,
+                    message_type="ANNOUNCEMENT",
+                    audience_role=audience_role,
+                    title=title,
+                    body=body,
+                ))
+
+        for communication in created_records:
+            _create_admin_audit_log(
+                request,
+                communication,
+                {"admin_communication": {"old": None, "new": _snapshot_model_fields(communication, {"id"})}},
+                reason,
+                action="CREATE",
+            )
+        return len(created_records)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @login_required
@@ -2825,6 +3011,7 @@ ADMIN_AUDIT_OBJECT_NAMES = {
 }
 
 COMMUNICATION_NOTIFICATION_OBJECT_NAMES = {
+    "AdminCommunicationCenter",
     "EmployeeCommunication",
     "HRCommunication",
     "EmployeeCommunicationRead",
