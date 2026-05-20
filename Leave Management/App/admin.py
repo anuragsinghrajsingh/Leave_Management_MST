@@ -3,6 +3,7 @@ from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
 from .models import (
     AdminAuditLog,
+    AdminCommunicationAudit,
     AdminCommunicationCenter,
     AllCommunicationNotificationAudit,
     AnalyticsLogViewer,
@@ -67,7 +68,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.urls import path, reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.html import format_html
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
@@ -1861,6 +1862,17 @@ class HRCommunicationAdmin(RoleCommunicationAdmin):
 class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/admin_communication_center.html"
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "message/<int:communication_id>/view-log/",
+                self.admin_site.admin_view(self.log_message_detail_view),
+                name="App_admincommunicationcenter_view_log",
+            ),
+        ]
+        return custom_urls + urls
+
     def changelist_view(self, request, extra_context=None):
         if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
             self.message_user(request, "Only admins can use the admin communication center.", level=messages.ERROR)
@@ -1887,8 +1899,41 @@ class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "inbox": inbox,
             "sent": sent,
             "announcements": announcements,
+            "message_view_log_url_template": reverse("admin:App_admincommunicationcenter_view_log", args=[0]),
         }
         return TemplateResponse(request, self.change_list_template, context)
+
+    def log_message_detail_view(self, request, communication_id):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return JsonResponse({"error": "Not allowed."}, status=403)
+
+        communication = Communication.objects.select_related("sender", "recipient").filter(pk=communication_id).first()
+        if not communication:
+            return JsonResponse({"error": "Message not found."}, status=404)
+
+        _create_admin_audit_log(
+            request,
+            communication,
+            {
+                "admin_communication_view": {
+                    "old": None,
+                    "new": {
+                        "message_type": communication.message_type,
+                        "title": communication.title or "",
+                        "sender": str(communication.sender),
+                        "recipient": str(communication.recipient) if communication.recipient else "",
+                        "audience_role": communication.audience_role or "",
+                        "created_at": _audit_value(communication.created_at),
+                    },
+                }
+            },
+            "Opened full message detail popup in admin communication center.",
+            action="VIEW",
+        )
+        return JsonResponse({"success": True})
 
     def _admin_inbox_queryset(self, user):
         return (
@@ -2357,6 +2402,10 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             return "Archive PDF"
         if "year_end_carry_forward" in obj.changes:
             return "Year-end carry forward"
+        if "admin_communication" in obj.changes:
+            return "Admin communication sent"
+        if "admin_communication_view" in obj.changes:
+            return "Admin communication viewed"
         return ", ".join(obj.changes.keys())
 
 
@@ -2423,6 +2472,10 @@ HR_COMMUNICATION_AUDIT_LABELS = (
     "App.HRCommunication",
 )
 
+ADMIN_COMMUNICATION_AUDIT_LABELS = (
+    "App.Communication",
+)
+
 EMPLOYEE_COMMUNICATION_READ_SEEN_AUDIT_LABELS = (
     "App.EmployeeCommunicationRead",
     "App.EmployeeCommunicationSeen",
@@ -2471,6 +2524,19 @@ class EmployeeCommunicationAuditAdmin(BaseAdminAuditLogAdmin):
 @admin.register(HRCommunicationAudit)
 class HRCommunicationAuditAdmin(BaseAdminAuditLogAdmin):
     model_label_filters = HR_COMMUNICATION_AUDIT_LABELS
+
+
+@login_required
+@never_cache
+@admin.register(AdminCommunicationAudit)
+class AdminCommunicationAuditAdmin(BaseAdminAuditLogAdmin):
+    model_label_filters = ADMIN_COMMUNICATION_AUDIT_LABELS
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(
+            Q(changes__has_key="admin_communication")
+            | Q(changes__has_key="admin_communication_view")
+        )
 
 
 @login_required
@@ -3026,6 +3092,7 @@ COMMUNICATION_NOTIFICATION_OBJECT_NAMES = {
 
 COMMUNICATION_NOTIFICATION_AUDIT_OBJECT_NAMES = {
     "AllCommunicationNotificationAudit",
+    "AdminCommunicationAudit",
     "EmployeeCommunicationAudit",
     "HRCommunicationAudit",
     "EmployeeCommunicationReadSeenAudit",

@@ -71,6 +71,131 @@
     .admin-recipient-result:hover {
       background: var(--darkened-bg);
     }
+    .admin-communication-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    .admin-communication-table th:nth-child(5),
+    .admin-communication-table td:nth-child(5) {
+      width: 34%;
+    }
+    .admin-message-cell {
+      max-width: 420px;
+      vertical-align: top;
+    }
+    .admin-message-preview {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.45;
+      max-height: 2.9em;
+    }
+    .admin-message-more {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      border: 0;
+      background: transparent;
+      color: var(--link-fg);
+      cursor: pointer;
+      font-weight: 700;
+      padding: 0;
+    }
+    .admin-message-more:hover {
+      text-decoration: underline;
+    }
+    .admin-message-more.is-hidden {
+      display: none;
+    }
+    .admin-message-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.62);
+    }
+    .admin-message-modal-backdrop.is-open {
+      display: flex;
+    }
+    .admin-message-modal {
+      width: min(780px, 96vw);
+      max-height: 86vh;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--body-bg);
+      color: var(--body-fg);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+    }
+    .admin-message-modal header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--hairline-color);
+      background: var(--darkened-bg);
+    }
+    .admin-message-modal header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    .admin-message-modal-close {
+      border: 0;
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      font-weight: 900;
+      background: var(--button-bg);
+      color: var(--button-fg);
+    }
+    .admin-message-modal-body {
+      padding: 18px 20px 22px;
+      overflow-y: auto;
+      max-height: calc(86vh - 84px);
+    }
+    .admin-message-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .admin-message-detail-card {
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--darkened-bg);
+      overflow-wrap: anywhere;
+    }
+    .admin-message-detail-card strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--body-quiet-color);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+    .admin-message-full-body {
+      border: 1px solid var(--hairline-color);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 120px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.55;
+      background: var(--body-bg);
+    }
+    @media (max-width: 900px) {
+      .admin-message-detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 
   <div style="display: grid; grid-template-columns: minmax(320px, 520px) 1fr; gap: 24px; align-items: start;">
@@ -99,6 +224,24 @@
       <div class="module" style="margin-top: 22px;">
         <h2>Announcements</h2>
         {% include "admin/includes/admin_communication_table.html" with records=announcements empty_text="No announcements." %}
+      </div>
+    </section>
+  </div>
+  <div class="admin-message-modal-backdrop" id="admin-message-detail-modal" role="dialog" aria-modal="true" aria-labelledby="admin-message-modal-title" data-view-log-url-template="{{ message_view_log_url_template }}">
+    <section class="admin-message-modal">
+      <header>
+        <h2 id="admin-message-modal-title">Message detail</h2>
+        <button type="button" class="admin-message-modal-close" data-admin-message-close aria-label="Close message detail">x</button>
+      </header>
+      <div class="admin-message-modal-body">
+        <div class="admin-message-detail-grid">
+          <div class="admin-message-detail-card"><strong>Type</strong><span data-modal-message-type></span></div>
+          <div class="admin-message-detail-card"><strong>Created</strong><span data-modal-message-created></span></div>
+          <div class="admin-message-detail-card"><strong>From</strong><span data-modal-message-from></span></div>
+          <div class="admin-message-detail-card"><strong>To/Audience</strong><span data-modal-message-to></span></div>
+        </div>
+        <div class="admin-message-detail-card" style="margin-bottom: 16px;"><strong>Title</strong><span data-modal-message-title></span></div>
+        <div class="admin-message-full-body" data-modal-message-body></div>
       </div>
     </section>
   </div>
@@ -218,6 +361,91 @@
       }
       syncModeFields();
       renderChips();
+
+      const detailModal = document.getElementById("admin-message-detail-modal");
+      const modalFields = detailModal ? {
+        type: detailModal.querySelector("[data-modal-message-type]"),
+        title: detailModal.querySelector("[data-modal-message-title]"),
+        from: detailModal.querySelector("[data-modal-message-from]"),
+        to: detailModal.querySelector("[data-modal-message-to]"),
+        created: detailModal.querySelector("[data-modal-message-created]"),
+        body: detailModal.querySelector("[data-modal-message-body]")
+      } : null;
+
+      function setText(node, value) {
+        if (node) {
+          node.textContent = value || "-";
+        }
+      }
+
+      function closeMessageModal() {
+        if (detailModal) {
+          detailModal.classList.remove("is-open");
+        }
+      }
+
+      function getCsrfToken() {
+        const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (input && input.value) {
+          return input.value;
+        }
+        const cookie = document.cookie.split(";").map(function (part) { return part.trim(); }).find(function (part) {
+          return part.startsWith("csrftoken=");
+        });
+        return cookie ? decodeURIComponent(cookie.split("=").slice(1).join("=")) : "";
+      }
+
+      function logMessageDetailView(messageId) {
+        if (!detailModal || !messageId) {
+          return;
+        }
+        const template = detailModal.dataset.viewLogUrlTemplate || "";
+        if (!template) {
+          return;
+        }
+        fetch(template.replace("/0/", "/" + encodeURIComponent(messageId) + "/"), {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCsrfToken(),
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          credentials: "same-origin"
+        }).catch(function () {
+          // Opening the popup should never fail just because audit ping failed.
+        });
+      }
+
+      document.querySelectorAll("[data-admin-message-preview]").forEach(function (preview) {
+        const button = preview.parentElement ? preview.parentElement.querySelector("[data-admin-message-open]") : null;
+        if (button && preview.scrollHeight <= preview.clientHeight + 2) {
+          button.classList.add("is-hidden");
+        }
+      });
+
+      document.addEventListener("click", function (event) {
+        const openButton = event.target.closest("[data-admin-message-open]");
+        if (openButton && detailModal && modalFields) {
+          setText(modalFields.type, openButton.dataset.messageType);
+          setText(modalFields.title, openButton.dataset.messageTitle);
+          setText(modalFields.from, openButton.dataset.messageFrom);
+          setText(modalFields.to, openButton.dataset.messageTo);
+          setText(modalFields.created, openButton.dataset.messageCreated);
+          setText(modalFields.body, openButton.dataset.messageBody);
+          detailModal.classList.add("is-open");
+          logMessageDetailView(openButton.dataset.messageId);
+          return;
+        }
+
+        if (event.target.closest("[data-admin-message-close]") || event.target === detailModal) {
+          closeMessageModal();
+        }
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          closeMessageModal();
+        }
+      });
     })();
   </script>
 {% endblock %}

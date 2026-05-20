@@ -360,6 +360,13 @@ class HRCommunicationAudit(AdminAuditLog):
         verbose_name_plural = "HR communication audit"
 
 
+class AdminCommunicationAudit(AdminAuditLog):
+    class Meta:
+        proxy = True
+        verbose_name = "Admin communication audit"
+        verbose_name_plural = "Admin communication audit"
+
+
 class EmployeeCommunicationReadSeenAudit(AdminAuditLog):
     class Meta:
         proxy = True

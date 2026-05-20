@@ -329,7 +329,7 @@
             formDrafts[key] = {
                 title: titleInput ? String(titleInput.value || "") : "",
                 body: bodyInput ? String(bodyInput.value || "") : "",
-                recipient: role === "HR" && form.elements.recipient_id ? String(form.elements.recipient_id.value || "") : "",
+                recipient: form.elements.recipient_id ? String(form.elements.recipient_id.value || "") : "",
             };
         }
 
@@ -344,7 +344,7 @@
                 bodyInput.value = draft.body || "";
             }
 
-            if (role === "HR" && form.elements.recipient_id) {
+            if (form.elements.recipient_id) {
                 form.elements.recipient_id.value = draft.recipient || "";
             }
         }
@@ -382,10 +382,17 @@
             if (submitButton) {
                 submitButton.textContent = currentMode === "DIRECT" ? "Send message" : "Send update";
             }
+
+            updateSubmitButtonLabel();
         }
 
         function updateSubmitButtonLabel() {
-            if (!submitButton || role === "HR" || !form.elements.recipient_id) {
+            if (!submitButton || !form.elements.recipient_id) {
+                return;
+            }
+
+            if (role === "HR" && currentMode !== "DIRECT") {
+                submitButton.textContent = "Send update";
                 return;
             }
 
@@ -402,6 +409,11 @@
 
             if (/\|\s*HR(?:\s*\||$)/i.test(label)) {
                 submitButton.textContent = "Send to HR";
+                return;
+            }
+
+            if (/\|\s*Employee(?:\s*\||$)/i.test(label)) {
+                submitButton.textContent = "Send to Employee";
                 return;
             }
 

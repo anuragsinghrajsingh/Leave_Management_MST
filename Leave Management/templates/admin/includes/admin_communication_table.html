@@ -1,4 +1,4 @@
-<table>
+<table class="admin-communication-table">
   <thead>
     <tr>
       <th>Type</th>
@@ -22,7 +22,23 @@
             {{ item.audience_role|default:"-" }}
           {% endif %}
         </td>
-        <td style="max-width: 360px; white-space: pre-wrap;">{{ item.body|truncatechars:220 }}</td>
+        <td class="admin-message-cell">
+          <div class="admin-message-preview" data-admin-message-preview>{{ item.body }}</div>
+          {% if item.body %}
+            <button
+              type="button"
+              class="admin-message-more"
+              data-admin-message-open
+              data-message-id="{{ item.id }}"
+              data-message-type="{{ item.message_type }}"
+              data-message-title="{{ item.title|default:'-' }}"
+              data-message-from="{{ item.sender }}"
+              data-message-to="{% if item.recipient %}{{ item.recipient }}{% else %}{{ item.audience_role|default:'-' }}{% endif %}"
+              data-message-created="{{ item.created_at }}"
+              data-message-body="{{ item.body }}"
+            >More</button>
+          {% endif %}
+        </td>
         <td>{{ item.created_at }}</td>
       </tr>
     {% empty %}
