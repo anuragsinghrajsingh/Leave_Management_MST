@@ -146,6 +146,7 @@ body.weekly-report-modal-open
     align-items: center;
     justify-content: space-between;
     gap: 14px;
+    flex-wrap: wrap;
     min-height: 60px;
     padding: 10px 26px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.22);
@@ -170,6 +171,13 @@ body.weekly-report-modal-open
 {
     display: flex !important;
     justify-content: flex-start;
+    order: 1;
+}
+
+.weekly-report-actions
+{
+    order: 2;
+    margin-left: auto;
 }
 
 .weekly-report-custom-range
@@ -178,6 +186,9 @@ body.weekly-report-modal-open
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    order: 3;
+    flex: 0 0 100%;
+    justify-content: flex-start;
 }
 
 .weekly-report-custom-range[hidden]
@@ -323,10 +334,12 @@ body.weekly-report-modal-open
 
 .weekly-report-status
 {
-    margin: 10px 20px 0;
+    flex: 1 1 auto;
+    margin: 0 0 0 auto;
     padding: 10px 12px;
     border-radius: 8px;
     font-size: 0.92rem;
+    text-align: right;
 }
 
 .weekly-report-status.is-success
