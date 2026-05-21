@@ -29,6 +29,7 @@ def record_email_delivery(
 ):
     rows = []
     metadata = metadata or {}
+    resolved_error_message = error_message or ("No error" if status == "sent" else "")
     for recipient in normalize_recipients(recipients):
         rows.append(
             EmailDeliveryLog(
@@ -37,7 +38,7 @@ def record_email_delivery(
                 from_email=(from_email or "")[:255],
                 recipient=recipient,
                 status=status,
-                error_message=error_message or "",
+                error_message=resolved_error_message,
                 related_user=related_user,
                 related_leave=related_leave,
                 triggered_by=triggered_by,

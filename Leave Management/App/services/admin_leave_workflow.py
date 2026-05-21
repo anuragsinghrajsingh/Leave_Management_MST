@@ -310,6 +310,7 @@ def _balance_snapshot(balance):
 def _leave_snapshot(leave):
     return {
         "id": leave.id,
+        "user_id": leave.user_id,
         "employee": leave.user.username,
         "leave_type": leave.leave_type,
         "status": leave.status,
@@ -521,6 +522,7 @@ def _send_leave_workflow_emails(leaves, actor, action_label, options):
 def _send_delete_emails(email_snapshots, actor, options):
     results = []
     for employee_email, snapshot in email_snapshots:
+        related_user = get_user_model().objects.filter(id=snapshot.get("user_id")).first()
         recipients = []
         if options.get("notify_employee") and employee_email:
             recipients.append(employee_email)
@@ -555,6 +557,7 @@ def _send_delete_emails(email_snapshots, actor, options):
                     email_type="admin_leave_deleted",
                     from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
                     error_message=str(exc),
+                    related_user=related_user,
                     triggered_by=actor,
                     metadata={"leave_snapshot": snapshot},
                 )
@@ -575,6 +578,7 @@ def _send_delete_emails(email_snapshots, actor, options):
                     status="sent",
                     email_type="admin_leave_deleted",
                     from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    related_user=related_user,
                     triggered_by=actor,
                     metadata={"leave_snapshot": snapshot},
                 )

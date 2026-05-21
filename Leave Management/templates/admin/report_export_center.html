@@ -1,0 +1,163 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .report-export-wrap {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.9fr) minmax(360px, 1.1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .report-export-card {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      background: var(--body-bg, #fff);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .report-export-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+    .report-export-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px 16px;
+    }
+    .report-export-form p {
+      margin: 0;
+    }
+    .report-export-form select,
+    .report-export-form input,
+    .report-export-form textarea {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .report-export-form .wide {
+      grid-column: 1 / -1;
+    }
+    .period-field[hidden] {
+      display: none !important;
+    }
+    .report-export-note {
+      border: 1px solid #2563eb;
+      border-radius: 8px;
+      background: rgba(37, 99, 235, 0.08);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    .report-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .report-list li {
+      margin: 5px 0;
+    }
+    @media (max-width: 900px) {
+      .report-export-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class="report-export-note">
+    Export CSV or PDF reports. Every download requires a reason and is recorded in Admin Audit.
+  </div>
+
+  <div class="report-export-wrap">
+    <section class="report-export-card">
+      <h2>Export Report</h2>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="report-export-form">
+          <p>{{ form.report_type.label_tag }}<br>{{ form.report_type.errors }}{{ form.report_type }}</p>
+          <p>{{ form.export_format.label_tag }}<br>{{ form.export_format.errors }}{{ form.export_format }}</p>
+          <p>{{ form.period_type.label_tag }}<br>{{ form.period_type.errors }}{{ form.period_type }}</p>
+          <p class="period-field" data-period-field="year">{{ form.year.label_tag }}<br>{{ form.year.errors }}{{ form.year }}</p>
+          <p class="period-field" data-period-field="month">{{ form.month.label_tag }}<br>{{ form.month.errors }}{{ form.month }}</p>
+          <p class="period-field" data-period-field="quarter">{{ form.quarter.label_tag }}<br>{{ form.quarter.errors }}{{ form.quarter }}</p>
+          <p class="period-field" data-period-field="half_year">{{ form.half_year.label_tag }}<br>{{ form.half_year.errors }}{{ form.half_year }}</p>
+          <p class="period-field" data-period-field="date_from">{{ form.date_from.label_tag }}<br>{{ form.date_from.errors }}{{ form.date_from }}</p>
+          <p class="period-field" data-period-field="date_to">{{ form.date_to.label_tag }}<br>{{ form.date_to.errors }}{{ form.date_to }}</p>
+          <p>{{ form.employee.label_tag }}<br>{{ form.employee.errors }}{{ form.employee }}</p>
+          <p>{{ form.department.label_tag }}<br>{{ form.department.errors }}{{ form.department }}</p>
+          <p>{{ form.role.label_tag }}<br>{{ form.role.errors }}{{ form.role }}</p>
+          <p>{{ form.active_status.label_tag }}<br>{{ form.active_status.errors }}{{ form.active_status }}</p>
+          <p>{{ form.leave_status.label_tag }}<br>{{ form.leave_status.errors }}{{ form.leave_status }}</p>
+          <p>{{ form.leave_type.label_tag }}<br>{{ form.leave_type.errors }}{{ form.leave_type }}</p>
+          <p>{{ form.deducted_from.label_tag }}<br>{{ form.deducted_from.errors }}{{ form.deducted_from }}</p>
+          <p>{{ form.reviewed_by.label_tag }}<br>{{ form.reviewed_by.errors }}{{ form.reviewed_by }}</p>
+          <p>{{ form.email_status.label_tag }}<br>{{ form.email_status.errors }}{{ form.email_status }}</p>
+          <p>{{ form.admin_action.label_tag }}<br>{{ form.admin_action.errors }}{{ form.admin_action }}</p>
+          <p class="wide"><label>{{ form.include_zero_activity }} {{ form.include_zero_activity.label }}</label></p>
+          <p class="wide">{{ form.reason.label_tag }}<br>{{ form.reason.errors }}{{ form.reason }}</p>
+        </div>
+        <div class="submit-row">
+          <button type="submit" class="default">Export report</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="report-export-card">
+      <h2>Available Reports</h2>
+      <ul class="report-list">
+        <li>Employee master report</li>
+        <li>Leave request report</li>
+        <li>Leave balance report</li>
+        <li>Leave balance audit report</li>
+        <li>Admin audit and delete audit reports</li>
+        <li>Communication and read/seen reports</li>
+        <li>Leave notification read/seen report</li>
+        <li>Email delivery report</li>
+        <li>Holiday and WFH rule reports</li>
+        <li>Year-end carry-forward report</li>
+        <li>Backup/restore/service audit report</li>
+        <li>System health snapshot report</li>
+        <li><strong>HR summary report</strong> with overview, leave type, department, employee, balance, workflow, holiday/WFH, communication/email, and risk/attention sections.</li>
+      </ul>
+    </section>
+  </div>
+  <script>
+    (function () {
+      const periodSelect = document.getElementById("id_period_type");
+      const form = periodSelect ? periodSelect.closest("form") : null;
+      const fields = Array.from(document.querySelectorAll("[data-period-field]"));
+      const visibleByPeriod = {
+        custom: ["date_from", "date_to"],
+        monthly: ["year", "month"],
+        quarterly: ["year", "quarter"],
+        six_month: ["year", "half_year"],
+        yearly: ["year"]
+      };
+
+      function setPeriodFields() {
+        const period = periodSelect.value || "custom";
+        const visible = new Set(visibleByPeriod[period] || visibleByPeriod.custom);
+        fields.forEach(function (wrapper) {
+          const fieldName = wrapper.dataset.periodField;
+          const input = wrapper.querySelector("input, select");
+          const shouldShow = visible.has(fieldName);
+          wrapper.hidden = !shouldShow;
+          if (input) {
+            input.disabled = !shouldShow;
+            if (!shouldShow) {
+              input.value = "";
+            }
+          }
+        });
+      }
+
+      if (periodSelect) {
+        periodSelect.addEventListener("change", setPeriodFields);
+        setPeriodFields();
+      }
+      if (form) {
+        form.addEventListener("submit", setPeriodFields);
+      }
+    })();
+  </script>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+  {% if show_direct_balance_warning %}
+    <style>
+      .balance-warning {
+        border: 1px solid #f59e0b;
+        background: #fff7ed;
+        color: #7c2d12;
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin: 0 0 16px;
+        font-weight: 700;
+      }
+      .balance-warning p {
+        margin: 6px 0;
+      }
+      .balance-warning .button {
+        margin-top: 8px;
+        display: inline-block;
+      }
+    </style>
+    <div class="balance-warning">
+      <p>Direct balance editing can corrupt leave balances if fields are changed incorrectly.</p>
+      <p>Prefer the safer adjustment tool for normal corrections because it records old value, new value, amount, action, reason, admin, and timestamp.</p>
+      {% if leave_balance_adjust_url %}
+        <a class="button" href="{{ leave_balance_adjust_url }}">Use safer adjustment tool</a>
+      {% endif %}
+    </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

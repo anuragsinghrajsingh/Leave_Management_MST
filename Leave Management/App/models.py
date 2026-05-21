@@ -409,8 +409,8 @@ class EmailDeliveryLog(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
-        verbose_name = "Email delivery log"
-        verbose_name_plural = "Email delivery logs"
+        verbose_name = "Email delivery history"
+        verbose_name_plural = "Email delivery history"
 
     def __str__(self):
         return f"{self.recipient} - {self.subject} - {self.status}"
@@ -922,8 +922,8 @@ class LeaveLogViewer(LogViewer):
 class EmailLogViewer(LogViewer):
     class Meta:
         proxy = True
-        verbose_name = "Email logs"
-        verbose_name_plural = "Email logs"
+        verbose_name = "Raw email file logs"
+        verbose_name_plural = "Raw email file logs"
 
 
 class BackupLogViewer(LogViewer):
@@ -1008,3 +1008,17 @@ class ServiceActionControl(LogViewer):
         proxy = True
         verbose_name = "Service actions"
         verbose_name_plural = "Service actions"
+
+
+class SystemHealthControl(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "System health"
+        verbose_name_plural = "System health"
+
+
+class ReportExportControl(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Report export center"
+        verbose_name_plural = "Report export center"

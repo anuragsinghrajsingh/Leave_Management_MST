@@ -1,0 +1,158 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .adjust-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .adjust-card {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      background: var(--body-bg, #fff);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .adjust-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+    .balance-row,
+    .preview-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 42%) 1fr;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px solid rgba(127, 127, 127, 0.16);
+    }
+    .balance-row:first-of-type,
+    .preview-row:first-of-type {
+      border-top: 0;
+    }
+    .adjust-label {
+      color: var(--body-quiet-color, #666);
+      font-weight: 700;
+    }
+    .adjust-form p {
+      margin: 0 0 12px;
+    }
+    .adjust-form select,
+    .adjust-form input,
+    .adjust-form textarea {
+      width: 100%;
+      max-width: 520px;
+      box-sizing: border-box;
+    }
+    .adjust-warning {
+      border: 1px solid #f59e0b;
+      background: #fff7ed;
+      color: #7c2d12;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    .preview-card {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.06);
+    }
+    @media (max-width: 900px) {
+      .adjust-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <p><a href="{{ change_url }}">&larr; Back to this leave balance</a></p>
+
+  <div class="adjust-warning">
+    This safe adjustment changes one selected balance field at a time and stores a detailed audit record.
+  </div>
+
+  <div class="adjust-grid">
+    <section class="adjust-card">
+      <h2>Current Balance</h2>
+      <div class="balance-row"><div class="adjust-label">Employee</div><div>{{ balance.user }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Total balance</div><div>{{ balance.total_leave_balance }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Total remaining</div><div>{{ balance.total_leave_remaining }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Sick total</div><div>{{ balance.sick_total }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Sick used</div><div>{{ balance.sick_used }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Earned total</div><div>{{ balance.earned_total }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Earned used</div><div>{{ balance.earned_used }}</div></div>
+      <div class="balance-row"><div class="adjust-label">Unpaid</div><div>{{ balance.unpaid }}</div></div>
+    </section>
+
+    <section class="adjust-card">
+      <h2>Adjustment</h2>
+      <form method="post" class="adjust-form" id="adjust-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <input type="hidden" name="step" value="preview">
+        <p>
+          {{ form.field_name.label_tag }}<br>
+          {{ form.field_name.errors }}
+          {{ form.field_name }}
+        </p>
+        <p>
+          {{ form.action.label_tag }}<br>
+          {{ form.action.errors }}
+          {{ form.action }}
+        </p>
+        <p>
+          {{ form.amount.label_tag }}<br>
+          {{ form.amount.errors }}
+          {{ form.amount }}
+        </p>
+        <p>
+          {{ form.reason.label_tag }}<br>
+          {{ form.reason.errors }}
+          {{ form.reason }}
+          {% if form.reason.help_text %}<br><span class="help">{{ form.reason.help_text }}</span>{% endif %}
+        </p>
+        <button type="submit" class="default">Preview adjustment</button>
+      </form>
+    </section>
+  </div>
+
+  {% if preview %}
+    <section class="adjust-card preview-card">
+      <h2>Preview</h2>
+      <div class="preview-row"><div class="adjust-label">Employee</div><div>{{ preview.employee }}</div></div>
+      <div class="preview-row"><div class="adjust-label">Field</div><div>{{ preview.field_label }}</div></div>
+      <div class="preview-row"><div class="adjust-label">Action</div><div>{{ preview.action_label }}</div></div>
+      <div class="preview-row"><div class="adjust-label">Amount</div><div>{{ preview.amount }}</div></div>
+      <div class="preview-row"><div class="adjust-label">Old value</div><div>{{ preview.old_value }}</div></div>
+      <div class="preview-row"><div class="adjust-label">New value</div><div><strong>{{ preview.new_value }}</strong></div></div>
+      <div class="preview-row"><div class="adjust-label">Reason</div><div>{{ preview.reason }}</div></div>
+
+      <form method="post" id="confirm-form">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="confirm">
+        <input type="hidden" name="adjustment_token" value="{{ adjustment_token }}">
+        <button type="submit" class="default">Confirm adjustment</button>
+        <a href="{{ request.path }}" class="button cancel-link">Cancel</a>
+      </form>
+    </section>
+  {% endif %}
+
+  <script>
+    (function () {
+      const adjustForm = document.getElementById("adjust-form");
+      const confirmForm = document.getElementById("confirm-form");
+      if (!adjustForm || !confirmForm) return;
+      const fields = adjustForm.querySelectorAll("select, input, textarea");
+      fields.forEach(function (field) {
+        field.addEventListener("input", function () {
+          confirmForm.style.display = "none";
+        });
+        field.addEventListener("change", function () {
+          confirmForm.style.display = "none";
+        });
+      });
+    })();
+  </script>
+</div>
+{% endblock %}

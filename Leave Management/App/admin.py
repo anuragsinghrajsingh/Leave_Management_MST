@@ -51,10 +51,12 @@ from .models import (
     Profile,
     ProfileAdminAudit,
     ProfileLogViewer,
+    ReportExportControl,
     SchedulerLogViewer,
     SecurityLogViewer,
     ServiceActionControl,
     ServiceLogViewer,
+    SystemHealthControl,
     CustomUser,
     UserAdminAudit,
     WorkFromHomeAdminAudit,
@@ -68,7 +70,7 @@ from django import forms
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import path, reverse
@@ -77,13 +79,15 @@ from django.utils.html import format_html
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.template.response import TemplateResponse
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from io import BytesIO
+from pathlib import Path
 import csv
 import json
 import logging
 import os
 import re
+import shutil
 import zipfile
 from urllib.parse import urlencode
 from django.utils.timezone import now, localtime
@@ -293,6 +297,226 @@ def _get_latest_file_info(directory, pattern):
         "path": latest,
         "size_kb": round(latest.stat().st_size / 1024, 2),
         "modified_at": datetime.fromtimestamp(latest.stat().st_mtime),
+    }
+
+
+def _get_file_count(directory, pattern):
+    if not directory.exists():
+        return 0
+    return sum(1 for path in directory.glob(pattern) if path.is_file())
+
+
+def _can_write_to_directory(directory):
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        probe_path = directory / ".admin_health_write_test"
+        probe_path.write_text("ok", encoding="utf-8")
+        probe_path.unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
+def _get_directory_size(directory):
+    if not directory.exists():
+        return 0
+    total = 0
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            try:
+                total += (Path(root) / filename).stat().st_size
+            except OSError:
+                continue
+    return total
+
+
+def _format_size(size_bytes):
+    size = float(size_bytes or 0)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if size < 1024 or unit == "TB":
+            return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} B"
+        size /= 1024
+
+
+def _count_recent_log_lines(log_path, token, since_date=None):
+    if not log_path.exists():
+        return 0
+    count = 0
+    try:
+        with log_path.open("r", encoding="utf-8", errors="replace") as log_file:
+            for line in log_file:
+                if token not in line:
+                    continue
+                if since_date and str(since_date) not in line:
+                    continue
+                count += 1
+    except OSError:
+        return 0
+    return count
+
+
+def _get_migration_health():
+    try:
+        from django.db.migrations.executor import MigrationExecutor
+
+        executor = MigrationExecutor(connection)
+        plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        return {
+            "ok": not plan,
+            "pending_count": len(plan),
+            "pending": [f"{migration.app_label}.{migration.name}" for migration, _ in plan[:10]],
+            "error": "",
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "pending_count": None,
+            "pending": [],
+            "error": str(exc),
+        }
+
+
+def _get_database_health():
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        ok = True
+        error = ""
+    except Exception as exc:
+        ok = False
+        error = str(exc)
+
+    database_name = settings.DATABASES["default"].get("NAME", "")
+    return {
+        "ok": ok,
+        "error": error,
+        "engine": settings.DATABASES["default"].get("ENGINE", ""),
+        "vendor": getattr(connection, "vendor", "unknown"),
+        "name": database_name.name if hasattr(database_name, "name") else database_name,
+    }
+
+
+def _get_email_config_health():
+    required_missing = []
+    if not settings.EMAIL_HOST:
+        required_missing.append("EMAIL_HOST")
+    if not settings.DEFAULT_FROM_EMAIL:
+        required_missing.append("DEFAULT_FROM_EMAIL")
+    if not settings.EMAIL_HOST_USER:
+        required_missing.append("EMAIL_HOST_USER")
+    if not settings.EMAIL_HOST_PASSWORD:
+        required_missing.append("EMAIL_HOST_PASSWORD")
+
+    return {
+        "ok": not required_missing,
+        "missing": required_missing,
+        "backend": settings.EMAIL_BACKEND,
+        "host": settings.EMAIL_HOST,
+        "port": settings.EMAIL_PORT,
+        "use_tls": settings.EMAIL_USE_TLS,
+        "use_ssl": settings.EMAIL_USE_SSL,
+        "timeout": getattr(settings, "EMAIL_TIMEOUT", None),
+        "default_from_email": settings.DEFAULT_FROM_EMAIL,
+        "leave_desk_from_email": getattr(settings, "LEAVE_DESK_FROM_EMAIL", ""),
+        "leave_record_email": getattr(settings, "LEAVE_RECORD_EMAIL", ""),
+        "password_configured": bool(settings.EMAIL_HOST_PASSWORD),
+    }
+
+
+def _get_scheduler_health():
+    scheduler_log = _get_latest_file_info(settings.LOG_BASE_DIR / "services", "scheduler.log")
+    task_log = _get_latest_file_info(settings.LOG_BASE_DIR / "scheduler", "tasks.log")
+    latest = scheduler_log or task_log
+    if scheduler_log and task_log and task_log["modified_at"] > scheduler_log["modified_at"]:
+        latest = task_log
+
+    return {
+        "ok": bool(latest),
+        "latest_log": latest,
+        "service_log": scheduler_log,
+        "task_log": task_log,
+    }
+
+
+def _get_storage_health():
+    usage = shutil.disk_usage(settings.BASE_DIR)
+    return {
+        "base_dir": settings.BASE_DIR,
+        "total": _format_size(usage.total),
+        "used": _format_size(usage.used),
+        "free": _format_size(usage.free),
+        "free_percent": round((usage.free / usage.total) * 100, 1) if usage.total else 0,
+        "media_size": _format_size(_get_directory_size(settings.MEDIA_ROOT)),
+        "logs_size": _format_size(_get_directory_size(settings.LOG_BASE_DIR)),
+        "backups_size": _format_size(_get_directory_size(settings.BASE_DIR / "backups")),
+        "generated_pdfs_size": _format_size(_get_directory_size(settings.BASE_DIR / "generated_pdfs")),
+    }
+
+
+def _get_security_config_health():
+    warnings = []
+    if settings.DEBUG:
+        warnings.append("DEBUG is enabled")
+    if not settings.ALLOWED_HOSTS:
+        warnings.append("ALLOWED_HOSTS is empty")
+    if not settings.SESSION_COOKIE_SECURE:
+        warnings.append("SESSION_COOKIE_SECURE is disabled")
+    if not settings.CSRF_COOKIE_SECURE:
+        warnings.append("CSRF_COOKIE_SECURE is disabled")
+    if not settings.SECURE_SSL_REDIRECT:
+        warnings.append("SECURE_SSL_REDIRECT is disabled")
+    if not settings.SECURE_HSTS_SECONDS:
+        warnings.append("HSTS is disabled")
+
+    return {
+        "ok": not warnings or settings.DEBUG,
+        "warnings": warnings,
+        "debug": settings.DEBUG,
+        "session_cookie_secure": settings.SESSION_COOKIE_SECURE,
+        "csrf_cookie_secure": settings.CSRF_COOKIE_SECURE,
+        "csrf_cookie_httponly": settings.CSRF_COOKIE_HTTPONLY,
+        "session_cookie_httponly": settings.SESSION_COOKIE_HTTPONLY,
+        "ssl_redirect": settings.SECURE_SSL_REDIRECT,
+        "hsts_seconds": settings.SECURE_HSTS_SECONDS,
+        "content_type_nosniff": settings.SECURE_CONTENT_TYPE_NOSNIFF,
+    }
+
+
+def _get_business_health():
+    today = localtime(now()).date()
+    today_start = timezone.make_aware(datetime.combine(today, time.min))
+    recent_start = now() - timedelta(hours=24)
+    return {
+        "users": {
+            "total": CustomUser.objects.count(),
+            "active": CustomUser.objects.filter(is_active=True).count(),
+            "inactive": CustomUser.objects.filter(is_active=False).count(),
+            "admins": CustomUser.objects.filter(role="Admin").count(),
+            "hr": CustomUser.objects.filter(role="HR").count(),
+            "employees": CustomUser.objects.filter(role="EMPLOYEE").count(),
+        },
+        "leaves": {
+            "pending": Leave.objects.filter(status="Pending").count(),
+            "approved_today": Leave.objects.filter(status="Approved", from_date__lte=today, to_date__gte=today).count(),
+            "rejected_24h": Leave.objects.filter(status="Rejected", rejected_at__gte=recent_start).count(),
+            "updated_24h": Leave.objects.filter(updated_at__gte=recent_start).count(),
+        },
+        "communications": {
+            "admin_messages_24h": AdminCommunicationCenter.objects.filter(created_at__gte=recent_start).count(),
+            "employee_messages_24h": EmployeeCommunication.objects.filter(created_at__gte=recent_start).count(),
+            "hr_messages_24h": HRCommunication.objects.filter(created_at__gte=recent_start).count(),
+        },
+        "emails": {
+            "sent_24h": EmailDeliveryLog.objects.filter(status="sent", created_at__gte=recent_start).count(),
+            "failed_24h": EmailDeliveryLog.objects.filter(status="failed", created_at__gte=recent_start).count(),
+            "latest_failure": EmailDeliveryLog.objects.filter(status="failed").first(),
+        },
+        "errors": {
+            "django_errors_today": _count_recent_log_lines(settings.LOG_BASE_DIR / "django_errors.log", "[ERROR]", since_date=today),
+            "security_warnings_today": _count_recent_log_lines(settings.LOG_BASE_DIR / "security" / "unauthorized.log", "[WARNING]", since_date=today),
+        },
+        "today_start": today_start,
     }
 
 
@@ -873,6 +1097,22 @@ LEAVE_BALANCE_AUDIT_FIELDS = (
     "last_year_end_processed",
 )
 
+LEAVE_BALANCE_ADJUSTABLE_FIELDS = (
+    ("", "Select balance field"),
+    ("sick_total", "Sick total"),
+    ("sick_used", "Sick used"),
+    ("earned_total", "Earned total"),
+    ("earned_used", "Earned used"),
+    ("unpaid", "Unpaid"),
+)
+
+LEAVE_BALANCE_ADJUSTMENT_ACTIONS = (
+    ("", "Select action"),
+    ("add", "Add"),
+    ("remove", "Remove"),
+    ("set", "Set exact value"),
+)
+
 
 class LeaveBalanceAdminForm(forms.ModelForm):
     change_reason = forms.CharField(
@@ -896,6 +1136,72 @@ class LeaveBalanceAdminForm(forms.ModelForm):
             if changed_balance_fields and not (cleaned_data.get("change_reason") or "").strip():
                 self.add_error("change_reason", "Please provide a reason for changing leave balance values.")
         return cleaned_data
+
+
+class LeaveBalanceAdjustmentForm(forms.Form):
+    field_name = forms.ChoiceField(label="Balance field", choices=LEAVE_BALANCE_ADJUSTABLE_FIELDS)
+    action = forms.ChoiceField(label="Action", choices=LEAVE_BALANCE_ADJUSTMENT_ACTIONS)
+    amount = forms.FloatField(label="Amount", min_value=0)
+    reason = forms.CharField(
+        label="Adjustment reason",
+        widget=forms.Textarea(attrs={"rows": 3}),
+        min_length=5,
+        max_length=500,
+        help_text="Required. This reason is stored in leave balance audit.",
+    )
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount != amount or amount in (float("inf"), float("-inf")):
+            raise ValidationError("Amount must be a finite number.")
+        return round(float(amount), 2)
+
+
+class ReportExportForm(forms.Form):
+    from App.services.report_export_service import EXPORT_FORMATS, PERIOD_TYPES, REPORT_TYPES
+
+    report_type = forms.ChoiceField(choices=REPORT_TYPES, label="Report type")
+    export_format = forms.ChoiceField(choices=EXPORT_FORMATS, label="Format", initial="csv")
+    period_type = forms.ChoiceField(choices=PERIOD_TYPES, label="Period", initial="custom", required=False)
+    date_from = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    date_to = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    year = forms.IntegerField(required=False, min_value=2000, max_value=2100, widget=forms.NumberInput(attrs={"placeholder": "YYYY"}))
+    month = forms.IntegerField(required=False, min_value=1, max_value=12, widget=forms.NumberInput(attrs={"placeholder": "1-12"}))
+    quarter = forms.ChoiceField(required=False, choices=(("", "Select quarter"), ("1", "Q1"), ("2", "Q2"), ("3", "Q3"), ("4", "Q4")))
+    half_year = forms.ChoiceField(required=False, choices=(("", "Select half"), ("first", "Jan-Jun"), ("second", "Jul-Dec")))
+    employee = forms.ModelChoiceField(required=False, queryset=CustomUser.objects.none())
+    role = forms.ChoiceField(required=False, choices=(("", "All roles"), ("Admin", "Admin"), ("HR", "HR"), ("EMPLOYEE", "Employee")))
+    department = forms.CharField(required=False, max_length=100)
+    leave_status = forms.ChoiceField(required=False, choices=(("", "All statuses"), ("Pending", "Pending"), ("Approved", "Approved"), ("Rejected", "Rejected")))
+    leave_type = forms.ChoiceField(required=False, choices=(("", "All leave types"), ("Sick", "Sick"), ("Earned", "Earned"), ("Unpaid", "Unpaid"), ("Short", "Short"), ("Half", "Half")))
+    deducted_from = forms.ChoiceField(required=False, choices=(("", "All deduction sources"), ("Sick", "Sick"), ("Earned", "Earned"), ("Unpaid", "Unpaid"), ("None", "None")))
+    reviewed_by = forms.ModelChoiceField(required=False, queryset=CustomUser.objects.none())
+    email_status = forms.ChoiceField(required=False, choices=(("", "All email statuses"), ("sent", "Sent"), ("failed", "Failed")))
+    admin_action = forms.CharField(required=False, max_length=80)
+    active_status = forms.ChoiceField(required=False, choices=(("", "All users"), ("active", "Active only"), ("inactive", "Inactive only")))
+    include_zero_activity = forms.BooleanField(required=False, label="Include employees with zero leave activity")
+    reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), min_length=5, max_length=500, label="Export reason")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["employee"].queryset = CustomUser.objects.order_by("username")
+        self.fields["reviewed_by"].queryset = CustomUser.objects.filter(role__in=["HR", "Admin"]).order_by("username")
+
+    def clean(self):
+        cleaned = super().clean()
+        period_type = cleaned.get("period_type") or "custom"
+        if period_type == "custom" and cleaned.get("date_from") and cleaned.get("date_to"):
+            if cleaned["date_from"] > cleaned["date_to"]:
+                raise ValidationError("Date from cannot be after Date to.")
+        if period_type in {"monthly", "quarterly", "six_month", "yearly"} and not cleaned.get("year"):
+            cleaned["year"] = localtime(now()).year
+        if period_type == "monthly" and not cleaned.get("month"):
+            cleaned["month"] = localtime(now()).month
+        if period_type == "quarterly" and not cleaned.get("quarter"):
+            raise ValidationError("Select a quarter for quarterly report.")
+        if period_type == "six_month" and not cleaned.get("half_year"):
+            raise ValidationError("Select Jan-Jun or Jul-Dec for six-month report.")
+        return cleaned
 
 
 class LeaveBalanceAuditInline(admin.TabularInline):
@@ -2000,8 +2306,9 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
 @admin.register(LeaveBalance)
 class LeaveBalanceAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
     form = LeaveBalanceAdminForm
+    change_form_template = "admin/leavebalance_change_form.html"
     inlines = [LeaveBalanceAuditInline]
-    list_display = ("user", "total_leave_balance", "total_leave_remaining", "sick_total", "sick_used", "earned_total", "earned_used", "unpaid")
+    list_display = ("user", "total_leave_balance", "total_leave_remaining", "sick_total", "sick_used", "earned_total", "earned_used", "unpaid", "adjust_balance_link")
     fieldsets = (
         ("Employee", {"fields": ("user",)}),
         ("Balance", {
@@ -2016,6 +2323,29 @@ class LeaveBalanceAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
         }),
         ("Audit reason", {"fields": ("change_reason",)}),
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<path:object_id>/adjust/",
+                self.admin_site.admin_view(self.adjust_balance_view),
+                name="app_leavebalance_adjust",
+            ),
+        ]
+        return custom_urls + urls
+
+    @admin.display(description="Adjust")
+    def adjust_balance_link(self, obj):
+        url = reverse("admin:app_leavebalance_adjust", args=[obj.pk])
+        return format_html('<a class="button" href="{}">Adjust balance</a>', url)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        if object_id:
+            extra_context["leave_balance_adjust_url"] = reverse("admin:app_leavebalance_adjust", args=[object_id])
+            extra_context["show_direct_balance_warning"] = True
+        return super().changeform_view(request, object_id, form_url, extra_context=extra_context)
 
     def save_model(self, request, obj, form, change):
         old_values = {}
@@ -2046,8 +2376,116 @@ class LeaveBalanceAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 reason=(form.cleaned_data.get("change_reason") or "").strip(),
                 changes=changes,
             )
+            self.message_user(
+                request,
+                "Direct balance edit saved. Please review Sick/Earned/Unpaid/Total values again.",
+                level=messages.WARNING,
+            )
         elif not change and obj.pk:
             self._log_create(request, obj, form.cleaned_data.get("change_reason") or "Created from Django admin.")
+
+    def adjust_balance_view(self, request, object_id):
+        balance = get_object_or_404(LeaveBalance.objects.select_related("user"), pk=object_id)
+        form = LeaveBalanceAdjustmentForm(request.POST or None)
+        preview = None
+        token = request.POST.get("adjustment_token") or ""
+
+        if request.method == "POST" and request.POST.get("step") == "preview" and form.is_valid():
+            try:
+                preview = self._build_adjustment_preview(balance, form.cleaned_data)
+                token = signing.dumps(preview, salt="leave-balance-adjustment")
+            except ValidationError as exc:
+                form.add_error(None, exc)
+
+        elif request.method == "POST" and request.POST.get("step") == "confirm":
+            if not token:
+                self.message_user(request, "Preview is required before confirming adjustment.", level=messages.ERROR)
+                return redirect(request.path)
+            try:
+                preview = signing.loads(token, salt="leave-balance-adjustment", max_age=1800)
+            except signing.BadSignature:
+                self.message_user(request, "Adjustment preview expired or changed. Preview again.", level=messages.ERROR)
+                return redirect(request.path)
+
+            if str(preview.get("balance_id")) != str(balance.pk):
+                self.message_user(request, "Adjustment preview does not match this balance.", level=messages.ERROR)
+                return redirect(request.path)
+
+            current_value = float(getattr(balance, preview["field_name"]))
+            if current_value != float(preview["old_value"]):
+                self.message_user(request, "Balance changed after preview. Preview again before confirming.", level=messages.ERROR)
+                return redirect(request.path)
+
+            old_snapshot = {field_name: getattr(balance, field_name) for field_name in LEAVE_BALANCE_AUDIT_FIELDS}
+            setattr(balance, preview["field_name"], float(preview["new_value"]))
+            balance.save()
+            new_snapshot = {field_name: getattr(balance, field_name) for field_name in LEAVE_BALANCE_AUDIT_FIELDS}
+            LeaveBalanceAudit.objects.create(
+                balance=balance,
+                employee=balance.user,
+                updated_by=request.user,
+                reason=preview["reason"],
+                changes={
+                    "safe_adjustment": {
+                        "old": old_snapshot,
+                        "new": new_snapshot,
+                        "field": preview["field_name"],
+                        "field_label": preview["field_label"],
+                        "action": preview["action"],
+                        "amount": preview["amount"],
+                    }
+                },
+            )
+            self.message_user(
+                request,
+                f"Balance adjustment applied for {balance.user}. {preview['field_label']}: {preview['old_value']} -> {preview['new_value']}",
+                level=messages.SUCCESS,
+            )
+            return redirect(reverse("admin:App_leavebalance_change", args=[balance.pk]))
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Adjust leave balance",
+            "opts": self.model._meta,
+            "balance": balance,
+            "form": form,
+            "preview": preview,
+            "adjustment_token": token,
+            "current_values": {field_name: getattr(balance, field_name) for field_name in LEAVE_BALANCE_AUDIT_FIELDS},
+            "change_url": reverse("admin:App_leavebalance_change", args=[balance.pk]),
+        }
+        return TemplateResponse(request, "admin/leave_balance_adjust.html", context)
+
+    def _build_adjustment_preview(self, balance, cleaned_data):
+        field_name = cleaned_data["field_name"]
+        action = cleaned_data["action"]
+        amount = float(cleaned_data["amount"])
+        old_value = float(getattr(balance, field_name))
+        if action == "add":
+            new_value = old_value + amount
+        elif action == "remove":
+            new_value = old_value - amount
+        else:
+            new_value = amount
+
+        if new_value < 0:
+            raise ValidationError("Adjustment would make the selected value negative.")
+
+        field_label = dict(LEAVE_BALANCE_ADJUSTABLE_FIELDS).get(field_name, field_name)
+        return {
+            "balance_id": balance.pk,
+            "employee_id": balance.user_id,
+            "employee": str(balance.user),
+            "field_name": field_name,
+            "field_label": field_label,
+            "action": action,
+            "action_label": dict(LEAVE_BALANCE_ADJUSTMENT_ACTIONS).get(action, action),
+            "amount": amount,
+            "old_value": round(old_value, 2),
+            "new_value": round(new_value, 2),
+            "reason": cleaned_data["reason"].strip(),
+            "previewed_by": self.admin_site.name,
+        }
 
 
 class ReadOnlyAuditAdminMixin:
@@ -4327,7 +4765,7 @@ class LeaveLogViewerAdmin(BaseLogViewerAdmin):
 @admin.register(EmailLogViewer)
 class EmailLogViewerAdmin(BaseLogViewerAdmin):
     log_key = "email"
-    log_title = "Email logs"
+    log_title = "Raw email file logs"
 
 
 @login_required
@@ -4400,6 +4838,145 @@ class MasterLogViewerAdmin(BaseLogViewerAdmin):
 class DjangoErrorLogViewerAdmin(BaseLogViewerAdmin):
     log_key = "django_errors"
     log_title = "Django error logs"
+
+
+@login_required
+@never_cache
+@admin.register(ReportExportControl)
+class ReportExportControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can export admin reports.", level=messages.ERROR)
+            return redirect("admin:index")
+
+        form = ReportExportForm(request.POST or None)
+        if request.method == "POST" and form.is_valid():
+            from App.services.report_export_service import build_report_export, describe_export_filters
+
+            filters = form.cleaned_data
+            export = build_report_export(filters, actor=request.user)
+            AdminAuditLog.objects.create(
+                model_label="App.ReportExportControl",
+                object_id="report_export",
+                object_repr=export["title"],
+                action="REPORT_EXPORT",
+                updated_by=request.user,
+                reason=filters["reason"],
+                changes={
+                    "report_export": {
+                        "old": None,
+                        "new": {
+                            "report_type": filters["report_type"],
+                            "format": filters["export_format"],
+                            "filename": export["filename"],
+                            "row_count": export["row_count"],
+                            "filters": describe_export_filters(filters),
+                        },
+                    }
+                },
+            )
+            response = HttpResponse(export["content"], content_type=export["content_type"])
+            response["Content-Disposition"] = f'attachment; filename="{export["filename"]}"'
+            response["X-Content-Type-Options"] = "nosniff"
+            response["Cache-Control"] = "no-store"
+            return response
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Report export center",
+            "opts": self.model._meta,
+            "form": form,
+        }
+        return TemplateResponse(request, "admin/report_export_center.html", context)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@login_required
+@never_cache
+@admin.register(SystemHealthControl)
+class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can view system health.", level=messages.ERROR)
+            return redirect("admin:index")
+
+        from App.services.startup_checks import (
+            get_backup_catchup_status,
+            get_weekly_report_catchup_status,
+            get_year_end_catchup_status,
+        )
+        from App.services.uptime_tracker import format_current_uptime, get_app_started_at
+        from App.services.year_end_service import get_year_end_carry_forward_status
+
+        backup_dir = settings.BASE_DIR / "backups"
+        generated_pdf_dir = settings.BASE_DIR / "generated_pdfs"
+        log_dir = settings.LOG_BASE_DIR
+        startup_status = {
+            "backup": get_backup_catchup_status(),
+            "weekly_report": get_weekly_report_catchup_status(),
+            "year_end": get_year_end_catchup_status(),
+        }
+        started_at = get_app_started_at()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "System health",
+            "opts": self.model._meta,
+            "database_health": _get_database_health(),
+            "email_health": _get_email_config_health(),
+            "migration_health": _get_migration_health(),
+            "storage_health": _get_storage_health(),
+            "security_health": _get_security_config_health(),
+            "business_health": _get_business_health(),
+            "backup_health": {
+                "directory": backup_dir,
+                "exists": backup_dir.exists(),
+                "writable": _can_write_to_directory(backup_dir),
+                "count": _get_file_count(backup_dir, "backup_*.zip"),
+                "latest": _get_latest_file_info(backup_dir, "backup_*.zip"),
+            },
+            "pdf_health": {
+                "directory": generated_pdf_dir,
+                "exists": generated_pdf_dir.exists(),
+                "writable": _can_write_to_directory(generated_pdf_dir),
+                "count": _get_file_count(generated_pdf_dir, "*.pdf"),
+                "latest": _get_latest_file_info(generated_pdf_dir, "*.pdf"),
+            },
+            "log_health": {
+                "directory": log_dir,
+                "exists": log_dir.exists(),
+                "writable": _can_write_to_directory(log_dir),
+                "master": _get_latest_file_info(log_dir / "master", "system_master.log"),
+                "django_errors": _get_latest_file_info(log_dir, "django_errors.log"),
+            },
+            "scheduler_health": _get_scheduler_health(),
+            "maintenance_mode_enabled": is_maintenance_mode_enabled(),
+            "startup_status": startup_status,
+            "year_end_status": get_year_end_carry_forward_status(),
+            "uptime_text": format_current_uptime(),
+            "started_at": localtime(started_at) if started_at else None,
+            "debug": settings.DEBUG,
+            "allowed_hosts": settings.ALLOWED_HOSTS,
+            "base_url": getattr(settings, "PORTAL_BASE_URL", ""),
+        }
+        return TemplateResponse(request, "admin/system_health.html", context)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @login_required
@@ -4772,11 +5349,8 @@ COMMUNICATION_NOTIFICATION_AUDIT_OBJECT_NAMES = {
     "HRLeaveNotificationReadSeenAudit",
 }
 
-EMAIL_DELIVERY_OBJECT_NAMES = {
-    "EmailDeliveryLog",
-}
-
 LOG_VIEWER_OBJECT_NAMES = {
+    "EmailDeliveryLog",
     "LogViewer",
     "SecurityLogViewer",
     "AuthLogViewer",
@@ -4794,6 +5368,8 @@ LOG_VIEWER_OBJECT_NAMES = {
 }
 
 BACKUP_MANAGEMENT_OBJECT_NAMES = {
+    "ReportExportControl",
+    "SystemHealthControl",
     "ServiceActionControl",
     "BackupRestoreControl",
     "MaintenanceModeControl",
@@ -4815,7 +5391,6 @@ def get_grouped_admin_app_list(request, app_label=None):
     audit_models = []
     communication_notification_models = []
     communication_notification_audit_models = []
-    email_delivery_models = []
     log_viewer_models = []
     backup_management_models = []
     grouped_app_list = []
@@ -4829,8 +5404,6 @@ def get_grouped_admin_app_list(request, app_label=None):
                 communication_notification_models.append(model)
             elif model.get("object_name") in COMMUNICATION_NOTIFICATION_AUDIT_OBJECT_NAMES:
                 communication_notification_audit_models.append(model)
-            elif model.get("object_name") in EMAIL_DELIVERY_OBJECT_NAMES:
-                email_delivery_models.append(model)
             elif model.get("object_name") in LOG_VIEWER_OBJECT_NAMES:
                 log_viewer_models.append(model)
             elif model.get("object_name") in BACKUP_MANAGEMENT_OBJECT_NAMES:
@@ -4884,30 +5457,12 @@ def get_grouped_admin_app_list(request, app_label=None):
             insert_at += 1
         if communication_notification_audit_models:
             insert_at += 1
-        if email_delivery_models:
-            insert_at += 1
         grouped_app_list.insert(insert_at, {
             "name": "Logs",
             "app_label": "logs",
             "app_url": "",
             "has_module_perms": True,
             "models": log_viewer_models,
-        })
-
-    if email_delivery_models:
-        insert_at = 0
-        if audit_models:
-            insert_at += 1
-        if communication_notification_models:
-            insert_at += 1
-        if communication_notification_audit_models:
-            insert_at += 1
-        grouped_app_list.insert(insert_at, {
-            "name": "Email Delivery Center",
-            "app_label": "email_delivery_center",
-            "app_url": "",
-            "has_module_perms": True,
-            "models": email_delivery_models,
         })
 
     if backup_management_models:
@@ -4917,8 +5472,6 @@ def get_grouped_admin_app_list(request, app_label=None):
         if communication_notification_models:
             insert_at += 1
         if communication_notification_audit_models:
-            insert_at += 1
-        if email_delivery_models:
             insert_at += 1
         if log_viewer_models:
             insert_at += 1

@@ -1,0 +1,304 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .health-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 16px 0 20px;
+    }
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .health-card {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      background: var(--body-bg, #fff);
+      padding: 16px;
+    }
+    .health-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.08rem;
+    }
+    .health-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 40%) 1fr;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px solid rgba(127, 127, 127, 0.16);
+    }
+    .health-row:first-of-type {
+      border-top: 0;
+    }
+    .health-label {
+      color: var(--body-quiet-color, #666);
+      font-weight: 700;
+    }
+    .health-value {
+      overflow-wrap: anywhere;
+    }
+    .health-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .health-ok {
+      background: rgba(22, 163, 74, 0.12);
+      color: #166534;
+      border: 1px solid rgba(22, 163, 74, 0.28);
+    }
+    .health-warn {
+      background: rgba(217, 119, 6, 0.12);
+      color: #92400e;
+      border: 1px solid rgba(217, 119, 6, 0.28);
+    }
+    .health-bad {
+      background: rgba(220, 38, 38, 0.12);
+      color: #991b1b;
+      border: 1px solid rgba(220, 38, 38, 0.28);
+    }
+    .health-muted {
+      color: var(--body-quiet-color, #666);
+      font-size: 0.9rem;
+    }
+    .health-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+  </style>
+
+  <p>Admin-only technical status for the leave management system. This page does not change data.</p>
+
+  <div class="health-summary">
+    <div class="health-card">
+      <strong>Database</strong><br>
+      {% if database_health.ok %}
+        <span class="health-pill health-ok">Healthy</span>
+      {% else %}
+        <span class="health-pill health-bad">Problem</span>
+      {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Email config</strong><br>
+      {% if email_health.ok %}
+        <span class="health-pill health-ok">Configured</span>
+      {% else %}
+        <span class="health-pill health-warn">Needs attention</span>
+      {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Maintenance</strong><br>
+      {% if maintenance_mode_enabled %}
+        <span class="health-pill health-warn">Enabled</span>
+      {% else %}
+        <span class="health-pill health-ok">Disabled</span>
+      {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Scheduler</strong><br>
+      {% if scheduler_health.ok %}
+        <span class="health-pill health-ok">Log activity found</span>
+      {% else %}
+        <span class="health-pill health-warn">No log activity</span>
+      {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Email failures</strong><br>
+      {% if business_health.emails.failed_24h %}
+        <span class="health-pill health-bad">{{ business_health.emails.failed_24h }} failed in 24h</span>
+      {% else %}
+        <span class="health-pill health-ok">No failures in 24h</span>
+      {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Storage free</strong><br>
+      {% if storage_health.free_percent < 15 %}
+        <span class="health-pill health-bad">{{ storage_health.free_percent }}% free</span>
+      {% elif storage_health.free_percent < 30 %}
+        <span class="health-pill health-warn">{{ storage_health.free_percent }}% free</span>
+      {% else %}
+        <span class="health-pill health-ok">{{ storage_health.free_percent }}% free</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="health-grid">
+    <section class="health-card">
+      <h2>Database</h2>
+      <div class="health-row"><div class="health-label">Status</div><div class="health-value">{% if database_health.ok %}Connection OK{% else %}Connection failed{% endif %}</div></div>
+      <div class="health-row"><div class="health-label">Vendor</div><div class="health-value">{{ database_health.vendor }}</div></div>
+      <div class="health-row"><div class="health-label">Engine</div><div class="health-value"><code>{{ database_health.engine }}</code></div></div>
+      <div class="health-row"><div class="health-label">Name</div><div class="health-value">{{ database_health.name }}</div></div>
+      {% if database_health.error %}
+        <div class="health-row"><div class="health-label">Error</div><div class="health-value">{{ database_health.error }}</div></div>
+      {% endif %}
+    </section>
+
+    <section class="health-card">
+      <h2>Email Configuration</h2>
+      <div class="health-row"><div class="health-label">Backend</div><div class="health-value"><code>{{ email_health.backend }}</code></div></div>
+      <div class="health-row"><div class="health-label">SMTP</div><div class="health-value">{{ email_health.host }}:{{ email_health.port }}</div></div>
+      <div class="health-row"><div class="health-label">TLS / SSL</div><div class="health-value">TLS: {{ email_health.use_tls }} | SSL: {{ email_health.use_ssl }}</div></div>
+      <div class="health-row"><div class="health-label">Default from</div><div class="health-value">{{ email_health.default_from_email|default:"Not set" }}</div></div>
+      <div class="health-row"><div class="health-label">Leave desk</div><div class="health-value">{{ email_health.leave_desk_from_email|default:"Not set" }}</div></div>
+      <div class="health-row"><div class="health-label">Leave record</div><div class="health-value">{{ email_health.leave_record_email|default:"Not set" }}</div></div>
+      <div class="health-row"><div class="health-label">Password</div><div class="health-value">{% if email_health.password_configured %}Configured{% else %}Not configured{% endif %}</div></div>
+      {% if email_health.missing %}
+        <div class="health-row"><div class="health-label">Missing</div><div class="health-value">{{ email_health.missing|join:", " }}</div></div>
+      {% endif %}
+    </section>
+
+    <section class="health-card">
+      <h2>Backup Folder</h2>
+      <div class="health-row"><div class="health-label">Directory</div><div class="health-value"><code>{{ backup_health.directory }}</code></div></div>
+      <div class="health-row"><div class="health-label">Exists</div><div class="health-value">{{ backup_health.exists }}</div></div>
+      <div class="health-row"><div class="health-label">Writable</div><div class="health-value">{{ backup_health.writable }}</div></div>
+      <div class="health-row"><div class="health-label">Backup count</div><div class="health-value">{{ backup_health.count }}</div></div>
+      <div class="health-row"><div class="health-label">Latest backup</div><div class="health-value">
+        {% if backup_health.latest %}
+          {{ backup_health.latest.name }}<br><span class="health-muted">{{ backup_health.latest.modified_at }} | {{ backup_health.latest.size_kb }} KB</span>
+        {% else %}
+          No backup found
+        {% endif %}
+      </div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Scheduler</h2>
+      <div class="health-row"><div class="health-label">Status signal</div><div class="health-value">{% if scheduler_health.ok %}Latest scheduler log found{% else %}No scheduler log found{% endif %}</div></div>
+      <div class="health-row"><div class="health-label">Latest activity</div><div class="health-value">
+        {% if scheduler_health.latest_log %}
+          {{ scheduler_health.latest_log.name }}<br><span class="health-muted">{{ scheduler_health.latest_log.modified_at }} | {{ scheduler_health.latest_log.size_kb }} KB</span>
+        {% else %}
+          No scheduler activity file found
+        {% endif %}
+      </div></div>
+      <div class="health-row"><div class="health-label">Uptime</div><div class="health-value">{{ uptime_text }}{% if started_at %}<br><span class="health-muted">Started: {{ started_at }}</span>{% endif %}</div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Startup Checks</h2>
+      <div class="health-row"><div class="health-label">Backup</div><div class="health-value">{% if startup_status.backup.should_run %}Would run{% else %}Would skip{% endif %}<br><span class="health-muted">Today backups: {{ startup_status.backup.today_backups|length }}</span></div></div>
+      <div class="health-row"><div class="health-label">Weekly report</div><div class="health-value">{% if startup_status.weekly_report.should_run %}Would send{% else %}Would skip{% endif %}<br><span class="health-muted">Week: {{ startup_status.weekly_report.monday_str }} | Last: {{ startup_status.weekly_report.last_sent_monday|default:"missing" }}</span></div></div>
+      <div class="health-row"><div class="health-label">Year-end</div><div class="health-value">{% if startup_status.year_end.should_run %}Would run{% else %}Would skip{% endif %}<br><span class="health-muted">{{ startup_status.year_end.reason }}</span></div></div>
+      <div class="health-row"><div class="health-label">Year-end detail</div><div class="health-value">Eligible balances: {{ year_end_status.eligible_count }}<br><span class="health-muted">Year: {{ year_end_status.year }}</span></div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Security Configuration</h2>
+      <div class="health-row"><div class="health-label">Status</div><div class="health-value">
+        {% if security_health.warnings %}
+          <span class="health-pill {% if debug %}health-warn{% else %}health-bad{% endif %}">{{ security_health.warnings|length }} warning(s)</span>
+        {% else %}
+          <span class="health-pill health-ok">No warnings</span>
+        {% endif %}
+      </div></div>
+      <div class="health-row"><div class="health-label">Cookies</div><div class="health-value">Session secure: {{ security_health.session_cookie_secure }} | CSRF secure: {{ security_health.csrf_cookie_secure }}</div></div>
+      <div class="health-row"><div class="health-label">HTTP only</div><div class="health-value">Session: {{ security_health.session_cookie_httponly }} | CSRF: {{ security_health.csrf_cookie_httponly }}</div></div>
+      <div class="health-row"><div class="health-label">HTTPS / HSTS</div><div class="health-value">Redirect: {{ security_health.ssl_redirect }} | HSTS seconds: {{ security_health.hsts_seconds }}</div></div>
+      <div class="health-row"><div class="health-label">Warnings</div><div class="health-value">
+        {% if security_health.warnings %}
+          <ul class="health-list">{% for warning in security_health.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+        {% else %}
+          None
+        {% endif %}
+      </div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Data Summary</h2>
+      <div class="health-row"><div class="health-label">Users</div><div class="health-value">Total: {{ business_health.users.total }} | Active: {{ business_health.users.active }} | Inactive: {{ business_health.users.inactive }}</div></div>
+      <div class="health-row"><div class="health-label">Roles</div><div class="health-value">Admins: {{ business_health.users.admins }} | HR: {{ business_health.users.hr }} | Employees: {{ business_health.users.employees }}</div></div>
+      <div class="health-row"><div class="health-label">Leaves</div><div class="health-value">Pending: {{ business_health.leaves.pending }} | Approved today: {{ business_health.leaves.approved_today }}</div></div>
+      <div class="health-row"><div class="health-label">Leave activity</div><div class="health-value">Updated 24h: {{ business_health.leaves.updated_24h }} | Rejected 24h: {{ business_health.leaves.rejected_24h }}</div></div>
+      <div class="health-row"><div class="health-label">Messages 24h</div><div class="health-value">Admin: {{ business_health.communications.admin_messages_24h }} | Employee: {{ business_health.communications.employee_messages_24h }} | HR: {{ business_health.communications.hr_messages_24h }}</div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Email Delivery</h2>
+      <div class="health-row"><div class="health-label">Last 24h</div><div class="health-value">Sent: {{ business_health.emails.sent_24h }} | Failed: {{ business_health.emails.failed_24h }}</div></div>
+      <div class="health-row"><div class="health-label">Latest failure</div><div class="health-value">
+        {% if business_health.emails.latest_failure %}
+          {{ business_health.emails.latest_failure.created_at }}<br>
+          {{ business_health.emails.latest_failure.recipient }}<br>
+          <span class="health-muted">{{ business_health.emails.latest_failure.subject }}</span>
+        {% else %}
+          No failure recorded
+        {% endif %}
+      </div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Migration Status</h2>
+      <div class="health-row"><div class="health-label">Status</div><div class="health-value">
+        {% if migration_health.ok %}
+          <span class="health-pill health-ok">Up to date</span>
+        {% else %}
+          <span class="health-pill health-warn">{{ migration_health.pending_count|default:"Unknown" }} pending</span>
+        {% endif %}
+      </div></div>
+      {% if migration_health.pending %}
+        <div class="health-row"><div class="health-label">Pending</div><div class="health-value"><ul class="health-list">{% for migration in migration_health.pending %}<li>{{ migration }}</li>{% endfor %}</ul></div></div>
+      {% endif %}
+      {% if migration_health.error %}
+        <div class="health-row"><div class="health-label">Error</div><div class="health-value">{{ migration_health.error }}</div></div>
+      {% endif %}
+    </section>
+
+    <section class="health-card">
+      <h2>Logs and Files</h2>
+      <div class="health-row"><div class="health-label">Log directory</div><div class="health-value"><code>{{ log_health.directory }}</code></div></div>
+      <div class="health-row"><div class="health-label">Exists / writable</div><div class="health-value">{{ log_health.exists }} / {{ log_health.writable }}</div></div>
+      <div class="health-row"><div class="health-label">Master log</div><div class="health-value">
+        {% if log_health.master %}{{ log_health.master.modified_at }} | {{ log_health.master.size_kb }} KB{% else %}Missing{% endif %}
+      </div></div>
+      <div class="health-row"><div class="health-label">Django errors</div><div class="health-value">
+        {% if log_health.django_errors %}{{ log_health.django_errors.modified_at }} | {{ log_health.django_errors.size_kb }} KB{% else %}Missing{% endif %}
+      </div></div>
+      <div class="health-row"><div class="health-label">Today alerts</div><div class="health-value">Django errors: {{ business_health.errors.django_errors_today }} | Security warnings: {{ business_health.errors.security_warnings_today }}</div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Storage Usage</h2>
+      <div class="health-row"><div class="health-label">Project path</div><div class="health-value"><code>{{ storage_health.base_dir }}</code></div></div>
+      <div class="health-row"><div class="health-label">Disk</div><div class="health-value">Used: {{ storage_health.used }} / {{ storage_health.total }}<br><span class="health-muted">Free: {{ storage_health.free }} ({{ storage_health.free_percent }}%)</span></div></div>
+      <div class="health-row"><div class="health-label">Folders</div><div class="health-value">Logs: {{ storage_health.logs_size }} | Backups: {{ storage_health.backups_size }}<br>Media: {{ storage_health.media_size }} | PDFs: {{ storage_health.generated_pdfs_size }}</div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Generated PDFs</h2>
+      <div class="health-row"><div class="health-label">Directory</div><div class="health-value"><code>{{ pdf_health.directory }}</code></div></div>
+      <div class="health-row"><div class="health-label">Exists / writable</div><div class="health-value">{{ pdf_health.exists }} / {{ pdf_health.writable }}</div></div>
+      <div class="health-row"><div class="health-label">PDF count</div><div class="health-value">{{ pdf_health.count }}</div></div>
+      <div class="health-row"><div class="health-label">Latest PDF</div><div class="health-value">
+        {% if pdf_health.latest %}
+          {{ pdf_health.latest.name }}<br><span class="health-muted">{{ pdf_health.latest.modified_at }} | {{ pdf_health.latest.size_kb }} KB</span>
+        {% else %}
+          No generated PDF found
+        {% endif %}
+      </div></div>
+    </section>
+
+    <section class="health-card">
+      <h2>Environment</h2>
+      <div class="health-row"><div class="health-label">Debug</div><div class="health-value">{{ debug }}</div></div>
+      <div class="health-row"><div class="health-label">Portal base URL</div><div class="health-value">{{ base_url|default:"Not set" }}</div></div>
+      <div class="health-row"><div class="health-label">Allowed hosts</div><div class="health-value">
+        {% if allowed_hosts %}
+          <ul class="health-list">{% for host in allowed_hosts %}<li>{{ host }}</li>{% endfor %}</ul>
+        {% else %}
+          Not set
+        {% endif %}
+      </div></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

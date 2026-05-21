@@ -792,6 +792,7 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts):
         )
         return
 
+    account_user = _get_login_alert_account_user(portal, username)
     subject = f"Login security alert: {portal}"
     message = (
         f"Portal: {portal}\n"
@@ -815,6 +816,7 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts):
             status="sent",
             email_type="login_security_alert",
             from_email=getattr(settings, "SERVER_EMAIL", settings.DEFAULT_FROM_EMAIL),
+            related_user=account_user,
             metadata={"portal": portal, "username": username or "(blank)", "ip_address": ip_address, "reason": reason, "attempts": attempts},
         )
         security_logger.info(
@@ -834,6 +836,7 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts):
             email_type="login_security_alert",
             from_email=getattr(settings, "SERVER_EMAIL", settings.DEFAULT_FROM_EMAIL),
             error_message=str(exc),
+            related_user=account_user,
             metadata={"portal": portal, "username": username or "(blank)", "ip_address": ip_address, "reason": reason, "attempts": attempts},
         )
         security_logger.exception(
@@ -3235,6 +3238,10 @@ def approve_leave(request, leave_id):
         leave.user.email,
         reply_to=settings.LEAVE_RECORD_EMAIL or request.user.email,
         from_email=settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        email_type="leave_approved",
+        related_user=leave.user,
+        related_leave=leave,
+        triggered_by=request.user,
     )
 
     # =====================================
@@ -3399,6 +3406,10 @@ def reject_leave(request, leave_id):
         leave.user.email,
         reply_to=settings.LEAVE_RECORD_EMAIL or request.user.email,
         from_email=settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        email_type="leave_rejected",
+        related_user=leave.user,
+        related_leave=leave,
+        triggered_by=request.user,
     )
 
     # =====================================
@@ -4343,13 +4354,17 @@ def apply_leave(request):
                         'portal_link': portal_link
                     }
                     transaction.on_commit(
-                        lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email: send_branded_email(
+                        lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email, leave_obj=leave_obj, user=user: send_branded_email(
                             subject,
                             'emails/notification.html',
                             context,
                             hr_emails,
                             reply_to=reply_to,
                             from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                            email_type="leave_applied",
+                            related_user=user,
+                            related_leave=leave_obj,
+                            triggered_by=user,
                         )
                     )
 
@@ -4612,13 +4627,17 @@ def apply_leave(request):
                     'portal_link': portal_link
                 }
                 transaction.on_commit(
-                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email: send_branded_email(
+                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email, leave_obj=leave_obj, user=user: send_branded_email(
                         subject,
                         'emails/notification.html',
                         context,
                         hr_emails,
                         reply_to=reply_to,
                         from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                        email_type="leave_applied",
+                        related_user=user,
+                        related_leave=leave_obj,
+                        triggered_by=user,
                     )
                 )
             
@@ -5599,13 +5618,17 @@ def edit_leave(request, leave_id):
                     'portal_link': portal_link
                 }
                 transaction.on_commit(
-                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email: send_branded_email(
+                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email, leave=leave, actor=request.user: send_branded_email(
                         subject,
                         'emails/notification.html',
                         context,
                         hr_emails,
                         reply_to=reply_to,
                         from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                        email_type="leave_updated",
+                        related_user=actor,
+                        related_leave=leave,
+                        triggered_by=actor,
                     )
                 )
 
@@ -5785,13 +5808,17 @@ def edit_leave(request, leave_id):
                 'portal_link': portal_link
             }
             transaction.on_commit(
-                lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email: send_branded_email(
+                lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email, leave=leave, actor=request.user: send_branded_email(
                     subject,
                     'emails/notification.html',
                     context,
                     hr_emails,
                     reply_to=reply_to,
                     from_email=settings.LEAVE_DESK_FROM_EMAIL,
+                    email_type="leave_updated",
+                    related_user=actor,
+                    related_leave=leave,
+                    triggered_by=actor,
                 )
             )
 
