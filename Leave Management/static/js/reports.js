@@ -29,10 +29,333 @@
     const reportTablePanel = document.getElementById("reportTablePanel");
     const reportTablePagination = document.getElementById("reportTablePagination");
     const reportApplyButton = reportFilterForm ? reportFilterForm.querySelector('button[type="submit"]') : null;
+    const weeklyReportOpenBtn = document.getElementById("weeklyReportOpenBtn");
+    const weeklyReportModal = document.getElementById("weeklyReportModal");
+    const weeklyReportFrame = document.getElementById("weeklyReportFrame");
+    const weeklyReportLoader = document.getElementById("weeklyReportLoader");
+    const weeklyReportStatus = document.getElementById("weeklyReportStatus");
+    const weeklyReportRange = document.getElementById("weeklyReportRange");
+    const weeklyReportWeekButtons = weeklyReportModal ? Array.from(weeklyReportModal.querySelectorAll("[data-weekly-report-week]")) : [];
+    const weeklyReportCustomRange = document.getElementById("weeklyReportCustomRange");
+    const weeklyReportStartDate = document.getElementById("weeklyReportStartDate");
+    const weeklyReportEndDate = document.getElementById("weeklyReportEndDate");
+    const weeklyReportApplyRangeBtn = document.getElementById("weeklyReportApplyRangeBtn");
+    let weeklyReportEmployeeFilter = document.getElementById("weeklyReportEmployeeFilter");
+    const weeklyReportDownloadBtn = document.getElementById("weeklyReportDownloadBtn");
+    const weeklyReportEmailBtn = document.getElementById("weeklyReportEmailBtn");
+    const weeklyReportPrintBtn = document.getElementById("weeklyReportPrintBtn");
 
     let activeFilterValue = employeeFilterSelect ? employeeFilterSelect.value : "";
     let reportCurrentPage = 1;
+    let activeWeeklyReportWeek = "current";
+    let activeWeeklyReportEmployeeIds = [];
+    let weeklyReportLoaded = false;
+    let isSyncingWeeklyReportEmployeeFilter = false;
     const reportRowsPerPage = 5;
+
+    function getCsrfToken() {
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        return metaToken ? String(metaToken.getAttribute("content") || "").trim() : "";
+    }
+
+    function buildWeeklyReportUrl(baseUrl, week) {
+        const url = new URL(baseUrl, window.location.origin);
+        url.searchParams.set("week", week || activeWeeklyReportWeek);
+        if ((week || activeWeeklyReportWeek) === "custom") {
+            if (weeklyReportStartDate && weeklyReportStartDate.value) {
+                url.searchParams.set("start", weeklyReportStartDate.value);
+            }
+            if (weeklyReportEndDate && weeklyReportEndDate.value) {
+                url.searchParams.set("end", weeklyReportEndDate.value);
+            }
+        }
+        if (activeWeeklyReportEmployeeIds.length) {
+            url.searchParams.set("employee", activeWeeklyReportEmployeeIds.join(","));
+        }
+        return url.toString();
+    }
+
+    function setWeeklyReportStatus(message, isError) {
+        if (!weeklyReportStatus) return;
+
+        weeklyReportStatus.textContent = message || "";
+        weeklyReportStatus.hidden = !message;
+        weeklyReportStatus.classList.toggle("is-error", !!isError);
+        weeklyReportStatus.classList.toggle("is-success", !!message && !isError);
+    }
+
+    function setWeeklyReportLoading(isLoading) {
+        if (weeklyReportLoader) weeklyReportLoader.hidden = !isLoading;
+        if (weeklyReportFrame) weeklyReportFrame.classList.toggle("is-loading", !!isLoading);
+        [weeklyReportDownloadBtn, weeklyReportEmailBtn, weeklyReportPrintBtn].forEach(function (button) {
+            if (button) button.disabled = !!isLoading;
+        });
+    }
+
+    function syncWeeklyReportWeekButtons() {
+        weeklyReportWeekButtons.forEach(function (button) {
+            const isActive = button.dataset.weeklyReportWeek === activeWeeklyReportWeek;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+        if (weeklyReportCustomRange) {
+            weeklyReportCustomRange.hidden = activeWeeklyReportWeek !== "custom";
+        }
+    }
+
+    function getWeeklyReportEmployeeControls(frameDocument) {
+        const filter = frameDocument ? frameDocument.getElementById("weeklyReportEmployeeFilter") : null;
+        return {
+            filter,
+            trigger: frameDocument ? frameDocument.getElementById("weeklyReportEmployeeFilterTrigger") : null,
+            allCheckbox: filter ? filter.querySelector(".weekly-report-employee-all") : null,
+            checkboxes: filter ? Array.from(filter.querySelectorAll(".weekly-report-employee-checkbox")) : [],
+            applyButton: frameDocument ? frameDocument.getElementById("weeklyReportEmployeeApplyBtn") : null,
+            clearButton: frameDocument ? frameDocument.getElementById("weeklyReportEmployeeClearBtn") : null
+        };
+    }
+
+    function updateWeeklyReportEmployeeTrigger(frameDocument) {
+        const controls = getWeeklyReportEmployeeControls(frameDocument);
+        if (!controls.trigger || !controls.allCheckbox) return;
+
+        const selected = controls.checkboxes.filter(function (checkbox) {
+            return checkbox.checked;
+        });
+
+        if (controls.allCheckbox.checked || selected.length === 0) {
+            controls.trigger.textContent = "All Employees";
+        } else if (selected.length === 1) {
+            controls.trigger.textContent = selected[0].dataset.label || "1 Employee";
+        } else {
+            controls.trigger.textContent = `${selected.length} Employees Selected`;
+        }
+    }
+
+    function getPendingWeeklyReportEmployeeIds(frameDocument) {
+        const controls = getWeeklyReportEmployeeControls(frameDocument);
+        if (!controls.filter || (controls.allCheckbox && controls.allCheckbox.checked)) return [];
+
+        return controls.checkboxes.filter(function (checkbox) {
+            return checkbox.checked;
+        }).map(function (checkbox) {
+            return String(checkbox.value || "");
+        }).filter(Boolean);
+    }
+
+    function areWeeklyReportEmployeeIdsEqual(firstIds, secondIds) {
+        const first = (firstIds || []).map(String).sort();
+        const second = (secondIds || []).map(String).sort();
+        if (first.length !== second.length) return false;
+
+        return first.every(function (value, index) {
+            return value === second[index];
+        });
+    }
+
+    function syncWeeklyReportEmployeeActionButtons(frameDocument) {
+        const controls = getWeeklyReportEmployeeControls(frameDocument);
+        if (!controls.filter) return;
+
+        const pendingIds = getPendingWeeklyReportEmployeeIds(frameDocument);
+        if (controls.applyButton) {
+            controls.applyButton.disabled = areWeeklyReportEmployeeIdsEqual(pendingIds, activeWeeklyReportEmployeeIds);
+        }
+        if (controls.clearButton) {
+            controls.clearButton.disabled = activeWeeklyReportEmployeeIds.length === 0;
+        }
+    }
+
+    function syncWeeklyReportEmployeeFilter() {
+        if (!weeklyReportFrame) return;
+
+        const frameDocument = weeklyReportFrame.contentDocument;
+        if (!frameDocument) return;
+
+        const controls = getWeeklyReportEmployeeControls(frameDocument);
+        weeklyReportEmployeeFilter = controls.filter;
+        if (!weeklyReportEmployeeFilter) return;
+
+        isSyncingWeeklyReportEmployeeFilter = true;
+
+        controls.checkboxes.forEach(function (checkbox) {
+            checkbox.checked = activeWeeklyReportEmployeeIds.includes(String(checkbox.value || ""));
+        });
+        if (controls.allCheckbox) {
+            controls.allCheckbox.checked = activeWeeklyReportEmployeeIds.length === 0;
+        }
+        updateWeeklyReportEmployeeTrigger(frameDocument);
+        syncWeeklyReportEmployeeActionButtons(frameDocument);
+
+        if (controls.trigger) {
+            controls.trigger.addEventListener("click", function () {
+                weeklyReportEmployeeFilter.classList.toggle("is-open");
+            });
+        }
+
+        if (controls.allCheckbox) {
+            controls.allCheckbox.addEventListener("change", function () {
+                if (controls.allCheckbox.checked) {
+                    controls.checkboxes.forEach(function (checkbox) {
+                        checkbox.checked = false;
+                    });
+                }
+                updateWeeklyReportEmployeeTrigger(frameDocument);
+                syncWeeklyReportEmployeeActionButtons(frameDocument);
+            });
+        }
+
+        controls.checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener("change", function () {
+                if (controls.allCheckbox) {
+                    controls.allCheckbox.checked = !controls.checkboxes.some(function (item) {
+                        return item.checked;
+                    });
+                }
+                updateWeeklyReportEmployeeTrigger(frameDocument);
+                syncWeeklyReportEmployeeActionButtons(frameDocument);
+            });
+        });
+
+        if (controls.applyButton) {
+            controls.applyButton.addEventListener("click", function () {
+                if (isSyncingWeeklyReportEmployeeFilter || controls.applyButton.disabled) return;
+                filterWeeklyReportEmployees();
+                weeklyReportEmployeeFilter.classList.remove("is-open");
+                loadWeeklyReport(activeWeeklyReportWeek);
+            });
+        }
+
+        if (controls.clearButton) {
+            controls.clearButton.addEventListener("click", function () {
+                if (controls.clearButton.disabled) return;
+                activeWeeklyReportEmployeeIds = [];
+                if (controls.allCheckbox) controls.allCheckbox.checked = true;
+                controls.checkboxes.forEach(function (checkbox) {
+                    checkbox.checked = false;
+                });
+                updateWeeklyReportEmployeeTrigger(frameDocument);
+                syncWeeklyReportEmployeeActionButtons(frameDocument);
+                weeklyReportEmployeeFilter.classList.remove("is-open");
+                loadWeeklyReport(activeWeeklyReportWeek);
+            });
+        }
+
+        frameDocument.addEventListener("click", function (event) {
+            if (!weeklyReportEmployeeFilter.contains(event.target)) {
+                weeklyReportEmployeeFilter.classList.remove("is-open");
+            }
+        });
+
+        frameDocument.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                weeklyReportEmployeeFilter.classList.remove("is-open");
+            }
+        });
+
+        isSyncingWeeklyReportEmployeeFilter = false;
+        filterWeeklyReportEmployees();
+    }
+
+    function filterWeeklyReportEmployees() {
+        if (!weeklyReportFrame) return;
+
+        const frameDocument = weeklyReportFrame.contentDocument;
+        if (!frameDocument) return;
+
+        const controls = getWeeklyReportEmployeeControls(frameDocument);
+        weeklyReportEmployeeFilter = controls.filter;
+        if (!weeklyReportEmployeeFilter) return;
+
+        const selectedIds = controls.checkboxes.filter(function (checkbox) {
+            return checkbox.checked;
+        }).map(function (checkbox) {
+            return String(checkbox.value || "");
+        }).filter(Boolean);
+        activeWeeklyReportEmployeeIds = controls.allCheckbox && controls.allCheckbox.checked ? [] : selectedIds;
+
+        frameDocument.querySelectorAll(".employee-card").forEach(function (card) {
+            const employeeId = String(card.dataset.weeklyReportUserId || "");
+            card.style.display = activeWeeklyReportEmployeeIds.length === 0 || activeWeeklyReportEmployeeIds.includes(employeeId) ? "" : "none";
+        });
+        updateWeeklyReportEmployeeTrigger(frameDocument);
+        syncWeeklyReportEmployeeActionButtons(frameDocument);
+    }
+
+    async function loadWeeklyReport(week) {
+        if (!weeklyReportOpenBtn || !weeklyReportFrame) return;
+
+        activeWeeklyReportWeek = week || activeWeeklyReportWeek || "current";
+        syncWeeklyReportWeekButtons();
+        setWeeklyReportStatus("", false);
+
+        if (activeWeeklyReportWeek === "custom") {
+            if (!weeklyReportStartDate || !weeklyReportEndDate || !weeklyReportStartDate.value || !weeklyReportEndDate.value) {
+                setWeeklyReportStatus("Choose both from and to dates for the custom report.", true);
+                return;
+            }
+            if (weeklyReportEndDate.value < weeklyReportStartDate.value) {
+                setWeeklyReportStatus("To date cannot be earlier than from date.", true);
+                return;
+            }
+        }
+
+        setWeeklyReportLoading(true);
+
+        try {
+            const response = await fetch(buildWeeklyReportUrl(weeklyReportOpenBtn.dataset.previewUrl, activeWeeklyReportWeek), {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                cache: "no-store"
+            });
+            const payload = typeof window.parseJsonOrSessionExpired === "function"
+                ? await window.parseJsonOrSessionExpired(response)
+                : await response.json();
+
+            if (payload.sessionExpired) {
+                if (typeof window.redirectAfterSessionExpired === "function") {
+                    window.redirectAfterSessionExpired(payload);
+                }
+                return;
+            }
+
+            if (!response.ok || payload.success === false) {
+                throw new Error(payload.detail || "Unable to load weekly report.");
+            }
+
+            weeklyReportFrame.srcdoc = payload.html || "";
+            weeklyReportFrame.addEventListener("load", syncWeeklyReportEmployeeFilter, { once: true });
+            weeklyReportLoaded = true;
+            if (weeklyReportRange) {
+                weeklyReportRange.textContent = `${payload.period_start} - ${payload.period_end}`;
+            }
+        } catch (error) {
+            setWeeklyReportStatus(error.message || "Unable to load weekly report.", true);
+        } finally {
+            setWeeklyReportLoading(false);
+        }
+    }
+
+    function openWeeklyReportModal() {
+        if (!weeklyReportModal) return;
+
+        weeklyReportModal.classList.add("is-open");
+        weeklyReportModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("weekly-report-modal-open");
+
+        if (!weeklyReportLoaded) {
+            loadWeeklyReport("current");
+        }
+    }
+
+    function closeWeeklyReportModal() {
+        if (!weeklyReportModal) return;
+
+        weeklyReportModal.classList.remove("is-open");
+        weeklyReportModal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("weekly-report-modal-open");
+    }
 
     function syncApplyButton() {
         if (!reportApplyButton || !employeeFilterSelect) return;
@@ -423,6 +746,100 @@
 
         syncApplyButton();
     }
+
+    if (weeklyReportOpenBtn) {
+        weeklyReportOpenBtn.addEventListener("click", openWeeklyReportModal);
+    }
+
+    if (weeklyReportModal) {
+        weeklyReportModal.addEventListener("click", function (event) {
+            if (event.target.closest("[data-weekly-report-close]")) {
+                closeWeeklyReportModal();
+            }
+        });
+    }
+
+    weeklyReportWeekButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            const week = button.dataset.weeklyReportWeek || "current";
+            activeWeeklyReportEmployeeIds = [];
+            if (week === activeWeeklyReportWeek && week !== "custom" && weeklyReportLoaded) return;
+            activeWeeklyReportWeek = week;
+            syncWeeklyReportWeekButtons();
+            if (week === "custom") {
+                setWeeklyReportStatus("Choose a date range, then click Apply.", false);
+                return;
+            }
+            loadWeeklyReport(week);
+        });
+    });
+
+    if (weeklyReportApplyRangeBtn) {
+        weeklyReportApplyRangeBtn.addEventListener("click", function () {
+            activeWeeklyReportEmployeeIds = [];
+            loadWeeklyReport("custom");
+        });
+    }
+
+    if (weeklyReportDownloadBtn && weeklyReportOpenBtn) {
+        weeklyReportDownloadBtn.addEventListener("click", function () {
+            window.location.href = buildWeeklyReportUrl(weeklyReportOpenBtn.dataset.downloadUrl, activeWeeklyReportWeek);
+        });
+    }
+
+    if (weeklyReportEmailBtn && weeklyReportOpenBtn) {
+        weeklyReportEmailBtn.addEventListener("click", async function () {
+            setWeeklyReportStatus("", false);
+            weeklyReportEmailBtn.disabled = true;
+            weeklyReportEmailBtn.textContent = "Sending...";
+
+            try {
+                const response = await fetch(buildWeeklyReportUrl(weeklyReportOpenBtn.dataset.emailUrl, activeWeeklyReportWeek), {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCsrfToken(),
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    cache: "no-store"
+                });
+                const payload = typeof window.parseJsonOrSessionExpired === "function"
+                    ? await window.parseJsonOrSessionExpired(response)
+                    : await response.json();
+
+                if (payload.sessionExpired) {
+                    if (typeof window.redirectAfterSessionExpired === "function") {
+                        window.redirectAfterSessionExpired(payload);
+                    }
+                    return;
+                }
+
+                if (!response.ok || payload.success === false) {
+                    throw new Error(payload.message || payload.detail || "Unable to email weekly report.");
+                }
+
+                setWeeklyReportStatus(payload.message || "Weekly report emailed.", false);
+            } catch (error) {
+                setWeeklyReportStatus(error.message || "Unable to email weekly report.", true);
+            } finally {
+                weeklyReportEmailBtn.disabled = false;
+                weeklyReportEmailBtn.textContent = "Email Report";
+            }
+        });
+    }
+
+    if (weeklyReportPrintBtn && weeklyReportFrame) {
+        weeklyReportPrintBtn.addEventListener("click", function () {
+            if (!weeklyReportFrame.contentWindow) return;
+            weeklyReportFrame.contentWindow.focus();
+            weeklyReportFrame.contentWindow.print();
+        });
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && weeklyReportModal && weeklyReportModal.classList.contains("is-open")) {
+            closeWeeklyReportModal();
+        }
+    });
 
     filterReportRows(reportSearchInput ? reportSearchInput.value : "");
 

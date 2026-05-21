@@ -133,21 +133,56 @@ def _build_system_health(today, start_date):
         "notifications": f"{pending_notifications} pending",
     }
 
-def build_weekly_hr_report_context():
+def get_week_range(week="current"):
+    today = timezone.localdate()
+    current_start = today - timedelta(days=today.weekday())
+    week_key = str(week or "current").strip().lower()
+
+    if week_key in {"previous", "prev", "-1"}:
+        start_day = current_start - timedelta(days=7)
+    else:
+        start_day = current_start
+
+    end_day = start_day + timedelta(days=6)
+    return start_day, end_day
+
+
+def build_weekly_hr_report_context(week="current", start_day=None, end_day=None, employee_id=None, employee_ids=None, include_system_health=True):
     """
     Compiles data for the 'Human Capital Operational Snapshot'.
     """
     User = get_user_model()
-    today = timezone.localdate()
-    start_date = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())) - timedelta(days=7)
-    logger.info("WEEKLY_REPORT | CONTEXT | Building report context | Start=%s | End=%s", start_date, today)
+    if start_day is None or end_day is None:
+        start_day, end_day = get_week_range(week)
 
-    # 1. Compile Global Analytics (Past 7 Days)
+    start_date = timezone.make_aware(timezone.datetime.combine(start_day, timezone.datetime.min.time()))
+    end_date = timezone.make_aware(timezone.datetime.combine(end_day, timezone.datetime.max.time()))
+    logger.info("WEEKLY_REPORT | CONTEXT | Building report context | Start=%s | End=%s", start_date, end_date)
+
+    # 1. Compile Global Analytics (Selected Week)
+    employee_filter_options = []
+    for employee in User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile").order_by("first_name", "last_name", "username", "id"):
+        profile = getattr(employee, "profile", None)
+        employee_filter_options.append({
+            "id": employee.id,
+            "label": f"{employee.get_full_name() or employee.username} - {getattr(profile, 'employee_id', 'N/A') if profile else 'N/A'}",
+        })
+
     all_employees = User.objects.filter(role="EMPLOYEE", is_active=True)
+    if employee_id:
+        all_employees = all_employees.filter(id=employee_id)
+    if employee_ids:
+        all_employees = all_employees.filter(id__in=employee_ids)
+
     leave_queryset = Leave.objects.filter(
         created_at__gte=start_date,
+        created_at__lte=end_date,
         user__is_active=True,
     ).select_related("reviewed_by")
+    if employee_id:
+        leave_queryset = leave_queryset.filter(user_id=employee_id)
+    if employee_ids:
+        leave_queryset = leave_queryset.filter(user_id__in=employee_ids)
     
     reports = []
     for report_user in all_employees:
@@ -192,18 +227,23 @@ def build_weekly_hr_report_context():
     employee_applied_count = leave_queryset.values("user").distinct().count()
 
     # 2. System Health Stats
-    system_health = _build_system_health(today, start_date)
+    system_health = _build_system_health(end_day, start_date)
 
     context = {
-        "period_start": start_date.strftime("%b %d, %Y"),
-        "period_end": today.strftime("%b %d, %Y"),
+        "period_start": start_day.strftime("%b %d, %Y"),
+        "period_end": end_day.strftime("%b %d, %Y"),
+        "period_start_iso": start_day.isoformat(),
+        "period_end_iso": end_day.isoformat(),
+        "week_key": str(week or "current"),
         "total_requests": total_requests,
         "approved_total": approved_total,
         "pending_total": pending_total,
         "rejected_total": rejected_total,
         "employee_count": employee_applied_count,
         "reports": reports,
+        "employee_filter_options": employee_filter_options,
         "system_health": system_health,
+        "show_system_health": include_system_health,
         "portal_link": settings.SITE_URL if hasattr(settings, 'SITE_URL') else "http://localhost:8000"
     }
     logger.info(
@@ -217,26 +257,28 @@ def build_weekly_hr_report_context():
     return context
 
 
-def render_weekly_hr_report_html(context=None):
+def render_weekly_hr_report_html(context=None, week="current"):
     logger.info("WEEKLY_REPORT | RENDER | Rendering dashboard HTML.")
-    context = context or build_weekly_hr_report_context()
+    context = context or build_weekly_hr_report_context(week=week)
     return render_to_string('emails/weekly_hr_report.html', context)
 
 
-def generate_weekly_hr_report_pdf_bytes():
+def generate_weekly_hr_report_pdf_bytes(context=None, week="current"):
     from App.services.pdf_generator import generate_pdf_from_html
 
     logger.info("WEEKLY_REPORT | PDF | Generating weekly report PDF bytes.")
-    return generate_pdf_from_html(render_weekly_hr_report_html())
+    return generate_pdf_from_html(render_weekly_hr_report_html(context=context, week=week))
 
 
-def send_weekly_hr_report():
+def send_weekly_hr_report(context=None, week="current"):
     """
     Compiles data for the 'Human Capital Operational Snapshot' and sends it to all HR users.
     """
     User = get_user_model()
-    today = timezone.localdate()
-    start_date = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())) - timedelta(days=7)
+    context = context or build_weekly_hr_report_context(week=week)
+    start_label = context["period_start"]
+    end_label = context["period_end"]
+    end_day = datetime.strptime(context["period_end_iso"], "%Y-%m-%d").date()
 
     # 1. Fetch HR Recipients
     hr_emails = list(User.objects.filter(role="HR", is_active=True).values_list("email", flat=True))
@@ -244,8 +286,6 @@ def send_weekly_hr_report():
     if not hr_emails:
         logger.warning("REPORT | No active HR emails found. Skipping weekly report.")
         return False
-
-    context = build_weekly_hr_report_context()
 
     # Render the gorgeous HTML
     dashboard_html = render_weekly_hr_report_html(context)
@@ -265,7 +305,7 @@ def send_weekly_hr_report():
         pdf_bytes = generate_pdf_from_html(dashboard_html)
         
         # 6. Send the Email with Attachment
-        subject = f"Weekly Operational Snapshot: {start_date.strftime('%d %b')} - {today.strftime('%d %b, %Y')}"
+        subject = f"Weekly Operational Snapshot: {start_label} - {end_label}"
         email = EmailMessage(
             subject=subject,
             body=cover_html,
@@ -275,7 +315,7 @@ def send_weekly_hr_report():
         email.content_subtype = "html"
         
         # Attach the PDF
-        filename = f"HR_Snapshot_{today.strftime('%Y%m%d')}.pdf"
+        filename = f"HR_Snapshot_{end_day.strftime('%Y%m%d')}.pdf"
         email.attach(filename, pdf_bytes, 'application/pdf')
         
         email.send(fail_silently=False)
@@ -306,11 +346,153 @@ def send_weekly_hr_report():
         return False
 
 
+def _employee_report_label(user):
+    profile = getattr(user, "profile", None)
+    employee_code = getattr(profile, "employee_id", "") if profile else ""
+    full_name = user.get_full_name() or user.username
+    if employee_code:
+        return f"{full_name} - {employee_code}"
+    return full_name
+
+
+def _ask_include_system_health():
+    while True:
+        choice = input("\nInclude System & Security Oversight section? Type Y or N: ").strip().lower()
+        if choice in {"y", "yes"}:
+            return True
+        if choice in {"", "n", "no"}:
+            return False
+        print("Invalid choice. Type Y to include it, or N to hide it.")
+
+
+def build_manual_weekly_report_context_from_prompt(week="current"):
+    """
+    Interactive selector for manual weekly report sends only.
+    Scheduled/background sends should call send_weekly_hr_report() directly.
+    """
+    User = get_user_model()
+    employees = list(
+        User.objects.filter(role="EMPLOYEE", is_active=True)
+        .select_related("profile")
+        .order_by("first_name", "last_name", "username", "id")
+    )
+
+    if not employees:
+        print("No active employees found. The report will include no employee rows.")
+        include_system_health = _ask_include_system_health()
+        return build_weekly_hr_report_context(week=week, include_system_health=include_system_health)
+
+    employee_by_number = {}
+    employee_by_code = {}
+    for index, employee in enumerate(employees, start=1):
+        profile = getattr(employee, "profile", None)
+        employee_code = getattr(profile, "employee_id", "") if profile else ""
+        employee_by_number[str(index)] = employee
+        if employee_code:
+            employee_by_code[employee_code.lower()] = employee
+
+    while True:
+        print("\nSelect employee scope for this weekly report:")
+        print("1. All employees")
+        print("2. Single employee")
+        print("3. Multiple employees")
+        print("C. Cancel")
+        scope = input("Choose 1, 2, 3, or C: ").strip().lower()
+
+        if scope in {"c", "cancel", "q", "quit"}:
+            return None
+
+        if scope in {"", "1"}:
+            print("Selected: All employees")
+            include_system_health = _ask_include_system_health()
+            return build_weekly_hr_report_context(week=week, include_system_health=include_system_health)
+
+        if scope not in {"2", "3"}:
+            print("Invalid choice. Please select again.")
+            continue
+
+        print("\nActive employees:")
+        for index, employee in enumerate(employees, start=1):
+            print(f"{index}. {_employee_report_label(employee)}")
+        print("B. Back")
+        print("C. Cancel")
+
+        if scope == "2":
+            while True:
+                selected_text = input("\nEnter employee number or employee ID: ").strip()
+                selected_key = selected_text.lower()
+                if selected_key in {"b", "back"}:
+                    break
+                if selected_key in {"c", "cancel", "q", "quit"}:
+                    return None
+
+                selected_employee = employee_by_number.get(selected_text) or employee_by_code.get(selected_key)
+                if not selected_employee:
+                    print("Invalid employee selection. Try again, type B to go back, or C to cancel.")
+                    continue
+
+                print(f"Selected: {_employee_report_label(selected_employee)}")
+                include_system_health = _ask_include_system_health()
+                return build_weekly_hr_report_context(
+                    week=week,
+                    employee_ids=[selected_employee.id],
+                    include_system_health=include_system_health,
+                )
+
+        if scope == "3":
+            while True:
+                selected_text = input("\nEnter employee numbers or employee IDs separated by comma: ").strip()
+                selected_key = selected_text.lower()
+                if selected_key in {"b", "back"}:
+                    break
+                if selected_key in {"c", "cancel", "q", "quit"}:
+                    return None
+
+                selected_employees = []
+                invalid_tokens = []
+                seen_ids = set()
+
+                for token in [part.strip() for part in selected_text.split(",") if part.strip()]:
+                    employee = employee_by_number.get(token) or employee_by_code.get(token.lower())
+                    if not employee:
+                        invalid_tokens.append(token)
+                        continue
+                    if employee.id in seen_ids:
+                        continue
+                    selected_employees.append(employee)
+                    seen_ids.add(employee.id)
+
+                if invalid_tokens:
+                    print(f"Invalid selection: {', '.join(invalid_tokens)}")
+                    print("Try again, type B to go back, or C to cancel.")
+                    continue
+
+                if not selected_employees:
+                    print("No employees selected. Try again, type B to go back, or C to cancel.")
+                    continue
+
+                print("Selected:")
+                for employee in selected_employees:
+                    print(f"- {_employee_report_label(employee)}")
+                include_system_health = _ask_include_system_health()
+                return build_weekly_hr_report_context(
+                    week=week,
+                    employee_ids=[employee.id for employee in selected_employees],
+                    include_system_health=include_system_health,
+                )
+
+
 def main():
     logger.info("WEEKLY_REPORT | MANUAL_RUN | Opened direct runner.")
     print("--- Weekly HR Report Manual Runner ---")
     print("This will send the weekly report email to all active HR users.")
-    print("Confirmation is case-sensitive. Type the phrase exactly as shown.")
+    context = build_manual_weekly_report_context_from_prompt()
+    if context is None:
+        logger.info("WEEKLY_REPORT | MANUAL_RUN | Cancelled by employee selection.")
+        print("Cancelled. Weekly report was not sent.")
+        return
+
+    print("Confirmation is case-sensitive. Type SEND to send, or anything else to cancel.")
     confirmation = input("Type SEND to continue: ").strip()
 
     if confirmation != "SEND":
@@ -319,7 +501,7 @@ def main():
         return
 
     logger.info("WEEKLY_REPORT | MANUAL_RUN | Confirmation accepted.")
-    sent = send_weekly_hr_report()
+    sent = send_weekly_hr_report(context=context)
     if sent:
         print("SUCCESS: Weekly HR report sent.")
     else:

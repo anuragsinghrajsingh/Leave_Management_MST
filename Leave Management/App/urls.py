@@ -42,6 +42,9 @@ urlpatterns = [
     path('employees/archive/<int:user_id>/', views.download_employee_archive, name='download_employee_archive'),
     path('employees/update/<int:user_id>/', views.update_employee_contact_field, name='update_employee_contact_field'),
     path('reports/', views.reports, name='reports'),
+    path('reports/weekly/preview/', views.weekly_report_preview, name='weekly_report_preview'),
+    path('reports/weekly/download/', views.weekly_report_download, name='weekly_report_download'),
+    path('reports/weekly/email/', views.weekly_report_email, name='weekly_report_email'),
     path('approve-leave/<int:leave_id>/', views.approve_leave, name='approve_leave'),
     path('reject-leave/<int:leave_id>/', views.reject_leave, name='reject_leave'),
 

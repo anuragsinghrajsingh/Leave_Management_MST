@@ -85,28 +85,11 @@
     </section>
 
     <section class="service-card">
-      <h2>Weekly Report Email</h2>
+      <h2>HR Snapshot Console</h2>
       <p>Period: {{ weekly_report_preview.period_start }} to {{ weekly_report_preview.period_end }}</p>
       <p>Requests: {{ weekly_report_preview.total_requests }} | Employees: {{ weekly_report_preview.employee_count }}</p>
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="service_action" value="weekly_report">
-        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
-        <p><label><strong>Type SEND_WEEKLY_REPORT:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
-        <button type="submit" class="default">Send weekly report</button>
-      </form>
-    </section>
-
-    <section class="service-card">
-      <h2>Weekly Report PDF</h2>
-      <p>Generates and saves the weekly report PDF in <code>generated_pdfs/</code>.</p>
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="service_action" value="weekly_pdf">
-        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
-        <p><label><strong>Type GENERATE_WEEKLY_PDF:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
-        <button type="submit" class="default">Generate PDF</button>
-      </form>
+      <p>Preview the exact report first, then choose download, print, or email.</p>
+      <p><a class="button default" href="{% url 'admin:app_serviceactioncontrol_weekly_report' %}">Open HR snapshot console</a></p>
     </section>
 
     <section class="service-card">

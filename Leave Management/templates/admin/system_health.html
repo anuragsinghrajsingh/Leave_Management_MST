@@ -73,6 +73,25 @@
       margin: 0;
       padding-left: 18px;
     }
+    .health-inline-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: end;
+      margin: 8px 0;
+    }
+    .health-inline-form label {
+      display: grid;
+      gap: 4px;
+      font-weight: 700;
+    }
+    .health-inline-form input[type="date"] {
+      min-height: 32px;
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 6px;
+      padding: 4px 8px;
+      box-sizing: border-box;
+    }
   </style>
 
   <p>Admin-only technical status for the leave management system. This page does not change data.</p>
@@ -135,6 +154,7 @@
       <h2>Database</h2>
       <div class="health-row"><div class="health-label">Status</div><div class="health-value">{% if database_health.ok %}Connection OK{% else %}Connection failed{% endif %}</div></div>
       <div class="health-row"><div class="health-label">Vendor</div><div class="health-value">{{ database_health.vendor }}</div></div>
+      <div class="health-row"><div class="health-label">Response time</div><div class="health-value">{{ database_health.latency_ms }}ms DB query</div></div>
       <div class="health-row"><div class="health-label">Engine</div><div class="health-value"><code>{{ database_health.engine }}</code></div></div>
       <div class="health-row"><div class="health-label">Name</div><div class="health-value">{{ database_health.name }}</div></div>
       {% if database_health.error %}
@@ -194,6 +214,18 @@
 
     <section class="health-card">
       <h2>Security Configuration</h2>
+      <form method="get" class="health-inline-form">
+        <label>Security from
+          <input type="date" name="security_start" value="{{ security_custom_range.start|date:'Y-m-d' }}">
+        </label>
+        <label>Security to
+          <input type="date" name="security_end" value="{{ security_custom_range.end|date:'Y-m-d' }}">
+        </label>
+        <button type="submit" class="button">Apply</button>
+      </form>
+      {% if security_custom_range.error %}
+        <div class="health-row"><div class="health-label">Range error</div><div class="health-value">{{ security_custom_range.error }}</div></div>
+      {% endif %}
       <div class="health-row"><div class="health-label">Status</div><div class="health-value">
         {% if security_health.warnings %}
           <span class="health-pill {% if debug %}health-warn{% else %}health-bad{% endif %}">{{ security_health.warnings|length }} warning(s)</span>
@@ -211,6 +243,8 @@
           None
         {% endif %}
       </div></div>
+      <div class="health-row"><div class="health-label">Unauthorized attempts</div><div class="health-value">Last 24h: {{ business_health.errors.unauthorized_attempts_24h }} | Last 7d: {{ business_health.errors.unauthorized_attempts_7d }}</div></div>
+      <div class="health-row"><div class="health-label">Custom unauthorized</div><div class="health-value">{{ security_custom_range.count }} attempt(s)<br><span class="health-muted">{{ security_custom_range.start|date:"M d, Y" }} - {{ security_custom_range.end|date:"M d, Y" }}</span></div></div>
     </section>
 
     <section class="health-card">
@@ -264,6 +298,8 @@
         {% if log_health.django_errors %}{{ log_health.django_errors.modified_at }} | {{ log_health.django_errors.size_kb }} KB{% else %}Missing{% endif %}
       </div></div>
       <div class="health-row"><div class="health-label">Today alerts</div><div class="health-value">Django errors: {{ business_health.errors.django_errors_today }} | Security warnings: {{ business_health.errors.security_warnings_today }}</div></div>
+      <div class="health-row"><div class="health-label">Unauthorized attempts</div><div class="health-value">Last 24h: {{ business_health.errors.unauthorized_attempts_24h }} | Last 7d: {{ business_health.errors.unauthorized_attempts_7d }}</div></div>
+      <div class="health-row"><div class="health-label">Custom unauthorized</div><div class="health-value">{{ security_custom_range.count }} attempt(s)<br><span class="health-muted">{{ security_custom_range.start|date:"M d, Y" }} - {{ security_custom_range.end|date:"M d, Y" }}</span></div></div>
     </section>
 
     <section class="health-card">

@@ -82,6 +82,7 @@ from django.template.response import TemplateResponse
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
 from pathlib import Path
+from time import perf_counter
 import csv
 import json
 import logging
@@ -355,6 +356,60 @@ def _count_recent_log_lines(log_path, token, since_date=None):
     return count
 
 
+def _count_unauthorized_attempts_since(start_at):
+    security_log_dir = settings.LOG_BASE_DIR / "security"
+    if not security_log_dir.exists():
+        return 0
+
+    attempts = 0
+    for log_path in security_log_dir.glob("unauthorized.log*"):
+        try:
+            with log_path.open("r", encoding="utf-8", errors="replace") as log_file:
+                for line in log_file:
+                    if "UNAUTHORIZED_ACCESS_ATTEMPT" not in line:
+                        continue
+
+                    try:
+                        timestamp_text = line.split(" | ", 1)[0].split("] ", 1)[1]
+                        line_timestamp = timezone.make_aware(datetime.strptime(timestamp_text, "%Y-%m-%d %H:%M:%S,%f"))
+                    except (IndexError, ValueError):
+                        attempts += 1
+                        continue
+
+                    if line_timestamp >= start_at:
+                        attempts += 1
+        except OSError:
+            continue
+    return attempts
+
+
+def _count_unauthorized_attempts_between(start_at, end_at):
+    security_log_dir = settings.LOG_BASE_DIR / "security"
+    if not security_log_dir.exists():
+        return 0
+
+    attempts = 0
+    for log_path in security_log_dir.glob("unauthorized.log*"):
+        try:
+            with log_path.open("r", encoding="utf-8", errors="replace") as log_file:
+                for line in log_file:
+                    if "UNAUTHORIZED_ACCESS_ATTEMPT" not in line:
+                        continue
+
+                    try:
+                        timestamp_text = line.split(" | ", 1)[0].split("] ", 1)[1]
+                        line_timestamp = timezone.make_aware(datetime.strptime(timestamp_text, "%Y-%m-%d %H:%M:%S,%f"))
+                    except (IndexError, ValueError):
+                        attempts += 1
+                        continue
+
+                    if start_at <= line_timestamp <= end_at:
+                        attempts += 1
+        except OSError:
+            continue
+    return attempts
+
+
 def _get_migration_health():
     try:
         from django.db.migrations.executor import MigrationExecutor
@@ -377,6 +432,7 @@ def _get_migration_health():
 
 
 def _get_database_health():
+    started = perf_counter()
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -386,11 +442,13 @@ def _get_database_health():
     except Exception as exc:
         ok = False
         error = str(exc)
+    latency_ms = max(round((perf_counter() - started) * 1000), 1)
 
     database_name = settings.DATABASES["default"].get("NAME", "")
     return {
         "ok": ok,
         "error": error,
+        "latency_ms": latency_ms,
         "engine": settings.DATABASES["default"].get("ENGINE", ""),
         "vendor": getattr(connection, "vendor", "unknown"),
         "name": database_name.name if hasattr(database_name, "name") else database_name,
@@ -487,6 +545,7 @@ def _get_business_health():
     today = localtime(now()).date()
     today_start = timezone.make_aware(datetime.combine(today, time.min))
     recent_start = now() - timedelta(hours=24)
+    seven_day_start = now() - timedelta(days=7)
     return {
         "users": {
             "total": CustomUser.objects.count(),
@@ -515,6 +574,8 @@ def _get_business_health():
         "errors": {
             "django_errors_today": _count_recent_log_lines(settings.LOG_BASE_DIR / "django_errors.log", "[ERROR]", since_date=today),
             "security_warnings_today": _count_recent_log_lines(settings.LOG_BASE_DIR / "security" / "unauthorized.log", "[WARNING]", since_date=today),
+            "unauthorized_attempts_24h": _count_unauthorized_attempts_since(recent_start),
+            "unauthorized_attempts_7d": _count_unauthorized_attempts_since(seven_day_start),
         },
         "today_start": today_start,
     }
@@ -4919,6 +4980,30 @@ class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         backup_dir = settings.BASE_DIR / "backups"
         generated_pdf_dir = settings.BASE_DIR / "generated_pdfs"
         log_dir = settings.LOG_BASE_DIR
+        today = localtime(now()).date()
+        security_start_text = (request.GET.get("security_start") or "").strip()
+        security_end_text = (request.GET.get("security_end") or "").strip()
+        security_start_day = None
+        security_end_day = None
+        security_range_error = ""
+
+        if security_start_text or security_end_text:
+            try:
+                security_start_day = datetime.strptime(security_start_text, "%Y-%m-%d").date()
+                security_end_day = datetime.strptime(security_end_text, "%Y-%m-%d").date()
+                if security_start_day > security_end_day:
+                    security_range_error = "Security from date cannot be after to date."
+                    security_start_day = None
+                    security_end_day = None
+            except ValueError:
+                security_range_error = "Choose both security dates in YYYY-MM-DD format."
+
+        if not security_start_day or not security_end_day:
+            security_start_day = today - timedelta(days=6)
+            security_end_day = today
+
+        security_start_at = timezone.make_aware(datetime.combine(security_start_day, time.min))
+        security_end_at = timezone.make_aware(datetime.combine(security_end_day, time.max))
         startup_status = {
             "backup": get_backup_catchup_status(),
             "weekly_report": get_weekly_report_catchup_status(),
@@ -4961,6 +5046,12 @@ class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "maintenance_mode_enabled": is_maintenance_mode_enabled(),
             "startup_status": startup_status,
             "year_end_status": get_year_end_carry_forward_status(),
+            "security_custom_range": {
+                "start": security_start_day,
+                "end": security_end_day,
+                "count": _count_unauthorized_attempts_between(security_start_at, security_end_at),
+                "error": security_range_error,
+            },
             "uptime_text": format_current_uptime(),
             "started_at": localtime(started_at) if started_at else None,
             "debug": settings.DEBUG,
@@ -4983,6 +5074,171 @@ class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
 @never_cache
 @admin.register(ServiceActionControl)
 class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "weekly-report/",
+                self.admin_site.admin_view(self.weekly_report_console_view),
+                name="app_serviceactioncontrol_weekly_report",
+            ),
+            path(
+                "weekly-report/preview/",
+                self.admin_site.admin_view(self.weekly_report_preview_view),
+                name="app_serviceactioncontrol_weekly_report_preview",
+            ),
+            path(
+                "weekly-report/download/",
+                self.admin_site.admin_view(self.weekly_report_download_view),
+                name="app_serviceactioncontrol_weekly_report_download",
+            ),
+            path(
+                "weekly-report/email/",
+                self.admin_site.admin_view(self.weekly_report_email_view),
+                name="app_serviceactioncontrol_weekly_report_email",
+            ),
+        ]
+        return custom_urls + urls
+
+    def _ensure_service_superuser(self, request):
+        if not request.user.is_superuser:
+            raise PermissionDenied("Only superusers can run service actions.")
+
+    def _weekly_report_context_from_request(self, request):
+        from App.services.weekly_report_service import build_weekly_hr_report_context
+
+        week = (request.GET.get("week") or request.POST.get("week") or "current").strip().lower()
+        employee_text = (request.GET.get("employee") or request.POST.get("employee") or "").strip()
+        include_system_health = (request.GET.get("include_system_health") or request.POST.get("include_system_health") or "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        employee_ids = [
+            int(part)
+            for part in employee_text.split(",")
+            if part.strip().isdigit()
+        ]
+        employee_id = employee_ids[0] if len(employee_ids) == 1 else None
+        if week not in {"current", "previous", "custom"}:
+            week = "current"
+
+        if week == "custom":
+            try:
+                start_day = datetime.strptime((request.GET.get("start") or request.POST.get("start") or "").strip(), "%Y-%m-%d").date()
+                end_day = datetime.strptime((request.GET.get("end") or request.POST.get("end") or "").strip(), "%Y-%m-%d").date()
+            except ValueError:
+                start_day = None
+                end_day = None
+
+            if not start_day or not end_day:
+                raise ValueError("Choose both from and to dates for the custom report.")
+            if start_day > end_day:
+                raise ValueError("To date cannot be earlier than from date.")
+
+            return build_weekly_hr_report_context(
+                week=week,
+                start_day=start_day,
+                end_day=end_day,
+                employee_id=employee_id,
+                employee_ids=employee_ids if len(employee_ids) > 1 else None,
+                include_system_health=include_system_health,
+            ), week
+
+        return build_weekly_hr_report_context(
+            week=week,
+            employee_id=employee_id,
+            employee_ids=employee_ids if len(employee_ids) > 1 else None,
+            include_system_health=include_system_health,
+        ), week
+
+    def weekly_report_console_view(self, request):
+        self._ensure_service_superuser(request)
+        from App.services.weekly_report_service import build_weekly_hr_report_context
+
+        initial_context = build_weekly_hr_report_context()
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Weekly report preview",
+            "employees": initial_context.get("employee_filter_options", []),
+            "preview_url": reverse("admin:app_serviceactioncontrol_weekly_report_preview"),
+            "download_url": reverse("admin:app_serviceactioncontrol_weekly_report_download"),
+            "email_url": reverse("admin:app_serviceactioncontrol_weekly_report_email"),
+        }
+        return TemplateResponse(request, "admin/weekly_report_console.html", context)
+
+    def weekly_report_preview_view(self, request):
+        self._ensure_service_superuser(request)
+        from App.services.weekly_report_service import render_weekly_hr_report_html
+
+        try:
+            context, week = self._weekly_report_context_from_request(request)
+        except ValueError as exc:
+            return JsonResponse({"success": False, "detail": str(exc)}, status=400)
+
+        context["limit_activity_scroll"] = True
+        return JsonResponse({
+            "success": True,
+            "week": week,
+            "period_start": context["period_start"],
+            "period_end": context["period_end"],
+            "html": render_weekly_hr_report_html(context),
+        })
+
+    def weekly_report_download_view(self, request):
+        self._ensure_service_superuser(request)
+        from App.services.weekly_report_service import generate_weekly_hr_report_pdf_bytes
+
+        try:
+            context, _week = self._weekly_report_context_from_request(request)
+        except ValueError as exc:
+            return HttpResponse(str(exc), status=400)
+
+        pdf_bytes = generate_weekly_hr_report_pdf_bytes(context=context)
+        filename = f"weekly_hr_report_{context['period_start_iso']}_to_{context['period_end_iso']}.pdf"
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "no-store"
+        return response
+
+    def weekly_report_email_view(self, request):
+        self._ensure_service_superuser(request)
+        if request.method != "POST":
+            return JsonResponse({"success": False, "detail": "POST required."}, status=405)
+
+        confirmation = (request.POST.get("confirmation") or "").strip()
+        reason = (request.POST.get("reason") or "").strip()
+        if not reason:
+            return JsonResponse({"success": False, "detail": "Reason is required."}, status=400)
+        if confirmation != "SEND_WEEKLY_REPORT":
+            return JsonResponse({"success": False, "detail": "Type SEND_WEEKLY_REPORT to send weekly report."}, status=400)
+
+        from App.services.weekly_report_service import send_weekly_hr_report
+
+        try:
+            context, week = self._weekly_report_context_from_request(request)
+        except ValueError as exc:
+            return JsonResponse({"success": False, "detail": str(exc)}, status=400)
+
+        sent = send_weekly_hr_report(context=context, week=week)
+        if not sent:
+            return JsonResponse({"success": False, "detail": "Weekly report was not sent. Check service/email logs."}, status=500)
+
+        _create_admin_audit_log(
+            request,
+            request.user,
+            {"service_action": {"old": None, "new": {"action": "weekly_report", "period": f"{context['period_start']} - {context['period_end']}"}}},
+            reason,
+            action="SERVICE_WEEKLY_REPORT",
+        )
+        service_admin_logger.info("SERVICE_ADMIN | WEEKLY_REPORT | Sent by=%s | Reason=%s", request.user.username, reason)
+        return JsonResponse({
+            "success": True,
+            "message": f"Weekly report emailed for {context['period_start']} - {context['period_end']}.",
+        })
+
     def changelist_view(self, request, extra_context=None):
         if not request.user.is_superuser:
             self.message_user(request, "Only superusers can run service actions.", level=messages.ERROR)
@@ -5019,24 +5275,8 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
                         self.message_user(request, "Backup failed. Check service logs.", level=messages.ERROR)
 
                 elif service_action == "weekly_report":
-                    if confirmation != "SEND_WEEKLY_REPORT":
-                        self.message_user(request, "Type SEND_WEEKLY_REPORT to send weekly report.", level=messages.ERROR)
-                        return redirect(request.path)
-                    from App.services.weekly_report_service import send_weekly_hr_report
-
-                    sent = send_weekly_hr_report()
-                    if sent:
-                        _create_admin_audit_log(
-                            request,
-                            request.user,
-                            {"service_action": {"old": None, "new": {"action": "weekly_report"}}},
-                            reason,
-                            action="SERVICE_WEEKLY_REPORT",
-                        )
-                        service_admin_logger.info("SERVICE_ADMIN | WEEKLY_REPORT | Sent by=%s | Reason=%s", request.user.username, reason)
-                        self.message_user(request, "Weekly report sent.", level=messages.SUCCESS)
-                    else:
-                        self.message_user(request, "Weekly report was not sent. Check service/email logs.", level=messages.ERROR)
+                    self.message_user(request, "Open the weekly report console to preview before sending.", level=messages.WARNING)
+                    return redirect(reverse("admin:app_serviceactioncontrol_weekly_report"))
 
                 elif service_action == "weekly_pdf":
                     if confirmation != "GENERATE_WEEKLY_PDF":

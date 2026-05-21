@@ -3181,6 +3181,107 @@ def reports(request):
     return render(request, "reports.html", context)
 
 
+def _get_weekly_report_context_from_request(request):
+    from App.services.weekly_report_service import build_weekly_hr_report_context
+
+    week = (request.GET.get("week") or request.POST.get("week") or "current").strip().lower()
+    employee_id = (request.GET.get("employee") or request.POST.get("employee") or "").strip()
+    selected_employee_ids = [
+        int(part)
+        for part in employee_id.split(",")
+        if part.strip().isdigit()
+    ]
+    selected_employee_id = selected_employee_ids[0] if len(selected_employee_ids) == 1 else None
+    if week not in {"current", "previous", "custom"}:
+        week = "current"
+
+    if week == "custom":
+        try:
+            start_day = datetime.strptime((request.GET.get("start") or request.POST.get("start") or "").strip(), "%Y-%m-%d").date()
+            end_day = datetime.strptime((request.GET.get("end") or request.POST.get("end") or "").strip(), "%Y-%m-%d").date()
+        except ValueError:
+            start_day = None
+            end_day = None
+
+        if start_day and end_day and start_day <= end_day:
+            return build_weekly_hr_report_context(
+                week=week,
+                start_day=start_day,
+                end_day=end_day,
+                employee_id=selected_employee_id,
+                employee_ids=selected_employee_ids if len(selected_employee_ids) > 1 else None,
+                include_system_health=False,
+            ), week
+
+    return build_weekly_hr_report_context(
+        week=week,
+        employee_id=selected_employee_id,
+        employee_ids=selected_employee_ids if len(selected_employee_ids) > 1 else None,
+        include_system_health=False,
+    ), week
+
+
+@login_required
+@never_cache
+def weekly_report_preview(request):
+    if request.user.role != "HR":
+        return JsonResponse({"detail": "HR access required."}, status=403)
+
+    from App.services.weekly_report_service import render_weekly_hr_report_html
+
+    context, week = _get_weekly_report_context_from_request(request)
+    context["limit_activity_scroll"] = True
+    html = render_weekly_hr_report_html(context)
+    return JsonResponse({
+        "success": True,
+        "week": week,
+        "period_start": context["period_start"],
+        "period_end": context["period_end"],
+        "html": html,
+    })
+
+
+@login_required
+@never_cache
+def weekly_report_download(request):
+    if request.user.role != "HR":
+        return HttpResponseForbidden("HR access required.")
+
+    from App.services.weekly_report_service import generate_weekly_hr_report_pdf_bytes
+
+    context, _week = _get_weekly_report_context_from_request(request)
+    pdf_bytes = generate_weekly_hr_report_pdf_bytes(context=context)
+    filename = f"weekly_hr_report_{context['period_start_iso']}_to_{context['period_end_iso']}.pdf"
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@login_required
+@never_cache
+@require_POST
+def weekly_report_email(request):
+    if request.user.role != "HR":
+        return JsonResponse({"success": False, "detail": "HR access required."}, status=403)
+
+    from App.services.weekly_report_service import send_weekly_hr_report
+
+    context, week = _get_weekly_report_context_from_request(request)
+    sent = send_weekly_hr_report(context=context, week=week)
+    if sent:
+        return JsonResponse({
+            "success": True,
+            "message": f"Weekly report emailed for {context['period_start']} - {context['period_end']}.",
+        })
+
+    return JsonResponse({
+        "success": False,
+        "message": "Weekly report email could not be sent. Please check email settings/logs.",
+    }, status=500)
+
+
 
 
 @login_required

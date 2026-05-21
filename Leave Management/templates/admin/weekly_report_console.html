@@ -1,0 +1,500 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .weekly-console {
+      display: grid;
+      gap: 14px;
+    }
+    .weekly-toolbar,
+    .weekly-email-panel {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 10px;
+      padding: 14px;
+      background: var(--body-bg, #fff);
+    }
+    .weekly-toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .weekly-btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 9px 14px;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    .weekly-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      filter: grayscale(0.35);
+    }
+    .weekly-btn-blue { background: linear-gradient(135deg, #2563eb, #06b6d4); }
+    .weekly-btn-violet { background: linear-gradient(135deg, #7c3aed, #db2777); }
+    .weekly-btn-amber { background: linear-gradient(135deg, #f59e0b, #ea580c); }
+    .weekly-btn-green { background: linear-gradient(135deg, #059669, #14b8a6); }
+    .weekly-btn-slate { background: linear-gradient(135deg, #64748b, #334155); }
+    .weekly-btn.is-active {
+      outline: 3px solid rgba(37, 99, 235, 0.22);
+      transform: translateY(-1px);
+    }
+    .weekly-field {
+      min-height: 36px;
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      padding: 7px 10px;
+      box-sizing: border-box;
+    }
+    .weekly-custom-range {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .weekly-employee-picker {
+      position: relative;
+      min-width: 280px;
+    }
+    .weekly-employee-trigger {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      padding: 8px 34px 8px 10px;
+      text-align: left;
+      background: var(--body-bg, #fff);
+      color: var(--body-fg, #222);
+      font-weight: 700;
+      cursor: pointer;
+      position: relative;
+    }
+    .weekly-employee-trigger::after {
+      content: "v";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-55%);
+      color: #2563eb;
+      font-size: 16px;
+    }
+    .weekly-employee-menu {
+      display: none;
+      position: absolute;
+      z-index: 20;
+      right: 0;
+      top: calc(100% + 8px);
+      width: 360px;
+      max-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 10px;
+      padding: 8px;
+      background: var(--body-bg, #fff);
+      box-shadow: 0 16px 38px rgba(15, 23, 42, 0.22);
+    }
+    .weekly-employee-picker.is-open .weekly-employee-menu {
+      display: block;
+    }
+    .weekly-employee-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+    .weekly-employee-option:hover {
+      background: rgba(37, 99, 235, 0.1);
+    }
+    .weekly-employee-actions {
+      display: flex;
+      gap: 8px;
+      position: sticky;
+      bottom: 0;
+      padding-top: 8px;
+      background: var(--body-bg, #fff);
+    }
+    .weekly-status {
+      min-height: 20px;
+      font-weight: 700;
+    }
+    .weekly-status.is-error { color: #dc2626; }
+    .weekly-status.is-success { color: #059669; }
+    .weekly-preview-shell {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      min-height: 72vh;
+    }
+    .weekly-preview-frame {
+      width: 100%;
+      height: 72vh;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+    .weekly-email-panel textarea,
+    .weekly-email-panel input[type="text"] {
+      width: 100%;
+      max-width: 620px;
+      box-sizing: border-box;
+    }
+    .weekly-sensitive-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      border: 1px solid rgba(217, 119, 6, 0.35);
+      border-radius: 9px;
+      padding: 7px 10px;
+      background: rgba(217, 119, 6, 0.08);
+      color: var(--body-fg, #222);
+      font-weight: 800;
+    }
+    .weekly-sensitive-note {
+      color: #92400e;
+      font-size: 0.9rem;
+      margin: 4px 0 0;
+    }
+  </style>
+
+  <p>
+    <a href="{% url 'admin:App_serviceactioncontrol_changelist' %}">Back to service actions</a>
+  </p>
+
+  <div class="weekly-console"
+       id="weeklyReportAdminConsole"
+       data-preview-url="{{ preview_url }}"
+       data-download-url="{{ download_url }}"
+       data-email-url="{{ email_url }}">
+    <div class="weekly-toolbar">
+      <button type="button" class="weekly-btn weekly-btn-blue is-active" data-week="current">Current Week</button>
+      <button type="button" class="weekly-btn weekly-btn-violet" data-week="previous">Previous Week</button>
+      <button type="button" class="weekly-btn weekly-btn-amber" data-week="custom">Custom Date</button>
+
+      <span class="weekly-custom-range" id="weeklyCustomRange" hidden>
+        <input class="weekly-field" type="date" id="weeklyStartDate">
+        <input class="weekly-field" type="date" id="weeklyEndDate">
+        <button type="button" class="weekly-btn weekly-btn-blue" id="weeklyApplyRangeBtn">Apply Date</button>
+      </span>
+
+      <div class="weekly-employee-picker" id="weeklyEmployeePicker">
+        <button type="button" class="weekly-employee-trigger" id="weeklyEmployeeTrigger">All Employees</button>
+        <div class="weekly-employee-menu" id="weeklyEmployeeMenu">
+          <label class="weekly-employee-option">
+            <input type="checkbox" id="weeklyEmployeeAll" checked>
+            <span>All Employees</span>
+          </label>
+          {% for employee in employees %}
+          <label class="weekly-employee-option">
+            <input type="checkbox" class="weekly-employee-checkbox" value="{{ employee.id }}" data-label="{{ employee.label }}">
+            <span>{{ employee.label }}</span>
+          </label>
+          {% endfor %}
+          <div class="weekly-employee-actions">
+            <button type="button" class="weekly-btn weekly-btn-green" id="weeklyEmployeeApplyBtn" disabled>Apply</button>
+            <button type="button" class="weekly-btn weekly-btn-slate" id="weeklyEmployeeClearBtn" disabled>Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <label class="weekly-sensitive-option">
+        <input type="checkbox" id="weeklyIncludeSystemHealth">
+        <span>Include System &amp; Security Oversight</span>
+      </label>
+
+      <button type="button" class="weekly-btn weekly-btn-green" id="weeklyDownloadBtn">Download PDF</button>
+      <button type="button" class="weekly-btn weekly-btn-violet" id="weeklyPrintBtn">Print</button>
+    </div>
+
+    <div class="weekly-email-panel">
+      <h2>Email this HR snapshot</h2>
+      <p>Mail is sent only after this confirmation.</p>
+      <p class="weekly-sensitive-note">Warning: include System &amp; Security Oversight only when the recipient should see backup, security, uptime, and notification health data.</p>
+      <p><label><strong>Reason:</strong></label><br><textarea id="weeklyEmailReason" rows="3" required></textarea></p>
+      <p><label><strong>Type SEND_WEEKLY_REPORT:</strong></label><br><input type="text" id="weeklyEmailConfirmation" autocomplete="off"></p>
+      <button type="button" class="weekly-btn weekly-btn-amber" id="weeklyEmailBtn">Email Snapshot</button>
+    </div>
+
+    <div class="weekly-status" id="weeklyStatus"></div>
+    <div class="weekly-preview-shell">
+      <iframe class="weekly-preview-frame" id="weeklyPreviewFrame" title="Weekly report preview"></iframe>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const root = document.getElementById("weeklyReportAdminConsole");
+      const frame = document.getElementById("weeklyPreviewFrame");
+      const status = document.getElementById("weeklyStatus");
+      const weekButtons = Array.from(root.querySelectorAll("[data-week]"));
+      const customRange = document.getElementById("weeklyCustomRange");
+      const startDate = document.getElementById("weeklyStartDate");
+      const endDate = document.getElementById("weeklyEndDate");
+      const applyRangeBtn = document.getElementById("weeklyApplyRangeBtn");
+      const picker = document.getElementById("weeklyEmployeePicker");
+      const employeeTrigger = document.getElementById("weeklyEmployeeTrigger");
+      const employeeAll = document.getElementById("weeklyEmployeeAll");
+      const employeeChecks = Array.from(root.querySelectorAll(".weekly-employee-checkbox"));
+      const employeeApplyBtn = document.getElementById("weeklyEmployeeApplyBtn");
+      const employeeClearBtn = document.getElementById("weeklyEmployeeClearBtn");
+      const downloadBtn = document.getElementById("weeklyDownloadBtn");
+      const printBtn = document.getElementById("weeklyPrintBtn");
+      const emailBtn = document.getElementById("weeklyEmailBtn");
+      const reasonInput = document.getElementById("weeklyEmailReason");
+      const confirmationInput = document.getElementById("weeklyEmailConfirmation");
+      const includeSystemHealthInput = document.getElementById("weeklyIncludeSystemHealth");
+      let activeWeek = "current";
+      let activeEmployeeIds = [];
+
+      function getCsrfToken() {
+        const input = document.querySelector("input[name='csrfmiddlewaretoken']");
+        if (input) return input.value || "";
+        const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+
+      function setStatus(message, isError) {
+        status.textContent = message || "";
+        status.classList.toggle("is-error", !!isError);
+        status.classList.toggle("is-success", !!message && !isError);
+      }
+
+      function pendingEmployeeIds() {
+        if (employeeAll.checked) return [];
+        return employeeChecks.filter(function (checkbox) {
+          return checkbox.checked;
+        }).map(function (checkbox) {
+          return checkbox.value;
+        });
+      }
+
+      function sameIds(firstIds, secondIds) {
+        const first = (firstIds || []).slice().sort();
+        const second = (secondIds || []).slice().sort();
+        return first.length === second.length && first.every(function (value, index) {
+          return value === second[index];
+        });
+      }
+
+      function updateEmployeeButtons() {
+        employeeApplyBtn.disabled = sameIds(pendingEmployeeIds(), activeEmployeeIds);
+        employeeClearBtn.disabled = activeEmployeeIds.length === 0;
+      }
+
+      function updateEmployeeLabel() {
+        const selected = employeeChecks.filter(function (checkbox) {
+          return checkbox.checked;
+        });
+        if (employeeAll.checked || selected.length === 0) {
+          employeeTrigger.textContent = "All Employees";
+        } else if (selected.length === 1) {
+          employeeTrigger.textContent = selected[0].dataset.label || "1 Employee";
+        } else {
+          employeeTrigger.textContent = selected.length + " Employees Selected";
+        }
+      }
+
+      function buildUrl(baseUrl) {
+        const url = new URL(baseUrl, window.location.origin);
+        url.searchParams.set("week", activeWeek);
+        if (activeWeek === "custom") {
+          url.searchParams.set("start", startDate.value || "");
+          url.searchParams.set("end", endDate.value || "");
+        }
+        if (activeEmployeeIds.length) {
+          url.searchParams.set("employee", activeEmployeeIds.join(","));
+        }
+        if (includeSystemHealthInput.checked) {
+          url.searchParams.set("include_system_health", "1");
+        }
+        return url.toString();
+      }
+
+      function getActionWarning(actionLabel) {
+        const systemText = includeSystemHealthInput.checked
+          ? "This report WILL include System & Security Oversight data: backup status, unauthorized attempts, uptime, DB response time, and notification health."
+          : "This report will NOT include System & Security Oversight data.";
+        return "Confirm " + actionLabel + "?\n\n" + systemText + "\n\nContinue?";
+      }
+
+      function syncWeekButtons() {
+        weekButtons.forEach(function (button) {
+          button.classList.toggle("is-active", button.dataset.week === activeWeek);
+        });
+        customRange.hidden = activeWeek !== "custom";
+      }
+
+      async function loadPreview() {
+        syncWeekButtons();
+        setStatus("Loading HR snapshot...", false);
+        if (activeWeek === "custom") {
+          if (!startDate.value || !endDate.value) {
+            setStatus("Choose both from and to dates for the custom report.", true);
+            return;
+          }
+          if (endDate.value < startDate.value) {
+            setStatus("To date cannot be earlier than from date.", true);
+            return;
+          }
+        }
+
+        try {
+          const response = await fetch(buildUrl(root.dataset.previewUrl), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            cache: "no-store"
+          });
+          const payload = await response.json();
+          if (!response.ok || payload.success === false) {
+            throw new Error(payload.detail || "Unable to load HR snapshot.");
+          }
+          frame.srcdoc = payload.html || "";
+          setStatus("Preview loaded: " + payload.period_start + " - " + payload.period_end, false);
+        } catch (error) {
+          setStatus(error.message || "Unable to load HR snapshot.", true);
+        }
+      }
+
+      weekButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          activeWeek = button.dataset.week || "current";
+          if (activeWeek === "custom") {
+            syncWeekButtons();
+            setStatus("Choose a date range, then click Apply Date.", false);
+            return;
+          }
+          loadPreview();
+        });
+      });
+
+      applyRangeBtn.addEventListener("click", function () {
+        activeWeek = "custom";
+        loadPreview();
+      });
+
+      includeSystemHealthInput.addEventListener("change", function () {
+        loadPreview();
+      });
+
+      employeeTrigger.addEventListener("click", function () {
+        picker.classList.toggle("is-open");
+      });
+
+      employeeAll.addEventListener("change", function () {
+        if (employeeAll.checked) {
+          employeeChecks.forEach(function (checkbox) {
+            checkbox.checked = false;
+          });
+        }
+        updateEmployeeLabel();
+        updateEmployeeButtons();
+      });
+
+      employeeChecks.forEach(function (checkbox) {
+        checkbox.addEventListener("change", function () {
+          employeeAll.checked = !employeeChecks.some(function (item) {
+            return item.checked;
+          });
+          updateEmployeeLabel();
+          updateEmployeeButtons();
+        });
+      });
+
+      employeeApplyBtn.addEventListener("click", function () {
+        if (employeeApplyBtn.disabled) return;
+        activeEmployeeIds = pendingEmployeeIds();
+        picker.classList.remove("is-open");
+        updateEmployeeButtons();
+        loadPreview();
+      });
+
+      employeeClearBtn.addEventListener("click", function () {
+        if (employeeClearBtn.disabled) return;
+        activeEmployeeIds = [];
+        employeeAll.checked = true;
+        employeeChecks.forEach(function (checkbox) {
+          checkbox.checked = false;
+        });
+        updateEmployeeLabel();
+        updateEmployeeButtons();
+        picker.classList.remove("is-open");
+        loadPreview();
+      });
+
+      document.addEventListener("click", function (event) {
+        if (!picker.contains(event.target)) {
+          picker.classList.remove("is-open");
+        }
+      });
+
+      downloadBtn.addEventListener("click", function () {
+        if (!window.confirm(getActionWarning("download PDF"))) return;
+        window.location.href = buildUrl(root.dataset.downloadUrl);
+      });
+
+      printBtn.addEventListener("click", function () {
+        if (!frame.contentWindow) return;
+        if (!window.confirm(getActionWarning("print"))) return;
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+      });
+
+      emailBtn.addEventListener("click", async function () {
+        setStatus("", false);
+        if (!window.confirm(getActionWarning("email HR snapshot"))) return;
+        const formData = new FormData();
+        formData.set("reason", reasonInput.value || "");
+        formData.set("confirmation", confirmationInput.value || "");
+        formData.set("week", activeWeek);
+        if (activeWeek === "custom") {
+          formData.set("start", startDate.value || "");
+          formData.set("end", endDate.value || "");
+        }
+        if (activeEmployeeIds.length) {
+          formData.set("employee", activeEmployeeIds.join(","));
+        }
+        if (includeSystemHealthInput.checked) {
+          formData.set("include_system_health", "1");
+        }
+
+        emailBtn.disabled = true;
+        try {
+          const response = await fetch(root.dataset.emailUrl, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCsrfToken(), "X-Requested-With": "XMLHttpRequest" },
+            body: formData,
+            cache: "no-store"
+          });
+          const payload = await response.json();
+          if (!response.ok || payload.success === false) {
+            throw new Error(payload.detail || payload.message || "Unable to email HR snapshot.");
+          }
+          setStatus(payload.message || "HR snapshot emailed.", false);
+          confirmationInput.value = "";
+        } catch (error) {
+          setStatus(error.message || "Unable to email HR snapshot.", true);
+        } finally {
+          emailBtn.disabled = false;
+        }
+      });
+
+      updateEmployeeLabel();
+      updateEmployeeButtons();
+      loadPreview();
+    }());
+  </script>
+</div>
+{% endblock %}

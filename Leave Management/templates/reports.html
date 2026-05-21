@@ -157,6 +157,16 @@
     </nav>
 
     <div class="header-actions">
+        <button
+            type="button"
+            class="weekly-report-header-btn"
+            id="weeklyReportOpenBtn"
+            data-preview-url="{% url 'weekly_report_preview' %}"
+            data-download-url="{% url 'weekly_report_download' %}"
+            data-email-url="{% url 'weekly_report_email' %}">
+            <span class="weekly-report-btn-icon" aria-hidden="true"></span>
+            <span>HR Snapshot</span>
+        </button>
         {% include "includes/communication_dropdown.html" %}
         {% include "includes/hr_notification_dropdown.html" %}
 
@@ -409,6 +419,42 @@
             </section>
         </div>
     </section>
+
+    <div class="weekly-report-modal" id="weeklyReportModal" aria-hidden="true">
+        <div class="weekly-report-backdrop" data-weekly-report-close></div>
+        <section class="weekly-report-dialog" role="dialog" aria-modal="true" aria-labelledby="weeklyReportTitle">
+            <div class="weekly-report-toolbar">
+                <div class="weekly-report-week-tabs" role="group" aria-label="Report week">
+                    <button type="button" class="weekly-report-week-btn is-active" data-weekly-report-week="current">Current Week</button>
+                    <button type="button" class="weekly-report-week-btn" data-weekly-report-week="previous">Previous Week</button>
+                    <button type="button" class="weekly-report-week-btn" data-weekly-report-week="custom">Custom Range</button>
+                </div>
+                <div class="weekly-report-custom-range" id="weeklyReportCustomRange" hidden>
+                    <label>
+                        <span>From</span>
+                        <input type="date" id="weeklyReportStartDate">
+                    </label>
+                    <label>
+                        <span>To</span>
+                        <input type="date" id="weeklyReportEndDate">
+                    </label>
+                    <button type="button" class="weekly-report-range-apply" id="weeklyReportApplyRangeBtn">Apply</button>
+                </div>
+                <div class="weekly-report-status" id="weeklyReportStatus" hidden></div>
+                <div class="weekly-report-actions">
+                    <button type="button" class="weekly-report-action" id="weeklyReportDownloadBtn">Download PDF</button>
+                    <button type="button" class="weekly-report-action" id="weeklyReportEmailBtn">Email Snapshot</button>
+                    <button type="button" class="weekly-report-action" id="weeklyReportPrintBtn">Print</button>
+                    <button type="button" class="weekly-report-close" data-weekly-report-close aria-label="Close HR snapshot">&times;</button>
+                </div>
+            </div>
+
+            <div class="weekly-report-preview-shell">
+                <div class="weekly-report-loader" id="weeklyReportLoader" hidden>Loading HR snapshot...</div>
+                <iframe class="weekly-report-preview-frame" id="weeklyReportFrame" title="HR snapshot preview"></iframe>
+            </div>
+        </section>
+    </div>
 {% endblock %}
 
 {% block scripts %}
