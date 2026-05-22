@@ -2687,13 +2687,89 @@ const exportWrapper = document.createElement("div");
         const getRows = () => Array.from(tbody.querySelectorAll("tr.leave-row:not(.filter-hidden)"));
         const getTotalPages = () => Math.max(1, Math.ceil(getRows().length / rowsPerPage));
         let currentPage = Number.parseInt(panel.dataset.paginationPage || "1", 10) || 1;
+        const ensureModernEmptyRow = () =>
+        {
+            if (!emptyRow)
+            {
+                emptyRow = document.createElement("tr");
+                emptyRow.className = "table-empty-row";
+                tbody.appendChild(emptyRow);
+            }
+            if (emptyRow.querySelector(".mle-empty-state"))
+            {
+                return emptyRow;
+            }
+            const colCount = panelId === "pending-panel" ? 8 : panelId === "approved-panel" ? 8 : 9;
+            const emptyDefs = {
+                "pending-panel": {
+                    theme: "mle-pending",
+                    title: "Nothing in the Queue",
+                    message: "No pending leave requests right now. Apply when you need time off.",
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14" stroke-width="2" opacity="0.6"/><path d="M5 21h14" stroke-width="2" opacity="0.6"/><path d="M7 3v3c0 2.8 2.2 5 5 5s5-2.2 5-5V3" opacity="0.3"/><path d="M7 21v-3c0-2.8 2.2-5 5-5s5 2.2 5 5v3" opacity="0.3"/><circle cx="12" cy="12" r="0.8" fill="currentColor" opacity="0.6" class="mle-sand"/><circle cx="11.2" cy="17" r="0.5" fill="currentColor" opacity="0.4"/><circle cx="12.8" cy="17.5" r="0.5" fill="currentColor" opacity="0.4"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" opacity="0.5"/></svg>'
+                },
+                "approved-panel": {
+                    theme: "mle-approved",
+                    title: "All Clear Here",
+                    message: "No approved leaves to display. Approved requests will appear here.",
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" opacity="0.25" fill="currentColor"/><line x1="12" y1="1" x2="12" y2="4" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="12" y1="20" x2="12" y2="23" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="1" y1="12" x2="4" y2="12" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="20" y1="12" x2="23" y2="12" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34" stroke-width="1.5" opacity="0.35"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78" stroke-width="1.5" opacity="0.35"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66" stroke-width="1.5" opacity="0.35"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22" stroke-width="1.5" opacity="0.35"/><path d="m9 12 2 2 4-4" stroke-width="2.5" opacity="0.8" class="mle-check"/></svg>'
+                },
+                "rejected-panel": {
+                    theme: "mle-rejected",
+                    title: "Nothing Declined",
+                    message: "No rejected requests found. That's great - your requests are going through!",
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" opacity="0.2"/><polyline points="14 2 14 8 20 8" opacity="0.3"/><line x1="8" y1="13" x2="16" y2="13" opacity="0.15" stroke-width="1.2"/><line x1="8" y1="17" x2="12" y2="17" opacity="0.1" stroke-width="1.2"/><line x1="9" y1="9" x2="10" y2="9" opacity="0.1" stroke-width="1.2"/><line x1="9.5" y1="11.5" x2="14.5" y2="16.5" stroke-width="2.2" opacity="0.7" class="mle-cross"/><line x1="14.5" y1="11.5" x2="9.5" y2="16.5" stroke-width="2.2" opacity="0.7" class="mle-cross"/></svg>'
+                }
+            };
+            const def = emptyDefs[panelId] || emptyDefs["pending-panel"];
+            const emptyCell = document.createElement("td");
+            emptyCell.colSpan = colCount;
+            window.setSafeHTML(emptyCell, '<div class="mle-empty-state ' + def.theme + '">' +
+                '<div class="mle-particles">' +
+                    '<span class="mle-dot md1"></span>' +
+                    '<span class="mle-dot md2"></span>' +
+                    '<span class="mle-dot md3"></span>' +
+                    '<span class="mle-dot md4"></span>' +
+                    '<span class="mle-dot md5"></span>' +
+                    '<span class="mle-dot md6"></span>' +
+                    '<span class="mle-dot md7"></span>' +
+                    '<span class="mle-dot md8"></span>' +
+                '</div>' +
+                '<div class="mle-stars">' +
+                    '<span class="mle-star ms1">\u2726</span>' +
+                    '<span class="mle-star ms2">\u2727</span>' +
+                    '<span class="mle-star ms3">\u22C6</span>' +
+                    '<span class="mle-star ms4">\u2726</span>' +
+                    '<span class="mle-star ms5">\u2727</span>' +
+                    '<span class="mle-star ms6">\u22C6</span>' +
+                    '<span class="mle-star ms7">\u2726</span>' +
+                    '<span class="mle-star ms8">\u2727</span>' +
+                    '<span class="mle-star ms9">\u2734</span>' +
+                    '<span class="mle-star ms10">\u2726</span>' +
+                '</div>' +
+                '<div class="mle-core">' +
+                    '<div class="mle-visual">' +
+                        '<div class="mle-aura"></div>' +
+                        '<div class="mle-icon-anchor">' +
+                            '<div class="mle-icon-float">' + def.icon + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="mle-content">' +
+                        '<strong class="mle-title">' + def.title + '</strong>' +
+                        '<p class="mle-message">' + def.message + '</p>' +
+                    '</div>' +
+                '</div>' +
+            '</div>');
+            emptyRow.replaceChildren(emptyCell);
+            return emptyRow;
+        };
         const renderPage = () =>
         {
             const rows = getRows();
             if (rows.length === 0)
             {
                 wrapper.classList.add("is-empty");
-                if (emptyRow) emptyRow.hidden = false;
+                emptyRow = ensureModernEmptyRow();
+                emptyRow.hidden = false;
                 pagination.hidden = true;
                 pagination.classList.add("is-hidden");
                 panel.dataset.paginationPage = "1";
@@ -2729,74 +2805,8 @@ const exportWrapper = document.createElement("div");
         if (rows.length === 0)
         {
             wrapper.classList.add("is-empty");
-            if (!emptyRow)
-            {
-                emptyRow = document.createElement("tr");
-                emptyRow.className = "table-empty-row";
-                const colCount = panelId === "pending-panel" ? 8 : panelId === "approved-panel" ? 8 : 9;
-                const emptyDefs = {
-                    "pending-panel": {
-                        theme: "mle-pending",
-                        title: "Nothing in the Queue",
-                        message: "No pending leave requests right now. Apply when you need time off.",
-                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14" stroke-width="2" opacity="0.6"/><path d="M5 21h14" stroke-width="2" opacity="0.6"/><path d="M7 3v3c0 2.8 2.2 5 5 5s5-2.2 5-5V3" opacity="0.3"/><path d="M7 21v-3c0-2.8 2.2-5 5-5s5 2.2 5 5v3" opacity="0.3"/><circle cx="12" cy="12" r="0.8" fill="currentColor" opacity="0.6" class="mle-sand"/><circle cx="11.2" cy="17" r="0.5" fill="currentColor" opacity="0.4"/><circle cx="12.8" cy="17.5" r="0.5" fill="currentColor" opacity="0.4"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" opacity="0.5"/></svg>'
-                    },
-                    "approved-panel": {
-                        theme: "mle-approved",
-                        title: "All Clear Here",
-                        message: "No approved leaves to display. Approved requests will appear here.",
-                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" opacity="0.25" fill="currentColor"/><line x1="12" y1="1" x2="12" y2="4" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="12" y1="20" x2="12" y2="23" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="1" y1="12" x2="4" y2="12" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="20" y1="12" x2="23" y2="12" stroke-width="2" opacity="0.5" class="mle-ray"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34" stroke-width="1.5" opacity="0.35"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78" stroke-width="1.5" opacity="0.35"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66" stroke-width="1.5" opacity="0.35"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22" stroke-width="1.5" opacity="0.35"/><path d="m9 12 2 2 4-4" stroke-width="2.5" opacity="0.8" class="mle-check"/></svg>'
-                    },
-                    "rejected-panel": {
-                        theme: "mle-rejected",
-                        title: "Nothing Declined",
-                        message: "No rejected requests found. That\u2019s great \u2014 your requests are going through!",
-                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" opacity="0.2"/><polyline points="14 2 14 8 20 8" opacity="0.3"/><line x1="8" y1="13" x2="16" y2="13" opacity="0.15" stroke-width="1.2"/><line x1="8" y1="17" x2="12" y2="17" opacity="0.1" stroke-width="1.2"/><line x1="9" y1="9" x2="10" y2="9" opacity="0.1" stroke-width="1.2"/><line x1="9.5" y1="11.5" x2="14.5" y2="16.5" stroke-width="2.2" opacity="0.7" class="mle-cross"/><line x1="14.5" y1="11.5" x2="9.5" y2="16.5" stroke-width="2.2" opacity="0.7" class="mle-cross"/></svg>'
-                    }
-                };
-                const def = emptyDefs[panelId] || emptyDefs["pending-panel"];
-                const emptyCell = document.createElement("td");
-                emptyCell.colSpan = colCount;
-                window.setSafeHTML(emptyCell, '<div class="mle-empty-state ' + def.theme + '">' +
-                    '<div class="mle-particles">' +
-                        '<span class="mle-dot md1"></span>' +
-                        '<span class="mle-dot md2"></span>' +
-                        '<span class="mle-dot md3"></span>' +
-                        '<span class="mle-dot md4"></span>' +
-                        '<span class="mle-dot md5"></span>' +
-                        '<span class="mle-dot md6"></span>' +
-                        '<span class="mle-dot md7"></span>' +
-                        '<span class="mle-dot md8"></span>' +
-                    '</div>' +
-                    '<div class="mle-stars">' +
-                        '<span class="mle-star ms1">\u2726</span>' +
-                        '<span class="mle-star ms2">\u2727</span>' +
-                        '<span class="mle-star ms3">\u22C6</span>' +
-                        '<span class="mle-star ms4">\u2726</span>' +
-                        '<span class="mle-star ms5">\u2727</span>' +
-                        '<span class="mle-star ms6">\u22C6</span>' +
-                        '<span class="mle-star ms7">\u2726</span>' +
-                        '<span class="mle-star ms8">\u2727</span>' +
-                        '<span class="mle-star ms9">\u2734</span>' +
-                        '<span class="mle-star ms10">\u2726</span>' +
-                    '</div>' +
-                    '<div class="mle-core">' +
-                        '<div class="mle-visual">' +
-                            '<div class="mle-aura"></div>' +
-                            '<div class="mle-icon-anchor">' +
-                                '<div class="mle-icon-float">' + def.icon + '</div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="mle-content">' +
-                            '<strong class="mle-title">' + def.title + '</strong>' +
-                            '<p class="mle-message">' + def.message + '</p>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>');
-                emptyRow.replaceChildren(emptyCell);
-                tbody.appendChild(emptyRow);
-            }
-            if (emptyRow) emptyRow.hidden = false;
+            emptyRow = ensureModernEmptyRow();
+            emptyRow.hidden = false;
             pagination.hidden = true;
             pagination.classList.add("is-hidden");
             return;

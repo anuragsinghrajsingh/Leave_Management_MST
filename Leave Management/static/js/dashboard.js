@@ -414,6 +414,16 @@ function renderLeaveCard(leave, isNew) {
     `;
 }
 
+function getRecentActivityEmptyHtml() {
+    return `
+        <div class="dashboard-empty-state dashboard-recent-empty-state">
+            <span class="dashboard-empty-icon" aria-hidden="true">&#9881;</span>
+            <strong>No recent activity</strong>
+            <p>Your latest leave requests and status changes will appear here.</p>
+        </div>
+    `;
+}
+
 function formatIndiaTime(value) {
     if (!value) return "--";
 
@@ -441,9 +451,10 @@ function formatIndiaTime(value) {
 
 function renderActivityLeaves(container, leaves) {
     container.innerHTML = "";
+    container.classList.toggle("is-empty", !leaves || leaves.length === 0);
 
     if (!leaves || leaves.length === 0) {
-        container.innerHTML = "<p class='empty-state'>No recent activity</p>";
+        container.innerHTML = getRecentActivityEmptyHtml();
         return;
     }
 
@@ -673,9 +684,9 @@ function getEmptyLeaveCardHtml(variant, cardKind = "upcoming") {
         ? (isLast ? "No full leave recorded" : "No full leave planned")
         : (isLast ? "No time leave recorded" : "No time leave planned");
     const text = isFull
-        ? (isLast ? "Your previous sick, earned, and unpaid leave history will appear here." : "Sick, earned, and unpaid approvals will appear here.")
+        ? (isLast ? "<span class=\"dashboard-empty-full-history-line\">Your previous sick, earned, and unpaid</span><span class=\"dashboard-empty-full-history-line\">leave history will appear here.</span>" : "Sick, earned, and unpaid approvals will appear here.")
         : (isLast ? "<span class=\"dashboard-empty-short-history-line\">Your previous short and half-day</span><span class=\"dashboard-empty-short-history-line\">leave history will appear here.</span>" : "Short and half-day approvals will appear here.");
-    const textClass = !isFull && isLast ? " class=\"dashboard-empty-short-history\"" : "";
+    const textClass = isLast ? ` class="${isFull ? "dashboard-empty-full-history" : "dashboard-empty-short-history"}"` : "";
 
     return `
         <div class="card-top">
@@ -1207,6 +1218,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     updateNewBadges();
     normalizeBalanceCardNumbers();
+    const activityContainer = document.getElementById("activityContainer");
+    if (activityContainer) {
+        activityContainer.classList.toggle("is-empty", !activityContainer.querySelector(".activity-card"));
+    }
     setTimeout(normalizeBalanceCardNumbers, 1800);
     setTimeout(normalizeBalanceCardNumbers, 2600);
     animateLeaveProgress();

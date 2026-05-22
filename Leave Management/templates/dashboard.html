@@ -489,7 +489,10 @@
                                         <div class="dashboard-empty-state">
                                             <span class="dashboard-empty-icon" aria-hidden="true">&#9670;</span>
                                             <strong>No full leave recorded</strong>
-                                            <p>Your previous sick, earned, and unpaid leave history will appear here.</p>
+                                            <p class="dashboard-empty-full-history">
+                                                <span>Your previous sick, earned, and unpaid</span>
+                                                <span>leave history will appear here.</span>
+                                            </p>
                                         </div>
                                     {% endif %}
                                 </div>
@@ -569,12 +572,16 @@
                                 </div>
                                 </div>
                             {% empty %}
-                                <p class="empty-state">No recent activity</p>
+                                <div class="dashboard-empty-state dashboard-recent-empty-state">
+                                    <span class="dashboard-empty-icon" aria-hidden="true">&#9881;</span>
+                                    <strong>No recent activity</strong>
+                                    <p>Your latest leave requests and status changes will appear here.</p>
+                                </div>
                             {% endfor %}
                         </div>
                     </div>
 
-                    <div class="pagination" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
+                    <div class="pagination{% if not has_prev and not has_next %} hidden{% endif %}" data-has-prev="{{ has_prev|yesno:'true,false' }}" data-has-next="{{ has_next|yesno:'true,false' }}">
                         <button class="first-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-first-page"><span class="page-btn-icon" aria-hidden="true">«</span><span>First</span></button>
                         <button class="prev-btn" {% if not has_prev %}disabled{% endif %} data-action="dashboard-prev-page"><span class="page-btn-icon" aria-hidden="true">‹</span><span>Prev</span></button>
                         <span id="pageNumber">Page {{ context_current_page }} of {{ context_total_pages }}</span>
