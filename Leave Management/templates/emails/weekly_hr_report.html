@@ -75,7 +75,9 @@
         .weekly-report-employee-option:hover { background: #eff6ff; }
         .weekly-report-employee-option input { width: 15px; height: 15px; accent-color: #2563eb; flex: 0 0 auto; }
         .weekly-report-employee-actions { display: flex; gap: 8px; padding: 8px 4px 2px; position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0.92), #ffffff); }
-        .weekly-report-employee-action { flex: 1; border: 0; border-radius: 8px; padding: 8px 10px; color: white; font-size: 15px; font-weight: 900; cursor: pointer; }
+        .weekly-report-employee-action { flex: 1; border: 0; border-radius: 8px; padding: 8px 10px; color: white; font-size: 15px; font-weight: 900; cursor: pointer; transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease; }
+        .weekly-report-employee-action:hover:not(:disabled),
+        .weekly-report-employee-action:focus-visible:not(:disabled) { transform: translateY(-1px); filter: saturate(1.12); box-shadow: 0 12px 22px rgba(15, 23, 42, 0.16); }
         .weekly-report-employee-action:disabled { cursor: not-allowed; opacity: 0.45; filter: grayscale(0.35); box-shadow: none; }
         .weekly-report-employee-apply { background: linear-gradient(135deg, #2563eb, #06b6d4); }
         .weekly-report-employee-clear { background: linear-gradient(135deg, #64748b, #334155); }

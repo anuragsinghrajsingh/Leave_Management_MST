@@ -231,7 +231,7 @@ body.weekly-report-modal-open
 
 .weekly-report-custom-range input
 {
-    height: 36px;
+    height: 33px;
     min-width: 142px;
     border: 1px solid rgba(100, 116, 139, 0.22);
     border-radius: 8px;
@@ -243,10 +243,11 @@ body.weekly-report-modal-open
 
 .weekly-report-range-apply
 {
-    height: 36px;
+    height: 32px;
     border: 1px solid rgba(37, 99, 235, 0.28);
     border-radius: 8px;
-    padding: 0 12px;
+    min-width: 72px;
+    padding: 0 16px;
     background: linear-gradient(135deg, #2563eb, #38bdf8);
     color: #ffffff;
     font-weight: 900;
@@ -259,6 +260,14 @@ body.weekly-report-modal-open
 {
     transform: translateY(-1px);
     box-shadow: 0 16px 30px rgba(37, 99, 235, 0.24);
+    filter: saturate(1.08);
+}
+
+.weekly-report-range-apply:focus-visible
+{
+    outline: 0;
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 16px 30px rgba(37, 99, 235, 0.24);
     filter: saturate(1.08);
 }
 
@@ -363,6 +372,7 @@ body.weekly-report-modal-open
     border-radius: 8px;
     font-size: 0.92rem;
     text-align: right;
+    white-space: nowrap;
 }
 
 .weekly-report-status.is-success
@@ -3962,12 +3972,20 @@ body
 
     .weekly-report-custom-range
     {
-        grid-template-columns: auto 118px auto 118px max-content !important;
+        display: flex !important;
+        flex-wrap: wrap;
+        flex: 0 0 auto !important;
+        min-height: 0;
+        justify-content: flex-start;
+        gap: 5px;
     }
 
     .weekly-report-custom-range label
     {
-        display: contents;
+        display: inline-flex;
+        align-items: center;
+        gap: 1px;
+        flex: 0 0 auto;
     }
 
     .weekly-report-custom-range label span
@@ -3978,7 +3996,7 @@ body
 
     .weekly-report-custom-range label + label span
     {
-        margin-left: 6px;
+        margin-left: 7px;
     }
 
     .weekly-report-custom-range input
@@ -4013,6 +4031,7 @@ body
         height: 30px;
         min-height: 30px;
         justify-self: start;
+        margin-left: 4px;
         padding: 0 8px;
     }
 
@@ -4055,12 +4074,15 @@ body
     .weekly-report-status
     {
         width: 100%;
+        flex: 0 0 100%;
         box-sizing: border-box;
-        margin: -3px 0 0;
+        margin: 2px 0 0;
         padding: 4px 7px;
         font-size: 0.74rem;
         line-height: 1.15;
         border-radius: 7px;
+        text-align: left;
+        white-space: nowrap;
     }
 
     .weekly-report-preview-shell
