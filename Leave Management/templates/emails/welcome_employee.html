@@ -11,7 +11,16 @@
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 22px 50px rgba(15, 23, 42, 0.14);">
                     <tr>
                         <td style="padding:30px 30px 24px; background:linear-gradient(135deg, #0f766e, #2563eb 55%, #7c3aed); color:#ffffff;">
-                            <div style="font-size:13px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; opacity:0.9;">MS Technology</div>
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                                <tr>
+                                    <td style="vertical-align:middle; padding:0 12px 0 0;">
+                                        <img src="cid:{{ logo_cid }}" alt="MS Technology logo" width="42" height="42" style="display:block; width:42px; height:42px; border-radius:12px;">
+                                    </td>
+                                    <td style="vertical-align:middle;">
+                                        <div style="font-size:30px; font-weight:1000; letter-spacing:0.08em; text-transform:uppercase; opacity:0.98;">MS Technology</div>
+                                    </td>
+                                </tr>
+                            </table>
                             <h1 style="margin:12px 0 0; font-size:30px; line-height:1.2;">Welcome, {{ display_name }}!</h1>
                             <p style="margin:10px 0 0; font-size:16px; line-height:1.6; opacity:0.94;">Your employee profile has been created successfully.</p>
                         </td>
@@ -33,6 +42,27 @@
                                     <td style="padding:12px 14px; border:1px solid #e2e8f0;">{{ profile.date_of_joining|date:"d M Y" }}</td>
                                 </tr>
                             </table>
+                            <div style="margin:0 0 22px; padding:18px; border-radius:16px; background:linear-gradient(135deg, #ecfeff, #eef2ff); border:1px solid #c7d2fe;">
+                                <h2 style="margin:0 0 12px; font-size:18px; color:#1e40af;">Assigned Leave</h2>
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                                    <tr>
+                                        <td style="padding:10px 12px; font-weight:800; color:#0f766e;">Total Leave</td>
+                                        <td style="padding:10px 12px; text-align:right; font-weight:800; color:#172033;">{{ leave_summary.total }} days</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px 12px; font-weight:800; color:#dc2626;">Sick Leave</td>
+                                        <td style="padding:10px 12px; text-align:right; font-weight:800; color:#172033;">{{ leave_summary.sick_total }} days</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px 12px; font-weight:800; color:#16a34a;">Earned Leave</td>
+                                        <td style="padding:10px 12px; text-align:right; font-weight:800; color:#172033;">{{ leave_summary.earned_total }} days</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px 12px; font-weight:800; color:#2563eb;">Current Remaining Balance</td>
+                                        <td style="padding:10px 12px; text-align:right; font-weight:800; color:#172033;">{{ leave_summary.remaining }} days</td>
+                                    </tr>
+                                </table>
+                            </div>
                             <a href="{{ portal_url }}" style="display:inline-block; padding:12px 18px; border-radius:10px; background:linear-gradient(135deg, #0f766e, #2563eb); color:#ffffff; text-decoration:none; font-weight:800;">Open Employee Portal</a>
                             <p style="margin:22px 0 0; font-size:13px; color:#64748b;">Sent on {{ sent_at|date:"d M Y, h:i A" }}</p>
                         </td>

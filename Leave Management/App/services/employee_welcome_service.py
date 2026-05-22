@@ -1,4 +1,6 @@
 import logging
+import os
+from email.mime.image import MIMEImage
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -12,6 +14,7 @@ from App.services.email_delivery_log import record_email_delivery
 
 
 logger = logging.getLogger("lms_email")
+WELCOME_LOGO_CID = "welcome_logo"
 
 
 def _employee_display_name(user):
@@ -25,7 +28,37 @@ def _portal_url():
     return reverse("employee_login")
 
 
-def _build_welcome_body(user, profile):
+def _format_leave_value(value):
+    try:
+        numeric_value = float(value or 0)
+    except (TypeError, ValueError):
+        numeric_value = 0
+    return f"{numeric_value:g}"
+
+
+def _get_leave_summary(user):
+    try:
+        balance = user.leavebalance
+    except Exception:
+        balance = None
+
+    if not balance:
+        return {
+            "total": "0",
+            "remaining": "0",
+            "sick_total": "0",
+            "earned_total": "0",
+        }
+
+    return {
+        "total": _format_leave_value(balance.total_leave_balance),
+        "remaining": _format_leave_value(balance.total_leave_remaining),
+        "sick_total": _format_leave_value(balance.sick_total),
+        "earned_total": _format_leave_value(balance.earned_total),
+    }
+
+
+def _build_welcome_body(user, profile, leave_summary):
     employee_id = getattr(profile, "employee_id", "") or "your employee ID"
     department = getattr(profile, "department", "") or "your department"
     joining_date = getattr(profile, "date_of_joining", None)
@@ -37,6 +70,11 @@ def _build_welcome_body(user, profile):
         f"Employee ID: {employee_id}\n"
         f"Department: {department}\n"
         f"Date of joining: {joining_text}\n\n"
+        "Assigned leave:\n"
+        f"Total leave: {leave_summary['total']} days\n"
+        f"Sick leave: {leave_summary['sick_total']} days\n"
+        f"Earned leave: {leave_summary['earned_total']} days\n"
+        f"Current remaining balance: {leave_summary['remaining']} days\n\n"
         "You can now log in to the employee portal and start using the leave management system."
     )
 
@@ -62,7 +100,8 @@ def send_employee_welcome_package(employee, triggered_by=None):
         sender = employee
 
     title = "Welcome to MS Technology"
-    body = _build_welcome_body(employee, profile)
+    leave_summary = _get_leave_summary(employee)
+    body = _build_welcome_body(employee, profile, leave_summary)
     email_sent = False
     email_error = ""
 
@@ -87,9 +126,11 @@ def send_employee_welcome_package(employee, triggered_by=None):
         context = {
             "employee": employee,
             "profile": profile,
+            "leave_summary": leave_summary,
             "display_name": _employee_display_name(employee),
             "portal_url": _portal_url(),
             "sent_at": localtime(now()),
+            "logo_cid": WELCOME_LOGO_CID,
         }
         html_body = render_to_string("emails/welcome_employee.html", context)
 
@@ -101,6 +142,13 @@ def send_employee_welcome_package(employee, triggered_by=None):
                 to=[employee.email],
             )
             email.attach_alternative(html_body, "text/html")
+            logo_path = os.path.join(settings.BASE_DIR, "static", "images", "ms-technology-logo.png")
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as logo_file:
+                    logo = MIMEImage(logo_file.read())
+                    logo.add_header("Content-ID", f"<{WELCOME_LOGO_CID}>")
+                    logo.add_header("Content-Disposition", "inline", filename="ms-technology-logo.png")
+                    email.attach(logo)
             email.send(fail_silently=False)
             email_sent = True
             record_email_delivery(
