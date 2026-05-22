@@ -374,6 +374,7 @@
                             </svg>
                         </div>
                         <input type="text" id="reportSearch" placeholder="Search by name, ID, mobile no., or department...">
+                        <button type="button" class="search-clear-btn" id="reportSearchClear" aria-label="Clear search" hidden>&times;</button>
                     </div>
                     <span class="panel-count table-toolbar-count table-toolbar-count-desktop" id="visibleReportCountToolbar" data-countup data-countup-target="{{ report_employee_count }}" data-countup-suffix=" employee{{ report_employee_count|pluralize:'s' }}">{{ report_employee_count }} employee{{ report_employee_count|pluralize:"s" }}</span>
                     <span class="panel-count table-toolbar-count table-toolbar-count-mobile" id="visibleReportCountMobile" data-countup data-countup-target="{{ report_employee_count }}">{{ report_employee_count }}</span>
@@ -431,12 +432,54 @@
                 </div>
                 <div class="weekly-report-custom-range" id="weeklyReportCustomRange" hidden>
                     <label>
-                        <span>From</span>
-                        <input type="date" id="weeklyReportStartDate">
+                        <span>From:</span>
+                        <div class="weekly-report-date-picker weekly-report-date-picker-from custom-date-picker" data-weekly-report-date-picker>
+                            <input type="hidden" id="weeklyReportStartDate">
+                            <div class="date-display">
+                                <div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">
+                                    <span class="date-value">dd-mm-yyyy</span>
+                                    <span class="date-icon" aria-hidden="true"></span>
+                                </div>
+                            </div>
+                            <div class="date-menu" role="dialog" aria-label="From date calendar">
+                                <div class="date-menu-header">
+                                    <button type="button" class="date-nav prev-month" aria-label="Previous month">&#8249;</button>
+                                    <div class="date-current"></div>
+                                    <button type="button" class="date-nav next-month" aria-label="Next month">&#8250;</button>
+                                </div>
+                                <div class="date-weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                                <div class="date-grid"></div>
+                                <div class="date-actions">
+                                    <button type="button" class="date-action today-action">Today</button>
+                                    <button type="button" class="date-action clear-action">Clear</button>
+                                </div>
+                            </div>
+                        </div>
                     </label>
                     <label>
-                        <span>To</span>
-                        <input type="date" id="weeklyReportEndDate">
+                        <span>To:</span>
+                        <div class="weekly-report-date-picker weekly-report-date-picker-to custom-date-picker" data-weekly-report-date-picker>
+                            <input type="hidden" id="weeklyReportEndDate">
+                            <div class="date-display">
+                                <div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">
+                                    <span class="date-value">dd-mm-yyyy</span>
+                                    <span class="date-icon" aria-hidden="true"></span>
+                                </div>
+                            </div>
+                            <div class="date-menu" role="dialog" aria-label="To date calendar">
+                                <div class="date-menu-header">
+                                    <button type="button" class="date-nav prev-month" aria-label="Previous month">&#8249;</button>
+                                    <div class="date-current"></div>
+                                    <button type="button" class="date-nav next-month" aria-label="Next month">&#8250;</button>
+                                </div>
+                                <div class="date-weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                                <div class="date-grid"></div>
+                                <div class="date-actions">
+                                    <button type="button" class="date-action today-action">Today</button>
+                                    <button type="button" class="date-action clear-action">Clear</button>
+                                </div>
+                            </div>
+                        </div>
                     </label>
                     <button type="button" class="weekly-report-range-apply" id="weeklyReportApplyRangeBtn">Apply</button>
                     <div class="weekly-report-status" id="weeklyReportStatus" hidden></div>

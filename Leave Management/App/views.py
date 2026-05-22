@@ -3196,22 +3196,25 @@ def _get_weekly_report_context_from_request(request):
         week = "current"
 
     if week == "custom":
+        start_raw = (request.GET.get("start") or request.POST.get("start") or "").strip()
+        end_raw = (request.GET.get("end") or request.POST.get("end") or "").strip()
         try:
-            start_day = datetime.strptime((request.GET.get("start") or request.POST.get("start") or "").strip(), "%Y-%m-%d").date()
-            end_day = datetime.strptime((request.GET.get("end") or request.POST.get("end") or "").strip(), "%Y-%m-%d").date()
+            start_day = datetime.strptime(start_raw, "%Y-%m-%d").date()
+            end_day = datetime.strptime(end_raw, "%Y-%m-%d").date()
         except ValueError:
-            start_day = None
-            end_day = None
+            raise ValueError("Choose both valid from and to dates for the custom report.")
 
-        if start_day and end_day and start_day <= end_day:
-            return build_weekly_hr_report_context(
-                week=week,
-                start_day=start_day,
-                end_day=end_day,
-                employee_id=selected_employee_id,
-                employee_ids=selected_employee_ids if len(selected_employee_ids) > 1 else None,
-                include_system_health=False,
-            ), week
+        if end_day < start_day:
+            raise ValueError("To date cannot be earlier than from date.")
+
+        return build_weekly_hr_report_context(
+            week=week,
+            start_day=start_day,
+            end_day=end_day,
+            employee_id=selected_employee_id,
+            employee_ids=selected_employee_ids if len(selected_employee_ids) > 1 else None,
+            include_system_health=False,
+        ), week
 
     return build_weekly_hr_report_context(
         week=week,
@@ -3229,7 +3232,10 @@ def weekly_report_preview(request):
 
     from App.services.weekly_report_service import render_weekly_hr_report_html
 
-    context, week = _get_weekly_report_context_from_request(request)
+    try:
+        context, week = _get_weekly_report_context_from_request(request)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "detail": str(exc)}, status=400)
     context["limit_activity_scroll"] = True
     html = render_weekly_hr_report_html(context)
     return JsonResponse({
@@ -3249,7 +3255,10 @@ def weekly_report_download(request):
 
     from App.services.weekly_report_service import generate_weekly_hr_report_pdf_bytes
 
-    context, _week = _get_weekly_report_context_from_request(request)
+    try:
+        context, _week = _get_weekly_report_context_from_request(request)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400)
     pdf_bytes = generate_weekly_hr_report_pdf_bytes(context=context)
     filename = f"weekly_hr_report_{context['period_start_iso']}_to_{context['period_end_iso']}.pdf"
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
@@ -3268,7 +3277,10 @@ def weekly_report_email(request):
 
     from App.services.weekly_report_service import send_weekly_hr_report
 
-    context, week = _get_weekly_report_context_from_request(request)
+    try:
+        context, week = _get_weekly_report_context_from_request(request)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "message": str(exc), "detail": str(exc)}, status=400)
     sent = send_weekly_hr_report(context=context, week=week)
     if sent:
         return JsonResponse({

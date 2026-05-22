@@ -2,6 +2,7 @@
     "use strict";
 
     const reportSearchInput = document.getElementById("reportSearch");
+    const reportSearchClear = document.getElementById("reportSearchClear");
     const reportTableBody = document.getElementById("reportTableBody");
     const reportSearchEmpty = document.getElementById("reportSearchEmpty");
     const visibleReportCount = document.getElementById("visibleReportCount");
@@ -51,6 +52,7 @@
     let activeWeeklyReportEmployeeIds = [];
     let weeklyReportLoaded = false;
     let isSyncingWeeklyReportEmployeeFilter = false;
+    let weeklyReportStatusTimer = null;
     const reportRowsPerPage = 5;
 
     function getCsrfToken() {
@@ -78,10 +80,23 @@
     function setWeeklyReportStatus(message, isError) {
         if (!weeklyReportStatus) return;
 
+        const customRangeHint = "Choose a date range, then click Apply.";
+        window.clearTimeout(weeklyReportStatusTimer);
         weeklyReportStatus.textContent = message || "";
         weeklyReportStatus.hidden = !message;
         weeklyReportStatus.classList.toggle("is-error", !!isError);
         weeklyReportStatus.classList.toggle("is-success", !!message && !isError);
+        if (message && isError) {
+            weeklyReportStatusTimer = window.setTimeout(function () {
+                if (activeWeeklyReportWeek === "custom") {
+                    setWeeklyReportStatus(customRangeHint, false);
+                } else {
+                    weeklyReportStatus.textContent = "";
+                    weeklyReportStatus.hidden = true;
+                    weeklyReportStatus.classList.remove("is-error", "is-success");
+                }
+            }, 5000);
+        }
     }
 
     function setWeeklyReportLoading(isLoading) {
@@ -102,6 +117,241 @@
             weeklyReportCustomRange.hidden = activeWeeklyReportWeek !== "custom";
         }
     }
+
+    function parseWeeklyReportDate(value) {
+        if (!value) return null;
+        const parts = String(value).split("-").map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function formatWeeklyReportValueDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatWeeklyReportDisplayDate(date) {
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        return `${day}-${month}-${date.getFullYear()}`;
+    }
+
+    function closeWeeklyReportDatePickers(exceptPicker) {
+        document.querySelectorAll("[data-weekly-report-date-picker].open").forEach(function (picker) {
+            if (picker === exceptPicker) return;
+            picker.classList.remove("open", "open-up");
+            picker.querySelector(".date-trigger")?.setAttribute("aria-expanded", "false");
+        });
+    }
+
+    function syncWeeklyReportCustomRangeDates(changedInput) {
+        if (!weeklyReportStartDate || !weeklyReportEndDate) return;
+
+        if (changedInput === weeklyReportStartDate && weeklyReportStartDate.value && weeklyReportEndDate.value && weeklyReportEndDate.value < weeklyReportStartDate.value) {
+            weeklyReportEndDate.value = "";
+            const toPicker = weeklyReportEndDate.closest("[data-weekly-report-date-picker]");
+            if (toPicker) {
+                toPicker._viewDate = getWeeklyReportPickerViewDate(toPicker);
+                syncWeeklyReportDatePicker(toPicker);
+                renderWeeklyReportDatePicker(toPicker);
+            }
+            setWeeklyReportStatus("To date was reset because it cannot be before From date.", true);
+        }
+
+        document.querySelectorAll("[data-weekly-report-date-picker]").forEach(renderWeeklyReportDatePicker);
+    }
+
+    function syncWeeklyReportDatePicker(picker) {
+        const input = picker ? picker.querySelector("input") : null;
+        const valueElement = picker ? picker.querySelector(".date-value") : null;
+        const selectedDate = parseWeeklyReportDate(input ? input.value : "");
+        if (valueElement) valueElement.textContent = selectedDate ? formatWeeklyReportDisplayDate(selectedDate) : "dd-mm-yyyy";
+    }
+
+    function getWeeklyReportPickerViewDate(picker) {
+        const input = picker ? picker.querySelector("input") : null;
+        const selectedDate = parseWeeklyReportDate(input ? input.value : "");
+        const sourceDate = selectedDate || new Date();
+        return new Date(sourceDate.getFullYear(), sourceDate.getMonth(), 1);
+    }
+
+    function renderWeeklyReportDatePicker(picker) {
+        if (!picker) return;
+        const input = picker.querySelector("input");
+        const currentLabel = picker.querySelector(".date-current");
+        const grid = picker.querySelector(".date-grid");
+        const selectedDate = parseWeeklyReportDate(input ? input.value : "");
+        const fromDate = parseWeeklyReportDate(weeklyReportStartDate ? weeklyReportStartDate.value : "");
+        const isToDatePicker = input && input.id === "weeklyReportEndDate";
+        const today = new Date();
+        const viewDate = picker._viewDate || getWeeklyReportPickerViewDate(picker);
+        picker._viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+        const monthStart = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth(), 1);
+        const monthEnd = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() + 1, 0);
+        const firstDayIndex = (monthStart.getDay() + 6) % 7;
+
+        if (currentLabel) {
+            currentLabel.textContent = monthStart.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        }
+        if (!grid) return;
+        grid.innerHTML = "";
+
+        for (let i = 0; i < firstDayIndex; i += 1) {
+            const blankCell = document.createElement("button");
+            blankCell.type = "button";
+            blankCell.className = "date-day muted";
+            blankCell.disabled = true;
+            grid.appendChild(blankCell);
+        }
+
+        for (let day = 1; day <= monthEnd.getDate(); day += 1) {
+            const date = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth(), day);
+            const dayButton = document.createElement("button");
+            dayButton.type = "button";
+            dayButton.className = "date-day";
+            dayButton.textContent = String(day);
+
+            const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isSelected = selectedDate && date.getFullYear() === selectedDate.getFullYear() && date.getMonth() === selectedDate.getMonth() && date.getDate() === selectedDate.getDate();
+            const isBlockedBeforeFrom = isToDatePicker && fromDate && date < fromDate;
+
+            if (isToday) dayButton.classList.add("today");
+            if (isWeekend) dayButton.classList.add("weekend");
+            if (isSelected) dayButton.classList.add("selected");
+            if (isBlockedBeforeFrom) {
+                dayButton.classList.add("muted");
+                dayButton.disabled = true;
+                dayButton.title = "To date cannot be before From date";
+            }
+
+            dayButton.addEventListener("click", function () {
+                if (dayButton.disabled) return;
+                if (input) input.value = formatWeeklyReportValueDate(date);
+                picker._viewDate = new Date(date.getFullYear(), date.getMonth(), 1);
+                syncWeeklyReportDatePicker(picker);
+                syncWeeklyReportCustomRangeDates(input);
+                closeWeeklyReportDatePickers();
+            });
+
+            grid.appendChild(dayButton);
+        }
+    }
+
+    function buildWeeklyReportDatePickers() {
+        document.querySelectorAll("[data-weekly-report-date-picker]").forEach(function (picker) {
+            if (picker.dataset.weeklyReportDateBound === "1") return;
+            picker.dataset.weeklyReportDateBound = "1";
+            const trigger = picker.querySelector(".date-trigger");
+            const prevButton = picker.querySelector(".prev-month");
+            const nextButton = picker.querySelector(".next-month");
+            const todayButton = picker.querySelector(".today-action");
+            const clearButton = picker.querySelector(".clear-action");
+            const input = picker.querySelector("input");
+
+            picker._viewDate = getWeeklyReportPickerViewDate(picker);
+            syncWeeklyReportDatePicker(picker);
+            renderWeeklyReportDatePicker(picker);
+
+            function openPicker() {
+                const isOpen = picker.classList.contains("open");
+                closeWeeklyReportDatePickers(picker);
+                if (isOpen) {
+                    picker.classList.remove("open", "open-up");
+                    trigger?.setAttribute("aria-expanded", "false");
+                    return;
+                }
+                picker._openedAt = Date.now();
+                picker._viewDate = getWeeklyReportPickerViewDate(picker);
+                const menu = picker.querySelector(".date-menu");
+                const rect = picker.getBoundingClientRect();
+                const menuHeight = menu ? Math.max(menu.offsetHeight || 0, 318) : 318;
+                const spaceBelow = window.innerHeight - rect.bottom - 18;
+                const spaceAbove = rect.top - 18;
+                picker.classList.toggle("open-up", spaceAbove >= menuHeight || spaceAbove >= spaceBelow);
+                trigger?.setAttribute("aria-expanded", "true");
+                renderWeeklyReportDatePicker(picker);
+                positionWeeklyReportMobileDateMenu(picker);
+                picker.classList.add("open");
+            }
+
+            trigger?.addEventListener("click", openPicker);
+            trigger?.addEventListener("keydown", function (event) {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openPicker();
+                }
+            });
+            prevButton?.addEventListener("click", function () {
+                if (picker._openedAt && Date.now() - picker._openedAt < 250) return;
+                picker._viewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() - 1, 1);
+                renderWeeklyReportDatePicker(picker);
+            });
+            nextButton?.addEventListener("click", function () {
+                if (picker._openedAt && Date.now() - picker._openedAt < 250) return;
+                picker._viewDate = new Date(picker._viewDate.getFullYear(), picker._viewDate.getMonth() + 1, 1);
+                renderWeeklyReportDatePicker(picker);
+            });
+            todayButton?.addEventListener("click", function () {
+                const today = new Date();
+                if (input) input.value = formatWeeklyReportValueDate(today);
+                picker._viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                syncWeeklyReportDatePicker(picker);
+                syncWeeklyReportCustomRangeDates(input);
+                closeWeeklyReportDatePickers();
+            });
+            clearButton?.addEventListener("click", function () {
+                if (input) input.value = "";
+                picker._viewDate = getWeeklyReportPickerViewDate(picker);
+                syncWeeklyReportDatePicker(picker);
+                syncWeeklyReportCustomRangeDates(input);
+                closeWeeklyReportDatePickers();
+            });
+        });
+    }
+
+    function positionWeeklyReportMobileDateMenu(picker) {
+        if (!picker || !window.matchMedia("(max-width: 760px)").matches) return;
+
+        const menu = picker.querySelector(".date-menu");
+        if (!menu) return;
+
+        const margin = 10;
+        const gap = 8;
+        const rect = picker.getBoundingClientRect();
+        const dialog = picker.closest(".weekly-report-dialog");
+        const bounds = dialog ? dialog.getBoundingClientRect() : {
+            left: 0,
+            right: window.innerWidth,
+            top: 0,
+            bottom: window.innerHeight,
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
+        const menuWidth = Math.min(250, bounds.width - (margin * 2));
+        const naturalHeight = menu.scrollHeight || 318;
+        const maxHeight = Math.min(naturalHeight, bounds.height - (margin * 2));
+        const spaceBelow = bounds.bottom - rect.bottom - gap - margin;
+        const spaceAbove = rect.top - bounds.top - gap - margin;
+        const shouldOpenUp = spaceBelow < maxHeight && spaceAbove > spaceBelow;
+
+        let top = shouldOpenUp ? rect.top - gap - maxHeight : rect.bottom + gap;
+        top = Math.max(bounds.top + margin, Math.min(top, bounds.bottom - maxHeight - margin));
+
+        let left = rect.left;
+        left = Math.max(bounds.left + margin, Math.min(left, bounds.right - menuWidth - margin));
+        const pointerLeft = Math.max(18, Math.min(rect.left + (rect.width / 2) - left, menuWidth - 18));
+
+        menu.style.setProperty("--weekly-report-date-menu-top", `${Math.round(top)}px`);
+        menu.style.setProperty("--weekly-report-date-menu-left", `${Math.round(left)}px`);
+        menu.style.setProperty("--weekly-report-date-menu-width", `${Math.round(menuWidth)}px`);
+        menu.style.setProperty("--weekly-report-date-menu-max-height", `${Math.round(maxHeight)}px`);
+        menu.style.setProperty("--weekly-report-date-pointer-left", `${Math.round(pointerLeft)}px`);
+        menu.classList.toggle("opens-up", shouldOpenUp);
+    }
+
 
     function getWeeklyReportEmployeeControls(frameDocument) {
         const filter = frameDocument ? frameDocument.getElementById("weeklyReportEmployeeFilter") : null;
@@ -549,10 +799,31 @@
     }
 
     if (reportSearchInput) {
+        function syncReportSearchClear() {
+            if (reportSearchClear) {
+                reportSearchClear.hidden = !String(reportSearchInput.value || "").trim();
+            }
+        }
+
         reportSearchInput.addEventListener("input", function () {
+            syncReportSearchClear();
             runReportSurfaceTransition(reportTablePanel, function () {
                 reportCurrentPage = 1;
                 filterReportRows(reportSearchInput.value);
+            });
+        });
+
+        syncReportSearchClear();
+    }
+
+    if (reportSearchClear && reportSearchInput) {
+        reportSearchClear.addEventListener("click", function () {
+            reportSearchInput.value = "";
+            reportSearchClear.hidden = true;
+            reportSearchInput.focus();
+            runReportSurfaceTransition(reportTablePanel, function () {
+                reportCurrentPage = 1;
+                filterReportRows("");
             });
         });
     }
@@ -750,6 +1021,20 @@
     if (weeklyReportOpenBtn) {
         weeklyReportOpenBtn.addEventListener("click", openWeeklyReportModal);
     }
+
+    buildWeeklyReportDatePickers();
+
+    document.addEventListener("click", function (event) {
+        if (!event.target.closest("[data-weekly-report-date-picker]")) {
+            closeWeeklyReportDatePickers();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            closeWeeklyReportDatePickers();
+        }
+    });
 
     if (weeklyReportModal) {
         weeklyReportModal.addEventListener("click", function (event) {
