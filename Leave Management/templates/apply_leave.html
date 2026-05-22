@@ -110,7 +110,7 @@
     <div class="header-actions">
         {% include "includes/communication_dropdown.html" %}
 
-        <div class="notification-dropdown" data-notification-api="{% url 'employee_notifications' %}" data-notification-empty="No leave updates right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
+        <div class="notification-dropdown employee-notification-dropdown" data-notification-api="{% url 'employee_notifications' %}" data-notification-empty="No leave updates right now." data-fallback-avatar="{% static 'images/user.jpg' %}" data-notification-user-key="{{ request.user.role }}:{{ request.user.id }}">
             <button type="button" class="notification-trigger" aria-label="Leave status notifications" aria-expanded="false">
                 <span class="notification-bell"></span>
                 <span class="notification-count{% if not employee_notification_count %} hidden{% endif %}" data-countup data-countup-target="{{ employee_notification_count }}">{{ employee_notification_count }}</span>
@@ -152,7 +152,7 @@
                             </div>
                         </a>
                     {% empty %}
-                        <div class="notification-empty">No leave updates right now.</div>
+                        {% include "includes/notification_empty.html" %}
                     {% endfor %}
                 </div>
             </div>

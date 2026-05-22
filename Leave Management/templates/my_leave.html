@@ -157,7 +157,7 @@
                             </div>
                         </a>
                     {% empty %}
-                        <div class="notification-empty">No leave updates right now.</div>
+                        {% include "includes/notification_empty.html" %}
                     {% endfor %}
                 </div>
             </div>

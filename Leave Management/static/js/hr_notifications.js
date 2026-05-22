@@ -1097,7 +1097,8 @@
             const settings = options || {};
             const shouldShowSkeleton =
                 dropdown.classList.contains("is-open") &&
-                !list.querySelector("[data-notification-id]");
+                !list.querySelector("[data-notification-id]") &&
+                !list.querySelector(".notification-empty");
 
             if (shouldShowSkeleton && typeof window.startAsyncPopupSkeleton === "function") {
                 window.startAsyncPopupSkeleton(panel);
