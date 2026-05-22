@@ -53,6 +53,7 @@
     let weeklyReportLoaded = false;
     let isSyncingWeeklyReportEmployeeFilter = false;
     let weeklyReportStatusTimer = null;
+    let weeklyReportCloseTimer = null;
     const reportRowsPerPage = 5;
 
     function getCsrfToken() {
@@ -590,6 +591,8 @@
     function openWeeklyReportModal() {
         if (!weeklyReportModal) return;
 
+        window.clearTimeout(weeklyReportCloseTimer);
+        weeklyReportModal.classList.remove("is-closing");
         weeklyReportModal.classList.add("is-open");
         weeklyReportModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("weekly-report-modal-open");
@@ -602,9 +605,17 @@
     function closeWeeklyReportModal() {
         if (!weeklyReportModal) return;
 
+        if (!weeklyReportModal.classList.contains("is-open")) return;
+
         weeklyReportModal.classList.remove("is-open");
+        weeklyReportModal.classList.add("is-closing");
         weeklyReportModal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("weekly-report-modal-open");
+
+        window.clearTimeout(weeklyReportCloseTimer);
+        weeklyReportCloseTimer = window.setTimeout(function () {
+            weeklyReportModal.classList.remove("is-closing");
+            document.body.classList.remove("weekly-report-modal-open");
+        }, 240);
     }
 
     function syncApplyButton() {
