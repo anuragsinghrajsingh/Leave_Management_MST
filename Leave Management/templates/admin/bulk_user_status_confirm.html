@@ -13,10 +13,7 @@
     <fieldset class="module aligned">
       <h2>{{ title }}</h2>
       <p>
-        This action will set <strong>is_active={{ target_active }}</strong> for the selected users.
-        {% if requires_confirmation %}
-          Your own account will be skipped if selected.
-        {% endif %}
+        {{ action_description }}
       </p>
       <div class="form-row">
         {{ form.action_reason.errors }}

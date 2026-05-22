@@ -75,7 +75,8 @@ def _build_welcome_body(user, profile, leave_summary):
         f"Sick leave: {leave_summary['sick_total']} days\n"
         f"Earned leave: {leave_summary['earned_total']} days\n"
         f"Current remaining balance: {leave_summary['remaining']} days\n\n"
-        "You can now log in to the employee portal and start using the leave management system."
+        "You can now log in to the employee portal. If your account is marked for first-login password change, "
+        "you will be asked to update your password before continuing."
     )
 
 

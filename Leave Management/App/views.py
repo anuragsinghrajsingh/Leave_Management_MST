@@ -18,7 +18,7 @@ from App.utils.logger_utils import log_leave_action, log_profile_update
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
-from .models import Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile # , CompanyClosure, 
+from .models import AdminAuditLog, Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile # , CompanyClosure, 
 from django.views.decorators.cache import never_cache
 from django.core.cache import cache
 from django.views.decorators.http import require_http_methods, require_POST
@@ -38,6 +38,7 @@ from django.conf import settings
 import os
 from io import BytesIO
 from App.services.employee_welcome_service import send_employee_welcome_package
+from App.services.forced_password_service import send_forced_password_email, user_can_be_forced_to_change_password
 
 security_logger = logging.getLogger("lms_security")
 
@@ -1325,6 +1326,8 @@ def hr_login(request):
         if user is not None and user.role == "HR" and user.is_active:
             _record_successful_login(request, "HR", user, username)
             login(request, user)
+            if user.must_change_password:
+                return redirect("force_password_change")
             return redirect("hr_dashboard_loading_page")
         else:
             failure_state = _register_login_failure(request, "HR", username)
@@ -2816,7 +2819,8 @@ def employee_details(request):
                 )
 
                 new_user.role = "EMPLOYEE"
-                new_user.save()
+                new_user.must_change_password = True
+                new_user.save(update_fields=["role", "must_change_password"])
 
                 profile = new_user.profile
                 profile.department = form_values["department"]
@@ -3701,6 +3705,65 @@ def admin_dashboard(request):
 from django.contrib.auth import update_session_auth_hash
 from .forms import CustomPasswordChangeForm, UserProfileForm
 
+def _forced_password_success_redirect(user):
+    if getattr(user, "role", None) == "HR":
+        return "hr_dashboard_loading_page"
+    return "employee_dashboard_loading_page"
+
+
+@login_required
+@never_cache
+def force_password_change(request):
+    if not user_can_be_forced_to_change_password(request.user):
+        return redirect("role_select")
+
+    if not request.user.must_change_password:
+        return redirect(_forced_password_success_redirect(request.user))
+
+    password_form = CustomPasswordChangeForm(request.user)
+
+    if request.method == "POST":
+        password_form = CustomPasswordChangeForm(request.user, request.POST)
+        if password_form.is_valid():
+            user = password_form.save()
+            user.must_change_password = False
+            user.save(update_fields=["must_change_password"])
+            update_session_auth_hash(request, user)
+            AdminAuditLog.objects.create(
+                model_label="App.CustomUser",
+                object_id=str(user.pk),
+                object_repr=str(user),
+                action="FORCED_PASSWORD_COMPLETED",
+                updated_by=user,
+                reason="User completed forced password change.",
+                changes={"must_change_password": {"old": True, "new": False}},
+            )
+            send_forced_password_email(user, "completed", triggered_by=user)
+            messages.success(request, "Password changed successfully.")
+            return redirect(_forced_password_success_redirect(user))
+
+        request.session["forced_password_errors"] = {
+            field: [str(error) for error in errors]
+            for field, errors in password_form.errors.items()
+        }
+        request.session["forced_password_warning"] = "Please correct the password details."
+        return redirect("force_password_change")
+
+    password_errors = request.session.pop("forced_password_errors", {})
+    password_warning = request.session.pop("forced_password_warning", None)
+
+    return render(
+        request,
+        "auth/force_password_change.html",
+        {
+            "password_form": password_form,
+            "password_errors": password_errors,
+            "password_warning": password_warning,
+            "portal_role": request.user.role,
+        },
+    )
+
+
 @login_required
 @never_cache
 def profile_view(request):
@@ -3932,6 +3995,8 @@ def employee_login(request):
         if user is not None and user.role == "EMPLOYEE" and user.is_active:
             _record_successful_login(request, "EMPLOYEE", user, username)
             login(request, user)
+            if user.must_change_password:
+                return redirect("force_password_change")
             return redirect("employee_dashboard_loading_page")
         
         else:

@@ -93,6 +93,7 @@ import re
 
 from App.services.employee_welcome_service import send_employee_welcome_package
 from App.services.email_delivery_log import record_email_delivery
+from App.services.forced_password_service import send_forced_password_email, user_can_be_forced_to_change_password
 import shutil
 import zipfile
 from urllib.parse import urlencode
@@ -908,6 +909,12 @@ class CustomUserAdminForm(AdminReasonFormMixin, UserChangeForm):
         model = CustomUser
         fields = "__all__"
 
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("role") == "Admin":
+            cleaned_data["must_change_password"] = False
+        return cleaned_data
+
 # 🔹 Register CustomUser
 @login_required
 @never_cache
@@ -922,6 +929,8 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         "deactivate_selected_users",
         "resend_onboarding_email_to_selected_users",
         "send_reminder_email_to_selected_users",
+        "force_password_change_for_selected_users",
+        "clear_forced_password_change_for_selected_users",
     ]
 
     class Media:
@@ -932,7 +941,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("username", "password1", "password2"),
+            "fields": ("username", "password1", "password2", "role", "must_change_password"),
         }),
     )
 
@@ -942,7 +951,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             "fields": ("employee_quick_actions",),
         }),
         ("Role Information", {
-            "fields": ("role",),
+            "fields": ("role", "must_change_password"),
         }),
         ("Audit reason", {
             "fields": ("change_reason",),
@@ -950,7 +959,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     )
     readonly_fields = UserAdmin.readonly_fields + ("employee_quick_actions",)
 
-    list_display = ("username", "email", "role", "is_active", "is_staff", "is_superuser", "archive_pdf_link")
+    list_display = ("username", "email", "role", "is_active", "must_change_password", "is_staff", "is_superuser", "archive_pdf_link")
     search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
     
     
@@ -1292,7 +1301,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return selected_ids
         return list(queryset.values_list("pk", flat=True))
 
-    def _render_bulk_user_status_confirmation(self, request, queryset, action_name, title, target_active):
+    def _render_bulk_user_status_confirmation(self, request, queryset, action_name, title, target_active, action_description=""):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
         form = BulkUserStatusActionForm()
         return TemplateResponse(
@@ -1308,6 +1317,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 "form": form,
                 "target_active": target_active,
                 "requires_confirmation": not target_active,
+                "action_description": action_description,
             },
         )
 
@@ -1354,6 +1364,49 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         )
         return None
 
+    def _run_bulk_force_password_flag_action(self, request, queryset, target_flag):
+        form = BulkUserStatusActionForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.values():
+                self.message_user(request, " ".join(error), level=messages.ERROR)
+            return None
+
+        reason = form.cleaned_data["action_reason"]
+        changed_count = 0
+        skipped_count = 0
+        email_sent_count = 0
+        action_name = "FORCE_PASSWORD_CHANGE" if target_flag else "CLEAR_FORCE_PASSWORD_CHANGE"
+        event = "forced" if target_flag else "cleared"
+
+        for user in queryset.order_by("username", "id"):
+            if not user_can_be_forced_to_change_password(user):
+                skipped_count += 1
+                continue
+            if user.must_change_password == target_flag:
+                skipped_count += 1
+                continue
+
+            previous_flag = user.must_change_password
+            user.must_change_password = target_flag
+            user.save(update_fields=["must_change_password"])
+            changed_count += 1
+            if send_forced_password_email(user, event, triggered_by=request.user):
+                email_sent_count += 1
+            _create_admin_audit_log(
+                request,
+                user,
+                {"must_change_password": {"old": previous_flag, "new": target_flag}},
+                reason,
+                action=action_name,
+            )
+
+        self.message_user(
+            request,
+            f"Password change flag updated. Changed: {changed_count}. Skipped: {skipped_count}. Email sent: {email_sent_count}.",
+            level=messages.SUCCESS if changed_count else messages.WARNING,
+        )
+        return None
+
     @admin.action(description="Activate selected users")
     def activate_selected_users(self, request, queryset):
         if not request.POST.get("confirm_bulk_user_status"):
@@ -1363,6 +1416,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 "activate_selected_users",
                 "Confirm user activation",
                 target_active=True,
+                action_description="This action will set is_active=True for the selected users.",
             )
         return self._run_bulk_user_status_action(request, queryset, target_active=True)
 
@@ -1375,8 +1429,35 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 "deactivate_selected_users",
                 "Confirm user deactivation",
                 target_active=False,
+                action_description="This action will set is_active=False for the selected users. Your own account will be skipped if selected.",
             )
         return self._run_bulk_user_status_action(request, queryset, target_active=False)
+
+    @admin.action(description="Force password change for selected HR/Employees")
+    def force_password_change_for_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_bulk_user_status"):
+            return self._render_bulk_user_status_confirmation(
+                request,
+                queryset,
+                "force_password_change_for_selected_users",
+                "Confirm force password change",
+                target_active=True,
+                action_description="This action will set must_change_password=True for selected HR/Employee users and email them.",
+            )
+        return self._run_bulk_force_password_flag_action(request, queryset, target_flag=True)
+
+    @admin.action(description="Clear forced password change for selected HR/Employees")
+    def clear_forced_password_change_for_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_bulk_user_status"):
+            return self._render_bulk_user_status_confirmation(
+                request,
+                queryset,
+                "clear_forced_password_change_for_selected_users",
+                "Confirm clear forced password change",
+                target_active=True,
+                action_description="This action will set must_change_password=False for selected HR/Employee users and email them.",
+            )
+        return self._run_bulk_force_password_flag_action(request, queryset, target_flag=False)
 
     def _render_bulk_onboarding_confirmation(self, request, queryset):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
@@ -4993,7 +5074,7 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
     model_label_filter = None
     model_label_filters = None
     action_filter = None
-    list_display = ("model_label", "object_repr", "action_label", "change_summary", "updated_by", "changed_at", "reason")
+    list_display = ("model_label", "object_repr", "action_label", "change_summary", "triggered_by_label", "changed_at", "reason")
     list_filter = ("model_label", "action", "updated_by", "changed_at")
     search_fields = ("model_label", "object_repr", "updated_by__username", "reason")
     readonly_fields = ("model_label", "object_id", "object_repr", "action", "updated_by", "changed_at", "reason", "changes")
@@ -5013,6 +5094,9 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         "ADMIN_DELETE_WF": "Leave deleted through workflow",
         "ADMIN_PREVIEW": "Leave preview reviewed",
         "ADMIN_WORKFLOW_SKIPPED": "Workflow skipped by admin",
+        "FORCE_PASSWORD_CHANGE": "Password change forced",
+        "CLEAR_FORCE_PASSWORD_CHANGE": "Password change force cleared",
+        "FORCED_PASSWORD_COMPLETED": "Forced password change completed",
     }
     change_summary_labels = {
         "created_record": "Record created",
@@ -5057,6 +5141,15 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             for key in obj.changes.keys()
         ]
         return ", ".join(labels)
+
+    @admin.display(description="Triggered by", ordering="updated_by")
+    def triggered_by_label(self, obj):
+        if obj.updated_by:
+            return obj.updated_by.username
+        reason = obj.reason or ""
+        if "terminal service" in reason.lower():
+            return "Terminal"
+        return "System"
 
 
 @login_required

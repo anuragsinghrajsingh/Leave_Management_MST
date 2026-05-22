@@ -50,6 +50,7 @@ urlpatterns = [
 
 
     path("profile/", views.profile_view, name="profile"),
+    path("force-password-change/", views.force_password_change, name="force_password_change"),
     path("edit-employee/<int:user_id>/", views.edit_employee_profile, name="edit_employee_profile"),
 
 

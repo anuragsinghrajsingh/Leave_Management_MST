@@ -167,7 +167,7 @@ def run_year_end_carry_forward_if_due(today=None):
             LeaveBalance.objects
             .select_for_update()
             .select_related("user", "user__profile")
-            .filter(user__profile__isnull=False)
+            .filter(user__is_active=True, user__profile__isnull=False)
             .exclude(last_year_end_processed=processing_year)
             .order_by("pk")
         )

@@ -4,7 +4,7 @@ import logging
 import threading
 from django.utils.timezone import now
 from django.urls import resolve
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from App.services.maintenance_mode import is_maintenance_mode_enabled
 
@@ -93,6 +93,38 @@ class MaintenanceModeMiddleware:
             return self.get_response(request)
 
         return render(request, "maintenance.html", status=503)
+
+
+class ForcedPasswordChangeMiddleware:
+    """
+    Keeps HR/Employee users inside the forced password-change flow until complete.
+    """
+    allowed_prefixes = (
+        "/force-password-change/",
+        "/logout/",
+        "/logout/loading/",
+        "/hr-logout/",
+        "/hr-logout/loading/",
+        "/employee-logout/loading/",
+        "/static/",
+        "/media/",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return self.get_response(request)
+
+        if getattr(user, "role", None) not in {"EMPLOYEE", "HR"} or not getattr(user, "must_change_password", False):
+            return self.get_response(request)
+
+        if request.path.startswith(self.allowed_prefixes):
+            return self.get_response(request)
+
+        return redirect("force_password_change")
 
 
 class APILoggingMiddleware:

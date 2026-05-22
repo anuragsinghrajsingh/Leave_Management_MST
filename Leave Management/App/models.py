@@ -39,11 +39,13 @@ class CustomUser(AbstractUser):
     )
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    must_change_password = models.BooleanField(default=False)
     
     def save(self, *args, **kwargs):
         # 🔥 Auto-set staff permission for ADMIN
         if self.role == "Admin":
             self.is_staff = True
+            self.must_change_password = False
         else:
             self.is_staff = False  # optional but cleaner
 
