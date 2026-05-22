@@ -37,6 +37,7 @@ from django.core.validators import validate_email
 from django.conf import settings
 import os
 from io import BytesIO
+from App.services.employee_welcome_service import send_employee_welcome_package
 
 security_logger = logging.getLogger("lms_security")
 
@@ -2835,7 +2836,19 @@ def employee_details(request):
                 balance.total_leave_remaining = balance.total_leave_balance
                 balance.save()
 
-            messages.success(request, f"Employee '{new_user.get_full_name() or new_user.username}' created successfully.")
+            welcome_result = send_employee_welcome_package(new_user, triggered_by=request.user)
+            if welcome_result.get("email_sent"):
+                messages.success(
+                    request,
+                    f"Employee '{new_user.get_full_name() or new_user.username}' created successfully. Welcome notification and email sent.",
+                )
+            elif welcome_result.get("sent"):
+                messages.warning(
+                    request,
+                    f"Employee '{new_user.get_full_name() or new_user.username}' created successfully. Welcome notification sent, but welcome email could not be sent.",
+                )
+            else:
+                messages.success(request, f"Employee '{new_user.get_full_name() or new_user.username}' created successfully.")
             return redirect("employee_details")
 
     employees = User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile", "leavebalance").order_by("-date_joined", "-id")

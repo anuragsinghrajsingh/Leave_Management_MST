@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Welcome to MS Technology</title>
+</head>
+<body style="margin:0; padding:0; background:#eef5fb; font-family:Arial, Helvetica, sans-serif; color:#172033;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef5fb; padding:28px 12px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 22px 50px rgba(15, 23, 42, 0.14);">
+                    <tr>
+                        <td style="padding:30px 30px 24px; background:linear-gradient(135deg, #0f766e, #2563eb 55%, #7c3aed); color:#ffffff;">
+                            <div style="font-size:13px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; opacity:0.9;">MS Technology</div>
+                            <h1 style="margin:12px 0 0; font-size:30px; line-height:1.2;">Welcome, {{ display_name }}!</h1>
+                            <p style="margin:10px 0 0; font-size:16px; line-height:1.6; opacity:0.94;">Your employee profile has been created successfully.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:26px 30px;">
+                            <p style="margin:0 0 18px; font-size:16px; line-height:1.7;">We are happy to have you onboard. You can now log in to the employee portal and use the leave management system.</p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse; margin:0 0 22px;">
+                                <tr>
+                                    <td style="padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:800;">Employee ID</td>
+                                    <td style="padding:12px 14px; border:1px solid #e2e8f0;">{{ profile.employee_id|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:800;">Department</td>
+                                    <td style="padding:12px 14px; border:1px solid #e2e8f0;">{{ profile.department|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:800;">Joining Date</td>
+                                    <td style="padding:12px 14px; border:1px solid #e2e8f0;">{{ profile.date_of_joining|date:"d M Y" }}</td>
+                                </tr>
+                            </table>
+                            <a href="{{ portal_url }}" style="display:inline-block; padding:12px 18px; border-radius:10px; background:linear-gradient(135deg, #0f766e, #2563eb); color:#ffffff; text-decoration:none; font-weight:800;">Open Employee Portal</a>
+                            <p style="margin:22px 0 0; font-size:13px; color:#64748b;">Sent on {{ sent_at|date:"d M Y, h:i A" }}</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

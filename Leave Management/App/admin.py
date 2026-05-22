@@ -88,6 +88,8 @@ import json
 import logging
 import os
 import re
+
+from App.services.employee_welcome_service import send_employee_welcome_package
 import shutil
 import zipfile
 from urllib.parse import urlencode
@@ -894,6 +896,10 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             extra_context["show_save_and_continue"] = True
 
         return super().changeform_view(request, object_id, form_url, extra_context=extra_context)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        request.session["pending_employee_welcome_user_id"] = obj.pk
+        return super().response_add(request, obj, post_url_continue=post_url_continue)
     
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -1051,6 +1057,35 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         elif obj.pk:
             self._log_create(request, obj, "Created from Django admin.")
 
+    def _send_pending_welcome_package(self, request, user):
+        pending_user_id = request.session.get("pending_employee_welcome_user_id")
+        if not pending_user_id or str(pending_user_id) != str(user.pk):
+            return
+
+        if user.role != "EMPLOYEE" or not user.email:
+            return
+
+        try:
+            profile = user.profile
+        except Profile.DoesNotExist:
+            return
+
+        if profile.welcome_sent_at:
+            request.session.pop("pending_employee_welcome_user_id", None)
+            return
+
+        result = send_employee_welcome_package(user, triggered_by=request.user)
+        if result.get("email_sent"):
+            self.message_user(request, "Welcome notification and email sent to the employee.", level=messages.SUCCESS)
+            request.session.pop("pending_employee_welcome_user_id", None)
+        elif result.get("sent"):
+            self.message_user(
+                request,
+                "Welcome notification sent, but welcome email could not be sent. Check email delivery logs.",
+                level=messages.WARNING,
+            )
+            request.session.pop("pending_employee_welcome_user_id", None)
+
     def save_formset(self, request, form, formset, change):
         tracked_profiles = {
             inline_form.instance.pk: Profile.objects.get(pk=inline_form.instance.pk)
@@ -1070,6 +1105,10 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 _collect_model_changes(previous, profile, field_names),
                 inline_form.cleaned_data.get("change_reason"),
             )
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        self._send_pending_welcome_package(request, form.instance)
 
 
     

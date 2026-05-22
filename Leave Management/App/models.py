@@ -583,6 +583,7 @@ class Profile(models.Model):
     )
     profile_photo_update_count = models.PositiveIntegerField(default=0)
     bio = models.TextField(blank=True)
+    welcome_sent_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} Profile"
