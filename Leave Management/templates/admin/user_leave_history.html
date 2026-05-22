@@ -1,0 +1,48 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><a href="{{ back_url }}" class="button">Back to user</a></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Requested range</th>
+        <th>Saved range</th>
+        <th>Deducted from</th>
+        <th>Reviewed by</th>
+        <th>Applied at</th>
+        <th>Updated at</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for leave in leaves %}
+        <tr>
+          <td><a href="{% url 'admin:App_leave_change' leave.pk %}">#{{ leave.pk }}</a></td>
+          <td>{{ leave.leave_type }}</td>
+          <td>{{ leave.status }}</td>
+          <td>{{ leave.requested_from_date|default:leave.from_date }} to {{ leave.requested_to_date|default:leave.to_date }}</td>
+          <td>{{ leave.from_date }} to {{ leave.to_date }}</td>
+          <td>{{ leave.deducted_from }}</td>
+          <td>{{ leave.reviewed_by|default:"-" }}</td>
+          <td>{{ leave.created_at }}</td>
+          <td>{{ leave.updated_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9">No leave records found for this user.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page_obj.has_other_pages %}
+    <p class="paginator">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

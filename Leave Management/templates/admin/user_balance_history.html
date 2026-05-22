@@ -1,0 +1,67 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><a href="{{ back_url }}" class="button">Back to user</a></p>
+
+  <fieldset class="module">
+    <h2>Current balance</h2>
+    {% if balance %}
+      <table>
+        <tr>
+          <th>Total</th>
+          <th>Remaining</th>
+          <th>Sick total</th>
+          <th>Sick used</th>
+          <th>Earned total</th>
+          <th>Earned used</th>
+          <th>Unpaid</th>
+        </tr>
+        <tr>
+          <td>{{ balance.total_leave_balance }}</td>
+          <td>{{ balance.total_leave_remaining }}</td>
+          <td>{{ balance.sick_total }}</td>
+          <td>{{ balance.sick_used }}</td>
+          <td>{{ balance.earned_total }}</td>
+          <td>{{ balance.earned_used }}</td>
+          <td>{{ balance.unpaid }}</td>
+        </tr>
+      </table>
+    {% else %}
+      <p>No LeaveBalance record exists for this user.</p>
+    {% endif %}
+  </fieldset>
+
+  <h2>Balance audit history</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Changed at</th>
+        <th>Updated by</th>
+        <th>Reason</th>
+        <th>Changes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in audit_entries %}
+        <tr>
+          <td>{{ entry.changed_at }}</td>
+          <td>{{ entry.updated_by|default:"-" }}</td>
+          <td>{{ entry.reason }}</td>
+          <td><pre style="white-space:pre-wrap;margin:0;">{{ entry.changes }}</pre></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">No balance audit records found for this user.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page_obj.has_other_pages %}
+    <p class="paginator">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

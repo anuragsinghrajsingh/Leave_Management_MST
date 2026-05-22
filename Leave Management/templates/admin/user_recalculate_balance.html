@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><a href="{{ back_url }}" class="button">Back to user</a></p>
+
+  <form method="post">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>Recalculate leave balance</h2>
+      <p>
+        This rebuilds the user's used Sick, Earned, and Unpaid values from active Pending/Approved leave records.
+      </p>
+      <div class="form-row">
+        {{ form.action_reason.errors }}
+        <label for="{{ form.action_reason.id_for_label }}" class="required">{{ form.action_reason.label }}:</label>
+        {{ form.action_reason }}
+      </div>
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" class="default" value="Recalculate balance">
+      <a href="{{ back_url }}" class="button cancel-link">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

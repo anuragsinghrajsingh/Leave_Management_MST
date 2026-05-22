@@ -58,6 +58,7 @@ from .models import (
     ServiceLogViewer,
     SystemHealthControl,
     CustomUser,
+    DashboardSummaryControl,
     UserAdminAudit,
     WorkFromHomeAdminAudit,
     WorkFromHomeDay,
@@ -70,6 +71,7 @@ from django import forms
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.mail import EmailMessage
 from django.db import connection, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render, redirect
@@ -90,6 +92,7 @@ import os
 import re
 
 from App.services.employee_welcome_service import send_employee_welcome_package
+from App.services.email_delivery_log import record_email_delivery
 import shutil
 import zipfile
 from urllib.parse import urlencode
@@ -717,12 +720,10 @@ class ProfileInlineForm(AdminReasonFormMixin, forms.ModelForm):
     def clean_employee_id(self):
         eid = self.cleaned_data.get("employee_id")
         if eid:
-            # Strictly Block duplicates in Admin with an in-line warning
-            # We check if another profile already has this ID
             qs = Profile.objects.filter(employee_id__iexact=eid)
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
-            
+
             if qs.exists():
                 raise forms.ValidationError(f"The ID '{eid}' is already assigned to another user. Please provide a unique ID.")
         return eid
@@ -732,6 +733,72 @@ class ProfileInlineForm(AdminReasonFormMixin, forms.ModelForm):
         if not photo or "profile_photo" not in self.changed_data:
             return photo
         return _sanitize_admin_profile_photo_upload(photo)
+
+
+class BulkUserStatusActionForm(forms.Form):
+    action_reason = forms.CharField(
+        label="Audit reason",
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    confirmation = forms.CharField(
+        label="Confirmation",
+        required=False,
+        max_length=40,
+        help_text="Required only for deactivation.",
+    )
+
+
+class BulkUserReminderEmailForm(forms.Form):
+    subject = forms.CharField(label="Subject", max_length=150)
+    message = forms.CharField(
+        label="Message",
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 8}),
+    )
+    action_reason = forms.CharField(
+        label="Audit reason",
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+
+class BulkUserOnboardingEmailForm(forms.Form):
+    action_reason = forms.CharField(
+        label="Audit reason",
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+
+class UserQuickRecalculateBalanceForm(forms.Form):
+    action_reason = forms.CharField(
+        label="Audit reason",
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+
+class UserQuickDirectMessageForm(forms.Form):
+    title = forms.CharField(label="Title", max_length=140, required=False)
+    body = forms.CharField(
+        label="Message",
+        max_length=1500,
+        widget=forms.Textarea(attrs={"rows": 7}),
+    )
+    action_reason = forms.CharField(
+        label="Audit reason",
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for field_name in ("title", "body"):
+            value = cleaned_data.get(field_name) or ""
+            if "<" in value or ">" in value:
+                self.add_error(field_name, "HTML markup is not allowed.")
+        return cleaned_data
 
 
 
@@ -849,7 +916,13 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     form = CustomUserAdminForm
 
     inlines = [ProfileInline]
-    actions = ["export_selected_archive_pdfs"]
+    actions = [
+        "export_selected_archive_pdfs",
+        "activate_selected_users",
+        "deactivate_selected_users",
+        "resend_onboarding_email_to_selected_users",
+        "send_reminder_email_to_selected_users",
+    ]
 
     class Media:
         js = ("admin/js/role_sync.js",)
@@ -865,6 +938,9 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
     # ✅ STEP 2 → AFTER SAVE (SHOW FULL DETAILS)
     fieldsets = UserAdmin.fieldsets + (
+        ("Employee Quick Actions", {
+            "fields": ("employee_quick_actions",),
+        }),
         ("Role Information", {
             "fields": ("role",),
         }),
@@ -872,6 +948,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             "fields": ("change_reason",),
         }),
     )
+    readonly_fields = UserAdmin.readonly_fields + ("employee_quick_actions",)
 
     list_display = ("username", "email", "role", "is_active", "is_staff", "is_superuser", "archive_pdf_link")
     search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
@@ -924,8 +1001,49 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 self.admin_site.admin_view(self.download_archive_pdf),
                 name="app_customuser_archive_pdf",
             ),
+            path(
+                "<path:object_id>/leave-history/",
+                self.admin_site.admin_view(self.leave_history_view),
+                name="app_customuser_leave_history",
+            ),
+            path(
+                "<path:object_id>/balance-history/",
+                self.admin_site.admin_view(self.balance_history_view),
+                name="app_customuser_balance_history",
+            ),
+            path(
+                "<path:object_id>/recalculate-balance/",
+                self.admin_site.admin_view(self.recalculate_balance_view),
+                name="app_customuser_recalculate_balance",
+            ),
+            path(
+                "<path:object_id>/direct-message/",
+                self.admin_site.admin_view(self.direct_message_view),
+                name="app_customuser_direct_message",
+            ),
         ]
         return custom_urls + urls
+
+    def employee_quick_actions(self, obj):
+        if not obj or not obj.pk:
+            return "Save this user before using quick actions."
+
+        links = [
+            ("Leave history", reverse("admin:app_customuser_leave_history", args=[obj.pk])),
+            ("Balance history", reverse("admin:app_customuser_balance_history", args=[obj.pk])),
+            ("Recalculate balance", reverse("admin:app_customuser_recalculate_balance", args=[obj.pk])),
+            ("Download archive PDF", reverse("admin:app_customuser_archive_pdf", args=[obj.pk])),
+            ("Send direct message", reverse("admin:app_customuser_direct_message", args=[obj.pk])),
+        ]
+        return format_html(
+            '<div class="submit-row" style="padding:8px 0;margin:0;">{}</div>',
+            format_html(
+                " ".join('<a class="button" href="{}">{}</a>' for _label, _url in links),
+                *[item for link in links for item in (link[1], link[0])],
+            ),
+        )
+
+    employee_quick_actions.short_description = "Quick actions"
 
     def archive_pdf_link(self, obj):
         url = reverse("admin:app_customuser_archive_pdf", args=[obj.pk])
@@ -980,6 +1098,131 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             action="DOWNLOAD",
         )
         return response
+
+    def leave_history_view(self, request, object_id):
+        user = self.get_object(request, object_id)
+        if user is None:
+            return redirect("..")
+
+        queryset = Leave.objects.select_related("reviewed_by").filter(user=user).order_by("-created_at", "-id")
+        page_obj = Paginator(queryset, 25).get_page(request.GET.get("page"))
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Leave history: {user.get_full_name().strip() or user.username}",
+            "opts": self.model._meta,
+            "target_user": user,
+            "page_obj": page_obj,
+            "leaves": page_obj.object_list,
+            "back_url": reverse("admin:App_customuser_change", args=[user.pk]),
+        }
+        return TemplateResponse(request, "admin/user_leave_history.html", context)
+
+    def balance_history_view(self, request, object_id):
+        user = self.get_object(request, object_id)
+        if user is None:
+            return redirect("..")
+
+        balance = LeaveBalance.objects.filter(user=user).first()
+        queryset = LeaveBalanceAudit.objects.select_related("updated_by").filter(employee=user).order_by("-changed_at", "-id")
+        page_obj = Paginator(queryset, 25).get_page(request.GET.get("page"))
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Balance history: {user.get_full_name().strip() or user.username}",
+            "opts": self.model._meta,
+            "target_user": user,
+            "balance": balance,
+            "page_obj": page_obj,
+            "audit_entries": page_obj.object_list,
+            "back_url": reverse("admin:App_customuser_change", args=[user.pk]),
+        }
+        return TemplateResponse(request, "admin/user_balance_history.html", context)
+
+    def recalculate_balance_view(self, request, object_id):
+        user = self.get_object(request, object_id)
+        if user is None:
+            return redirect("..")
+
+        if request.method == "POST":
+            form = UserQuickRecalculateBalanceForm(request.POST)
+            if form.is_valid():
+                reason = form.cleaned_data["action_reason"]
+                with transaction.atomic():
+                    result = admin_leave_workflow.recalculate_employee_balance(
+                        user,
+                        request.user,
+                        reason,
+                        "Admin employee quick action",
+                    )
+                _create_admin_audit_log(
+                    request,
+                    user,
+                    {"employee_quick_action": {"old": None, "new": "recalculated_balance"}},
+                    reason,
+                    action="USER_BALANCE_RECALCULATE",
+                )
+                self.message_user(request, result, level=messages.SUCCESS)
+                return redirect(reverse("admin:App_customuser_change", args=[user.pk]))
+        else:
+            form = UserQuickRecalculateBalanceForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Recalculate balance: {user.get_full_name().strip() or user.username}",
+            "opts": self.model._meta,
+            "target_user": user,
+            "form": form,
+            "back_url": reverse("admin:App_customuser_change", args=[user.pk]),
+        }
+        return TemplateResponse(request, "admin/user_recalculate_balance.html", context)
+
+    def direct_message_view(self, request, object_id):
+        user = self.get_object(request, object_id)
+        if user is None:
+            return redirect("..")
+
+        if request.method == "POST":
+            form = UserQuickDirectMessageForm(request.POST)
+            if form.is_valid():
+                title = form.cleaned_data.get("title") or "Message from Admin"
+                body = form.cleaned_data["body"]
+                reason = form.cleaned_data["action_reason"]
+                communication = Communication.objects.create(
+                    sender=request.user,
+                    recipient=user,
+                    message_type="DIRECT",
+                    title=title,
+                    body=body,
+                )
+                _create_admin_audit_log(
+                    request,
+                    communication,
+                    {
+                        "employee_quick_message": {
+                            "old": None,
+                            "new": {
+                                "recipient": user.username,
+                                "title": title,
+                                "message_id": communication.pk,
+                            },
+                        }
+                    },
+                    reason,
+                    action="USER_DIRECT_MESSAGE",
+                )
+                self.message_user(request, "Direct message sent.", level=messages.SUCCESS)
+                return redirect(reverse("admin:App_customuser_change", args=[user.pk]))
+        else:
+            form = UserQuickDirectMessageForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Send direct message: {user.get_full_name().strip() or user.username}",
+            "opts": self.model._meta,
+            "target_user": user,
+            "form": form,
+            "back_url": reverse("admin:App_customuser_change", args=[user.pk]),
+        }
+        return TemplateResponse(request, "admin/user_direct_message.html", context)
 
     @admin.action(description="Export selected employee archive PDFs")
     def export_selected_archive_pdfs(self, request, queryset):
@@ -1042,6 +1285,255 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         response["Cache-Control"] = "no-store"
         self.message_user(request, f"Exported {exported_count} employee archive PDF(s).", level=messages.SUCCESS)
         return response
+
+    def _selected_user_ids_from_request(self, request, queryset):
+        selected_ids = request.POST.getlist("_selected_action")
+        if selected_ids:
+            return selected_ids
+        return list(queryset.values_list("pk", flat=True))
+
+    def _render_bulk_user_status_confirmation(self, request, queryset, action_name, title, target_active):
+        selected_ids = self._selected_user_ids_from_request(request, queryset)
+        form = BulkUserStatusActionForm()
+        return TemplateResponse(
+            request,
+            "admin/bulk_user_status_confirm.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": title,
+                "opts": self.model._meta,
+                "users": queryset.order_by("username", "id"),
+                "selected_ids": selected_ids,
+                "action_name": action_name,
+                "form": form,
+                "target_active": target_active,
+                "requires_confirmation": not target_active,
+            },
+        )
+
+    def _run_bulk_user_status_action(self, request, queryset, target_active):
+        form = BulkUserStatusActionForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.values():
+                self.message_user(request, " ".join(error), level=messages.ERROR)
+            return None
+
+        if not target_active and form.cleaned_data.get("confirmation") != "DEACTIVATE":
+            self.message_user(request, "Type DEACTIVATE to confirm bulk deactivation.", level=messages.ERROR)
+            return None
+
+        reason = form.cleaned_data["action_reason"]
+        changed_count = 0
+        skipped_count = 0
+        action_name = "ACTIVATE" if target_active else "DEACTIVATE"
+
+        for user in queryset.order_by("username", "id"):
+            if not target_active and user.pk == request.user.pk:
+                skipped_count += 1
+                continue
+            if user.is_active == target_active:
+                skipped_count += 1
+                continue
+
+            previous_active = user.is_active
+            user.is_active = target_active
+            user.save(update_fields=["is_active"])
+            changed_count += 1
+            _create_admin_audit_log(
+                request,
+                user,
+                {"is_active": {"old": previous_active, "new": target_active}},
+                reason,
+                action=action_name,
+            )
+
+        self.message_user(
+            request,
+            f"{action_name.title()} completed. Changed: {changed_count}. Skipped: {skipped_count}.",
+            level=messages.SUCCESS if changed_count else messages.WARNING,
+        )
+        return None
+
+    @admin.action(description="Activate selected users")
+    def activate_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_bulk_user_status"):
+            return self._render_bulk_user_status_confirmation(
+                request,
+                queryset,
+                "activate_selected_users",
+                "Confirm user activation",
+                target_active=True,
+            )
+        return self._run_bulk_user_status_action(request, queryset, target_active=True)
+
+    @admin.action(description="Deactivate selected users")
+    def deactivate_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_bulk_user_status"):
+            return self._render_bulk_user_status_confirmation(
+                request,
+                queryset,
+                "deactivate_selected_users",
+                "Confirm user deactivation",
+                target_active=False,
+            )
+        return self._run_bulk_user_status_action(request, queryset, target_active=False)
+
+    def _render_bulk_onboarding_confirmation(self, request, queryset):
+        selected_ids = self._selected_user_ids_from_request(request, queryset)
+        return TemplateResponse(
+            request,
+            "admin/bulk_onboarding_email_confirm.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Confirm onboarding email resend",
+                "opts": self.model._meta,
+                "users": queryset.order_by("username", "id"),
+                "selected_ids": selected_ids,
+                "action_name": "resend_onboarding_email_to_selected_users",
+                "form": BulkUserOnboardingEmailForm(),
+            },
+        )
+
+    @admin.action(description="Resend onboarding email to selected employees")
+    def resend_onboarding_email_to_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_bulk_onboarding_email"):
+            return self._render_bulk_onboarding_confirmation(request, queryset)
+
+        form = BulkUserOnboardingEmailForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.values():
+                self.message_user(request, " ".join(error), level=messages.ERROR)
+            return None
+
+        reason = form.cleaned_data["action_reason"]
+        sent_count = 0
+        failed_count = 0
+        skipped_count = 0
+
+        for user in queryset.order_by("username", "id"):
+            if user.role != "EMPLOYEE":
+                skipped_count += 1
+                continue
+
+            result = send_employee_welcome_package(user, triggered_by=request.user, force_resend=True)
+            if result.get("email_sent"):
+                sent_count += 1
+                email_status = "sent"
+            elif result.get("sent"):
+                failed_count += 1
+                email_status = "communication_sent_email_failed"
+            else:
+                skipped_count += 1
+                email_status = result.get("reason") or "skipped"
+
+            _create_admin_audit_log(
+                request,
+                user,
+                {"onboarding_email": {"old": None, "new": email_status}},
+                reason,
+                action="BULK_ONBOARDING_EMAIL",
+            )
+
+        self.message_user(
+            request,
+            f"Onboarding resend finished. Email sent: {sent_count}. Failed: {failed_count}. Skipped: {skipped_count}.",
+            level=messages.SUCCESS if sent_count else messages.WARNING,
+        )
+        return None
+
+    def _render_bulk_reminder_confirmation(self, request, queryset):
+        selected_ids = self._selected_user_ids_from_request(request, queryset)
+        return TemplateResponse(
+            request,
+            "admin/bulk_reminder_email_confirm.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Confirm bulk reminder email",
+                "opts": self.model._meta,
+                "users": queryset.order_by("username", "id"),
+                "selected_ids": selected_ids,
+                "action_name": "send_reminder_email_to_selected_users",
+                "form": BulkUserReminderEmailForm(),
+            },
+        )
+
+    def _send_admin_reminder_email(self, user, subject, message, actor):
+        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
+        if not user.email:
+            return "skipped_no_email"
+
+        try:
+            email = EmailMessage(
+                subject=subject,
+                body=message,
+                from_email=from_email or None,
+                to=[user.email],
+            )
+            email.send(fail_silently=False)
+            record_email_delivery(
+                subject=subject,
+                recipients=[user.email],
+                status="sent",
+                email_type="admin_bulk_reminder",
+                from_email=from_email,
+                related_user=user,
+                triggered_by=actor,
+            )
+            return "sent"
+        except Exception as exc:
+            record_email_delivery(
+                subject=subject,
+                recipients=[user.email],
+                status="failed",
+                email_type="admin_bulk_reminder",
+                from_email=from_email,
+                error_message=str(exc),
+                related_user=user,
+                triggered_by=actor,
+            )
+            return "failed"
+
+    @admin.action(description="Send reminder email to selected users")
+    def send_reminder_email_to_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_bulk_reminder_email"):
+            return self._render_bulk_reminder_confirmation(request, queryset)
+
+        form = BulkUserReminderEmailForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.values():
+                self.message_user(request, " ".join(error), level=messages.ERROR)
+            return None
+
+        subject = form.cleaned_data["subject"]
+        body = form.cleaned_data["message"]
+        reason = form.cleaned_data["action_reason"]
+        sent_count = 0
+        failed_count = 0
+        skipped_count = 0
+
+        for user in queryset.order_by("username", "id"):
+            result = self._send_admin_reminder_email(user, subject, body, request.user)
+            if result == "sent":
+                sent_count += 1
+            elif result == "failed":
+                failed_count += 1
+            else:
+                skipped_count += 1
+
+            _create_admin_audit_log(
+                request,
+                user,
+                {"reminder_email": {"old": None, "new": result, "subject": subject}},
+                reason,
+                action="BULK_REMINDER_EMAIL",
+            )
+
+        self.message_user(
+            request,
+            f"Reminder email finished. Sent: {sent_count}. Failed: {failed_count}. Skipped: {skipped_count}.",
+            level=messages.SUCCESS if sent_count else messages.WARNING,
+        )
+        return None
 
     def save_model(self, request, obj, form, change):
         previous = CustomUser.objects.get(pk=obj.pk) if change and obj.pk else None
@@ -4942,6 +5434,92 @@ class DjangoErrorLogViewerAdmin(BaseLogViewerAdmin):
 
 @login_required
 @never_cache
+@admin.register(DashboardSummaryControl)
+class DashboardSummaryControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    def _latest_error_line(self):
+        log_path = settings.LOG_BASE_DIR / "django_errors.log"
+        lines = _tail_log_file(log_path, 200)
+        for line in reversed(lines):
+            if "[ERROR]" in line or "[CRITICAL]" in line:
+                return line.strip()
+        return ""
+
+    def _admin_unread_messages(self, user):
+        allowed = Communication.objects.filter(
+            Q(recipient=user) | Q(message_type="ANNOUNCEMENT", audience_role="Admin")
+        ).exclude(sender=user)
+        return allowed.exclude(read_receipts__user=user).count()
+
+    def changelist_view(self, request, extra_context=None):
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can view the admin dashboard summary.", level=messages.ERROR)
+            return redirect("admin:index")
+
+        from App.services.startup_checks import (
+            get_backup_catchup_status,
+            get_weekly_report_catchup_status,
+            get_year_end_catchup_status,
+        )
+
+        today = localtime(now()).date()
+        business_health = _get_business_health()
+        latest_backup = _get_latest_file_info(settings.BASE_DIR / "backups", "backup_*.zip")
+        latest_email_failure = EmailDeliveryLog.objects.filter(status="failed").order_by("-created_at", "-id").first()
+        startup_status = {
+            "backup": get_backup_catchup_status(),
+            "weekly_report": get_weekly_report_catchup_status(),
+            "year_end": get_year_end_catchup_status(),
+        }
+        quick_links = [
+            {"label": "Report export center", "url": reverse("admin:App_reportexportcontrol_changelist")},
+            {"label": "System health", "url": reverse("admin:App_systemhealthcontrol_changelist")},
+            {"label": "Backup restore", "url": reverse("admin:App_backuprestorecontrol_changelist")},
+            {"label": "Maintenance mode", "url": reverse("admin:App_maintenancemodecontrol_changelist")},
+            {"label": "Service actions", "url": reverse("admin:App_serviceactioncontrol_changelist")},
+            {"label": "Email delivery history", "url": reverse("admin:App_emaildeliverylog_changelist")},
+            {"label": "Admin communication center", "url": reverse("admin:App_admincommunicationcenter_changelist")},
+            {"label": "All logs", "url": reverse("admin:App_logviewer_changelist")},
+        ]
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Admin dashboard summary",
+            "opts": self.model._meta,
+            "today": today,
+            "business_health": business_health,
+            "pending_leaves": business_health["leaves"]["pending"],
+            "approved_today": Leave.objects.filter(status="Approved", approved_at__date=today).count(),
+            "rejected_today": Leave.objects.filter(status="Rejected", rejected_at__date=today).count(),
+            "active_users": business_health["users"]["active"],
+            "inactive_users": business_health["users"]["inactive"],
+            "role_counts": {
+                "admins": business_health["users"]["admins"],
+                "hr": business_health["users"]["hr"],
+                "employees": business_health["users"]["employees"],
+            },
+            "unread_admin_messages": self._admin_unread_messages(request.user),
+            "maintenance_mode_enabled": is_maintenance_mode_enabled(),
+            "latest_backup": latest_backup,
+            "latest_email_failure": latest_email_failure,
+            "latest_error_line": self._latest_error_line(),
+            "scheduler_health": _get_scheduler_health(),
+            "startup_status": startup_status,
+            "quick_links": quick_links,
+        }
+        return TemplateResponse(request, "admin/dashboard_summary.html", context)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@login_required
+@never_cache
 @admin.register(ReportExportControl)
 class ReportExportControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
@@ -5647,6 +6225,7 @@ LOG_VIEWER_OBJECT_NAMES = {
 }
 
 BACKUP_MANAGEMENT_OBJECT_NAMES = {
+    "DashboardSummaryControl",
     "ReportExportControl",
     "SystemHealthControl",
     "ServiceActionControl",

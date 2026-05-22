@@ -1,0 +1,178 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 16px 0 22px;
+    }
+    .dash-card {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      background: var(--body-bg, #fff);
+      padding: 16px;
+    }
+    .dash-card h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+    .dash-number {
+      font-size: 2rem;
+      line-height: 1;
+      font-weight: 800;
+      margin: 4px 0;
+    }
+    .dash-muted {
+      color: var(--body-quiet-color, #666);
+      font-size: 0.92rem;
+    }
+    .dash-pill {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 800;
+    }
+    .dash-ok {
+      background: rgba(22, 163, 74, 0.12);
+      color: #166534;
+      border: 1px solid rgba(22, 163, 74, 0.28);
+    }
+    .dash-warn {
+      background: rgba(217, 119, 6, 0.12);
+      color: #92400e;
+      border: 1px solid rgba(217, 119, 6, 0.28);
+    }
+    .dash-bad {
+      background: rgba(220, 38, 38, 0.12);
+      color: #991b1b;
+      border: 1px solid rgba(220, 38, 38, 0.28);
+    }
+    .dash-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 35%) 1fr;
+      gap: 12px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(127, 127, 127, 0.15);
+    }
+    .dash-row:first-of-type {
+      border-top: 0;
+    }
+    .dash-label {
+      font-weight: 800;
+      color: var(--body-quiet-color, #666);
+    }
+    .dash-value {
+      overflow-wrap: anywhere;
+    }
+    .dash-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .dash-links a {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 6px;
+      padding: 7px 10px;
+      text-decoration: none;
+      font-weight: 700;
+      background: var(--darkened-bg, #f8f8f8);
+    }
+  </style>
+
+  <p class="dash-muted">Snapshot for {{ today }}. This page is read-only and links to the deeper admin tools.</p>
+
+  <div class="dash-grid">
+    <section class="dash-card">
+      <h2>Pending Leaves</h2>
+      <div class="dash-number">{{ pending_leaves }}</div>
+      <div class="dash-muted">Waiting for review</div>
+    </section>
+    <section class="dash-card">
+      <h2>Decisions Today</h2>
+      <div class="dash-number">{{ approved_today }}/{{ rejected_today }}</div>
+      <div class="dash-muted">Approved / Rejected</div>
+    </section>
+    <section class="dash-card">
+      <h2>Users</h2>
+      <div class="dash-number">{{ active_users }}</div>
+      <div class="dash-muted">Active, {{ inactive_users }} inactive</div>
+    </section>
+    <section class="dash-card">
+      <h2>Admin Messages</h2>
+      <div class="dash-number">{{ unread_admin_messages }}</div>
+      <div class="dash-muted">Unread for current admin</div>
+    </section>
+    <section class="dash-card">
+      <h2>Maintenance</h2>
+      {% if maintenance_mode_enabled %}
+        <span class="dash-pill dash-warn">Enabled</span>
+      {% else %}
+        <span class="dash-pill dash-ok">Disabled</span>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="dash-grid">
+    <section class="dash-card">
+      <h2>Role Counts</h2>
+      <div class="dash-row"><div class="dash-label">Admins</div><div class="dash-value">{{ role_counts.admins }}</div></div>
+      <div class="dash-row"><div class="dash-label">HR</div><div class="dash-value">{{ role_counts.hr }}</div></div>
+      <div class="dash-row"><div class="dash-label">Employees</div><div class="dash-value">{{ role_counts.employees }}</div></div>
+    </section>
+
+    <section class="dash-card">
+      <h2>Backup</h2>
+      {% if latest_backup %}
+        <div class="dash-row"><div class="dash-label">Latest</div><div class="dash-value">{{ latest_backup.name }}</div></div>
+        <div class="dash-row"><div class="dash-label">Modified</div><div class="dash-value">{{ latest_backup.modified_at }}</div></div>
+        <div class="dash-row"><div class="dash-label">Size</div><div class="dash-value">{{ latest_backup.size_kb }} KB</div></div>
+      {% else %}
+        <span class="dash-pill dash-warn">No backup found</span>
+      {% endif %}
+    </section>
+
+    <section class="dash-card">
+      <h2>Email Failure</h2>
+      {% if latest_email_failure %}
+        <div class="dash-row"><div class="dash-label">Time</div><div class="dash-value">{{ latest_email_failure.created_at }}</div></div>
+        <div class="dash-row"><div class="dash-label">Recipient</div><div class="dash-value">{{ latest_email_failure.recipient }}</div></div>
+        <div class="dash-row"><div class="dash-label">Subject</div><div class="dash-value">{{ latest_email_failure.subject }}</div></div>
+      {% else %}
+        <span class="dash-pill dash-ok">No failure recorded</span>
+      {% endif %}
+    </section>
+
+    <section class="dash-card">
+      <h2>Latest Error</h2>
+      {% if latest_error_line %}
+        <div class="dash-value">{{ latest_error_line }}</div>
+      {% else %}
+        <span class="dash-pill dash-ok">No recent error line</span>
+      {% endif %}
+    </section>
+
+    <section class="dash-card">
+      <h2>Scheduler / Startup</h2>
+      <div class="dash-row"><div class="dash-label">Scheduler</div><div class="dash-value">{% if scheduler_health.ok %}Latest log found{% else %}No scheduler log found{% endif %}</div></div>
+      <div class="dash-row"><div class="dash-label">Backup catchup</div><div class="dash-value">{% if startup_status.backup.should_run %}Would run{% else %}Would skip{% endif %}</div></div>
+      <div class="dash-row"><div class="dash-label">Weekly report</div><div class="dash-value">{% if startup_status.weekly_report.should_run %}Would send{% else %}Would skip{% endif %}</div></div>
+      <div class="dash-row"><div class="dash-label">Year-end</div><div class="dash-value">{% if startup_status.year_end.should_run %}Would run{% else %}Would skip{% endif %}</div></div>
+    </section>
+  </div>
+
+  <section class="dash-card">
+    <h2>Quick Links</h2>
+    <div class="dash-links">
+      {% for link in quick_links %}
+        <a href="{{ link.url }}">{{ link.label }}</a>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

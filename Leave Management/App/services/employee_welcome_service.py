@@ -79,7 +79,7 @@ def _build_welcome_body(user, profile, leave_summary):
     )
 
 
-def send_employee_welcome_package(employee, triggered_by=None):
+def send_employee_welcome_package(employee, triggered_by=None, force_resend=False):
     """
     Sends the one-time welcome communication for a newly created employee.
     Returns a small result dict so callers can show a useful status message.
@@ -92,7 +92,7 @@ def send_employee_welcome_package(employee, triggered_by=None):
     except Exception:
         return {"sent": False, "email_sent": False, "skipped": True, "reason": "missing_profile"}
 
-    if profile.welcome_sent_at:
+    if profile.welcome_sent_at and not force_resend:
         return {"sent": False, "email_sent": False, "skipped": True, "reason": "already_sent"}
 
     sender = triggered_by if getattr(triggered_by, "is_authenticated", False) else None
@@ -107,7 +107,7 @@ def send_employee_welcome_package(employee, triggered_by=None):
 
     with transaction.atomic():
         profile = type(profile).objects.select_for_update().get(pk=profile.pk)
-        if profile.welcome_sent_at:
+        if profile.welcome_sent_at and not force_resend:
             return {"sent": False, "email_sent": False, "skipped": True, "reason": "already_sent"}
 
         Communication.objects.create(

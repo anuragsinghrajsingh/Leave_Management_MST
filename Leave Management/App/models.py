@@ -1018,6 +1018,13 @@ class SystemHealthControl(LogViewer):
         verbose_name_plural = "System health"
 
 
+class DashboardSummaryControl(LogViewer):
+    class Meta:
+        proxy = True
+        verbose_name = "Dashboard summary"
+        verbose_name_plural = "Dashboard summary"
+
+
 class ReportExportControl(LogViewer):
     class Meta:
         proxy = True

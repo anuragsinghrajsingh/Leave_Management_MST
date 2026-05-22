@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><a href="{{ back_url }}" class="button">Back to user</a></p>
+
+  <form method="post">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>Send direct admin message</h2>
+      <p>
+        This creates an in-app direct message from you to {{ target_user.get_full_name|default:target_user.username }}.
+      </p>
+      <div class="form-row">
+        {{ form.title.errors }}
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}:</label>
+        {{ form.title }}
+      </div>
+      <div class="form-row">
+        {{ form.body.errors }}
+        <label for="{{ form.body.id_for_label }}" class="required">{{ form.body.label }}:</label>
+        {{ form.body }}
+      </div>
+      <div class="form-row">
+        {{ form.action_reason.errors }}
+        <label for="{{ form.action_reason.id_for_label }}" class="required">{{ form.action_reason.label }}:</label>
+        {{ form.action_reason }}
+      </div>
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" class="default" value="Send message">
+      <a href="{{ back_url }}" class="button cancel-link">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
