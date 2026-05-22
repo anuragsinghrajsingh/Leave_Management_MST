@@ -3636,7 +3636,7 @@ body
 
     .meta-chip strong
     {
-        font-size: 0.76rem;
+        font-size: 0.82rem;
         line-height: 1.18;
         word-break: break-word;
         margin-top: -8px;
@@ -3886,17 +3886,17 @@ body
 
     .weekly-report-modal
     {
-        align-items: stretch;
-        justify-content: stretch;
-        padding: 0;
+        align-items: center;
+        justify-content: center;
+        padding: 42px 0;
     }
 
     .weekly-report-dialog
     {
         width: 100%;
-        height: 100dvh;
-        max-height: 100dvh;
-        border-radius: 0;
+        height: calc(100dvh - 84px);
+        max-height: calc(100dvh - 84px);
+        border-radius: 12px;
         border-left: 0;
         border-right: 0;
     }
@@ -4082,7 +4082,7 @@ body
     .weekly-report-range-apply
     {
         min-height: 34px;
-        font-size: 0.68rem;
+        font-size: 0.74rem;
         padding: 0 4px;
     }
 
