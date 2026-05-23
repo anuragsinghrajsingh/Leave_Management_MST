@@ -35,6 +35,90 @@ def send_forced_password_email(user, event, triggered_by=None):
     if not user or not getattr(user, "email", ""):
         return False
 
+
+def send_password_reset_email(user, triggered_by=None):
+    if not user or not getattr(user, "email", ""):
+        return False
+
+    subject = "Your password was reset"
+    display_name = user.get_full_name().strip() or user.username
+    intro = (
+        "Your account password was reset by an administrator. "
+        "Use the new password shared with you securely to log in."
+    )
+    body = (
+        "Your password was reset\n\n"
+        f"{intro}\n\n"
+        f"User: {display_name}\n"
+        f"Username: {user.username}\n"
+        f"Role: {user.role}\n"
+        f"Time: {localtime(now()).strftime('%d %b %Y, %I:%M %p')}\n"
+        "\nFor security, this email does not include the password.\n"
+    )
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
+    portal_path = "admin_login" if user.role == "Admin" else "hr_login" if user.role == "HR" else "employee_login"
+    portal_url = (getattr(settings, "PORTAL_BASE_URL", "") or "").rstrip("/") + reverse(portal_path)
+    triggered_by_name = ""
+    if getattr(triggered_by, "is_authenticated", False):
+        triggered_by_name = triggered_by.get_full_name().strip() or triggered_by.username
+
+    html_body = render_to_string(
+        "emails/forced_password_notification.html",
+        {
+            "status_label": "Password Reset",
+            "status_class": "updated",
+            "title": "Your password was reset",
+            "intro_text": intro,
+            "display_name": display_name,
+            "username": user.username,
+            "role": "Employee" if user.role == "EMPLOYEE" else user.role,
+            "event_time": localtime(now()),
+            "triggered_by_name": triggered_by_name,
+            "portal_url": portal_url,
+            "event": "reset",
+        },
+    )
+
+    try:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=body,
+            from_email=from_email or None,
+            to=[user.email],
+        )
+        email.attach_alternative(html_body, "text/html")
+        logo_path = os.path.join(settings.BASE_DIR, "static", "images", "ms-technology-logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as logo_file:
+                logo = MIMEImage(logo_file.read())
+                logo.add_header("Content-ID", "<logo_image>")
+                logo.add_header("Content-Disposition", "inline", filename="ms-technology-logo.png")
+                email.attach(logo)
+        email.send(fail_silently=False)
+        record_email_delivery(
+            subject=subject,
+            recipients=[user.email],
+            status="sent",
+            email_type="password_reset_notification",
+            from_email=from_email,
+            related_user=user,
+            triggered_by=triggered_by,
+        )
+        return True
+    except Exception as exc:
+        logger.exception("PASSWORD_RESET_EMAIL_FAILED | user_id=%s", user.pk)
+        record_email_delivery(
+            subject=subject,
+            recipients=[user.email],
+            status="failed",
+            email_type="password_reset_notification",
+            from_email=from_email,
+            error_message=str(exc),
+            related_user=user,
+            triggered_by=triggered_by,
+        )
+        return False
+
     event_map = {
         "forced": {
             "subject": "Password change required",
@@ -69,7 +153,7 @@ def send_forced_password_email(user, event, triggered_by=None):
         f"Time: {localtime(now()).strftime('%d %b %Y, %I:%M %p')}\n"
     )
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
-    portal_path = "hr_login" if user.role == "HR" else "employee_login"
+    portal_path = "admin_login" if user.role == "Admin" else "hr_login" if user.role == "HR" else "employee_login"
     portal_url = (getattr(settings, "PORTAL_BASE_URL", "") or "").rstrip("/") + reverse(portal_path)
     triggered_by_name = ""
     if getattr(triggered_by, "is_authenticated", False):

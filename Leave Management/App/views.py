@@ -39,6 +39,8 @@ import os
 from io import BytesIO
 from App.services.employee_welcome_service import send_employee_welcome_package
 from App.services.forced_password_service import send_forced_password_email, user_can_be_forced_to_change_password
+from App.services.login_lock_service import remember_failed_login_ip
+from App.services.login_lock_service import get_login_lock_status as get_combined_login_lock_status
 
 security_logger = logging.getLogger("lms_security")
 
@@ -709,11 +711,8 @@ def _set_login_error_message(request, locked=False, remaining_seconds=None, atte
 
 
 def _get_login_lock_status(portal, username, ip_address):
-    user_lock_until = cache.get(_login_cache_key("lock_user", portal, username))
-    ip_lock_until = cache.get(_login_cache_key("lock_ip", portal, ip_address))
-    lock_until = max(float(user_lock_until or 0), float(ip_lock_until or 0))
-    remaining = int(lock_until - timezone.now().timestamp())
-    return remaining if remaining > 0 else 0
+    status = get_combined_login_lock_status(portal, username, ip_address)
+    return status.remaining_seconds
 
 
 def _clear_login_rate_state(portal, username, ip_address):
@@ -859,6 +858,7 @@ def _register_login_failure(request, portal, username):
         _login_cache_key("fail_user", portal, username),
         config["window"],
     )
+    remember_failed_login_ip(portal, username, ip_address)
     ip_attempts = _increment_login_counter(
         _login_cache_key("fail_ip", portal, ip_address),
         config["window"],

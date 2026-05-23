@@ -1,0 +1,171 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <style>
+    .login-lock-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 18px;
+    }
+    .login-lock-table th,
+    .login-lock-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--hairline-color, #ddd);
+      vertical-align: middle;
+      text-align: left;
+    }
+    .login-lock-table th {
+      font-weight: 700;
+      background: var(--darkened-bg, #f8f8f8);
+    }
+    .login-lock-pill {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .login-lock-pill.locked {
+      color: #991b1b;
+      background: #fee2e2;
+    }
+    .login-lock-pill.unlocked {
+      color: #047857;
+      background: #d1fae5;
+    }
+    .login-lock-duration {
+      width: 90px;
+    }
+    .login-lock-note {
+      color: var(--body-quiet-color, #666);
+      margin: 0 0 12px;
+    }
+  </style>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action_name }}">
+    {% if confirm_name %}
+      <input type="hidden" name="{{ confirm_name }}" value="1">
+    {% endif %}
+    {% for user_id in selected_ids %}
+      <input type="hidden" name="_selected_action" value="{{ user_id }}">
+    {% endfor %}
+
+    <h2>{{ title }}</h2>
+
+    {% if mode == "status" %}
+      <p class="login-lock-note">This page only checks current login lock status. No lock or unlock change is made.</p>
+    {% elif mode == "lock" %}
+      <p class="login-lock-note">Choose default duration or enter a different custom duration for each selected user.</p>
+    {% elif mode == "unlock" %}
+      <p class="login-lock-note">Unlock clears manual/admin lock, wrong-password lock, failed attempt count, and the known failed-IP lock if available.</p>
+    {% endif %}
+
+    <table class="login-lock-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Name</th>
+          <th>Role</th>
+          <th>Portal</th>
+          <th>Status</th>
+          <th>Reason</th>
+          <th>Failed Attempts</th>
+          <th>Remaining</th>
+          <th>Expires At</th>
+          {% if mode == "lock" %}
+            <th><span id="login-lock-duration-heading">Default Minutes</span></th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.user.username }}</td>
+            <td>{{ row.user.get_full_name|default:"-" }}</td>
+            <td>{{ row.user.role|default:"Admin" }}</td>
+            <td>{{ row.portal }}</td>
+            <td>
+              <span class="login-lock-pill {% if row.status.is_locked %}locked{% else %}unlocked{% endif %}">
+                {{ row.status_label }}
+              </span>
+            </td>
+            <td>{{ row.reason }}</td>
+            <td>{{ row.failed_attempts }}</td>
+            <td>{{ row.remaining }}</td>
+            <td>{% if row.expires_at %}{{ row.expires_at|date:"M d, Y, h:i A" }}{% else %}-{% endif %}</td>
+            {% if mode == "lock" %}
+              <td>
+                <input
+                  class="login-lock-duration"
+                  type="number"
+                  min="1"
+                  name="lock_minutes_{{ row.user.pk }}"
+                  value="{{ row.default_minutes }}"
+                  disabled
+                >
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if mode == "lock" or mode == "unlock" %}
+      <fieldset class="module aligned">
+        {% if mode == "lock" %}
+          <div class="form-row">
+            {{ form.lock_mode.errors }}
+            <label class="required">{{ form.lock_mode.label }}:</label>
+            {{ form.lock_mode }}
+            <div class="help">Default uses Admin 30 minutes, HR 15 minutes, Employee 15 minutes. Custom uses each row's minutes box.</div>
+          </div>
+        {% endif %}
+        <div class="form-row">
+          {{ form.action_reason.errors }}
+          <label for="{{ form.action_reason.id_for_label }}" class="required">{{ form.action_reason.label }}:</label>
+          {{ form.action_reason }}
+        </div>
+      </fieldset>
+    {% endif %}
+
+    <div class="submit-row">
+      {% if mode == "lock" %}
+        <input type="submit" class="default" value="Confirm Lock">
+      {% elif mode == "unlock" %}
+        <input type="submit" class="default" value="Confirm Unlock">
+      {% endif %}
+      <a href="{% url 'admin:App_customuser_changelist' %}" class="button">Back</a>
+      {% if mode == "lock" or mode == "unlock" %}
+        <a href="{% url 'admin:App_customuser_changelist' %}" class="button cancel-link">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+  {% if mode == "lock" %}
+    <script>
+      (function () {
+        const radios = document.querySelectorAll('input[name="lock_mode"]');
+        const durationInputs = document.querySelectorAll(".login-lock-duration");
+        const heading = document.getElementById("login-lock-duration-heading");
+
+        function syncDurationMode() {
+          const selected = document.querySelector('input[name="lock_mode"]:checked');
+          const isCustom = selected && selected.value === "custom";
+          durationInputs.forEach(function (input) {
+            input.disabled = !isCustom;
+          });
+          if (heading) {
+            heading.textContent = isCustom ? "Custom Minutes" : "Default Minutes";
+          }
+        }
+
+        radios.forEach(function (radio) {
+          radio.addEventListener("change", syncDurationMode);
+        });
+        syncDurationMode();
+      })();
+    </script>
+  {% endif %}
+</div>
+{% endblock %}

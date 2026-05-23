@@ -105,11 +105,12 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # 👈 Added for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'App.middleware.RoleAwareLoginRedirectMiddleware',
     'App.middleware.ForcedPasswordChangeMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
     'App.middleware.MaintenanceModeMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'App.middleware.CorrelationMiddleware',

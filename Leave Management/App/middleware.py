@@ -2,9 +2,13 @@ import uuid
 import time
 import logging
 import threading
+from urllib.parse import urlparse
+from django.contrib import messages
+from django.contrib.auth import SESSION_KEY, get_user_model
 from django.utils.timezone import now
 from django.urls import resolve
 from django.shortcuts import redirect, render
+from django.http import JsonResponse
 
 from App.services.maintenance_mode import is_maintenance_mode_enabled
 
@@ -125,6 +129,144 @@ class ForcedPasswordChangeMiddleware:
             return self.get_response(request)
 
         return redirect("force_password_change")
+
+
+class RoleAwareLoginRedirectMiddleware:
+    """
+    Sends expired/anonymous sessions to the login page that matches the protected area.
+    """
+    employee_prefixes = (
+        "/dashboard/",
+        "/apply_leave/",
+        "/my_leave/",
+        "/profile/",
+        "/leave-calendar-data/",
+        "/delete-leave/",
+        "/edit-leave/",
+        "/apply-status-filter/",
+        "/clear-status-filter/",
+        "/clear-status-filter-field/",
+        "/api/employee-notifications/",
+    )
+    hr_prefixes = (
+        "/hr-dashboard/",
+        "/manage-all/",
+        "/employees/",
+        "/reports/",
+        "/approve-leave/",
+        "/reject-leave/",
+        "/edit-employee/",
+        "/api/hr-notifications/",
+        "/api/manage-all/",
+    )
+    admin_prefixes = (
+        "/admin-dashboard/",
+        "/admin-login/dashboard-loading/",
+        "/admin-login/workspace/",
+    )
+    shared_api_prefixes = (
+        "/api/communications/",
+        "/api/notifications/read/",
+        "/api/notifications/seen/",
+    )
+
+    public_prefixes = (
+        "/",
+        "/portal/",
+        "/admin-login/",
+        "/hr-login/",
+        "/employee-login/",
+        "/logout/",
+        "/admin-logout/",
+        "/hr-logout/",
+        "/employee-logout/",
+        "/force-password-change/",
+        "/static/",
+        "/media/",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        expired_user_id = request.session.get(SESSION_KEY)
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated:
+            return self.get_response(request)
+
+        redirect_url = self._get_login_url_for_request(request)
+        if not redirect_url:
+            return self.get_response(request)
+
+        username = self._store_login_prefill_username(request, redirect_url, expired_user_id)
+        session_message = self._get_session_expired_message(username)
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "sessionExpired": True,
+                "redirectUrl": redirect_url,
+                "messages": [{
+                    "title": "Logged out for security",
+                    "text": session_message,
+                    "tags": "warning",
+                }],
+            }, status=401)
+
+        if expired_user_id:
+            messages.warning(request, session_message)
+
+        return redirect(redirect_url)
+
+    def _get_login_url_for_request(self, request):
+        path = request.path
+        if path == "/":
+            return None
+        if any(path.startswith(prefix) for prefix in self.shared_api_prefixes):
+            referer_path = urlparse(request.META.get("HTTP_REFERER", "")).path
+            return self._get_login_url_for_path(referer_path) if referer_path else None
+        return self._get_login_url_for_path(path)
+
+    def _get_login_url_for_path(self, path):
+        if not path or path == "/":
+            return None
+        if any(path.startswith(prefix) for prefix in self.employee_prefixes):
+            return "/employee-login/form/"
+        if any(path.startswith(prefix) for prefix in self.hr_prefixes):
+            return "/hr-login/form/"
+        if path.startswith("/admin/") or any(path.startswith(prefix) for prefix in self.admin_prefixes):
+            return "/admin-login/form/"
+        if any(path.startswith(prefix) for prefix in self.public_prefixes if prefix != "/"):
+            return None
+        return None
+
+    def _store_login_prefill_username(self, request, redirect_url, expired_user_id):
+        if not expired_user_id:
+            return ""
+
+        session_key = {
+            "/employee-login/form/": "employee_login_username",
+            "/hr-login/form/": "hr_login_username",
+            "/admin-login/form/": "admin_login_username",
+        }.get(redirect_url)
+
+        if not session_key:
+            return ""
+
+        try:
+            username = get_user_model().objects.only("username").get(pk=expired_user_id).username
+        except Exception:
+            return ""
+
+        request.session[session_key] = username
+        return username
+
+    def _get_session_expired_message(self, username):
+        prefix = f"{username}, your" if username else "Your"
+        return (
+            f"{prefix} session ended because your password was changed by an administrator. "
+            "Please log in again with the updated password."
+        )
 
 
 class APILoggingMiddleware:

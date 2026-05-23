@@ -93,7 +93,19 @@ import re
 
 from App.services.employee_welcome_service import send_employee_welcome_package
 from App.services.email_delivery_log import record_email_delivery
-from App.services.forced_password_service import send_forced_password_email, user_can_be_forced_to_change_password
+from App.services.forced_password_service import (
+    send_forced_password_email,
+    send_password_reset_email,
+    user_can_be_forced_to_change_password,
+)
+from App.services.login_lock_service import (
+    default_lock_minutes_for_portal,
+    detect_user_portal,
+    format_remaining,
+    get_login_lock_status,
+    lock_user_login,
+    unlock_user_login,
+)
 import shutil
 import zipfile
 from urllib.parse import urlencode
@@ -772,6 +784,20 @@ class BulkUserOnboardingEmailForm(forms.Form):
     )
 
 
+class LoginLockAdminActionForm(forms.Form):
+    action_reason = forms.CharField(
+        label="Audit reason",
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    lock_mode = forms.ChoiceField(
+        label="Lock mode",
+        required=False,
+        choices=(("default", "Default duration"), ("custom", "Custom per user")),
+        widget=forms.RadioSelect,
+    )
+
+
 class UserQuickRecalculateBalanceForm(forms.Form):
     action_reason = forms.CharField(
         label="Audit reason",
@@ -921,12 +947,16 @@ class CustomUserAdminForm(AdminReasonFormMixin, UserChangeForm):
 @admin.register(CustomUser)
 class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     form = CustomUserAdminForm
+    change_user_password_template = "admin/customuser_change_password.html"
 
     inlines = [ProfileInline]
     actions = [
         "export_selected_archive_pdfs",
         "activate_selected_users",
         "deactivate_selected_users",
+        "check_login_lock_status_for_selected_users",
+        "lock_login_for_selected_users",
+        "unlock_login_for_selected_users",
         "resend_onboarding_email_to_selected_users",
         "send_reminder_email_to_selected_users",
         "force_password_change_for_selected_users",
@@ -959,7 +989,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     )
     readonly_fields = UserAdmin.readonly_fields + ("employee_quick_actions",)
 
-    list_display = ("username", "email", "role", "is_active", "must_change_password", "is_staff", "is_superuser", "archive_pdf_link")
+    list_display = ("username", "email", "role", "is_active", "must_change_password", "login_lock_status_display", "is_staff", "is_superuser", "archive_pdf_link")
     search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
     
     
@@ -1033,6 +1063,35 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         ]
         return custom_urls + urls
 
+    def user_change_password(self, request, id, form_url=""):
+        user = self.get_object(request, id)
+        previous_password = user.password if user else None
+        change_reason = (request.POST.get("change_reason") or "").strip()
+
+        if request.method == "POST" and not change_reason:
+            self.message_user(request, "Audit reason is required before resetting a password.", level=messages.ERROR)
+            return redirect(request.path)
+
+        response = super().user_change_password(request, id, form_url=form_url)
+
+        if request.method == "POST" and user and previous_password:
+            user.refresh_from_db(fields=["password"])
+            if user.password != previous_password:
+                _create_admin_audit_log(
+                    request,
+                    user,
+                    {"password": {"old": "[hidden]", "new": "[reset from Django admin]"}},
+                    change_reason,
+                    action="PASSWORD_RESET",
+                )
+                if request.POST.get("send_reset_email") == "1":
+                    if send_password_reset_email(user, triggered_by=request.user):
+                        self.message_user(request, "Password reset email notification sent.", level=messages.SUCCESS)
+                    else:
+                        self.message_user(request, "Password reset email notification could not be sent.", level=messages.WARNING)
+
+        return response
+
     def employee_quick_actions(self, obj):
         if not obj or not obj.pk:
             return "Save this user before using quick actions."
@@ -1059,6 +1118,28 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         return format_html('<a class="button" href="{}">Download PDF</a>', url)
 
     archive_pdf_link.short_description = "Archive PDF"
+
+    def login_lock_status_display(self, obj):
+        portal = detect_user_portal(obj)
+        status = get_login_lock_status(portal, obj.username)
+        if status.is_locked:
+            return format_html(
+                '<span style="color:#b91c1c;font-weight:700;">Locked: {}</span>',
+                format_remaining(status.remaining_seconds),
+            )
+        if status.failed_attempts:
+            return format_html(
+                '<span style="color:#b45309;font-weight:700;">Failed: {}/{}</span>',
+                status.failed_attempts,
+                status.max_attempts,
+            )
+        return format_html(
+            '<span style="color:{};font-weight:700;">{}</span>',
+            "#047857",
+            "Unlocked",
+        )
+
+    login_lock_status_display.short_description = "Login Status"
 
     def download_archive_pdf(self, request, object_id):
         user = self.get_object(request, object_id)
@@ -1300,6 +1381,209 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         if selected_ids:
             return selected_ids
         return list(queryset.values_list("pk", flat=True))
+
+    def _login_lock_rows(self, users):
+        rows = []
+        for user in users:
+            portal = detect_user_portal(user)
+            status = get_login_lock_status(portal, user.username)
+            rows.append({
+                "user": user,
+                "portal": portal,
+                "status": status,
+                "status_label": "Locked" if status.is_locked else "Unlocked",
+                "reason": status.reason or "-",
+                "remaining": format_remaining(status.remaining_seconds),
+                "expires_at": status.expires_at,
+                "failed_attempts": f"{status.failed_attempts}/{status.max_attempts}",
+                "default_minutes": default_lock_minutes_for_portal(portal),
+            })
+        return rows
+
+    def _render_login_lock_admin_page(self, request, queryset, *, action_name, title, mode, confirm_name=None):
+        selected_ids = self._selected_user_ids_from_request(request, queryset)
+        users = list(queryset.order_by("username", "id"))
+        return TemplateResponse(
+            request,
+            "admin/login_lock_action.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": title,
+                "opts": self.model._meta,
+                "rows": self._login_lock_rows(users),
+                "selected_ids": selected_ids,
+                "action_name": action_name,
+                "mode": mode,
+                "confirm_name": confirm_name or "",
+                "form": LoginLockAdminActionForm(initial={"lock_mode": "default"}),
+            },
+        )
+
+    @admin.action(description="Check login lock status")
+    def check_login_lock_status_for_selected_users(self, request, queryset):
+        selected_users = list(queryset.order_by("username", "id"))
+        for user in selected_users:
+            portal = detect_user_portal(user)
+            status = get_login_lock_status(portal, user.username)
+            _create_admin_audit_log(
+                request,
+                user,
+                {
+                    "login_lock_status_check": {
+                        "old": None,
+                        "new": {
+                            "portal": portal,
+                            "status": "locked" if status.is_locked else "unlocked",
+                            "reason": status.reason or "",
+                            "remaining_seconds": status.remaining_seconds,
+                            "failed_attempts": status.failed_attempts,
+                        },
+                    }
+                },
+                "Admin checked login lock status.",
+                action="LOGIN_STATUS_CHECK",
+            )
+        return self._render_login_lock_admin_page(
+            request,
+            queryset,
+            action_name="check_login_lock_status_for_selected_users",
+            title="Login lock status",
+            mode="status",
+        )
+
+    @admin.action(description="Lock login")
+    def lock_login_for_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_login_lock"):
+            return self._render_login_lock_admin_page(
+                request,
+                queryset,
+                action_name="lock_login_for_selected_users",
+                title="Confirm login lock",
+                mode="lock",
+                confirm_name="confirm_login_lock",
+            )
+
+        form = LoginLockAdminActionForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.values():
+                self.message_user(request, " ".join(error), level=messages.ERROR)
+            return None
+
+        reason = form.cleaned_data["action_reason"]
+        lock_mode = form.cleaned_data.get("lock_mode") or "default"
+        locked_count = 0
+        skipped_count = 0
+
+        for user in queryset.order_by("username", "id"):
+            portal = detect_user_portal(user)
+            previous_status = get_login_lock_status(portal, user.username)
+            if lock_mode == "custom":
+                raw_minutes = (request.POST.get(f"lock_minutes_{user.pk}") or "").strip()
+                try:
+                    minutes = int(raw_minutes)
+                except ValueError:
+                    self.message_user(request, f"Invalid lock duration for {user.username}.", level=messages.ERROR)
+                    return None
+                if minutes <= 0:
+                    self.message_user(request, f"Lock duration must be greater than 0 for {user.username}.", level=messages.ERROR)
+                    return None
+            else:
+                minutes = default_lock_minutes_for_portal(portal)
+
+            new_status = lock_user_login(user, minutes, portal=portal)
+            locked_count += 1
+            _create_admin_audit_log(
+                request,
+                user,
+                {
+                    "login_lock": {
+                        "old": {
+                            "status": "locked" if previous_status.is_locked else "unlocked",
+                            "reason": previous_status.reason or "",
+                            "remaining_seconds": previous_status.remaining_seconds,
+                        },
+                        "new": {
+                            "status": "locked" if new_status.is_locked else "unlocked",
+                            "reason": new_status.reason or "",
+                            "remaining_seconds": new_status.remaining_seconds,
+                            "duration_minutes": minutes,
+                            "mode": lock_mode,
+                            "portal": portal,
+                        },
+                    }
+                },
+                reason,
+                action="LOGIN_LOCK",
+            )
+
+        self.message_user(
+            request,
+            f"Login lock completed. Locked: {locked_count}. Skipped: {skipped_count}.",
+            level=messages.SUCCESS if locked_count else messages.WARNING,
+        )
+        return None
+
+    @admin.action(description="Unlock login")
+    def unlock_login_for_selected_users(self, request, queryset):
+        if not request.POST.get("confirm_login_unlock"):
+            return self._render_login_lock_admin_page(
+                request,
+                queryset,
+                action_name="unlock_login_for_selected_users",
+                title="Confirm login unlock",
+                mode="unlock",
+                confirm_name="confirm_login_unlock",
+            )
+
+        form = LoginLockAdminActionForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.values():
+                self.message_user(request, " ".join(error), level=messages.ERROR)
+            return None
+
+        reason = form.cleaned_data["action_reason"]
+        unlocked_count = 0
+        already_unlocked_count = 0
+
+        for user in queryset.order_by("username", "id"):
+            portal = detect_user_portal(user)
+            previous_status = get_login_lock_status(portal, user.username)
+            new_status = unlock_user_login(user, portal=portal)
+            if previous_status.is_locked or previous_status.failed_attempts:
+                unlocked_count += 1
+            else:
+                already_unlocked_count += 1
+            _create_admin_audit_log(
+                request,
+                user,
+                {
+                    "login_unlock": {
+                        "old": {
+                            "status": "locked" if previous_status.is_locked else "unlocked",
+                            "reason": previous_status.reason or "",
+                            "remaining_seconds": previous_status.remaining_seconds,
+                            "failed_attempts": previous_status.failed_attempts,
+                            "last_failed_ip": previous_status.last_failed_ip,
+                        },
+                        "new": {
+                            "status": "locked" if new_status.is_locked else "unlocked",
+                            "reason": new_status.reason or "",
+                            "remaining_seconds": new_status.remaining_seconds,
+                            "failed_attempts": new_status.failed_attempts,
+                            "portal": portal,
+                        },
+                    }
+                },
+                reason,
+                action="LOGIN_UNLOCK",
+            )
+
+        self.message_user(
+            request,
+            f"Login unlock completed. Cleared: {unlocked_count}. Already clear: {already_unlocked_count}.",
+            level=messages.SUCCESS if unlocked_count else messages.WARNING,
+        )
+        return None
 
     def _render_bulk_user_status_confirmation(self, request, queryset, action_name, title, target_active, action_description=""):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
