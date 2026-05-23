@@ -5128,6 +5128,7 @@ def apply_leave(request):
             }
             for holiday in CompanyHoliday.objects.all().order_by("date")
         ]),
+        "public_holidays_json": json.dumps(cache.get("public_holidays_india") or []),
         "existing_leaves_json": json.dumps([
             {
                 "id": leave.id,
@@ -5376,7 +5377,7 @@ def _build_my_leave_context(request):
     ).count()
     calendar_blocking_leaves = Leave.objects.filter(
         user=request.user,
-        status__in=["Pending", "Approved"],
+        status__in=["Pending", "Approved", "Rejected"],
     ).order_by("from_date")
 
     sick_remaining = balance.sick_total - balance.sick_used

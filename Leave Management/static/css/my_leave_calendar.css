@@ -1522,34 +1522,43 @@
 .holiday-dot {
     position: absolute;
     z-index: 4;
-    width: 5px !important;
-    height: 5px !important;
+    width: 8px !important;
+    height: 8px !important;
     top: 3px !important;
     right: 3px !important;
     border-radius: 50% !important;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.98);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.95),
+        0 3px 8px rgba(15, 23, 42, 0.18);
     pointer-events: none;
 }
 
 .modal-box.compact-calendar .holiday-dot {
-    width: 4px !important;
-    height: 4px !important;
+    width: 7px !important;
+    height: 7px !important;
     top: 2px !important;
     right: 2px !important;
 }
 
 .modal-box.compact-calendar .company-dot {
     left: 2px !important;
+    right: auto !important;
 }
 
 .company-dot {
     left: 3px !important;
     right: auto !important;
-    background: #6d45ca !important;
+    border-radius: 2px !important;
+    background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+    transform: rotate(45deg);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.96),
+        0 4px 9px rgba(239, 68, 68, 0.22);
 }
 
 .public-dot {
-    background: var(--cal-blue) !important;
+    background: linear-gradient(135deg, #2563eb, #22d3ee) !important;
 }
 
 .modal-box.compact-calendar .export-wrapper,

@@ -2096,6 +2096,7 @@ const exportWrapper = document.createElement("div");
             }
         };
         const companyHolidays = readMyLeaveJson("my-leave-company-holidays-json", []);
+        const publicHolidays = readMyLeaveJson("my-leave-public-holidays-json", []);
         const existingLeaves = readMyLeaveJson("my-leave-existing-leaves-json", []);
         const parseDate = (value) =>
         {
@@ -2107,35 +2108,73 @@ const exportWrapper = document.createElement("div");
         const formatDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
         const getCurrentEditLeaveId = () => String(document.getElementById("edit-leave-form")?.dataset.editLeaveId || "");
         const getCompanyHoliday = (dateStr) => companyHolidays.find((holiday) => holiday.date === dateStr);
-        const getAppliedLeave = (dateStr) =>
+        const getPublicHoliday = (dateStr) => publicHolidays.find((holiday) => holiday.date === dateStr);
+        const normalizeLeaveStatus = (leave) => String(leave?.status || "").trim().toLowerCase();
+        const getLeaveStatusPriority = (leave) =>
+        {
+            const normalizedStatus = normalizeLeaveStatus(leave);
+            if (normalizedStatus === "pending") return 3;
+            if (normalizedStatus === "approved") return 2;
+            if (normalizedStatus === "rejected") return 1;
+            return 0;
+        };
+        const getLeaveSortTime = (leave) =>
+        {
+            const rawValue = leave?.updated_at || leave?.approved_at || leave?.rejected_at || leave?.created_at || "";
+            const timeValue = rawValue ? Date.parse(rawValue) : NaN;
+            return Number.isFinite(timeValue) ? timeValue : Number(leave?.id || 0);
+        };
+        const findLeaveForDate = (dateStr, { excludeCurrent = false, activeOnly = false } = {}) =>
         {
             const currentId = getCurrentEditLeaveId();
-            return existingLeaves.find((leave) =>
-                String(leave.id || "") !== currentId
-                && (leave.status === "Pending" || leave.status === "Approved")
-                && leave.from <= dateStr
-                && leave.to >= dateStr
-            );
+            return existingLeaves
+                .filter((leave) =>
+                {
+                    const normalizedStatus = normalizeLeaveStatus(leave);
+                    const isCurrentLeave = String(leave.id || "") === currentId;
+                    const isActiveLeave = normalizedStatus === "pending" || normalizedStatus === "approved";
+                    return (!excludeCurrent || !isCurrentLeave)
+                        && (!activeOnly || isActiveLeave)
+                        && leave.from <= dateStr
+                        && leave.to >= dateStr;
+                })
+                .sort((first, second) =>
+                {
+                    const statusDiff = getLeaveStatusPriority(second) - getLeaveStatusPriority(first);
+                    if (statusDiff) return statusDiff;
+                    const timeDiff = getLeaveSortTime(second) - getLeaveSortTime(first);
+                    if (timeDiff) return timeDiff;
+                    return Number(second.id || 0) - Number(first.id || 0);
+                })[0] || null;
         };
         const getDateBlockMeta = (date, minimum) =>
         {
             const dateStr = formatDate(date);
             const companyHoliday = getCompanyHoliday(dateStr);
-            const appliedLeave = getAppliedLeave(dateStr);
+            const publicHoliday = getPublicHoliday(dateStr);
+            const visibleLeave = findLeaveForDate(dateStr);
+            const blockingLeave = findLeaveForDate(dateStr, { excludeCurrent: true, activeOnly: true });
+            const visibleStatus = normalizeLeaveStatus(visibleLeave);
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
             const beforeMinimum = !!minimum && date < minimum;
             const reasons = [];
             if (beforeMinimum) reasons.push("Past date");
             if (isWeekend) reasons.push("Weekend");
+            if (publicHoliday) reasons.push(`Public holiday: ${publicHoliday.name || "Holiday"}`);
             if (companyHoliday) reasons.push(`${companyHoliday.is_optional ? "Optional" : "Company"} holiday: ${companyHoliday.name}`);
-            if (appliedLeave) reasons.push(`${appliedLeave.status} leave: ${appliedLeave.type}`);
+            if (visibleLeave) reasons.push(`${visibleLeave.status} leave: ${visibleLeave.type}`);
+            if (blockingLeave && blockingLeave !== visibleLeave) reasons.push(`Blocked by ${blockingLeave.status} leave: ${blockingLeave.type}`);
             return {
                 dateStr,
                 companyHoliday,
-                appliedLeave,
+                publicHoliday,
+                appliedLeave: visibleLeave,
+                blockingLeave,
+                visibleStatus,
+                isCurrentLeave: !!visibleLeave && String(visibleLeave.id || "") === getCurrentEditLeaveId(),
                 isWeekend,
                 beforeMinimum,
-                disabled: beforeMinimum || isWeekend || !!companyHoliday || !!appliedLeave,
+                disabled: beforeMinimum || isWeekend || !!companyHoliday || !!blockingLeave,
                 tooltip: reasons.join(" | "),
             };
         };
@@ -2268,10 +2307,13 @@ const exportWrapper = document.createElement("div");
                 button.textContent = String(day);
                 button.classList.toggle("today", date.getTime() === currentToday.getTime());
                 button.classList.toggle("weekend", dateMeta.isWeekend);
+                button.classList.toggle("public-holiday", !!dateMeta.publicHoliday);
                 button.classList.toggle("company-holiday", !!dateMeta.companyHoliday);
                 button.classList.toggle("optional-company-holiday", !!dateMeta.companyHoliday?.is_optional);
-                button.classList.toggle("pending-leave-date", dateMeta.appliedLeave?.status === "Pending");
-                button.classList.toggle("approved-leave-date", dateMeta.appliedLeave?.status === "Approved");
+                button.classList.toggle("pending-leave-date", dateMeta.visibleStatus === "pending");
+                button.classList.toggle("approved-leave-date", dateMeta.visibleStatus === "approved");
+                button.classList.toggle("rejected-leave-date", dateMeta.visibleStatus === "rejected");
+                button.classList.toggle("current-edit-leave-date", dateMeta.isCurrentLeave);
                 button.classList.toggle("past-disabled", dateMeta.beforeMinimum);
                 button.classList.toggle("blocked-date", dateMeta.disabled);
                 button.classList.toggle("selected", !!effectiveSelected && date.getFullYear() === effectiveSelected.getFullYear() && date.getMonth() === effectiveSelected.getMonth() && date.getDate() === effectiveSelected.getDate());
