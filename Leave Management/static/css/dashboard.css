@@ -2339,8 +2339,9 @@ body {
 
 .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(3),
 .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(4),
-.reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5) {
-    grid-column: span 2;
+.reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5),
+.reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(6) {
+    grid-column: span 3;
 }
 
 .reason-meta-card {
@@ -4079,8 +4080,9 @@ body {
         grid-column: span 9;
     }
 
-    .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5) {
-        grid-column: 1 / -1;
+    .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(5),
+    .reason-modal-meta-grid.has-decision .reason-meta-card:nth-child(6) {
+        grid-column: span 9;
     }
 
     #reasonModalScheduleDate,

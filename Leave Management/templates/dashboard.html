@@ -559,7 +559,8 @@
                                         data-created="{{ leave.created_at|date:'c' }}"
                                         data-updated="{{ leave.updated_at|date:'c' }}"
                                         data-approved="{{ leave.approved_at|date:'c' }}"
-                                        data-rejected="{{ leave.rejected_at|date:'c' }}">
+                                        data-rejected="{{ leave.rejected_at|date:'c' }}"
+                                        data-reviewed-by="{% if leave.reviewed_by %}{{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}{% else %}HR Team{% endif %}">
                                         <div class="reason-label">Reason</div>
                                         <div class="reason-divider"></div>
                                         <div class="reason-content" data-full="{{ leave.reason|escape }}">
@@ -643,6 +644,10 @@
                             <strong id="reasonModalDecision">-</strong>
                             <span id="reasonModalDecisionTime">-</span>
                         </div>
+                    </div>
+                    <div class="reason-meta-card reason-modal-reviewer-card" id="reasonModalReviewerCard" hidden>
+                        <span class="reason-meta-label" id="reasonModalReviewerLabel"><span class="reason-meta-label-content"><span class="reason-meta-label-icon" aria-hidden="true">&#128100;</span><span>Approved By</span></span></span>
+                        <strong class="reason-meta-value" id="reasonModalReviewer">-</strong>
                     </div>
                 </div>
                 <div class="reason-field-card">

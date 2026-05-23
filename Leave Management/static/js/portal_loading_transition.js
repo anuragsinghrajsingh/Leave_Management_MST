@@ -4,10 +4,24 @@
     const config = document.body ? document.body.dataset : {};
     const duration = Number.parseInt(config.duration || "0", 10);
     const targetUrl = config.targetUrl || "/";
+    const roleSelectUrl = "/portal/";
     const countdown = document.getElementById("toast-countdown");
     const progressValue = document.getElementById("progress-value");
     const progressFill = document.getElementById("progress-fill");
+    const navigationEntry = window.performance && window.performance.getEntriesByType
+        ? window.performance.getEntriesByType("navigation")[0]
+        : null;
+    const legacyNavigation = window.performance && window.performance.navigation
+        ? window.performance.navigation.type
+        : null;
+    const isHistoryNavigation = (navigationEntry && navigationEntry.type === "back_forward")
+        || legacyNavigation === 2;
     let remaining = Number.isFinite(duration) && duration > 0 ? duration : 0;
+
+    if (isHistoryNavigation) {
+        window.location.replace(roleSelectUrl);
+        return;
+    }
 
     function updateProgress() {
         const completed = Math.max(0, duration - remaining);

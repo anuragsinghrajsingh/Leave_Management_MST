@@ -4260,7 +4260,12 @@ def dashboard(request):
 
     # 🔥 BASE QUERY
     recent_cutoff = now() - timedelta(days=30)
-    leaves_qs = Leave.objects.filter(user=request.user, created_at__gte=recent_cutoff).order_by("-created_at")
+    leaves_qs = (
+        Leave.objects
+        .filter(user=request.user, created_at__gte=recent_cutoff)
+        .select_related("reviewed_by")
+        .order_by("-created_at")
+    )
 
     # 🔥 PAGINATION
     page_number = request.GET.get("page", 1)
@@ -4346,6 +4351,11 @@ def dashboard(request):
                 "updated": localtime(leave.updated_at).isoformat() if leave.updated_at else "",
                 "approved": localtime(leave.approved_at).isoformat() if leave.approved_at else "",
                 "rejected": localtime(leave.rejected_at).isoformat() if leave.rejected_at else "",
+                "reviewed_by": (
+                    leave.reviewed_by.get_full_name().strip() or leave.reviewed_by.username
+                    if getattr(leave, "reviewed_by", None)
+                    else "HR Team"
+                ),
 
                 "duration": duration,
                 "reason": leave.reason or "",
@@ -5411,6 +5421,10 @@ def _build_my_leave_context(request):
                 "to": leave.to_date.strftime("%Y-%m-%d"),
                 "type": leave.leave_type,
                 "status": leave.status,
+                "created_at": leave.created_at.isoformat() if leave.created_at else "",
+                "updated_at": leave.updated_at.isoformat() if leave.updated_at else "",
+                "approved_at": leave.approved_at.isoformat() if leave.approved_at else "",
+                "rejected_at": leave.rejected_at.isoformat() if leave.rejected_at else "",
             }
             for leave in calendar_blocking_leaves
         ]),

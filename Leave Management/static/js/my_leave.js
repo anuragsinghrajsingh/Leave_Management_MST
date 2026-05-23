@@ -1061,14 +1061,23 @@ const exportWrapper = document.createElement("div");
     function buildMonthCalendar(year, month, leaves, holidays, companyHolidays)
     {
         const getLeaveSortTime = (leave) => {
-            const rawValue = leave?.created_at || leave?.updated_at || leave?.approved_at || leave?.rejected_at || "";
+            const rawValue = leave?.updated_at || leave?.approved_at || leave?.rejected_at || leave?.created_at || "";
             const timeValue = rawValue ? Date.parse(rawValue) : NaN;
             return Number.isFinite(timeValue) ? timeValue : Number(leave?.id || 0);
+        };
+        const getLeaveStatusPriority = (leave) => {
+            const normalizedStatus = String(leave?.status || "").trim().toLowerCase();
+            if (normalizedStatus === "pending") return 3;
+            if (normalizedStatus === "approved") return 2;
+            if (normalizedStatus === "rejected") return 1;
+            return 0;
         };
         const getLatestLeaveForDate = (dateStr) => {
             return leaves
                 .filter((leave) => dateStr >= leave.from && dateStr <= leave.to)
                 .sort((a, b) => {
+                    const statusDiff = getLeaveStatusPriority(b) - getLeaveStatusPriority(a);
+                    if (statusDiff) return statusDiff;
                     const timeDiff = getLeaveSortTime(b) - getLeaveSortTime(a);
                     if (timeDiff) return timeDiff;
                     return Number(b.id || 0) - Number(a.id || 0);
@@ -1449,9 +1458,11 @@ const exportWrapper = document.createElement("div");
         const safeLeaveId = encodeURIComponent(String(leave.id ?? ""));
         const safeLeaveType = escapeHtml(leave.type);
         const safeLeaveReason = escapeHtml(leave.reason || "-");
-        const safeLeaveStatus = escapeHtml(leave.status);
+        const rawLeaveStatus = String(leave.status || "").trim();
+        const normalizedLeaveStatus = rawLeaveStatus.toLowerCase();
+        const safeLeaveStatus = escapeHtml(rawLeaveStatus);
         const typeClass = getCalendarLeaveTypeClass(leave.type);
-        const hasPendingActions = leave.status === "Pending";
+        const hasPendingActions = normalizedLeaveStatus === "pending";
         const appliedText = formatAjaxRelativeLeaveAge(leave.created_at);
         const updatedText = leave.updated_at ? formatAjaxRelativeLeaveAge(leave.updated_at) : "Not updated";
         window.setSafeHTML(content, `
@@ -1462,7 +1473,7 @@ const exportWrapper = document.createElement("div");
                         <p>Leave detail</p>
                         <h4><span class="calendar-detail-type-chip">${safeLeaveType} Leave</span></h4>
                     </div>
-                    <span class="calendar-detail-status calendar-detail-status-${safeLeaveStatus.toLowerCase()}">${safeLeaveStatus}</span>
+                    <span class="calendar-detail-status calendar-detail-status-${escapeHtml(normalizedLeaveStatus)}">${safeLeaveStatus}</span>
                 </div>
                 <div class="calendar-detail-grid">
                     <div class="calendar-detail-metric">
@@ -4494,7 +4505,7 @@ const exportWrapper = document.createElement("div");
             "rejected-note": { title: "Rejection Reason", label: "Rejection Reason", icon: "&#10006;" }
         };
         const contextCopy = contextLabels[meta.reasonContext] || contextLabels.pending;
-        const hasDecision = Boolean(meta.decisionIso);
+        const hasDecision = Boolean(meta.decisionLabel);
         const showScheduleTime = meta.leaveTypeClass === "short" || meta.leaveTypeClass === "half";
         title.textContent = meta.title || contextCopy.title;
         modal.classList.remove(

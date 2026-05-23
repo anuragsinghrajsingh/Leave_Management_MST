@@ -401,7 +401,8 @@ function renderLeaveCard(leave, isNew) {
                     data-created="${escapeHtml(leave.created || "")}"
                     data-updated="${escapeHtml(leave.updated || "")}"
                     data-approved="${escapeHtml(leave.approved || "")}"
-                    data-rejected="${escapeHtml(leave.rejected || "")}">
+                    data-rejected="${escapeHtml(leave.rejected || "")}"
+                    data-reviewed-by="${escapeHtml(leave.reviewed_by || leave.reviewed_by_name || "HR Team")}">
                     <div class="reason-label">Reason</div>
                     <div class="reason-divider"></div>
                     <div class="reason-content">
@@ -1078,6 +1079,9 @@ function openReasonModal(sourceElement) {
     const decisionLabel = document.getElementById("reasonModalDecisionLabel");
     const decision = document.getElementById("reasonModalDecision");
     const decisionTime = document.getElementById("reasonModalDecisionTime");
+    const reviewerCard = document.getElementById("reasonModalReviewerCard");
+    const reviewerLabel = document.getElementById("reasonModalReviewerLabel");
+    const reviewer = document.getElementById("reasonModalReviewer");
     const fieldLabel = document.getElementById("reasonModalFieldLabel");
 
     if (!modalreason || !content) return;
@@ -1100,7 +1104,7 @@ function openReasonModal(sourceElement) {
     };
     const contextCopy = contextLabels[context] || contextLabels.pending;
     const decisionIso = context === "approved" ? reasonBox?.dataset.approved : context === "rejected-employee" ? reasonBox?.dataset.rejected : "";
-    const hasDecision = Boolean(decisionIso);
+    const hasDecision = context === "approved" || context === "rejected-employee";
     const showScheduleTime = typeClass === "short" || typeClass === "half";
     const durationValue = Number.parseInt(reasonBox?.dataset.duration || "0", 10);
     const daysDisplay = typeClass === "short"
@@ -1144,6 +1148,9 @@ function openReasonModal(sourceElement) {
     if (decisionLabel) setReasonModalLabel(decisionLabel, context === "rejected-employee" ? "&#9940;" : "&#10003;", context === "rejected-employee" ? "Rejected At" : "Approved At");
     if (decision) decision.textContent = hasDecision ? (formatReasonModalRelativeAge(decisionIso) || "-") : "-";
     if (decisionTime) decisionTime.textContent = hasDecision ? formatReasonModalClockTime(decisionIso) : "-";
+    if (reviewerCard) reviewerCard.hidden = !hasDecision;
+    if (reviewerLabel) setReasonModalLabel(reviewerLabel, "&#128100;", context === "rejected-employee" ? "Rejected By" : "Approved By");
+    if (reviewer) reviewer.textContent = hasDecision ? (reasonBox?.dataset.reviewedBy || "HR Team") : "-";
     setReasonModalLabel(fieldLabel, contextCopy.icon, contextCopy.label);
     content.innerText = sourceElement?.dataset.reason || reasonContent?.dataset.full || reasonContent?.textContent?.trim() || "No reason provided";
     modalreason.style.display = "flex";

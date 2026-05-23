@@ -573,14 +573,29 @@
 
         function getExistingLeave(date) {
             const target = formatValueDate(date);
+            const getStatusPriority = (leave) => {
+                const normalizedStatus = String(leave?.status || "").trim().toLowerCase();
+                if (normalizedStatus === "pending") return 3;
+                if (normalizedStatus === "approved") return 2;
+                if (normalizedStatus === "rejected") return 1;
+                return 0;
+            };
+            const getSortTime = (leave) => {
+                const rawValue = leave?.updated_at || leave?.approved_at || leave?.rejected_at || leave?.created_at || "";
+                const timeValue = rawValue ? Date.parse(rawValue) : NaN;
+                return Number.isFinite(timeValue) ? timeValue : Number(leave?.id || 0);
+            };
             return existingLeaveRanges
                 .filter((leave) => target >= leave.from && target <= leave.to)
                 .sort((first, second) => {
-                    const firstCreated = Date.parse(first.created_at || "") || 0;
-                    const secondCreated = Date.parse(second.created_at || "") || 0;
+                    const statusDiff = getStatusPriority(second) - getStatusPriority(first);
+                    if (statusDiff) {
+                        return statusDiff;
+                    }
 
-                    if (firstCreated !== secondCreated) {
-                        return secondCreated - firstCreated;
+                    const timeDiff = getSortTime(second) - getSortTime(first);
+                    if (timeDiff) {
+                        return timeDiff;
                     }
 
                     return (Number(second.id) || 0) - (Number(first.id) || 0);
@@ -819,7 +834,8 @@
                     date.getDate() === today.getDate();
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                 const isCompanyHolidayBlocked = !!companyHoliday;
-                const existingLeaveBlocksSelection = existingLeave && existingLeave.status !== "Rejected";
+                const existingLeaveStatus = String(existingLeave?.status || "").trim().toLowerCase();
+                const existingLeaveBlocksSelection = existingLeave && existingLeaveStatus !== "rejected";
                 const isDisabled = (minDate && date < minDate) || existingLeaveBlocksSelection || isWeekend || isCompanyHolidayBlocked;
 
                 const isSelected =
@@ -847,7 +863,7 @@
                 }
 
                 if (existingLeave) {
-                    const statusClass = (existingLeave.status || "").toLowerCase();
+                    const statusClass = existingLeaveStatus;
                     const leaveTypeLabel = document.createElement("span");
                     leaveTypeLabel.className = "date-day-leave-type";
                     leaveTypeLabel.textContent = existingLeave.type || "Leave";
