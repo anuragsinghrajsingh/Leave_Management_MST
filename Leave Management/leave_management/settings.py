@@ -54,6 +54,14 @@ PORTAL_BASE_URL = env(
     "PORTAL_BASE_URL",
     default="http://localhost:8000" if DEBUG else "",
 ).rstrip("/")
+WEB_PUSH_VAPID_PUBLIC_KEY = env("WEB_PUSH_VAPID_PUBLIC_KEY", default="").strip()
+WEB_PUSH_VAPID_PRIVATE_KEY = env("WEB_PUSH_VAPID_PRIVATE_KEY", default="").strip()
+WEB_PUSH_VAPID_SUBJECT = env(
+    "WEB_PUSH_VAPID_SUBJECT",
+    default=f"mailto:{ADMINS[0][1]}" if ADMINS else "mailto:admin@example.com",
+).strip()
+if WEB_PUSH_VAPID_PRIVATE_KEY and not os.path.isabs(WEB_PUSH_VAPID_PRIVATE_KEY):
+    WEB_PUSH_VAPID_PRIVATE_KEY = str(BASE_DIR / WEB_PUSH_VAPID_PRIVATE_KEY)
 
 if IS_PRODUCTION and SECRET_KEY == DEFAULT_DEV_SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is false.")

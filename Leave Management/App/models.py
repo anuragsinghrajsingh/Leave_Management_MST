@@ -418,6 +418,36 @@ class EmailDeliveryLog(models.Model):
         return f"{self.recipient} - {self.subject} - {self.status}"
 
 
+class PushSubscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.URLField(max_length=500, unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    browser = models.CharField(max_length=120, blank=True)
+    device_label = models.CharField(max_length=120, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+    last_sent_at = models.DateTimeField(blank=True, null=True)
+    last_error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-last_seen_at", "-id"]
+        verbose_name = "Push subscription"
+        verbose_name_plural = "Push subscriptions"
+        indexes = [
+            models.Index(fields=["user", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} push subscription"
+
+
 class EmployeeCommunicationReadSeenAudit(AdminAuditLog):
     class Meta:
         proxy = True

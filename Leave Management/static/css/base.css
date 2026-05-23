@@ -1028,6 +1028,132 @@
     }
 }
 
+.push-enable-banner
+{
+    position: fixed;
+    top: calc(var(--header-height, 64px) + 14px);
+    right: 16px;
+    z-index: 9998;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    width: min(420px, calc(100vw - 32px));
+    padding: 12px 12px 12px 14px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
+    color: #0f172a;
+}
+
+.push-enable-banner.is-error
+{
+    border-color: rgba(220, 38, 38, 0.28);
+}
+
+.push-enable-copy
+{
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.push-enable-copy strong
+{
+    font-size: 0.86rem;
+    line-height: 1.2;
+}
+
+.push-enable-copy span
+{
+    color: #475569;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.push-enable-actions
+{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.push-enable-btn,
+.push-dismiss-btn
+{
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+.push-enable-btn
+{
+    min-height: 34px;
+    padding: 0 13px;
+    border-radius: 7px;
+    background: #0f766e;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.push-dismiss-btn
+{
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.push-quick-enable
+{
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 9997;
+    min-height: 34px;
+    max-width: min(230px, calc(100vw - 32px));
+    padding: 0 13px;
+    border: 1px solid rgba(15, 118, 110, 0.26);
+    border-radius: 7px;
+    background: #fff;
+    color: #0f766e;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+@media (max-width: 768px)
+{
+    .push-enable-banner
+    {
+        top: auto;
+        right: 10px;
+        bottom: 12px;
+        left: 10px;
+        width: auto;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .push-enable-actions
+    {
+        justify-content: flex-end;
+    }
+
+    .push-quick-enable
+    {
+        right: 10px;
+        bottom: 10px;
+        max-width: calc(100vw - 20px);
+    }
+}
+
 @media (prefers-reduced-motion: reduce)
 {
     .skeleton-card::after,

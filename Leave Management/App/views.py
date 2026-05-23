@@ -18,7 +18,7 @@ from App.utils.logger_utils import log_leave_action, log_profile_update
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
-from .models import AdminAuditLog, Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile # , CompanyClosure, 
+from .models import AdminAuditLog, Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile, PushSubscription # , CompanyClosure, 
 from django.views.decorators.cache import never_cache
 from django.core.cache import cache
 from django.views.decorators.http import require_http_methods, require_POST
@@ -35,12 +35,14 @@ from django.core.mail import EmailMessage
 from django.core.files.base import ContentFile
 from django.core.validators import validate_email
 from django.conf import settings
+from django.contrib.staticfiles import finders
 import os
 from io import BytesIO
 from App.services.employee_welcome_service import send_employee_welcome_package
 from App.services.forced_password_service import send_forced_password_email, user_can_be_forced_to_change_password
 from App.services.login_lock_service import remember_failed_login_ip
 from App.services.login_lock_service import get_login_lock_status as get_combined_login_lock_status
+from App.services.push_notifications import send_push_to_user
 
 security_logger = logging.getLogger("lms_security")
 
@@ -74,8 +76,96 @@ def get_portal_link():
     return f"{settings.PORTAL_BASE_URL}/"
 
 
+def _leave_push_date_text(leave):
+    if leave.from_date == leave.to_date:
+        return leave.from_date.strftime("%d %b %Y")
+    return f"{leave.from_date.strftime('%d %b %Y')} to {leave.to_date.strftime('%d %b %Y')}"
+
+
+def _aware_datetime(value):
+    return timezone.make_aware(value) if timezone.is_naive(value) else value
+
+
+def queue_hr_leave_push(leave, action_label):
+    User = get_user_model()
+    employee_name = leave.user.get_full_name().strip() or leave.user.username
+    title = f"{action_label}: {employee_name}"
+    body = f"{leave.leave_type} leave for {_leave_push_date_text(leave)}."
+    url = reverse("manage_all")
+    recipients = list(User.objects.filter(role="HR", is_active=True))
+
+    for recipient in recipients:
+        transaction.on_commit(
+            lambda recipient=recipient, title=title, body=body, url=url, leave_id=leave.pk: send_push_to_user(
+                recipient,
+                title,
+                body,
+                url=url,
+                tag=f"leave-{leave_id}-hr",
+                kind="leave",
+            )
+        )
+
+
+def queue_employee_leave_push(leave, status_label):
+    title = f"Leave {status_label.lower()}"
+    body = f"Your {leave.leave_type} leave for {_leave_push_date_text(leave)} was {status_label.lower()}."
+    url = reverse("my_leave")
+    transaction.on_commit(
+        lambda user=leave.user, title=title, body=body, url=url, leave_id=leave.pk, status=status_label.lower(): send_push_to_user(
+            user,
+            title,
+            body,
+            url=url,
+            tag=f"leave-{leave_id}-{status}",
+            kind=f"leave_{status}",
+        )
+    )
+
+
+def queue_communication_push(sender, *, recipient=None, audience_role="", message_type="DIRECT", title="", body=""):
+    User = get_user_model()
+    sender_name = sender.get_full_name().strip() or sender.username
+    clean_title = title or ("Announcement" if message_type == "ANNOUNCEMENT" else "New message")
+    clean_body = body[:140] if body else f"From {sender_name}"
+    url = reverse("dashboard") if audience_role == "EMPLOYEE" else reverse("manage_all")
+
+    if recipient:
+        recipients = [recipient]
+        url = reverse("dashboard") if recipient.role == "EMPLOYEE" else reverse("manage_all")
+    elif audience_role:
+        recipients = list(User.objects.filter(role=audience_role, is_active=True))
+    else:
+        recipients = []
+
+    for target_user in recipients:
+        if target_user.pk == sender.pk:
+            continue
+        transaction.on_commit(
+            lambda target_user=target_user, clean_title=clean_title, clean_body=clean_body, url=url, message_type=message_type: send_push_to_user(
+                target_user,
+                clean_title,
+                clean_body,
+                url=url,
+                tag=f"communication-{message_type.lower()}-{target_user.pk}",
+                kind="announcement" if message_type == "ANNOUNCEMENT" else "message",
+            )
+        )
+
+
 def get_employee_archive_cache_key(token):
     return f"employee_archive_download:{token}"
+
+
+def service_worker(request):
+    service_worker_path = finders.find("js/service-worker.js")
+    if not service_worker_path:
+        return HttpResponse("", content_type="application/javascript", status=404)
+    with open(service_worker_path, "r", encoding="utf-8") as service_worker_file:
+        response = HttpResponse(service_worker_file.read(), content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    response["Cache-Control"] = "no-cache"
+    return response
 
 
 def get_leave_alert_recipients():
@@ -2092,11 +2182,18 @@ def communications_send(request):
     try:
         if user.role == "HR":
             if message_type == "ANNOUNCEMENT":
-                Communication.objects.create(
+                communication = Communication.objects.create(
                     sender=user,
                     message_type="ANNOUNCEMENT",
                     audience_role="EMPLOYEE",
                     title=title,
+                    body=body,
+                )
+                queue_communication_push(
+                    user,
+                    audience_role="EMPLOYEE",
+                    message_type=communication.message_type,
+                    title=title or "Announcement",
                     body=body,
                 )
             elif message_type == "DIRECT":
@@ -2109,11 +2206,18 @@ def communications_send(request):
                     return JsonResponse({"error": "Recipient is required."}, status=400)
 
                 recipient = get_object_or_404(User, id=recipient_id, role__in=["EMPLOYEE", "Admin"], is_active=True)
-                Communication.objects.create(
+                communication = Communication.objects.create(
                     sender=user,
                     recipient=recipient,
                     message_type="DIRECT",
                     title=title,
+                    body=body,
+                )
+                queue_communication_push(
+                    user,
+                    recipient=recipient,
+                    message_type=communication.message_type,
+                    title=title or "New message",
                     body=body,
                 )
             else:
@@ -2132,11 +2236,18 @@ def communications_send(request):
                 return JsonResponse({"error": "Recipient is required."}, status=400)
 
             recipient = get_object_or_404(User, id=recipient_id, role__in=["HR", "Admin"], is_active=True)
-            Communication.objects.create(
+            communication = Communication.objects.create(
                 sender=user,
                 recipient=recipient,
                 message_type="DIRECT",
                 title=title,
+                body=body,
+            )
+            queue_communication_push(
+                user,
+                recipient=recipient,
+                message_type=communication.message_type,
+                title=title or "New message",
                 body=body,
             )
         else:
@@ -2351,8 +2462,84 @@ def notifications_mark_seen(request):
     })
 
 
+@login_required
+def push_notification_config(request):
+    public_key = getattr(settings, "WEB_PUSH_VAPID_PUBLIC_KEY", "")
+    return JsonResponse({
+        "enabled": bool(public_key),
+        "publicKey": public_key,
+        "subscribeUrl": reverse("push_subscribe"),
+        "unsubscribeUrl": reverse("push_unsubscribe"),
+        "testUrl": reverse("push_test"),
+    })
 
 
+@login_required
+@require_POST
+def push_subscribe(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"success": False, "error": "Invalid JSON payload."}, status=400)
+
+    endpoint = (payload.get("endpoint") or "").strip()
+    keys = payload.get("keys") or {}
+    p256dh = (keys.get("p256dh") or "").strip()
+    auth = (keys.get("auth") or "").strip()
+    browser = (payload.get("browser") or request.META.get("HTTP_USER_AGENT", ""))[:120]
+    device_label = (payload.get("deviceLabel") or "")[:120]
+
+    if not endpoint or not p256dh or not auth:
+        return JsonResponse({"success": False, "error": "Incomplete push subscription."}, status=400)
+
+    subscription, created = PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={
+            "user": request.user,
+            "p256dh": p256dh,
+            "auth": auth,
+            "browser": browser,
+            "device_label": device_label,
+            "is_active": True,
+            "last_error": "",
+        },
+    )
+
+    return JsonResponse({
+        "success": True,
+        "created": created,
+        "subscriptionId": subscription.pk,
+    })
+
+
+@login_required
+@require_POST
+def push_unsubscribe(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        payload = {}
+
+    endpoint = (payload.get("endpoint") or "").strip()
+    queryset = PushSubscription.objects.filter(user=request.user)
+    if endpoint:
+        queryset = queryset.filter(endpoint=endpoint)
+    updated = queryset.update(is_active=False)
+    return JsonResponse({"success": True, "updated": updated})
+
+
+@login_required
+@require_POST
+def push_test(request):
+    result = send_push_to_user(
+        request.user,
+        "Notifications enabled",
+        "System notifications are ready on this device.",
+        url=request.META.get("HTTP_REFERER") or "/",
+        tag=f"push-test-{request.user.pk}",
+        kind="test",
+    )
+    return JsonResponse({"success": bool(result.get("sent")), **result})
 
 
 from django.db.models import Count
@@ -3346,6 +3533,7 @@ def approve_leave(request, leave_id):
         leave.reviewed_by = request.user
         leave.save(update_fields=["status", "approved_at", "rejected_at", "reviewed_by"])
         log_leave_action(request.user, "APPROVE", leave.id, f"Employee: {leave.user.username}")
+        queue_employee_leave_push(leave, "Approved")
 
     # --- Notify Employee (Approved) ---
     subject = f"Leave Request APPROVED: {leave.leave_type}"
@@ -3509,6 +3697,7 @@ def reject_leave(request, leave_id):
         leave.reviewed_by = request.user
         leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at", "reviewed_by"])
         log_leave_action(request.user, "REJECT", leave.id, f"Employee: {leave.user.username} | Reason: {leave.rejection_reason}")
+        queue_employee_leave_push(leave, "Rejected")
 
         if leave.leave_type in ["Sick", "Earned", "Unpaid"]:
             reconcile_user_full_day_leave_bridges(leave.user)
@@ -4354,8 +4543,8 @@ def apply_leave(request):
                 return redirect("apply_leave")
 
             try:
-                start = datetime.fromisoformat(from_datetime_raw)
-                end = datetime.fromisoformat(to_datetime_raw)
+                start = _aware_datetime(datetime.fromisoformat(from_datetime_raw))
+                end = _aware_datetime(datetime.fromisoformat(to_datetime_raw))
             except ValueError:
                 messages.error(request, "Invalid datetime format.")
                 
@@ -4527,6 +4716,7 @@ def apply_leave(request):
                     status="Pending",
                     deducted_from=deducted_from
                 )
+                queue_hr_leave_push(leave_obj, "New leave request")
 
                 # --- Notify Managers (New Request) ---
                 hr_emails = get_leave_alert_recipients()
@@ -4624,8 +4814,8 @@ def apply_leave(request):
         new_to = to_date
 
         # Default time for full day
-        start_datetime = datetime.combine(from_date, time(10, 0))
-        end_datetime = datetime.combine(to_date, time(19, 0))
+        start_datetime = timezone.make_aware(datetime.combine(from_date, time(10, 0)))
+        end_datetime = timezone.make_aware(datetime.combine(to_date, time(19, 0)))
 
         # Checking working days in the selected range
         breakdown = calculate_leave_breakdown(
@@ -4800,6 +4990,7 @@ def apply_leave(request):
                 deducted_from=deducted_from
             )
             log_leave_action(request.user, "APPLY", leave_obj.id, f"Type: {leave_type} | Dates: {from_date} to {to_date}")
+            queue_hr_leave_push(leave_obj, "New leave request")
 
             # --- Notify Managers (New Full-Day Request) ---
             hr_emails = get_leave_alert_recipients()
@@ -5424,6 +5615,7 @@ def delete_leave(request, leave_id):
                 leave.id,
                 f"Type: {leave.leave_type} | Date: {leave.from_date} | Deducted From: {leave.deducted_from}",
             )
+            queue_hr_leave_push(leave, "Leave deleted")
             leave.delete()
             pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
             return _my_leave_response(request, deleted_id=deleted_leave_id, pending_count=pending_count)
@@ -5469,6 +5661,7 @@ def delete_leave(request, leave_id):
 
         deleted_leave_id = leave.id
         log_leave_action(request.user, "DELETE", leave.id, f"Type: {leave.leave_type}")
+        queue_hr_leave_push(leave, "Leave deleted")
         leave.delete()
         reconcile_user_full_day_leave_bridges(request.user)
         
@@ -5630,8 +5823,8 @@ def edit_leave(request, leave_id):
             return _my_leave_response(request, status=400)
 
         try:
-            start = datetime.fromisoformat(from_datetime)
-            end = datetime.fromisoformat(to_datetime)
+            start = _aware_datetime(datetime.fromisoformat(from_datetime))
+            end = _aware_datetime(datetime.fromisoformat(to_datetime))
         except:
             messages.error(request, "Invalid datetime format.")
             return _my_leave_response(request, status=400)
@@ -5826,6 +6019,7 @@ def edit_leave(request, leave_id):
         messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
         messages.success(request, f"Leave date: From {new_from.strftime('%d %b %Y')} → {new_to.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
         
+        queue_hr_leave_push(leave, "Leave updated")
         return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
 
     # =========================================================
@@ -6015,6 +6209,8 @@ def edit_leave(request, leave_id):
 
     messages.success(request, "ℹ Leave updated successfully.")
     
+    queue_hr_leave_push(leave, "Leave updated")
+
     if(new_type == "Sick" or new_type == "Earned" or new_type == "Unpaid"):
         messages.success(
             request,

@@ -50,6 +50,7 @@ from .models import (
     MasterLogViewer,
     Profile,
     ProfileAdminAudit,
+    PushSubscription,
     ProfileLogViewer,
     ReportExportControl,
     SchedulerLogViewer,
@@ -5450,6 +5451,20 @@ class UserAdminAuditAdmin(BaseAdminAuditLogAdmin):
     model_label_filter = "App.CustomUser"
 
 
+@admin.register(PushSubscription)
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("user", "browser", "device_label", "is_active", "last_seen_at", "last_sent_at")
+    list_filter = ("is_active", "user__role", "created_at", "last_seen_at")
+    search_fields = ("user__username", "user__email", "endpoint", "browser", "device_label")
+    readonly_fields = ("user", "endpoint", "p256dh", "auth", "browser", "device_label", "created_at", "updated_at", "last_seen_at", "last_sent_at", "last_error")
+    actions = ["deactivate_selected_subscriptions"]
+
+    @admin.action(description="Deactivate selected push subscriptions")
+    def deactivate_selected_subscriptions(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"Deactivated {updated} push subscription(s).", level=messages.SUCCESS)
+
+
 @login_required
 @never_cache
 @admin.register(ProfileAdminAudit)
@@ -6570,6 +6585,7 @@ COMMUNICATION_NOTIFICATION_OBJECT_NAMES = {
     "HRLeaveNotificationRead",
     "EmployeeLeaveNotificationSeen",
     "HRLeaveNotificationSeen",
+    "PushSubscription",
 }
 
 COMMUNICATION_NOTIFICATION_AUDIT_OBJECT_NAMES = {

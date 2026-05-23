@@ -6,6 +6,7 @@ urlpatterns = [
     # path('', views.login_view, name='login'),
     
     # path('admin/', admin.site.urls),
+    path('service-worker.js', views.service_worker, name='service_worker'),
     path('', views.app_loading, name='app_loading'),
     path('portal/', views.role_select, name='role_select'),
     
@@ -33,6 +34,10 @@ urlpatterns = [
     path('api/employee-notifications/', views.employee_notifications, name='employee_notifications'),
     path('api/notifications/read/', views.notifications_mark_read, name='notifications_mark_read'),
     path('api/notifications/seen/', views.notifications_mark_seen, name='notifications_mark_seen'),
+    path('api/push/config/', views.push_notification_config, name='push_notification_config'),
+    path('api/push/subscribe/', views.push_subscribe, name='push_subscribe'),
+    path('api/push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),
+    path('api/push/test/', views.push_test, name='push_test'),
     path('api/communications/', views.communications_feed, name='communications_feed'),
     path('api/communications/send/', views.communications_send, name='communications_send'),
     path('api/communications/read/', views.communications_mark_read, name='communications_mark_read'),

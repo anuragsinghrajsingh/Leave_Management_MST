@@ -168,6 +168,7 @@ class RoleAwareLoginRedirectMiddleware:
         "/api/communications/",
         "/api/notifications/read/",
         "/api/notifications/seen/",
+        "/api/push/",
     )
 
     public_prefixes = (
@@ -303,6 +304,8 @@ class UserAnalyticsMiddleware:
         # 1. Track entry
         start_time = time.time()
         current_path = request.path
+        if self._should_skip_path(current_path):
+            return self.get_response(request)
         
         # 2. Check previous session data
         prev_path = request.session.get('last_path')
@@ -322,3 +325,11 @@ class UserAnalyticsMiddleware:
 
         response = self.get_response(request)
         return response
+
+    def _should_skip_path(self, path):
+        return (
+            path == "/service-worker.js"
+            or path.startswith("/static/")
+            or path.startswith("/media/")
+            or path.startswith("/api/")
+        )
