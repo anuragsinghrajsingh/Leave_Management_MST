@@ -473,7 +473,7 @@
                     label = "Mark the announcement as read";
                 } else if (target === "direct") {
                     count = unseenDirectCount;
-                    label = role === "HR" ? "Mark all Employee Messages as Read" : "Mark the message as read";
+                    label = role === "HR" ? "Mark all Messages as Read" : "Mark the message as read";
                 } else if (role === "HR") {
                     count = currentMode === "DIRECT" ? unseenDirectCount : unseenAnnouncementCount;
                     label = currentMode === "DIRECT" ? "Mark the message as read" : "Mark the announcement as read";
