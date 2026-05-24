@@ -25,6 +25,7 @@ from App.services.email_delivery_log import record_email_delivery
 
 logger = logging.getLogger("lms_email")
 FORCED_PASSWORD_ROLES = {"EMPLOYEE", "HR"}
+PAGE_SIZE = 10
 
 
 def user_can_be_forced_to_change_password(user):
@@ -33,90 +34,6 @@ def user_can_be_forced_to_change_password(user):
 
 def send_forced_password_email(user, event, triggered_by=None):
     if not user or not getattr(user, "email", ""):
-        return False
-
-
-def send_password_reset_email(user, triggered_by=None):
-    if not user or not getattr(user, "email", ""):
-        return False
-
-    subject = "Your password was reset"
-    display_name = user.get_full_name().strip() or user.username
-    intro = (
-        "Your account password was reset by an administrator. "
-        "Use the new password shared with you securely to log in."
-    )
-    body = (
-        "Your password was reset\n\n"
-        f"{intro}\n\n"
-        f"User: {display_name}\n"
-        f"Username: {user.username}\n"
-        f"Role: {user.role}\n"
-        f"Time: {localtime(now()).strftime('%d %b %Y, %I:%M %p')}\n"
-        "\nFor security, this email does not include the password.\n"
-    )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
-    portal_path = "admin_login" if user.role == "Admin" else "hr_login" if user.role == "HR" else "employee_login"
-    portal_url = (getattr(settings, "PORTAL_BASE_URL", "") or "").rstrip("/") + reverse(portal_path)
-    triggered_by_name = ""
-    if getattr(triggered_by, "is_authenticated", False):
-        triggered_by_name = triggered_by.get_full_name().strip() or triggered_by.username
-
-    html_body = render_to_string(
-        "emails/forced_password_notification.html",
-        {
-            "status_label": "Password Reset",
-            "status_class": "updated",
-            "title": "Your password was reset",
-            "intro_text": intro,
-            "display_name": display_name,
-            "username": user.username,
-            "role": "Employee" if user.role == "EMPLOYEE" else user.role,
-            "event_time": localtime(now()),
-            "triggered_by_name": triggered_by_name,
-            "portal_url": portal_url,
-            "event": "reset",
-        },
-    )
-
-    try:
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=body,
-            from_email=from_email or None,
-            to=[user.email],
-        )
-        email.attach_alternative(html_body, "text/html")
-        logo_path = os.path.join(settings.BASE_DIR, "static", "images", "ms-technology-logo.png")
-        if os.path.exists(logo_path):
-            with open(logo_path, "rb") as logo_file:
-                logo = MIMEImage(logo_file.read())
-                logo.add_header("Content-ID", "<logo_image>")
-                logo.add_header("Content-Disposition", "inline", filename="ms-technology-logo.png")
-                email.attach(logo)
-        email.send(fail_silently=False)
-        record_email_delivery(
-            subject=subject,
-            recipients=[user.email],
-            status="sent",
-            email_type="password_reset_notification",
-            from_email=from_email,
-            related_user=user,
-            triggered_by=triggered_by,
-        )
-        return True
-    except Exception as exc:
-        logger.exception("PASSWORD_RESET_EMAIL_FAILED | user_id=%s", user.pk)
-        record_email_delivery(
-            subject=subject,
-            recipients=[user.email],
-            status="failed",
-            email_type="password_reset_notification",
-            from_email=from_email,
-            error_message=str(exc),
-            related_user=user,
-            triggered_by=triggered_by,
-        )
         return False
 
     event_map = {
@@ -216,6 +133,89 @@ def send_password_reset_email(user, triggered_by=None):
         return False
 
 
+def send_password_reset_email(user, triggered_by=None):
+    if not user or not getattr(user, "email", ""):
+        return False
+
+    subject = "Your password was reset"
+    display_name = user.get_full_name().strip() or user.username
+    intro = (
+        "Your account password was reset by an administrator. "
+        "Use the new password shared with you securely to log in."
+    )
+    body = (
+        "Your password was reset\n\n"
+        f"{intro}\n\n"
+        f"User: {display_name}\n"
+        f"Username: {user.username}\n"
+        f"Role: {user.role}\n"
+        f"Time: {localtime(now()).strftime('%d %b %Y, %I:%M %p')}\n"
+        "\nFor security, this email does not include the password.\n"
+    )
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
+    portal_path = "admin_login" if user.role == "Admin" else "hr_login" if user.role == "HR" else "employee_login"
+    portal_url = (getattr(settings, "PORTAL_BASE_URL", "") or "").rstrip("/") + reverse(portal_path)
+    triggered_by_name = ""
+    if getattr(triggered_by, "is_authenticated", False):
+        triggered_by_name = triggered_by.get_full_name().strip() or triggered_by.username
+
+    html_body = render_to_string(
+        "emails/forced_password_notification.html",
+        {
+            "status_label": "Password Reset",
+            "status_class": "updated",
+            "title": "Your password was reset",
+            "intro_text": intro,
+            "display_name": display_name,
+            "username": user.username,
+            "role": "Employee" if user.role == "EMPLOYEE" else user.role,
+            "event_time": localtime(now()),
+            "triggered_by_name": triggered_by_name,
+            "portal_url": portal_url,
+            "event": "reset",
+        },
+    )
+
+    try:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=body,
+            from_email=from_email or None,
+            to=[user.email],
+        )
+        email.attach_alternative(html_body, "text/html")
+        logo_path = os.path.join(settings.BASE_DIR, "static", "images", "ms-technology-logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as logo_file:
+                logo = MIMEImage(logo_file.read())
+                logo.add_header("Content-ID", "<logo_image>")
+                logo.add_header("Content-Disposition", "inline", filename="ms-technology-logo.png")
+                email.attach(logo)
+        email.send(fail_silently=False)
+        record_email_delivery(
+            subject=subject,
+            recipients=[user.email],
+            status="sent",
+            email_type="password_reset_notification",
+            from_email=from_email,
+            related_user=user,
+            triggered_by=triggered_by,
+        )
+        return True
+    except Exception as exc:
+        logger.exception("PASSWORD_RESET_EMAIL_FAILED | user_id=%s", user.pk)
+        record_email_delivery(
+            subject=subject,
+            recipients=[user.email],
+            status="failed",
+            email_type="password_reset_notification",
+            from_email=from_email,
+            error_message=str(exc),
+            related_user=user,
+            triggered_by=triggered_by,
+        )
+        return False
+
 def _setup_django_for_cli():
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     if project_root not in sys.path:
@@ -233,7 +233,7 @@ def _setup_django_for_cli():
 def _prompt_choice(prompt, valid_choices):
     valid = {str(choice) for choice in valid_choices}
     while True:
-        value = input(prompt).strip()
+        value = input(prompt).strip().lower()
         if value in valid:
             return value
         print("Invalid choice. Please select one of:", ", ".join(sorted(valid)))
@@ -260,14 +260,41 @@ def _query_users_for_role(role):
 
 
 def _list_users(role):
-    users = list(_query_users_for_role(role)[:50])
-    if not users:
-        print(f"No {role} users found.")
-        return []
-    print(f"\nShowing first {len(users)} {role} users:")
-    for index, user in enumerate(users, start=1):
-        _display_user_row(index, user)
-    return users
+    page = 0
+
+    while True:
+        queryset = _query_users_for_role(role)
+        total = queryset.count()
+        start = page * PAGE_SIZE
+        end = start + PAGE_SIZE
+        users = list(queryset[start:end])
+
+        if total == 0:
+            print(f"No active {role} users found.")
+            return None
+
+        print(f"\nShowing active {role} users {start + 1}-{min(end, total)} of {total}:")
+        for index, user in enumerate(users, start=1):
+            _display_user_row(index, user)
+
+        print("\nNumber = select user | N = Next page | P = Previous page | B = Back")
+        valid_numbers = {str(number) for number in range(1, len(users) + 1)}
+        choice = _prompt_choice("Select option: ", valid_numbers | {"n", "p", "0", "b"})
+        if choice in {"0", "b"}:
+            return None
+        if choice == "n":
+            if end >= total:
+                print("Already on the last page.")
+            else:
+                page += 1
+            continue
+        if choice == "p":
+            if page == 0:
+                print("Already on the first page.")
+            else:
+                page -= 1
+            continue
+        return users[int(choice) - 1]
 
 
 def _search_users(role):
@@ -303,8 +330,8 @@ def _search_users(role):
 def _select_from_list(users):
     if not users:
         return None
-    choice = _prompt_choice("Select number, or 0 to go back: ", range(0, len(users) + 1))
-    if choice == "0":
+    choice = _prompt_choice("Select number (B=Back): ", set(range(0, len(users) + 1)) | {"b"})
+    if choice in {"0", "b"}:
         return None
     return users[int(choice) - 1]
 
@@ -312,8 +339,8 @@ def _select_from_list(users):
 def _select_by_database_id(role):
     from django.contrib.auth import get_user_model
 
-    raw_id = input("Enter user database ID, or 0 to go back: ").strip()
-    if raw_id == "0":
+    raw_id = input("Enter user database ID (B=Back): ").strip()
+    if raw_id.lower() in {"0", "b", "back"}:
         return None
     if not raw_id.isdigit():
         print("Database ID must be numeric.")
@@ -393,9 +420,9 @@ def _manage_selected_user(user):
         print("1. Turn force password change ON")
         print("2. Turn force password change OFF")
         print("3. Send email notification only")
-        print("0. Back")
-        choice = _prompt_choice("Select option: ", {"0", "1", "2", "3"})
-        if choice == "0":
+        print("B. Back")
+        choice = _prompt_choice("Select option: ", {"0", "b", "1", "2", "3"})
+        if choice in {"0", "b"}:
             return
         if choice == "1":
             if user.must_change_password:
@@ -422,12 +449,12 @@ def _role_menu(role):
         print("1. Show active user list")
         print("2. Search active users by name, username, email, employee ID, or phone")
         print("3. Enter user database ID directly")
-        print("0. Back")
-        choice = _prompt_choice("Select option: ", {"0", "1", "2", "3"})
-        if choice == "0":
+        print("B. Back")
+        choice = _prompt_choice("Select option: ", {"0", "b", "1", "2", "3"})
+        if choice in {"0", "b"}:
             return
         if choice == "1":
-            user = _select_from_list(_list_users(role))
+            user = _list_users(role)
         elif choice == "2":
             user = _select_from_list(_search_users(role))
         else:

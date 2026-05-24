@@ -5,24 +5,38 @@
   <style>
     .weekly-console {
       display: grid;
-      gap: 14px;
+      gap: 16px;
     }
     .weekly-toolbar,
     .weekly-email-panel {
       border: 1px solid var(--border-color, #ddd);
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 8px;
+      padding: 16px;
       background: var(--body-bg, #fff);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
     }
     .weekly-toolbar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      align-items: start;
+      gap: 14px;
+    }
+    .weekly-control-group {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
+    }
+    .weekly-control-title {
+      width: 100%;
+      color: var(--body-quiet-color, #666);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
     }
     .weekly-btn {
       border: 0;
-      border-radius: 9px;
+      border-radius: 8px;
       padding: 9px 14px;
       color: #fff;
       font-weight: 800;
@@ -45,8 +59,22 @@
     .weekly-btn-green { background: linear-gradient(135deg, #059669, #14b8a6); }
     .weekly-btn-slate { background: linear-gradient(135deg, #64748b, #334155); }
     .weekly-btn.is-active {
-      outline: 3px solid rgba(37, 99, 235, 0.22);
+      outline: 3px solid rgba(37, 99, 235, 0.28);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(37, 99, 235, 0.55);
       transform: translateY(-1px);
+    }
+    .weekly-btn.is-active::before {
+      content: "Selected";
+      margin-right: 7px;
+      border-radius: 999px;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.2);
+      font-size: 0.72rem;
+      line-height: 1;
+    }
+    .weekly-btn-sm {
+      min-height: 32px;
+      padding: 7px 11px;
     }
     .weekly-field {
       min-height: 36px;
@@ -61,9 +89,12 @@
       gap: 8px;
       flex-wrap: wrap;
     }
+    .weekly-custom-range[hidden] {
+      display: none;
+    }
     .weekly-employee-picker {
       position: relative;
-      min-width: 280px;
+      width: min(100%, 420px);
     }
     .weekly-employee-trigger {
       width: 100%;
@@ -78,6 +109,10 @@
       cursor: pointer;
       position: relative;
     }
+    .weekly-employee-picker.has-selection .weekly-employee-trigger {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
     .weekly-employee-trigger::after {
       content: "v";
       position: absolute;
@@ -91,14 +126,14 @@
       display: none;
       position: absolute;
       z-index: 20;
-      right: 0;
+      left: 0;
       top: calc(100% + 8px);
-      width: 360px;
-      max-height: 320px;
+      width: min(420px, 90vw);
+      max-height: 360px;
       overflow: auto;
       border: 1px solid var(--border-color, #ddd);
-      border-radius: 10px;
-      padding: 8px;
+      border-radius: 8px;
+      padding: 10px;
       background: var(--body-bg, #fff);
       box-shadow: 0 16px 38px rgba(15, 23, 42, 0.22);
     }
@@ -109,9 +144,10 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px;
+      padding: 8px 9px;
       border-radius: 7px;
       cursor: pointer;
+      line-height: 1.3;
     }
     .weekly-employee-option:hover {
       background: rgba(37, 99, 235, 0.1);
@@ -121,15 +157,57 @@
       gap: 8px;
       position: sticky;
       bottom: 0;
-      padding-top: 8px;
+      padding-top: 10px;
       background: var(--body-bg, #fff);
     }
+    .weekly-employee-search {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    .weekly-selected-list {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 420px;
+      font-size: 0.85rem;
+      color: var(--body-quiet-color, #666);
+      line-height: 1.35;
+    }
+    .weekly-selected-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      border: 1px solid rgba(37, 99, 235, 0.24);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--body-fg, #222);
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .weekly-employee-option.is-hidden {
+      display: none;
+    }
     .weekly-status {
-      min-height: 20px;
+      min-height: 22px;
+      border-radius: 8px;
+      padding: 0;
       font-weight: 700;
     }
-    .weekly-status.is-error { color: #dc2626; }
-    .weekly-status.is-success { color: #059669; }
+    .weekly-status:not(:empty) {
+      padding: 10px 12px;
+      border: 1px solid rgba(5, 150, 105, 0.22);
+      background: rgba(5, 150, 105, 0.08);
+    }
+    .weekly-status.is-error {
+      color: #dc2626;
+      border-color: rgba(220, 38, 38, 0.24);
+      background: rgba(220, 38, 38, 0.08);
+    }
+    .weekly-status.is-success { color: #047857; }
     .weekly-preview-shell {
       border: 1px solid var(--border-color, #ddd);
       border-radius: 12px;
@@ -150,6 +228,19 @@
       max-width: 620px;
       box-sizing: border-box;
     }
+    .weekly-email-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .weekly-panel-title {
+      margin: 0 0 6px;
+    }
+    .weekly-muted {
+      color: var(--body-quiet-color, #666);
+      margin-top: 0;
+    }
     .weekly-sensitive-option {
       display: inline-flex;
       align-items: center;
@@ -167,6 +258,32 @@
       font-size: 0.9rem;
       margin: 4px 0 0;
     }
+    .weekly-recipient-list {
+      margin: 8px 0 12px;
+      padding: 10px 12px 10px 28px;
+      border: 1px solid rgba(5, 150, 105, 0.22);
+      border-radius: 8px;
+      background: rgba(5, 150, 105, 0.07);
+      max-height: 150px;
+      overflow: auto;
+    }
+    .weekly-recipient-empty {
+      color: #dc2626;
+      font-weight: 800;
+    }
+    .weekly-sensitive-option:has(input:checked) {
+      border-color: rgba(5, 150, 105, 0.62);
+      background: rgba(5, 150, 105, 0.1);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+    }
+    @media (max-width: 760px) {
+      .weekly-email-grid {
+        grid-template-columns: 1fr;
+      }
+      .weekly-toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 
   <p>
@@ -177,54 +294,81 @@
        id="weeklyReportAdminConsole"
        data-preview-url="{{ preview_url }}"
        data-download-url="{{ download_url }}"
-       data-email-url="{{ email_url }}">
+       data-email-url="{{ email_url }}"
+       data-hr-recipient-count="{{ hr_recipients|length }}">
     <div class="weekly-toolbar">
-      <button type="button" class="weekly-btn weekly-btn-blue is-active" data-week="current">Current Week</button>
-      <button type="button" class="weekly-btn weekly-btn-violet" data-week="previous">Previous Week</button>
-      <button type="button" class="weekly-btn weekly-btn-amber" data-week="custom">Custom Date</button>
+      <div class="weekly-control-group">
+        <div class="weekly-control-title">Period</div>
+        <button type="button" class="weekly-btn weekly-btn-blue weekly-btn-sm is-active" data-week="current">Current Week</button>
+        <button type="button" class="weekly-btn weekly-btn-violet weekly-btn-sm" data-week="previous">Previous Week</button>
+        <button type="button" class="weekly-btn weekly-btn-amber weekly-btn-sm" data-week="custom">Custom Date</button>
 
-      <span class="weekly-custom-range" id="weeklyCustomRange" hidden>
-        <input class="weekly-field" type="date" id="weeklyStartDate">
-        <input class="weekly-field" type="date" id="weeklyEndDate">
-        <button type="button" class="weekly-btn weekly-btn-blue" id="weeklyApplyRangeBtn">Apply Date</button>
-      </span>
+        <span class="weekly-custom-range" id="weeklyCustomRange" hidden>
+          <input class="weekly-field" type="date" id="weeklyStartDate">
+          <input class="weekly-field" type="date" id="weeklyEndDate">
+          <button type="button" class="weekly-btn weekly-btn-blue weekly-btn-sm" id="weeklyApplyRangeBtn">Apply Date</button>
+        </span>
+      </div>
 
-      <div class="weekly-employee-picker" id="weeklyEmployeePicker">
-        <button type="button" class="weekly-employee-trigger" id="weeklyEmployeeTrigger">All Employees</button>
-        <div class="weekly-employee-menu" id="weeklyEmployeeMenu">
-          <label class="weekly-employee-option">
-            <input type="checkbox" id="weeklyEmployeeAll" checked>
-            <span>All Employees</span>
-          </label>
-          {% for employee in employees %}
-          <label class="weekly-employee-option">
-            <input type="checkbox" class="weekly-employee-checkbox" value="{{ employee.id }}" data-label="{{ employee.label }}">
-            <span>{{ employee.label }}</span>
-          </label>
-          {% endfor %}
-          <div class="weekly-employee-actions">
-            <button type="button" class="weekly-btn weekly-btn-green" id="weeklyEmployeeApplyBtn" disabled>Apply</button>
-            <button type="button" class="weekly-btn weekly-btn-slate" id="weeklyEmployeeClearBtn" disabled>Clear</button>
+      <div class="weekly-control-group">
+        <div class="weekly-control-title">Employees</div>
+        <div class="weekly-employee-picker" id="weeklyEmployeePicker">
+          <button type="button" class="weekly-employee-trigger" id="weeklyEmployeeTrigger">All Employees</button>
+          <div class="weekly-selected-list" id="weeklySelectedList">All employees</div>
+          <div class="weekly-employee-menu" id="weeklyEmployeeMenu">
+            <input class="weekly-field weekly-employee-search" type="search" id="weeklyEmployeeSearch" placeholder="Search employees">
+            <label class="weekly-employee-option">
+              <input type="checkbox" id="weeklyEmployeeAll" checked>
+              <span>All Employees</span>
+            </label>
+            {% for employee in employees %}
+            <label class="weekly-employee-option" data-search="{{ employee.label|lower }}">
+              <input type="checkbox" class="weekly-employee-checkbox" value="{{ employee.id }}" data-label="{{ employee.label|escape }}">
+              <span>{{ employee.label }}</span>
+            </label>
+            {% endfor %}
+            <div class="weekly-employee-actions">
+              <button type="button" class="weekly-btn weekly-btn-green weekly-btn-sm" id="weeklyEmployeeApplyBtn" disabled>Apply</button>
+              <button type="button" class="weekly-btn weekly-btn-slate weekly-btn-sm" id="weeklyEmployeeClearBtn" disabled>Clear</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <label class="weekly-sensitive-option">
-        <input type="checkbox" id="weeklyIncludeSystemHealth">
-        <span>Include System &amp; Security Oversight</span>
-      </label>
-
-      <button type="button" class="weekly-btn weekly-btn-green" id="weeklyDownloadBtn">Download PDF</button>
-      <button type="button" class="weekly-btn weekly-btn-violet" id="weeklyPrintBtn">Print</button>
+      <div class="weekly-control-group">
+        <div class="weekly-control-title">Controls</div>
+        <label class="weekly-sensitive-option">
+          <input type="checkbox" id="weeklyIncludeSystemHealth">
+          <span>Include System &amp; Security Oversight</span>
+        </label>
+        <button type="button" class="weekly-btn weekly-btn-green weekly-btn-sm" id="weeklyDownloadBtn">Download PDF</button>
+        <button type="button" class="weekly-btn weekly-btn-violet weekly-btn-sm" id="weeklyPrintBtn">Print</button>
+      </div>
     </div>
 
     <div class="weekly-email-panel">
-      <h2>Email this HR snapshot</h2>
-      <p>Mail is sent only after this confirmation.</p>
-      <p class="weekly-sensitive-note">Warning: include System &amp; Security Oversight only when the recipient should see backup, security, uptime, and notification health data.</p>
-      <p><label><strong>Reason:</strong></label><br><textarea id="weeklyEmailReason" rows="3" required></textarea></p>
-      <p><label><strong>Type SEND_WEEKLY_REPORT:</strong></label><br><input type="text" id="weeklyEmailConfirmation" autocomplete="off"></p>
-      <button type="button" class="weekly-btn weekly-btn-amber" id="weeklyEmailBtn">Email Snapshot</button>
+      <div class="weekly-email-grid">
+        <div>
+          <h2 class="weekly-panel-title">Email this HR snapshot</h2>
+          <p class="weekly-muted">Mail is sent only after reason and confirmation.</p>
+          <p class="weekly-sensitive-note">Warning: include System &amp; Security Oversight only when the recipient should see backup, security, uptime, and notification health data.</p>
+          <p><label><strong>Reason:</strong></label><br><textarea id="weeklyEmailReason" rows="3" required></textarea></p>
+          <p><label><strong>Type SEND_WEEKLY_REPORT:</strong></label><br><input type="text" id="weeklyEmailConfirmation" autocomplete="off"></p>
+          <button type="button" class="weekly-btn weekly-btn-amber" id="weeklyEmailBtn">Email Snapshot</button>
+        </div>
+        <div>
+          <h2 class="weekly-panel-title">HR recipients</h2>
+          {% if hr_recipients %}
+          <ol class="weekly-recipient-list">
+            {% for recipient in hr_recipients %}
+            <li>{{ recipient }}</li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <p class="weekly-recipient-empty">No active HR users with email addresses found.</p>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
     <div class="weekly-status" id="weeklyStatus"></div>
@@ -247,8 +391,11 @@
       const applyRangeBtn = document.getElementById("weeklyApplyRangeBtn");
       const picker = document.getElementById("weeklyEmployeePicker");
       const employeeTrigger = document.getElementById("weeklyEmployeeTrigger");
+      const employeeSearch = document.getElementById("weeklyEmployeeSearch");
+      const selectedList = document.getElementById("weeklySelectedList");
       const employeeAll = document.getElementById("weeklyEmployeeAll");
       const employeeChecks = Array.from(root.querySelectorAll(".weekly-employee-checkbox"));
+      const employeeOptions = Array.from(root.querySelectorAll(".weekly-employee-option[data-search]"));
       const employeeApplyBtn = document.getElementById("weeklyEmployeeApplyBtn");
       const employeeClearBtn = document.getElementById("weeklyEmployeeClearBtn");
       const downloadBtn = document.getElementById("weeklyDownloadBtn");
@@ -259,6 +406,7 @@
       const includeSystemHealthInput = document.getElementById("weeklyIncludeSystemHealth");
       let activeWeek = "current";
       let activeEmployeeIds = [];
+      const hrRecipientCount = Number(root.dataset.hrRecipientCount || "0");
 
       function getCsrfToken() {
         const input = document.querySelector("input[name='csrfmiddlewaretoken']");
@@ -301,10 +449,13 @@
         });
         if (employeeAll.checked || selected.length === 0) {
           employeeTrigger.textContent = "All Employees";
+          picker.classList.remove("has-selection");
         } else if (selected.length === 1) {
           employeeTrigger.textContent = selected[0].dataset.label || "1 Employee";
+          picker.classList.add("has-selection");
         } else {
           employeeTrigger.textContent = selected.length + " Employees Selected";
+          picker.classList.add("has-selection");
         }
       }
 
@@ -324,6 +475,13 @@
         return url.toString();
       }
 
+      function buildDownloadUrl(reason, confirmation) {
+        const url = new URL(buildUrl(root.dataset.downloadUrl));
+        url.searchParams.set("reason", reason || "");
+        url.searchParams.set("confirmation", confirmation || "");
+        return url.toString();
+      }
+
       function getActionWarning(actionLabel) {
         const systemText = includeSystemHealthInput.checked
           ? "This report WILL include System & Security Oversight data: backup status, unauthorized attempts, uptime, DB response time, and notification health."
@@ -336,6 +494,31 @@
           button.classList.toggle("is-active", button.dataset.week === activeWeek);
         });
         customRange.hidden = activeWeek !== "custom";
+      }
+
+      function updateSelectedList() {
+        const selected = employeeChecks.filter(function (checkbox) {
+          return checkbox.checked;
+        });
+        if (employeeAll.checked || selected.length === 0) {
+          selectedList.innerHTML = '<span class="weekly-selected-chip">All employees</span>';
+          return;
+        }
+        selectedList.replaceChildren();
+        selected.forEach(function (checkbox) {
+          const chip = document.createElement("span");
+          chip.className = "weekly-selected-chip";
+          chip.textContent = checkbox.dataset.label || checkbox.value;
+          selectedList.appendChild(chip);
+        });
+      }
+
+      function filterEmployeeOptions() {
+        const term = (employeeSearch.value || "").trim().toLowerCase();
+        employeeOptions.forEach(function (option) {
+          const text = option.dataset.search || "";
+          option.classList.toggle("is-hidden", !!term && text.indexOf(term) === -1);
+        });
       }
 
       async function loadPreview() {
@@ -391,7 +574,12 @@
 
       employeeTrigger.addEventListener("click", function () {
         picker.classList.toggle("is-open");
+        if (picker.classList.contains("is-open")) {
+          employeeSearch.focus();
+        }
       });
+
+      employeeSearch.addEventListener("input", filterEmployeeOptions);
 
       employeeAll.addEventListener("change", function () {
         if (employeeAll.checked) {
@@ -400,6 +588,7 @@
           });
         }
         updateEmployeeLabel();
+        updateSelectedList();
         updateEmployeeButtons();
       });
 
@@ -409,6 +598,7 @@
             return item.checked;
           });
           updateEmployeeLabel();
+          updateSelectedList();
           updateEmployeeButtons();
         });
       });
@@ -417,6 +607,7 @@
         if (employeeApplyBtn.disabled) return;
         activeEmployeeIds = pendingEmployeeIds();
         picker.classList.remove("is-open");
+        updateSelectedList();
         updateEmployeeButtons();
         loadPreview();
       });
@@ -429,6 +620,7 @@
           checkbox.checked = false;
         });
         updateEmployeeLabel();
+        updateSelectedList();
         updateEmployeeButtons();
         picker.classList.remove("is-open");
         loadPreview();
@@ -442,7 +634,17 @@
 
       downloadBtn.addEventListener("click", function () {
         if (!window.confirm(getActionWarning("download PDF"))) return;
-        window.location.href = buildUrl(root.dataset.downloadUrl);
+        const reason = window.prompt("Enter audit reason for weekly report PDF download:");
+        if (!reason || !reason.trim()) {
+          setStatus("Reason is required before downloading weekly report PDF.", true);
+          return;
+        }
+        const confirmation = window.prompt("Type DOWNLOAD_WEEKLY_REPORT to download:");
+        if (confirmation !== "DOWNLOAD_WEEKLY_REPORT") {
+          setStatus("Type DOWNLOAD_WEEKLY_REPORT to download weekly report PDF.", true);
+          return;
+        }
+        window.location.href = buildDownloadUrl(reason.trim(), confirmation);
       });
 
       printBtn.addEventListener("click", function () {
@@ -454,6 +656,10 @@
 
       emailBtn.addEventListener("click", async function () {
         setStatus("", false);
+        if (hrRecipientCount < 1) {
+          setStatus("No active HR users with email addresses were found.", true);
+          return;
+        }
         if (!window.confirm(getActionWarning("email HR snapshot"))) return;
         const formData = new FormData();
         formData.set("reason", reasonInput.value || "");
@@ -492,6 +698,7 @@
       });
 
       updateEmployeeLabel();
+      updateSelectedList();
       updateEmployeeButtons();
       loadPreview();
     }());

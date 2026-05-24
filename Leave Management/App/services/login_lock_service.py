@@ -196,6 +196,7 @@ def format_remaining(seconds):
 
 BACK = object()
 EXIT = object()
+PAGE_SIZE = 10
 
 ROLE_OPTIONS = {
     "1": ("EMPLOYEE", "Employee"),
@@ -229,7 +230,7 @@ def prompt_menu(prompt, choices, *, allow_back=True, allow_exit=True):
             return value
         options = sorted(valid_choices)
         if allow_back:
-            options.append("b")
+            options.append("B")
         if allow_exit:
             options.append("0")
         print("Invalid choice. Select one of:", ", ".join(options))
@@ -237,7 +238,7 @@ def prompt_menu(prompt, choices, *, allow_back=True, allow_exit=True):
 
 def prompt_lookup():
     while True:
-        value = input("Enter username, email, or employee ID (b=back, 0=exit): ").strip()
+        value = input("Enter username, email, or employee ID (B=Back, 0=Exit): ").strip()
         lowered = value.lower()
         if lowered in {"b", "back"}:
             return BACK
@@ -339,14 +340,21 @@ def choose_user_from_search(role, role_label):
 
 
 def choose_user_from_list(role, role_label):
+    page = 0
+
     while True:
-        users = list(get_users_for_role(role))
-        if not users:
+        queryset = get_users_for_role(role)
+        total = queryset.count()
+        start = page * PAGE_SIZE
+        end = start + PAGE_SIZE
+        users = list(queryset[start:end])
+
+        if total == 0:
             print(f"\nNo {role_label} users found.")
             pause_to_role_menu()
             return BACK
 
-        print(f"\n{role_label} users")
+        print(f"\nShowing {role_label} users {start + 1}-{min(end, total)} of {total}")
         print("-" * 96)
         for index, user in enumerate(users, start=1):
             profile = getattr(user, "profile", None)
@@ -356,12 +364,26 @@ def choose_user_from_list(role, role_label):
             status = get_login_lock_status(portal, user.username)
             print(f"{index}. {user.username} | {full_name} | {employee_id} | {user.email or '-'} | {status_label(status)}")
         print("-" * 96)
+        print("Number = select user | N = Next page | P = Previous page | B = Back | 0 = Exit")
 
-        choice = prompt_menu("Enter user number to manage: ", {str(i) for i in range(1, len(users) + 1)})
+        valid_numbers = {str(i) for i in range(1, len(users) + 1)}
+        choice = prompt_menu("Select option: ", valid_numbers | {"n", "p"})
         if choice is BACK:
             return BACK
         if choice is EXIT:
             return EXIT
+        if choice == "n":
+            if end >= total:
+                print("Already on the last page.")
+            else:
+                page += 1
+            continue
+        if choice == "p":
+            if page == 0:
+                print("Already on the first page.")
+            else:
+                page -= 1
+            continue
         return users[int(choice) - 1]
 
 
@@ -369,7 +391,7 @@ def confirm_action(prompt):
     print("\nFinal confirmation")
     print(prompt)
     print("\n1. Confirm")
-    print("b. Back")
+    print("B. Back")
     print("0. Exit")
     return prompt_menu("Select option: ", {"1"})
 
@@ -389,7 +411,7 @@ def print_summary(action_label, user, status):
 
 def prompt_audit_reason():
     while True:
-        value = input("Audit reason (b=back, 0=exit): ").strip()
+        value = input("Audit reason (B=Back, 0=Exit): ").strip()
         lowered = value.lower()
         if lowered in {"b", "back"}:
             return BACK
@@ -424,7 +446,7 @@ def lock_action(user, source):
         print("\nLock method")
         print("1. Default duration")
         print("2. Enter duration manually")
-        print("b. Back")
+        print("B. Back")
         print("0. Exit")
         mode_choice = prompt_menu("Select option: ", {"1", "2"})
         if mode_choice in {BACK, EXIT}:
@@ -437,7 +459,7 @@ def lock_action(user, source):
         if mode_choice == "2":
             mode = "manual"
             while True:
-                raw_minutes = input("Enter lock duration in minutes (b=back, 0=exit): ").strip()
+                raw_minutes = input("Enter lock duration in minutes (B=Back, 0=Exit): ").strip()
                 lowered = raw_minutes.lower()
                 if lowered in {"b", "back"}:
                     return BACK
@@ -516,7 +538,7 @@ def handle_selected_user(user, source):
         print("1. Check lock status")
         print("2. Lock login")
         print("3. Unlock login")
-        print("b. Back")
+        print("B. Back")
         print("0. Exit")
         choice = prompt_menu("Select option: ", {"1", "2", "3"})
         if choice is BACK:
@@ -541,7 +563,7 @@ def handle_selected_role(role, role_label, source):
         print(f"\n{role_label} menu")
         print("1. Search user")
         print("2. List users")
-        print("b. Back")
+        print("B. Back")
         print("0. Exit")
         choice = prompt_menu("Select option: ", {"1", "2"})
         if choice is BACK:

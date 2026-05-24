@@ -107,11 +107,18 @@
     </div>
     <div class="health-card">
       <strong>Email config</strong><br>
-      {% if email_health.ok %}
+      {% if email_health.ok and email_health.connection.ok %}
         <span class="health-pill health-ok">Configured</span>
+      {% elif email_health.ok %}
+        <span class="health-pill health-warn">SMTP issue</span>
       {% else %}
         <span class="health-pill health-warn">Needs attention</span>
       {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Latest backup</strong><br>
+      <span class="health-pill health-{{ backup_health.age.status }}">{{ backup_health.age.label }}</span>
+      <div class="health-muted">{{ backup_health.age.age_text }}</div>
     </div>
     <div class="health-card">
       <strong>Maintenance</strong><br>
@@ -125,6 +132,8 @@
       <strong>Scheduler</strong><br>
       {% if scheduler_health.ok %}
         <span class="health-pill health-ok">Log activity found</span>
+      {% elif scheduler_health.stale %}
+        <span class="health-pill health-warn">Log is stale</span>
       {% else %}
         <span class="health-pill health-warn">No log activity</span>
       {% endif %}
@@ -145,6 +154,14 @@
         <span class="health-pill health-warn">{{ storage_health.free_percent }}% free</span>
       {% else %}
         <span class="health-pill health-ok">{{ storage_health.free_percent }}% free</span>
+      {% endif %}
+    </div>
+    <div class="health-card">
+      <strong>Paths</strong><br>
+      {% if storage_health.paths_ok %}
+        <span class="health-pill health-ok">Writable</span>
+      {% else %}
+        <span class="health-pill health-bad">Needs attention</span>
       {% endif %}
     </div>
   </div>
@@ -171,6 +188,16 @@
       <div class="health-row"><div class="health-label">Leave desk</div><div class="health-value">{{ email_health.leave_desk_from_email|default:"Not set" }}</div></div>
       <div class="health-row"><div class="health-label">Leave record</div><div class="health-value">{{ email_health.leave_record_email|default:"Not set" }}</div></div>
       <div class="health-row"><div class="health-label">Password</div><div class="health-value">{% if email_health.password_configured %}Configured{% else %}Not configured{% endif %}</div></div>
+      <div class="health-row"><div class="health-label">SMTP test</div><div class="health-value">
+        {% if email_health.connection.ok %}
+          <span class="health-pill health-ok">Connection OK</span>
+        {% elif email_health.connection.checked %}
+          <span class="health-pill health-bad">Connection failed</span>
+        {% else %}
+          <span class="health-pill health-warn">Skipped</span>
+        {% endif %}
+        <br><span class="health-muted">{{ email_health.connection.message }}</span>
+      </div></div>
       {% if email_health.missing %}
         <div class="health-row"><div class="health-label">Missing</div><div class="health-value">{{ email_health.missing|join:", " }}</div></div>
       {% endif %}
@@ -182,6 +209,7 @@
       <div class="health-row"><div class="health-label">Exists</div><div class="health-value">{{ backup_health.exists }}</div></div>
       <div class="health-row"><div class="health-label">Writable</div><div class="health-value">{{ backup_health.writable }}</div></div>
       <div class="health-row"><div class="health-label">Backup count</div><div class="health-value">{{ backup_health.count }}</div></div>
+      <div class="health-row"><div class="health-label">Age status</div><div class="health-value"><span class="health-pill health-{{ backup_health.age.status }}">{{ backup_health.age.label }}</span><br><span class="health-muted">{{ backup_health.age.age_text }}</span></div></div>
       <div class="health-row"><div class="health-label">Latest backup</div><div class="health-value">
         {% if backup_health.latest %}
           {{ backup_health.latest.name }}<br><span class="health-muted">{{ backup_health.latest.modified_at }} | {{ backup_health.latest.size_kb }} KB</span>
@@ -193,7 +221,15 @@
 
     <section class="health-card">
       <h2>Scheduler</h2>
-      <div class="health-row"><div class="health-label">Status signal</div><div class="health-value">{% if scheduler_health.ok %}Latest scheduler log found{% else %}No scheduler log found{% endif %}</div></div>
+      <div class="health-row"><div class="health-label">Status signal</div><div class="health-value">
+        {% if scheduler_health.ok %}
+          <span class="health-pill health-ok">Recent scheduler log found</span>
+        {% elif scheduler_health.stale %}
+          <span class="health-pill health-warn">Scheduler log is stale</span>
+        {% else %}
+          <span class="health-pill health-warn">No scheduler log found</span>
+        {% endif %}
+      </div></div>
       <div class="health-row"><div class="health-label">Latest activity</div><div class="health-value">
         {% if scheduler_health.latest_log %}
           {{ scheduler_health.latest_log.name }}<br><span class="health-muted">{{ scheduler_health.latest_log.modified_at }} | {{ scheduler_health.latest_log.size_kb }} KB</span>
@@ -297,6 +333,14 @@
       <div class="health-row"><div class="health-label">Django errors</div><div class="health-value">
         {% if log_health.django_errors %}{{ log_health.django_errors.modified_at }} | {{ log_health.django_errors.size_kb }} KB{% else %}Missing{% endif %}
       </div></div>
+      <div class="health-row"><div class="health-label">Latest error</div><div class="health-value">
+        {% if log_health.latest_error %}
+          <strong>{{ log_health.latest_error.file }}</strong><br>
+          <span class="health-muted">{{ log_health.latest_error.line }}</span>
+        {% else %}
+          No ERROR/CRITICAL line found
+        {% endif %}
+      </div></div>
       <div class="health-row"><div class="health-label">Today alerts</div><div class="health-value">Django errors: {{ business_health.errors.django_errors_today }} | Security warnings: {{ business_health.errors.security_warnings_today }}</div></div>
       <div class="health-row"><div class="health-label">Unauthorized attempts</div><div class="health-value">Last 24h: {{ business_health.errors.unauthorized_attempts_24h }} | Last 7d: {{ business_health.errors.unauthorized_attempts_7d }}</div></div>
       <div class="health-row"><div class="health-label">Custom unauthorized</div><div class="health-value">{{ security_custom_range.count }} attempt(s)<br><span class="health-muted">{{ security_custom_range.start|date:"M d, Y" }} - {{ security_custom_range.end|date:"M d, Y" }}</span></div></div>
@@ -307,6 +351,22 @@
       <div class="health-row"><div class="health-label">Project path</div><div class="health-value"><code>{{ storage_health.base_dir }}</code></div></div>
       <div class="health-row"><div class="health-label">Disk</div><div class="health-value">Used: {{ storage_health.used }} / {{ storage_health.total }}<br><span class="health-muted">Free: {{ storage_health.free }} ({{ storage_health.free_percent }}%)</span></div></div>
       <div class="health-row"><div class="health-label">Folders</div><div class="health-value">Logs: {{ storage_health.logs_size }} | Backups: {{ storage_health.backups_size }}<br>Media: {{ storage_health.media_size }} | PDFs: {{ storage_health.generated_pdfs_size }}</div></div>
+      <div class="health-row"><div class="health-label">Path checks</div><div class="health-value">
+        <ul class="health-list">
+          {% for path_check in storage_health.path_checks %}
+            <li>
+              <strong>{{ path_check.label }}</strong>:
+              {% if path_check.ok %}
+                <span class="health-pill health-ok">OK</span>
+              {% else %}
+                <span class="health-pill health-bad">Problem</span>
+              {% endif %}
+              <br><code>{{ path_check.path }}</code>
+              <br><span class="health-muted">Exists: {{ path_check.exists }} | Writable: {{ path_check.writable }} | Size: {{ path_check.size }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div></div>
     </section>
 
     <section class="health-card">

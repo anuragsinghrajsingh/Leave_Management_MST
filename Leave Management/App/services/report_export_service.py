@@ -1,10 +1,33 @@
 import csv
 import json
+import os
+import sys
 from collections import Counter, defaultdict
 from datetime import date, datetime, time, timedelta
 from io import StringIO
+from pathlib import Path
+
+
+def _setup_django_for_direct_run():
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
+
+    import django
+    from django.apps import apps
+
+    if not apps.ready:
+        django.setup()
+
+
+if __name__ == "__main__":
+    _setup_django_for_direct_run()
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
@@ -58,6 +81,64 @@ EXPORT_FORMATS = (
     ("pdf", "PDF"),
 )
 
+COLUMN_LABELS = {
+    "user_id": "User ID",
+    "username": "Username",
+    "full_name": "Full Name",
+    "email": "Email",
+    "role": "Role",
+    "active": "Active",
+    "staff": "Staff",
+    "superuser": "Superuser",
+    "employee_id": "Employee ID",
+    "department": "Department",
+    "phone": "Phone",
+    "joining_date": "Joining Date",
+    "leave_id": "Leave ID",
+    "employee": "Employee",
+    "leave_type": "Leave Type",
+    "status": "Status",
+    "requested_from": "Requested From",
+    "requested_to": "Requested To",
+    "saved_from": "Saved From",
+    "saved_to": "Saved To",
+    "from_datetime": "From Date/Time",
+    "to_datetime": "To Date/Time",
+    "reason": "Reason",
+    "rejection_reason": "Rejection Reason",
+    "deducted_from": "Deducted From",
+    "reviewed_by": "Reviewed By",
+    "applied_at": "Applied At",
+    "updated_at": "Updated At",
+    "approved_at": "Approved At",
+    "rejected_at": "Rejected At",
+    "working_days": "Working Days",
+    "section": "Section",
+    "period_type": "Period Type",
+    "period_start": "Period Start",
+    "period_end": "Period End",
+    "total_employees": "Total Employees",
+    "active_employees": "Active Employees",
+    "inactive_employees": "Inactive Employees",
+    "employees_included": "Employees Included",
+    "total_leave_requests": "Total Leave Requests",
+    "approved_requests": "Approved Requests",
+    "rejected_requests": "Rejected Requests",
+    "pending_requests": "Pending Requests",
+    "approval_rate": "Approval Rate %",
+    "rejection_rate": "Rejection Rate %",
+    "pending_rate": "Pending Rate %",
+    "average_requests_per_employee": "Average Requests Per Employee",
+    "average_approved_leave_days_per_employee": "Average Approved Leave Days Per Employee",
+    "total_working_days_in_period": "Total Working Days In Period",
+    "total_holidays_in_period": "Total Holidays In Period",
+    "wfh_weekdays_active": "Active WFH Weekdays",
+}
+
+
+def column_label(key):
+    return COLUMN_LABELS.get(key, key.replace("_", " ").title())
+
 
 def build_report_export(filters, actor=None):
     report_type = filters["report_type"]
@@ -85,6 +166,10 @@ def build_report_export(filters, actor=None):
     }
 
 
+def get_report_row_count(filters):
+    return len(_build_rows(filters["report_type"], filters))
+
+
 def describe_export_filters(filters):
     safe = dict(filters)
     return {
@@ -92,6 +177,28 @@ def describe_export_filters(filters):
         for key, value in safe.items()
         if value not in ("", None, [], {})
     }
+
+
+def describe_period(filters):
+    start, end = _period_range(filters)
+    period_type = filters.get("period_type") or "custom"
+    year = filters.get("year") or (start.year if start else timezone.localdate().year)
+    if period_type == "monthly":
+        return f"Monthly: {date(int(year), int(filters.get('month') or timezone.localdate().month), 1).strftime('%B %Y')}"
+    if period_type == "quarterly":
+        return f"Quarterly: Q{filters.get('quarter') or 1} {year}"
+    if period_type == "six_month":
+        half_label = "Jan-Jun" if (filters.get("half_year") or "first") == "first" else "Jul-Dec"
+        return f"Six-month: {half_label} {year}"
+    if period_type == "yearly":
+        return f"Yearly: {year}"
+    if start and end:
+        return f"Custom: {start.strftime('%d %b %Y')} - {end.strftime('%d %b %Y')}"
+    if start:
+        return f"Custom: From {start.strftime('%d %b %Y')}"
+    if end:
+        return f"Custom: Until {end.strftime('%d %b %Y')}"
+    return "Custom: All available dates"
 
 
 def _period_range(filters):
@@ -741,23 +848,52 @@ def _rows_to_csv(rows):
         for key in row:
             if key not in fieldnames:
                 fieldnames.append(key)
-    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    label_fieldnames = [column_label(key) for key in fieldnames]
+    writer = csv.DictWriter(output, fieldnames=label_fieldnames, extrasaction="ignore")
     writer.writeheader()
     for row in rows:
-        writer.writerow({key: _string_value(row.get(key, "")) for key in fieldnames})
+        writer.writerow({
+            column_label(key): _string_value(row.get(key, ""))
+            for key in fieldnames
+        })
     return output.getvalue().encode("utf-8-sig")
 
 
 def _rows_to_pdf(title, rows, filters, actor=None):
+    described_filters = describe_export_filters(filters)
     lines = [
         title,
+        "=" * min(len(title), 80),
         f"Generated at: {timezone.localtime(timezone.now()).strftime('%d %b %Y, %I:%M %p')}",
         f"Generated by: {_name(actor)}",
-        f"Filters: {describe_export_filters(filters)}",
+        f"Period: {describe_period(filters)}",
+        f"Rows: {len(rows)}",
         "",
     ]
+    if described_filters:
+        lines.append("Filters")
+        lines.append("-" * 40)
+        for key, value in described_filters.items():
+            if key in {"reason", "export_format"}:
+                continue
+            lines.append(f"- {column_label(key)}: {value}")
+        lines.append("")
+    current_section = None
     for index, row in enumerate(rows[:500], start=1):
-        lines.append(f"{index}. " + " | ".join(f"{key}: {_string_value(value)}" for key, value in row.items()))
+        section = row.get("section")
+        if section and section != current_section:
+            current_section = section
+            lines.append(str(section).upper())
+            lines.append("-" * min(len(str(section)), 80))
+        prefix = f"{index}."
+        if section:
+            prefix = f"{index}. [{section}]"
+        lines.append(prefix)
+        for key, value in row.items():
+            if key == "section":
+                continue
+            lines.append(f"  {column_label(key)}: {_string_value(value)}")
+        lines.append("")
     if len(rows) > 500:
         lines.append(f"... truncated in PDF after 500 rows. Use CSV for full {len(rows)} rows.")
     return _simple_pdf(lines)
@@ -817,3 +953,400 @@ def _simple_pdf(lines):
         pdf.extend(f"{offset:010d} 00000 n \n".encode("latin-1"))
     pdf.extend(f"trailer << /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF".encode("latin-1"))
     return bytes(pdf)
+
+
+def _safe_input(prompt):
+    try:
+        return input(prompt).strip()
+    except (EOFError, KeyboardInterrupt):
+        print("")
+        return "0"
+
+
+def _choose_from_options(title, options, *, allow_back=True):
+    while True:
+        print(f"\n{title}")
+        for index, (_value, label) in enumerate(options, start=1):
+            print(f"{index}. {label}")
+        if allow_back:
+            print("B. Back")
+        print("0. Exit")
+
+        choice = _safe_input("Choose an option: ").lower()
+        if choice in {"0", "exit", "q", "quit"}:
+            return None
+        if allow_back and choice in {"b", "back"}:
+            return "BACK"
+        if choice.isdigit() and 1 <= int(choice) <= len(options):
+            return options[int(choice) - 1][0]
+        print("Invalid choice.")
+
+
+def _parse_date(value):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _ask_year():
+    today_year = timezone.localdate().year
+    while True:
+        value = _safe_input(f"Enter year [{today_year}] (B=Back, 0=Exit): ").lower()
+        if value in {"0", "exit", "q", "quit"}:
+            return None
+        if value in {"b", "back"}:
+            return "BACK"
+        if not value:
+            return today_year
+        if value.isdigit() and 1900 <= int(value) <= 9999:
+            return int(value)
+        print("Invalid year.")
+
+
+def _ask_period_filters():
+    while True:
+        period_type = _choose_from_options("Select period type:", PERIOD_TYPES, allow_back=False)
+        if period_type is None:
+            return None
+
+        filters = {"period_type": period_type}
+        if period_type == "custom":
+            while True:
+                start_text = _safe_input("Enter from date YYYY-MM-DD, or blank for no start (B=Back, 0=Exit): ").lower()
+                if start_text in {"0", "exit", "q", "quit"}:
+                    return None
+                if start_text in {"b", "back"}:
+                    break
+
+                end_text = _safe_input("Enter to date YYYY-MM-DD, or blank for no end (B=Back, 0=Exit): ").lower()
+                if end_text in {"0", "exit", "q", "quit"}:
+                    return None
+                if end_text in {"b", "back"}:
+                    break
+
+                start = _parse_date(start_text) if start_text else None
+                end = _parse_date(end_text) if end_text else None
+                if start_text and not start:
+                    print("Invalid from date.")
+                    continue
+                if end_text and not end:
+                    print("Invalid to date.")
+                    continue
+                if start and end and start > end:
+                    print("Invalid date range. From date cannot be after to date.")
+                    continue
+                filters["date_from"] = start
+                filters["date_to"] = end
+                return filters
+            continue
+
+        year = _ask_year()
+        if year is None:
+            return None
+        if year == "BACK":
+            continue
+        filters["year"] = year
+
+        if period_type == "monthly":
+            month = _choose_from_options(
+                "Select month:",
+                [(str(index), date(2000, index, 1).strftime("%B")) for index in range(1, 13)],
+            )
+            if month is None:
+                return None
+            if month == "BACK":
+                continue
+            filters["month"] = int(month)
+        elif period_type == "quarterly":
+            quarter = _choose_from_options("Select quarter:", [("1", "Q1"), ("2", "Q2"), ("3", "Q3"), ("4", "Q4")])
+            if quarter is None:
+                return None
+            if quarter == "BACK":
+                continue
+            filters["quarter"] = int(quarter)
+        elif period_type == "six_month":
+            half = _choose_from_options("Select half-year:", [("first", "Jan-Jun"), ("second", "Jul-Dec")])
+            if half is None:
+                return None
+            if half == "BACK":
+                continue
+            filters["half_year"] = half
+
+        return filters
+
+
+def _lookup_user(prompt, *, role=None):
+    while True:
+        value = _safe_input(prompt).strip()
+        lowered = value.lower()
+        if lowered in {"", "skip", "s"}:
+            return None
+        if lowered in {"0", "exit", "q", "quit"}:
+            return "EXIT"
+        if lowered in {"b", "back"}:
+            return "BACK"
+
+        query = Q(username__iexact=value) | Q(email__iexact=value) | Q(profile__employee_id__iexact=value)
+        users = get_user_model().objects.select_related("profile").filter(query)
+        if role:
+            users = users.filter(role=role)
+        user = users.first()
+        if user:
+            return user
+        print("No user found for that username/email/employee ID.")
+
+
+def _ask_yes_no(prompt, default=False):
+    suffix = "Y/n" if default else "y/N"
+    while True:
+        value = _safe_input(f"{prompt} ({suffix}): ").lower()
+        if not value:
+            return default
+        if value in {"y", "yes"}:
+            return True
+        if value in {"n", "no"}:
+            return False
+        print("Type Y or N.")
+
+
+def _ask_optional_filters(report_type):
+    filters = {}
+    print("\nOptional filters")
+    print("Press Enter to skip any filter.")
+
+    if report_type in {"employee_master", "leave_request", "leave_balance", "leave_balance_audit", "hr_summary"}:
+        employee = _lookup_user("Employee username/email/employee ID (Enter=Skip, B=Back, 0=Exit): ", role=None)
+        if employee == "EXIT":
+            return None
+        if employee == "BACK":
+            return "BACK"
+        if employee:
+            filters["employee"] = employee
+
+    if report_type in {"employee_master", "communication", "hr_summary"}:
+        role = _choose_from_options("Filter by role:", [("", "No role filter"), ("EMPLOYEE", "Employee"), ("HR", "HR"), ("Admin", "Admin")])
+        if role is None:
+            return None
+        if role == "BACK":
+            return "BACK"
+        if role:
+            filters["role"] = role
+
+    if report_type in {"employee_master", "hr_summary"}:
+        active_status = _choose_from_options("Filter by active status:", [("", "All"), ("active", "Active only"), ("inactive", "Inactive only")])
+        if active_status is None:
+            return None
+        if active_status == "BACK":
+            return "BACK"
+        if active_status:
+            filters["active_status"] = active_status
+
+    if report_type in {"employee_master", "leave_request", "leave_balance", "hr_summary"}:
+        department = _safe_input("Department contains (Enter=Skip, B=Back, 0=Exit): ")
+        if department.lower() in {"0", "exit", "q", "quit"}:
+            return None
+        if department.lower() in {"b", "back"}:
+            return "BACK"
+        if department:
+            filters["department"] = department
+
+    if report_type in {"leave_request", "hr_summary"}:
+        leave_status = _choose_from_options("Filter by leave status:", [("", "All"), ("Pending", "Pending"), ("Approved", "Approved"), ("Rejected", "Rejected")])
+        if leave_status is None:
+            return None
+        if leave_status == "BACK":
+            return "BACK"
+        if leave_status:
+            filters["leave_status"] = leave_status
+
+        leave_type = _choose_from_options("Filter by leave type:", [("", "All"), ("Short", "Short"), ("Half", "Half"), ("Unpaid", "Unpaid"), ("Sick", "Sick"), ("Earned", "Earned")])
+        if leave_type is None:
+            return None
+        if leave_type == "BACK":
+            return "BACK"
+        if leave_type:
+            filters["leave_type"] = leave_type
+
+        deducted_from = _choose_from_options("Filter by deducted from:", [("", "All"), ("Earned", "Earned"), ("Sick", "Sick"), ("Unpaid", "Unpaid"), ("None", "None")])
+        if deducted_from is None:
+            return None
+        if deducted_from == "BACK":
+            return "BACK"
+        if deducted_from:
+            filters["deducted_from"] = deducted_from
+
+    if report_type == "leave_request":
+        reviewer = _lookup_user("Reviewed by username/email/employee ID (Enter=Skip, B=Back, 0=Exit): ")
+        if reviewer == "EXIT":
+            return None
+        if reviewer == "BACK":
+            return "BACK"
+        if reviewer:
+            filters["reviewed_by"] = reviewer
+
+    if report_type in {"admin_audit", "delete_audit", "service_audit"}:
+        action = _safe_input("Admin/service action contains (Enter=Skip, B=Back, 0=Exit): ")
+        if action.lower() in {"0", "exit", "q", "quit"}:
+            return None
+        if action.lower() in {"b", "back"}:
+            return "BACK"
+        if action:
+            filters["admin_action"] = action
+
+    if report_type == "email_delivery":
+        email_status = _safe_input("Email status contains, e.g. sent/failed (Enter=Skip, B=Back, 0=Exit): ")
+        if email_status.lower() in {"0", "exit", "q", "quit"}:
+            return None
+        if email_status.lower() in {"b", "back"}:
+            return "BACK"
+        if email_status:
+            filters["email_status"] = email_status
+
+    if report_type == "hr_summary":
+        filters["include_zero_activity"] = _ask_yes_no("Include employees with zero leave activity?", default=False)
+
+    return filters
+
+
+def _ask_audit_reason():
+    while True:
+        reason = _safe_input("Enter audit reason (B=Back, 0=Exit): ")
+        lowered = reason.lower()
+        if lowered in {"0", "exit", "q", "quit"}:
+            return None
+        if lowered in {"b", "back"}:
+            return "BACK"
+        if reason:
+            return reason
+        print("Audit reason is required.")
+
+
+def _output_dir():
+    output_dir = Path(settings.BASE_DIR) / "generated_reports"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def _save_export(export):
+    output_path = _output_dir() / export["filename"]
+    output_path.write_bytes(export["content"])
+    return output_path
+
+
+def _record_export_audit(filters, export, reason, output_path, result="success", error_message=""):
+    AdminAuditLog.objects.create(
+        model_label="ReportExportService",
+        object_id=export.get("filename") or filters.get("report_type", "report_export"),
+        object_repr=export.get("title") or dict(REPORT_TYPES).get(filters.get("report_type"), "Report export"),
+        action="REPORT_EXPORT",
+        updated_by=None,
+        reason=reason,
+        changes={
+            "result": result,
+            "filters": describe_export_filters(filters),
+            "filename": export.get("filename"),
+            "row_count": export.get("row_count"),
+            "output_path": str(output_path) if output_path else "",
+            "error": error_message,
+        },
+    )
+
+
+def _print_export_summary(filters, export_format, reason):
+    print("\nExport summary")
+    print("-" * 56)
+    print(f"Report: {dict(REPORT_TYPES).get(filters['report_type'])}")
+    print(f"Period: {describe_period(filters)}")
+    print(f"Format: {export_format.upper()}")
+    print(f"Reason: {reason}")
+    useful_filters = describe_export_filters(filters)
+    if useful_filters:
+        print("Filters:")
+        for key, value in useful_filters.items():
+            if key in {"report_type", "period_type", "export_format", "date_from", "date_to", "year", "month", "quarter", "half_year"}:
+                continue
+            print(f"- {column_label(key)}: {value}")
+    print("-" * 56)
+
+
+def run_interactive():
+    print("\nReport Export Service")
+    print("Generate CSV/PDF reports and save them into generated_reports.")
+
+    while True:
+        report_type = _choose_from_options("Select report type:", REPORT_TYPES, allow_back=False)
+        if report_type is None:
+            print("Exit.")
+            return
+
+        while True:
+            period_filters = _ask_period_filters()
+            if period_filters is None:
+                print("Exit.")
+                return
+
+            optional_filters = _ask_optional_filters(report_type)
+            if optional_filters is None:
+                print("Exit.")
+                return
+            if optional_filters == "BACK":
+                continue
+
+            export_format = _choose_from_options("Select export format:", EXPORT_FORMATS)
+            if export_format is None:
+                print("Exit.")
+                return
+            if export_format == "BACK":
+                continue
+
+            reason = _ask_audit_reason()
+            if reason is None:
+                print("Exit.")
+                return
+            if reason == "BACK":
+                continue
+
+            filters = {
+                "report_type": report_type,
+                "export_format": export_format,
+                **period_filters,
+                **optional_filters,
+            }
+            _print_export_summary(filters, export_format, reason)
+
+            confirmation = _safe_input("Type EXPORT to generate report (B=Back, 0=Exit): ")
+            if confirmation.lower() in {"0", "exit", "q", "quit"}:
+                print("Exit.")
+                return
+            if confirmation.lower() in {"b", "back"}:
+                continue
+            if confirmation != "EXPORT":
+                print("Cancelled. Report was not exported.")
+                return
+
+            try:
+                export = build_report_export(filters)
+                output_path = _save_export(export)
+                _record_export_audit(filters, export, reason, output_path, result="success")
+            except Exception as exc:
+                error_export = {
+                    "filename": "",
+                    "title": dict(REPORT_TYPES).get(report_type, report_type),
+                    "row_count": 0,
+                }
+                _record_export_audit(filters, error_export, reason, None, result="failed", error_message=str(exc))
+                print(f"FAILED: Could not export report. {exc}")
+                print("Audit log: Created")
+                return
+
+            print("\nSUCCESS: Report exported")
+            print(f"Title: {export['title']}")
+            print(f"Rows: {export['row_count']}")
+            print(f"Location: {output_path}")
+            print("Audit log: Created")
+            return
+
+
+if __name__ == "__main__":
+    run_interactive()

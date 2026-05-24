@@ -8,6 +8,7 @@ import sys
 
 BACK = object()
 EXIT = object()
+PAGE_SIZE = 10
 
 
 ROLE_OPTIONS = {
@@ -57,7 +58,7 @@ def prompt_menu(prompt, choices, *, allow_back=True, allow_exit=True):
             return value
         options = sorted(valid_choices)
         if allow_back:
-            options.append("b")
+            options.append("B")
         if allow_exit:
             options.append("0")
         print("Invalid choice. Select one of:", ", ".join(options))
@@ -65,7 +66,7 @@ def prompt_menu(prompt, choices, *, allow_back=True, allow_exit=True):
 
 def prompt_lookup():
     while True:
-        value = input("Enter username, email, or employee ID (b=back, 0=exit): ").strip()
+        value = input("Enter username, email, or employee ID (B=Back, 0=Exit): ").strip()
         lowered = value.lower()
         if lowered in {"b", "back"}:
             return BACK
@@ -78,7 +79,7 @@ def prompt_lookup():
 
 def prompt_manual_password():
     while True:
-        password = getpass.getpass("Enter new password (type b to go back): ")
+        password = getpass.getpass("Enter new password (B=Back, 0=Exit): ")
         if password.lower() in {"b", "back"}:
             return BACK
         if password.lower() in {"0", "exit", "q", "quit"}:
@@ -87,7 +88,7 @@ def prompt_manual_password():
             print("Password cannot be blank.")
             continue
 
-        confirm = getpass.getpass("Confirm new password (type b to go back): ")
+        confirm = getpass.getpass("Confirm new password (B=Back, 0=Exit): ")
         if confirm.lower() in {"b", "back"}:
             return BACK
         if confirm.lower() in {"0", "exit", "q", "quit"}:
@@ -105,6 +106,81 @@ def get_user_by_lookup(role, lookup):
     User = get_user_model()
     query = Q(username__iexact=lookup) | Q(email__iexact=lookup) | Q(profile__employee_id__iexact=lookup)
     return User.objects.select_related("profile").filter(role=role).filter(query).distinct().first()
+
+
+def get_users_for_role(role):
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.select_related("profile").filter(role=role).order_by("username", "id")
+
+
+def print_user_row(index, user):
+    profile = getattr(user, "profile", None)
+    employee_id = getattr(profile, "employee_id", "") or "-"
+    full_name = user.get_full_name().strip() or "-"
+    force_status = "ON" if getattr(user, "must_change_password", False) else "OFF"
+    print(
+        f"{index}. {user.username} | {full_name} | {employee_id} | "
+        f"{user.email or '-'} | Active: {'Yes' if user.is_active else 'No'} | Force: {force_status}"
+    )
+
+
+def choose_user_from_list(role, role_label):
+    page = 0
+
+    while True:
+        queryset = get_users_for_role(role)
+        total = queryset.count()
+        start = page * PAGE_SIZE
+        end = start + PAGE_SIZE
+        users = list(queryset[start:end])
+
+        if total == 0:
+            print(f"\nNo {role_label} users found.")
+            return BACK
+
+        print(f"\nShowing {role_label} users {start + 1}-{min(end, total)} of {total}")
+        print("-" * 96)
+        for index, user in enumerate(users, start=1):
+            print_user_row(index, user)
+        print("-" * 96)
+        print("Number = select user | N = Next page | P = Previous page | B = Back | 0 = Exit")
+
+        valid_numbers = {str(number) for number in range(1, len(users) + 1)}
+        choice = prompt_menu("Select option: ", valid_numbers | {"n", "p"})
+        if choice is BACK:
+            return BACK
+        if choice is EXIT:
+            return EXIT
+        if choice == "n":
+            if end >= total:
+                print("Already on the last page.")
+            else:
+                page += 1
+            continue
+        if choice == "p":
+            if page == 0:
+                print("Already on the first page.")
+            else:
+                page -= 1
+            continue
+        return users[int(choice) - 1]
+
+
+def choose_user_from_search(role, role_label):
+    while True:
+        lookup = prompt_lookup()
+        if lookup is BACK:
+            return BACK
+        if lookup is EXIT:
+            return EXIT
+
+        user = get_user_by_lookup(role, lookup)
+        if not user:
+            print(f"No {role_label} found for that username/email/employee ID.")
+            continue
+        return user
 
 
 def display_user_details(user):
@@ -218,7 +294,7 @@ def ask_force_password_change(user):
         print("\nForce password change on next login?")
         print("1. Yes")
         print("2. No")
-        print("b. Back/skip")
+        print("B. Back/Skip")
         choice = prompt_menu("Select option: ", {"1", "2"}, allow_back=True, allow_exit=False)
         if choice is BACK:
             print("Force password change skipped.")
@@ -245,7 +321,7 @@ def ask_send_email(user, force_enabled):
         print("\nSend email notification?")
         print("1. Yes")
         print("2. No")
-        print("b. Back/skip")
+        print("B. Back/Skip")
         choice = prompt_menu("Select option: ", {"1", "2"}, allow_back=True, allow_exit=False)
         if choice is BACK:
             print("Email notification skipped.")
@@ -262,7 +338,7 @@ def ask_send_password_reset_email(user):
         print("\nSend password reset email notification?")
         print("1. Yes")
         print("2. No")
-        print("b. Back/skip")
+        print("B. Back/Skip")
         choice = prompt_menu("Select option: ", {"1", "2"}, allow_back=True, allow_exit=False)
         if choice is BACK:
             print("Password reset email skipped.")
@@ -275,7 +351,7 @@ def choose_password():
         print("\nPassword reset method")
         print("1. Generate password automatically")
         print("2. Enter password manually")
-        print("b. Back")
+        print("B. Back")
         print("0. Exit")
         choice = prompt_menu("Select option: ", {"1", "2"})
         if choice in {BACK, EXIT}:
@@ -292,7 +368,7 @@ def choose_password():
 
 def prompt_audit_reason():
     while True:
-        reason = input("Enter audit reason for password reset (b=back, 0=exit): ").strip()
+        reason = input("Enter audit reason for password reset (B=Back, 0=Exit): ").strip()
         lowered = reason.lower()
         if lowered in {"b", "back"}:
             return BACK
@@ -309,29 +385,18 @@ def confirm_reset(user, method, reason):
     print(f"Method: {'Generated password' if method == 'generate' else 'Manual password'}")
     print(f"Audit reason: {reason}")
     print("\n1. Reset password")
-    print("b. Back")
+    print("B. Back")
     print("0. Exit")
     choice = prompt_menu("Select option: ", {"1"})
     return choice
 
 
-def handle_selected_role(role, role_label):
+def handle_selected_user(user):
     while True:
-        lookup = prompt_lookup()
-        if lookup is BACK:
-            return
-        if lookup is EXIT:
-            return EXIT
-
-        user = get_user_by_lookup(role, lookup)
-        if not user:
-            print(f"No {role_label} found for that username/email/employee ID.")
-            continue
-
         display_user_details(user)
         method, password = choose_password()
         if method is BACK:
-            continue
+            return BACK
         if method is EXIT:
             return EXIT
 
@@ -381,8 +446,36 @@ def handle_selected_role(role, role_label):
         print(f"Force password change: {force_status}")
         print(f"Force password email: {'Sent' if email_sent else 'Not sent/skipped'}")
         print("-" * 48)
-        input("Press Enter to return to main menu...")
-        return
+        input("Press Enter to return to role menu...")
+        return None
+
+
+def handle_selected_role(role, role_label):
+    while True:
+        print(f"\n{role_label} menu")
+        print("1. List users")
+        print("2. Search user")
+        print("B. Back")
+        print("0. Exit")
+        choice = prompt_menu("Select option: ", {"1", "2"})
+        if choice is BACK:
+            return
+        if choice is EXIT:
+            return EXIT
+
+        if choice == "1":
+            user = choose_user_from_list(role, role_label)
+        else:
+            user = choose_user_from_search(role, role_label)
+
+        if user is BACK:
+            continue
+        if user is EXIT:
+            return EXIT
+
+        result = handle_selected_user(user)
+        if result is EXIT:
+            return EXIT
 
 
 def run_interactive():

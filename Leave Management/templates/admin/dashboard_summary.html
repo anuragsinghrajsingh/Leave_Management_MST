@@ -116,6 +116,31 @@
         <span class="dash-pill dash-ok">Disabled</span>
       {% endif %}
     </section>
+    <section class="dash-card">
+      <h2>Email SMTP</h2>
+      {% if email_health.ok and email_health.connection.ok %}
+        <span class="dash-pill dash-ok">Connection OK</span>
+      {% elif email_health.ok %}
+        <span class="dash-pill dash-warn">SMTP issue</span>
+      {% else %}
+        <span class="dash-pill dash-bad">Needs config</span>
+      {% endif %}
+      <div class="dash-muted">{{ email_health.connection.message }}</div>
+    </section>
+    <section class="dash-card">
+      <h2>Backup Freshness</h2>
+      <span class="dash-pill dash-{{ backup_age.status }}">{{ backup_age.label }}</span>
+      <div class="dash-muted">{{ backup_age.age_text }}</div>
+    </section>
+    <section class="dash-card">
+      <h2>System Paths</h2>
+      {% if storage_health.paths_ok %}
+        <span class="dash-pill dash-ok">Writable</span>
+      {% else %}
+        <span class="dash-pill dash-bad">Needs attention</span>
+      {% endif %}
+      <div class="dash-muted">Runtime, logs, backups, media, PDFs</div>
+    </section>
   </div>
 
   <div class="dash-grid">
@@ -128,6 +153,7 @@
 
     <section class="dash-card">
       <h2>Backup</h2>
+      <div class="dash-row"><div class="dash-label">Freshness</div><div class="dash-value"><span class="dash-pill dash-{{ backup_age.status }}">{{ backup_age.label }}</span><br><span class="dash-muted">{{ backup_age.age_text }}</span></div></div>
       {% if latest_backup %}
         <div class="dash-row"><div class="dash-label">Latest</div><div class="dash-value">{{ latest_backup.name }}</div></div>
         <div class="dash-row"><div class="dash-label">Modified</div><div class="dash-value">{{ latest_backup.modified_at }}</div></div>
@@ -150,7 +176,10 @@
 
     <section class="dash-card">
       <h2>Latest Error</h2>
-      {% if latest_error_line %}
+      {% if log_health.latest_error %}
+        <div class="dash-row"><div class="dash-label">File</div><div class="dash-value">{{ log_health.latest_error.file }}</div></div>
+        <div class="dash-row"><div class="dash-label">Line</div><div class="dash-value">{{ log_health.latest_error.line }}</div></div>
+      {% elif latest_error_line %}
         <div class="dash-value">{{ latest_error_line }}</div>
       {% else %}
         <span class="dash-pill dash-ok">No recent error line</span>
@@ -159,10 +188,35 @@
 
     <section class="dash-card">
       <h2>Scheduler / Startup</h2>
-      <div class="dash-row"><div class="dash-label">Scheduler</div><div class="dash-value">{% if scheduler_health.ok %}Latest log found{% else %}No scheduler log found{% endif %}</div></div>
+      <div class="dash-row"><div class="dash-label">Scheduler</div><div class="dash-value">
+        {% if scheduler_health.ok %}
+          <span class="dash-pill dash-ok">Recent log found</span>
+        {% elif scheduler_health.stale %}
+          <span class="dash-pill dash-warn">Log is stale</span>
+        {% else %}
+          <span class="dash-pill dash-warn">No scheduler log found</span>
+        {% endif %}
+      </div></div>
       <div class="dash-row"><div class="dash-label">Backup catchup</div><div class="dash-value">{% if startup_status.backup.should_run %}Would run{% else %}Would skip{% endif %}</div></div>
       <div class="dash-row"><div class="dash-label">Weekly report</div><div class="dash-value">{% if startup_status.weekly_report.should_run %}Would send{% else %}Would skip{% endif %}</div></div>
       <div class="dash-row"><div class="dash-label">Year-end</div><div class="dash-value">{% if startup_status.year_end.should_run %}Would run{% else %}Would skip{% endif %}</div></div>
+    </section>
+
+    <section class="dash-card">
+      <h2>Path Health</h2>
+      {% for path_check in storage_health.path_checks %}
+        <div class="dash-row">
+          <div class="dash-label">{{ path_check.label }}</div>
+          <div class="dash-value">
+            {% if path_check.ok %}
+              <span class="dash-pill dash-ok">OK</span>
+            {% else %}
+              <span class="dash-pill dash-bad">Problem</span>
+            {% endif %}
+            <br><span class="dash-muted">Exists: {{ path_check.exists }} | Writable: {{ path_check.writable }}</span>
+          </div>
+        </div>
+      {% endfor %}
     </section>
   </div>
 

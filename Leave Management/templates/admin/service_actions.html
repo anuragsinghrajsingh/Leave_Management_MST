@@ -40,6 +40,38 @@
       padding: 12px;
       background: rgba(127, 127, 127, 0.06);
     }
+    .year-end-breakdown {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+    .year-end-breakdown div {
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 6px;
+      padding: 10px;
+      background: rgba(127, 127, 127, 0.05);
+    }
+    .year-end-breakdown strong {
+      display: block;
+      font-size: 1.2rem;
+      margin-bottom: 2px;
+    }
+    .year-end-note {
+      margin: 10px 0 14px;
+      padding-left: 18px;
+    }
+    .year-end-history {
+      width: 100%;
+      margin: 12px 0 16px;
+      border-collapse: collapse;
+    }
+    .year-end-history th,
+    .year-end-history td {
+      border-bottom: 1px solid var(--border-color, #ddd);
+      padding: 8px;
+      text-align: left;
+    }
   </style>
 
   <p>Run protected service workflows from admin. Every action requires a reason and an exact confirmation phrase.</p>
@@ -116,10 +148,109 @@
       <p>Year: {{ year_end_status.year }}</p>
       <p>Decision: {% if year_end_status.should_run %}would run{% else %}would skip{% endif %}</p>
       <p>Reason: {{ year_end_status.reason }}</p>
-      <p>Eligible balances: {{ year_end_status.eligible_count }}</p>
+      <div class="year-end-breakdown">
+        <div>
+          <strong>{{ year_end_status.eligible_count }}</strong>
+          Pending employee balance records
+        </div>
+        <div>
+          <strong>{{ year_end_status.processable_count }}</strong>
+          Active employees that can be processed
+        </div>
+        <div>
+          <strong>{{ year_end_status.already_processed_count }}</strong>
+          Already processed this year
+        </div>
+        <div>
+          <strong>{{ year_end_status.missing_profile_count }}</strong>
+          Employee balances missing profile
+        </div>
+        <div>
+          <strong>{{ year_end_status.ignored_non_employee_count }}</strong>
+          HR/Admin balance records ignored
+        </div>
+      </div>
+      <ul class="year-end-note">
+        <li>Pending employee balance records are employee leave balances not processed for this year yet.</li>
+        <li>Only active employees with profiles are processed. HR/Admin balances are ignored.</li>
+        <li>Each processed employee may carry forward 0, 7.5, or 10.5 days depending on earned balance and service years.</li>
+      </ul>
+      <h3>Year Run History</h3>
+      <form method="get">
+        <p>
+          <label><strong>Search year:</strong></label><br>
+          <input type="text" name="year_end_query" value="{{ year_end_query }}" inputmode="numeric" pattern="[0-9]{4}" placeholder="Example: 2027" autocomplete="off">
+        </p>
+        <p>
+          <label><strong>Status:</strong></label><br>
+          <select name="year_end_status">
+            <option value="all"{% if year_end_status_filter == "all" %} selected{% endif %}>All</option>
+            <option value="completed"{% if year_end_status_filter == "completed" %} selected{% endif %}>Completed</option>
+            <option value="pending"{% if year_end_status_filter == "pending" %} selected{% endif %}>Pending</option>
+          </select>
+        </p>
+        <button type="submit" class="button">Filter history</button>
+        <a class="button" href="{{ request.path }}">Clear</a>
+      </form>
+      <table class="year-end-history">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Status</th>
+            <th>Completed at</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in year_end_runs %}
+            <tr>
+              <td>{{ run.year }}</td>
+              <td>{% if run.completed_at %}Completed{% else %}Pending{% endif %}</td>
+              <td>{{ run.completed_at|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3">No year-end run records yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if year_end_runs.paginator.num_pages > 1 %}
+        <p>
+          {% if year_end_runs.has_previous %}
+            <a class="button" href="?year_end_query={{ year_end_query }}&year_end_status={{ year_end_status_filter }}&year_end_page={{ year_end_runs.previous_page_number }}">Previous</a>
+          {% endif %}
+          Page {{ year_end_runs.number }} of {{ year_end_runs.paginator.num_pages }}
+          {% if year_end_runs.has_next %}
+            <a class="button" href="?year_end_query={{ year_end_query }}&year_end_status={{ year_end_status_filter }}&year_end_page={{ year_end_runs.next_page_number }}">Next</a>
+          {% endif %}
+        </p>
+      {% endif %}
+      <h3>Create Pending Year Record</h3>
+      <p class="help">This only creates a tracking row. It does not run carry-forward.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_action" value="create_year_end_record">
+        <p>
+          <label><strong>Year:</strong></label><br>
+          <input type="text" name="record_year" inputmode="numeric" pattern="[0-9]{4}" placeholder="Example: 2027" required autocomplete="off">
+        </p>
+        <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
+        <p><label><strong>Type CREATE_YEAR_END_RECORD:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
+        <button type="submit" class="button">Create pending year record</button>
+      </form>
+      <h3>Run Year-End Carry Forward</h3>
       <form method="post">
         {% csrf_token %}
         <input type="hidden" name="service_action" value="year_end">
+        <p>
+          <strong>Run for:</strong><br>
+          <label><input type="radio" name="year_end_mode" value="current" checked> Current year</label><br>
+          <label><input type="radio" name="year_end_mode" value="specific"> Specific year</label>
+        </p>
+        <p>
+          <label><strong>Specific year:</strong></label><br>
+          <input type="text" name="year_end_year" inputmode="numeric" pattern="[0-9]{4}" placeholder="Example: 2027" autocomplete="off">
+        </p>
         <p><label><strong>Reason:</strong></label><br><textarea name="reason" rows="3" required></textarea></p>
         <p><label><strong>Type RUN_YEAR_END_CARRY_FORWARD:</strong></label><br><input type="text" name="confirmation" required autocomplete="off"></p>
         <button type="submit" class="deletelink">Run year-end carry forward</button>

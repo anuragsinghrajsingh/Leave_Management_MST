@@ -12,9 +12,7 @@
 
     <fieldset class="module aligned">
       <h2>{{ title }}</h2>
-      <p>
-        {{ action_description }}
-      </p>
+      <p>{{ action_description }}</p>
       <div class="form-row">
         {{ form.action_reason.errors }}
         <label for="{{ form.action_reason.id_for_label }}" class="required">{{ form.action_reason.label }}:</label>
@@ -31,11 +29,42 @@
     </fieldset>
 
     <h2>Selected users</h2>
-    <ul>
-      {% for user in users %}
-        <li>{{ user.get_full_name|default:user.username }} — {{ user.username }} — {{ user.email|default:"No email" }}</li>
-      {% endfor %}
-    </ul>
+    {% if show_email_option %}
+      <p class="help">Choose which users should receive the email notification. Unchecked users are still updated, but no email is sent to them.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Send email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td>{{ user.get_full_name|default:user.username }} - {{ user.username }}</td>
+              <td>{{ user.email|default:"No email" }}</td>
+              <td>
+                {% if user.email %}
+                  <label>
+                    <input type="checkbox" name="send_email_user_ids" value="{{ user.pk }}">
+                    Send
+                  </label>
+                {% else %}
+                  No email available
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <ul>
+        {% for user in users %}
+          <li>{{ user.get_full_name|default:user.username }} - {{ user.username }} - {{ user.email|default:"No email" }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
 
     <div class="submit-row">
       <input type="submit" class="default" value="Confirm">

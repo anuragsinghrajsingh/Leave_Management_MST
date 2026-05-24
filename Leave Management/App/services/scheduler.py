@@ -1,7 +1,74 @@
 import logging
+import os
+import sys
+from pathlib import Path
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 logger = logging.getLogger('lms_scheduler')
+
+
+def _setup_django_for_direct_run():
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leave_management.settings")
+    os.environ.setdefault("LMS_SKIP_UPTIME_RECORD", "1")
+
+    import django
+    from django.apps import apps
+
+    if not apps.ready:
+        django.setup()
+
+
+if __name__ == "__main__":
+    _setup_django_for_direct_run()
+
+
+SCHEDULER_JOB_DETAILS = [
+    {
+        "id": "startup_catchup",
+        "name": "Startup catch-up checks",
+        "schedule": "Runs once when scheduler starts",
+        "service_file": "startup_checks.py",
+        "function": "run_startup_catchup",
+        "effect": "Checks missed backup and weekly report work after downtime.",
+    },
+    {
+        "id": "year_end_carry_forward",
+        "name": "Year-end carry forward",
+        "schedule": "Daily at 01:00",
+        "service_file": "year_end_service.py",
+        "function": "run_year_end_carry_forward_if_due",
+        "effect": "Runs leave carry-forward only when due.",
+    },
+    {
+        "id": "nightly_backup",
+        "name": "Nightly backup check",
+        "schedule": "Daily at 02:00",
+        "service_file": "startup_checks.py",
+        "function": "check_and_run_missed_backup",
+        "effect": "Checks whether backup is missed and runs it if needed.",
+    },
+    {
+        "id": "weekly_hr_report",
+        "name": "Weekly HR report",
+        "schedule": "Every Monday at 09:00",
+        "service_file": "startup_checks.py",
+        "function": "check_and_run_missed_weekly_report",
+        "effect": "Checks whether weekly HR report is missed and sends it if needed.",
+    },
+    {
+        "id": "scheduler_keepalive",
+        "name": "Scheduler keep-alive",
+        "schedule": "Every 6 hours",
+        "service_file": "scheduler.py",
+        "function": "logger.info keep-alive",
+        "effect": "Logs that scheduler is alive. No data change.",
+    },
+]
 
 def start_scheduler():
     logger.info("SCHEDULER | START | Preparing in-app background scheduler.")
@@ -73,3 +140,88 @@ def start_scheduler():
         scheduler.running,
         len(scheduler.get_jobs()),
     )
+
+
+def _safe_input(prompt):
+    try:
+        return input(prompt).strip()
+    except (EOFError, KeyboardInterrupt):
+        print("")
+        return "0"
+
+
+def _print_job(job, index=None):
+    prefix = f"{index}. " if index is not None else ""
+    print(f"{prefix}{job['name']}")
+    print(f"   ID: {job['id']}")
+    print(f"   Schedule: {job['schedule']}")
+    print(f"   Service: {job['service_file']}")
+    print(f"   Function: {job['function']}")
+    print(f"   Effect: {job['effect']}")
+
+
+def show_scheduler_jobs():
+    print("\nScheduler Job List")
+    for index, job in enumerate(SCHEDULER_JOB_DETAILS, start=1):
+        _print_job(job, index=index)
+    _print_manual_run_note()
+
+
+def show_scheduler_status():
+    print("\nScheduler Status")
+    print("Type: In-app APScheduler BackgroundScheduler")
+    print("Job store: In-memory")
+    print("Starts from: App startup/server bootstrap")
+    print(f"Configured jobs: {len(SCHEDULER_JOB_DETAILS)}")
+    print("Manual triggers: Not enabled here, to avoid accidental emails/data changes.")
+    _print_manual_run_note()
+
+
+def _print_manual_run_note():
+    print("\nNote")
+    print("If you want to run a specific scheduled job manually, use its own service file:")
+    print("- Weekly HR report: weekly_report_service.py")
+    print("- Startup catch-up / missed backup / missed weekly report checks: startup_checks.py")
+    print("- Year-end carry forward: year_end_service.py")
+    print("- Scheduler keep-alive: scheduler.py only logs status; no manual run is needed.")
+
+
+def run_interactive():
+    while True:
+        print("\nScheduler Viewer")
+        print("1. View scheduler status")
+        print("2. View configured jobs")
+        print("3. View job detail")
+        print("0. Exit")
+
+        choice = _safe_input("Choose an option: ").lower()
+        if choice in {"0", "exit", "q", "quit"}:
+            print("Exit.")
+            return 0
+        if choice == "1":
+            show_scheduler_status()
+            _safe_input("\nPress Enter to continue...")
+        elif choice == "2":
+            show_scheduler_jobs()
+            _safe_input("\nPress Enter to continue...")
+        elif choice == "3":
+            for index, job in enumerate(SCHEDULER_JOB_DETAILS, start=1):
+                print(f"{index}. {job['name']} ({job['id']})")
+            selected = _safe_input("Select job number (B=Back, 0=Exit): ").lower()
+            if selected == "0":
+                print("Exit.")
+                return 0
+            if selected == "b":
+                continue
+            if selected.isdigit() and 1 <= int(selected) <= len(SCHEDULER_JOB_DETAILS):
+                print("")
+                _print_job(SCHEDULER_JOB_DETAILS[int(selected) - 1])
+                _safe_input("\nPress Enter to continue...")
+            else:
+                print("Invalid choice.")
+        else:
+            print("Invalid choice.")
+
+
+if __name__ == "__main__":
+    raise SystemExit(run_interactive())

@@ -42,10 +42,25 @@ def get_year_end_carry_forward_status(today=None):
     is_completed = bool(run_record and run_record.completed_at)
     eligible_count = (
         LeaveBalance.objects
-        .filter(user__profile__isnull=False)
+        .filter(user__role="EMPLOYEE", user__profile__isnull=False)
         .exclude(last_year_end_processed=processing_year)
         .count()
     )
+    processable_count = (
+        LeaveBalance.objects
+        .filter(user__role="EMPLOYEE", user__is_active=True, user__profile__isnull=False)
+        .exclude(last_year_end_processed=processing_year)
+        .count()
+    )
+    already_processed_count = LeaveBalance.objects.filter(
+        user__role="EMPLOYEE",
+        last_year_end_processed=processing_year,
+    ).count()
+    missing_profile_count = LeaveBalance.objects.filter(
+        user__role="EMPLOYEE",
+        user__profile__isnull=True,
+    ).count()
+    ignored_non_employee_count = LeaveBalance.objects.exclude(user__role="EMPLOYEE").count()
 
     if is_protected:
         reason = f"protected year {processing_year}"
@@ -67,6 +82,10 @@ def get_year_end_carry_forward_status(today=None):
         "is_completed": is_completed,
         "completed_at": run_record.completed_at if run_record else None,
         "eligible_count": eligible_count,
+        "processable_count": processable_count,
+        "already_processed_count": already_processed_count,
+        "missing_profile_count": missing_profile_count,
+        "ignored_non_employee_count": ignored_non_employee_count,
         "should_run": should_run,
         "reason": reason,
     }
@@ -167,7 +186,7 @@ def run_year_end_carry_forward_if_due(today=None):
             LeaveBalance.objects
             .select_for_update()
             .select_related("user", "user__profile")
-            .filter(user__is_active=True, user__profile__isnull=False)
+            .filter(user__role="EMPLOYEE", user__is_active=True, user__profile__isnull=False)
             .exclude(last_year_end_processed=processing_year)
             .order_by("pk")
         )
@@ -214,9 +233,20 @@ def print_year_end_dry_run():
     print(f"Date: {status['today']}")
     print(f"Protected year: {'yes' if status['is_protected'] else 'no'}")
     print(f"Run status: {completed_text}")
-    print(f"Eligible balances: {status['eligible_count']}")
+    print(f"Pending balance records: {status['eligible_count']}")
+    print(f"Active users that can be processed: {status['processable_count']}")
+    print(f"Already processed this year: {status['already_processed_count']}")
+    print(f"Balance records missing profile: {status['missing_profile_count']}")
+    print(f"HR/Admin balance records ignored: {status['ignored_non_employee_count']}")
     print(f"Decision: {'would run' if status['should_run'] else 'would skip'}")
     print(f"Reason: {status['reason']}")
+    print("")
+    print("Meaning:")
+    print("- Pending balance records = employee leave balances not processed for this year yet.")
+    print("- Active users that can be processed = pending employee balances for active employees with a profile.")
+    print("- Already processed this year = users skipped because year-end already ran for them.")
+    print("- HR/Admin balance records ignored = non-employee balances are never processed by year-end.")
+    print("- Each processed user may carry forward 0, 7.5, or 10.5 days depending on earned balance and service years.")
     return status
 
 

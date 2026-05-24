@@ -55,6 +55,83 @@
     .report-list li {
       margin: 5px 0;
     }
+    .report-preview {
+      grid-column: 1 / -1;
+      border: 1px solid rgba(37, 99, 235, 0.24);
+      border-radius: 8px;
+      background: rgba(37, 99, 235, 0.06);
+      padding: 12px;
+    }
+    .report-preview-title {
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .report-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .report-preview-item {
+      border-radius: 6px;
+      background: var(--body-bg, #fff);
+      border: 1px solid rgba(127, 127, 127, 0.16);
+      padding: 8px 10px;
+    }
+    .report-preview-label {
+      display: block;
+      color: var(--body-quiet-color, #666);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .report-preview-value {
+      display: block;
+      margin-top: 2px;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .report-filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .report-filter-chip {
+      border-radius: 999px;
+      background: rgba(22, 163, 74, 0.1);
+      border: 1px solid rgba(22, 163, 74, 0.22);
+      color: #166534;
+      padding: 4px 9px;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .report-preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .report-preset-button {
+      border: 1px solid rgba(37, 99, 235, 0.28);
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.08);
+      color: #1d4ed8;
+      padding: 6px 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .report-preset-button:hover {
+      background: rgba(37, 99, 235, 0.14);
+    }
+    .report-warning {
+      display: none;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(217, 119, 6, 0.32);
+      background: rgba(217, 119, 6, 0.1);
+      color: #92400e;
+      padding: 9px 11px;
+      font-weight: 800;
+    }
     @media (max-width: 900px) {
       .report-export-wrap {
         grid-template-columns: 1fr;
@@ -69,6 +146,12 @@
   <div class="report-export-wrap">
     <section class="report-export-card">
       <h2>Export Report</h2>
+      <div class="report-preset-row" aria-label="Saved report presets">
+        <button type="button" class="report-preset-button" data-preset="monthly_hr">Monthly HR Summary</button>
+        <button type="button" class="report-preset-button" data-preset="leave_audit_30">Leave Audit Last 30 Days</button>
+        <button type="button" class="report-preset-button" data-preset="failed_emails_7">Failed Emails Last 7 Days</button>
+        <button type="button" class="report-preset-button" data-preset="employee_master_active">Active Employee Master</button>
+      </div>
       <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
@@ -82,18 +165,41 @@
           <p class="period-field" data-period-field="half_year">{{ form.half_year.label_tag }}<br>{{ form.half_year.errors }}{{ form.half_year }}</p>
           <p class="period-field" data-period-field="date_from">{{ form.date_from.label_tag }}<br>{{ form.date_from.errors }}{{ form.date_from }}</p>
           <p class="period-field" data-period-field="date_to">{{ form.date_to.label_tag }}<br>{{ form.date_to.errors }}{{ form.date_to }}</p>
-          <p>{{ form.employee.label_tag }}<br>{{ form.employee.errors }}{{ form.employee }}</p>
-          <p>{{ form.department.label_tag }}<br>{{ form.department.errors }}{{ form.department }}</p>
-          <p>{{ form.role.label_tag }}<br>{{ form.role.errors }}{{ form.role }}</p>
-          <p>{{ form.active_status.label_tag }}<br>{{ form.active_status.errors }}{{ form.active_status }}</p>
-          <p>{{ form.leave_status.label_tag }}<br>{{ form.leave_status.errors }}{{ form.leave_status }}</p>
-          <p>{{ form.leave_type.label_tag }}<br>{{ form.leave_type.errors }}{{ form.leave_type }}</p>
-          <p>{{ form.deducted_from.label_tag }}<br>{{ form.deducted_from.errors }}{{ form.deducted_from }}</p>
-          <p>{{ form.reviewed_by.label_tag }}<br>{{ form.reviewed_by.errors }}{{ form.reviewed_by }}</p>
-          <p>{{ form.email_status.label_tag }}<br>{{ form.email_status.errors }}{{ form.email_status }}</p>
-          <p>{{ form.admin_action.label_tag }}<br>{{ form.admin_action.errors }}{{ form.admin_action }}</p>
-          <p class="wide"><label>{{ form.include_zero_activity }} {{ form.include_zero_activity.label }}</label></p>
+          <p data-report-filter="employee">{{ form.employee.label_tag }}<br>{{ form.employee.errors }}{{ form.employee }}</p>
+          <p data-report-filter="department">{{ form.department.label_tag }}<br>{{ form.department.errors }}{{ form.department }}</p>
+          <p data-report-filter="role">{{ form.role.label_tag }}<br>{{ form.role.errors }}{{ form.role }}</p>
+          <p data-report-filter="active_status">{{ form.active_status.label_tag }}<br>{{ form.active_status.errors }}{{ form.active_status }}</p>
+          <p data-report-filter="leave_status">{{ form.leave_status.label_tag }}<br>{{ form.leave_status.errors }}{{ form.leave_status }}</p>
+          <p data-report-filter="leave_type">{{ form.leave_type.label_tag }}<br>{{ form.leave_type.errors }}{{ form.leave_type }}</p>
+          <p data-report-filter="deducted_from">{{ form.deducted_from.label_tag }}<br>{{ form.deducted_from.errors }}{{ form.deducted_from }}</p>
+          <p data-report-filter="reviewed_by">{{ form.reviewed_by.label_tag }}<br>{{ form.reviewed_by.errors }}{{ form.reviewed_by }}</p>
+          <p data-report-filter="email_status">{{ form.email_status.label_tag }}<br>{{ form.email_status.errors }}{{ form.email_status }}</p>
+          <p data-report-filter="admin_action">{{ form.admin_action.label_tag }}<br>{{ form.admin_action.errors }}{{ form.admin_action }}</p>
+          <p class="wide" data-report-filter="include_zero_activity"><label>{{ form.include_zero_activity }} {{ form.include_zero_activity.label }}</label></p>
           <p class="wide">{{ form.reason.label_tag }}<br>{{ form.reason.errors }}{{ form.reason }}</p>
+          <div class="report-preview" aria-live="polite">
+            <div class="report-preview-title">Selected export summary</div>
+            <div class="report-preview-grid">
+              <div class="report-preview-item">
+                <span class="report-preview-label">Report</span>
+                <span class="report-preview-value" id="reportPreviewType">-</span>
+              </div>
+              <div class="report-preview-item">
+                <span class="report-preview-label">Format</span>
+                <span class="report-preview-value" id="reportPreviewFormat">-</span>
+              </div>
+              <div class="report-preview-item">
+                <span class="report-preview-label">Period</span>
+                <span class="report-preview-value" id="reportPreviewPeriod">-</span>
+              </div>
+              <div class="report-preview-item">
+                <span class="report-preview-label">Expected rows</span>
+                <span class="report-preview-value" id="reportPreviewRows">Checking...</span>
+              </div>
+            </div>
+            <div class="report-filter-chips" id="reportPreviewFilters"></div>
+            <div class="report-warning" id="reportLargePdfWarning">This PDF may be large. PDF preview is limited to 500 rows; use CSV for full large exports.</div>
+          </div>
         </div>
         <div class="submit-row">
           <button type="submit" class="default">Export report</button>
@@ -125,6 +231,15 @@
       const periodSelect = document.getElementById("id_period_type");
       const form = periodSelect ? periodSelect.closest("form") : null;
       const fields = Array.from(document.querySelectorAll("[data-period-field]"));
+      const reportPreviewType = document.getElementById("reportPreviewType");
+      const reportPreviewFormat = document.getElementById("reportPreviewFormat");
+      const reportPreviewPeriod = document.getElementById("reportPreviewPeriod");
+      const reportPreviewRows = document.getElementById("reportPreviewRows");
+      const reportPreviewFilters = document.getElementById("reportPreviewFilters");
+      const reportLargePdfWarning = document.getElementById("reportLargePdfWarning");
+      const reportFilterGroups = Array.from(document.querySelectorAll("[data-report-filter]"));
+      const previewUrl = "{% url 'admin:App_reportexportcontrol_preview_count' %}";
+      let previewTimer = null;
       const visibleByPeriod = {
         custom: ["date_from", "date_to"],
         monthly: ["year", "month"],
@@ -132,6 +247,218 @@
         six_month: ["year", "half_year"],
         yearly: ["year"]
       };
+      const filtersByReport = {
+        employee_master: ["employee", "department", "role", "active_status"],
+        leave_request: ["employee", "department", "leave_status", "leave_type", "deducted_from", "reviewed_by"],
+        leave_balance: ["employee", "department", "active_status"],
+        leave_balance_audit: ["employee"],
+        admin_audit: ["admin_action"],
+        delete_audit: ["admin_action"],
+        communication: ["employee", "role"],
+        communication_read_seen: ["employee", "role"],
+        leave_notification_read_seen: ["employee", "role", "leave_status", "leave_type"],
+        email_delivery: ["employee", "email_status"],
+        holiday: [],
+        wfh_rules: [],
+        year_end: [],
+        service_audit: ["admin_action"],
+        system_health_snapshot: [],
+        hr_summary: ["employee", "department", "role", "active_status", "leave_status", "leave_type", "deducted_from", "reviewed_by", "email_status", "include_zero_activity"]
+      };
+      const monthNames = {
+        "1": "January", "2": "February", "3": "March", "4": "April",
+        "5": "May", "6": "June", "7": "July", "8": "August",
+        "9": "September", "10": "October", "11": "November", "12": "December"
+      };
+
+      function selectedText(id) {
+        const input = document.getElementById(id);
+        if (!input) return "";
+        if (input.tagName === "SELECT") {
+          return input.selectedOptions.length ? input.selectedOptions[0].text : "";
+        }
+        return input.value || "";
+      }
+
+      function selectedValue(id) {
+        const input = document.getElementById(id);
+        return input ? input.value : "";
+      }
+
+      function formatDate(value) {
+        if (!value) return "";
+        const parts = value.split("-");
+        if (parts.length !== 3) return value;
+        return parts[2] + "-" + parts[1] + "-" + parts[0];
+      }
+
+      function periodSummary() {
+        const period = selectedValue("id_period_type") || "custom";
+        const year = selectedValue("id_year") || new Date().getFullYear();
+        if (period === "monthly") {
+          const month = selectedValue("id_month") || String(new Date().getMonth() + 1);
+          return "Monthly: " + (monthNames[month] || ("Month " + month)) + " " + year;
+        }
+        if (period === "quarterly") {
+          return "Quarterly: " + (selectedText("id_quarter") || "Select quarter") + " " + year;
+        }
+        if (period === "six_month") {
+          return "Six-month: " + (selectedText("id_half_year") || "Select half") + " " + year;
+        }
+        if (period === "yearly") {
+          return "Yearly: " + year;
+        }
+        const from = formatDate(selectedValue("id_date_from"));
+        const to = formatDate(selectedValue("id_date_to"));
+        if (from && to) return "Custom: " + from + " to " + to;
+        if (from) return "Custom: From " + from;
+        if (to) return "Custom: Until " + to;
+        return "Custom: All available dates";
+      }
+
+      function addChip(label, value) {
+        if (!value || value === "---------" || value === "All roles" || value === "All statuses" || value === "All leave types" || value === "All deduction sources" || value === "All email statuses" || value === "All users") return;
+        const chip = document.createElement("span");
+        chip.className = "report-filter-chip";
+        chip.textContent = label + ": " + value;
+        reportPreviewFilters.appendChild(chip);
+      }
+
+      function updatePreview() {
+        if (reportPreviewType) reportPreviewType.textContent = selectedText("id_report_type") || "-";
+        if (reportPreviewFormat) reportPreviewFormat.textContent = selectedText("id_export_format") || "-";
+        if (reportPreviewPeriod) reportPreviewPeriod.textContent = periodSummary();
+        if (!reportPreviewFilters) return;
+        reportPreviewFilters.innerHTML = "";
+        addChip("Employee", selectedText("id_employee"));
+        addChip("Department", selectedValue("id_department"));
+        addChip("Role", selectedText("id_role"));
+        addChip("Active status", selectedText("id_active_status"));
+        addChip("Leave status", selectedText("id_leave_status"));
+        addChip("Leave type", selectedText("id_leave_type"));
+        addChip("Deducted from", selectedText("id_deducted_from"));
+        addChip("Reviewed by", selectedText("id_reviewed_by"));
+        addChip("Email status", selectedText("id_email_status"));
+        addChip("Admin action", selectedValue("id_admin_action"));
+        if (document.getElementById("id_include_zero_activity") && document.getElementById("id_include_zero_activity").checked) {
+          addChip("Zero activity", "Included");
+        }
+        if (!reportPreviewFilters.children.length) {
+          addChip("Filters", "None");
+        }
+        schedulePreviewCount();
+      }
+
+      function setReportFilters() {
+        const reportType = selectedValue("id_report_type");
+        const visible = new Set(filtersByReport[reportType] || []);
+        reportFilterGroups.forEach(function (wrapper) {
+          const filterName = wrapper.dataset.reportFilter;
+          const shouldShow = visible.has(filterName);
+          const inputs = wrapper.querySelectorAll("input, select, textarea");
+          wrapper.hidden = !shouldShow;
+          inputs.forEach(function (input) {
+            input.disabled = !shouldShow;
+            if (!shouldShow) {
+              if (input.type === "checkbox") {
+                input.checked = false;
+              } else {
+                input.value = "";
+              }
+            }
+          });
+        });
+      }
+
+      function schedulePreviewCount() {
+        if (!form || !reportPreviewRows) return;
+        window.clearTimeout(previewTimer);
+        reportPreviewRows.textContent = "Checking...";
+        previewTimer = window.setTimeout(fetchPreviewCount, 350);
+      }
+
+      function fetchPreviewCount() {
+        if (!form || !reportPreviewRows) return;
+        const formData = new FormData(form);
+        formData.set("reason", "Preview row count");
+        const params = new URLSearchParams();
+        formData.forEach(function (value, key) {
+          if (key !== "csrfmiddlewaretoken") {
+            params.set(key, value);
+          }
+        });
+        fetch(previewUrl + "?" + params.toString(), {
+          headers: {"X-Requested-With": "XMLHttpRequest"}
+        })
+          .then(function (response) { return response.json(); })
+          .then(function (payload) {
+            if (!payload.ok) {
+              reportPreviewRows.textContent = "Unavailable";
+              if (reportLargePdfWarning) reportLargePdfWarning.style.display = "none";
+              return;
+            }
+            reportPreviewRows.textContent = String(payload.row_count);
+            if (reportLargePdfWarning) {
+              reportLargePdfWarning.style.display = payload.large_pdf_warning ? "block" : "none";
+            }
+            if (payload.period && reportPreviewPeriod) {
+              reportPreviewPeriod.textContent = payload.period;
+            }
+          })
+          .catch(function () {
+            reportPreviewRows.textContent = "Unavailable";
+            if (reportLargePdfWarning) reportLargePdfWarning.style.display = "none";
+          });
+      }
+
+      function setFieldValue(id, value) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.value = value;
+        input.dispatchEvent(new Event("change", {bubbles: true}));
+      }
+
+      function applyPreset(name) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        if (name === "monthly_hr") {
+          setFieldValue("id_report_type", "hr_summary");
+          setFieldValue("id_export_format", "pdf");
+          setFieldValue("id_period_type", "monthly");
+          setFieldValue("id_year", String(year));
+          setFieldValue("id_month", String(month));
+        }
+        if (name === "leave_audit_30") {
+          const from = new Date(today);
+          from.setDate(from.getDate() - 30);
+          setFieldValue("id_report_type", "leave_request");
+          setFieldValue("id_export_format", "csv");
+          setFieldValue("id_period_type", "custom");
+          setFieldValue("id_date_from", from.toISOString().slice(0, 10));
+          setFieldValue("id_date_to", today.toISOString().slice(0, 10));
+        }
+        if (name === "failed_emails_7") {
+          const from = new Date(today);
+          from.setDate(from.getDate() - 7);
+          setFieldValue("id_report_type", "email_delivery");
+          setFieldValue("id_export_format", "csv");
+          setFieldValue("id_period_type", "custom");
+          setFieldValue("id_email_status", "failed");
+          setFieldValue("id_date_from", from.toISOString().slice(0, 10));
+          setFieldValue("id_date_to", today.toISOString().slice(0, 10));
+        }
+        if (name === "employee_master_active") {
+          setFieldValue("id_report_type", "employee_master");
+          setFieldValue("id_export_format", "csv");
+          setFieldValue("id_period_type", "yearly");
+          setFieldValue("id_year", String(year));
+          setFieldValue("id_active_status", "active");
+        }
+        setPeriodFields();
+        setReportFilters();
+        updatePreview();
+      }
 
       function setPeriodFields() {
         const period = periodSelect.value || "custom";
@@ -148,6 +475,7 @@
             }
           }
         });
+        updatePreview();
       }
 
       if (periodSelect) {
@@ -155,7 +483,28 @@
         setPeriodFields();
       }
       if (form) {
+        const reportSelect = document.getElementById("id_report_type");
+        if (reportSelect) {
+          reportSelect.addEventListener("change", function () {
+            setReportFilters();
+            updatePreview();
+          });
+        }
+        form.querySelectorAll("input, select, textarea").forEach(function (input) {
+          input.addEventListener("input", updatePreview);
+          input.addEventListener("change", updatePreview);
+        });
+        document.querySelectorAll("[data-preset]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            applyPreset(button.dataset.preset);
+          });
+        });
+        setReportFilters();
+        updatePreview();
+      }
+      if (form) {
         form.addEventListener("submit", setPeriodFields);
+        form.addEventListener("submit", setReportFilters);
       }
     })();
   </script>

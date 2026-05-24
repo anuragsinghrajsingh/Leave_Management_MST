@@ -63,7 +63,6 @@ from .models import (
     UserAdminAudit,
     WorkFromHomeAdminAudit,
     WorkFromHomeDay,
-    YearEndCarryForwardRun,
 )
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm
@@ -72,13 +71,14 @@ from django import forms
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, get_connection
 from django.db import connection, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import path, reverse
 from django.http import HttpResponse, JsonResponse
-from django.utils.html import format_html
+from django.utils.html import conditional_escape, format_html
+from django.utils.safestring import mark_safe
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.template.response import TemplateResponse
@@ -320,6 +320,42 @@ def _get_latest_file_info(directory, pattern):
     }
 
 
+def _backup_age_health(latest_backup):
+    if not latest_backup:
+        return {
+            "status": "bad",
+            "label": "No backup found",
+            "age_hours": None,
+            "age_text": "No backup found",
+        }
+
+    age = datetime.now() - latest_backup["modified_at"]
+    age_hours = round(age.total_seconds() / 3600, 1)
+    if age <= timedelta(days=1):
+        status = "ok"
+        label = "Fresh"
+    elif age <= timedelta(days=3):
+        status = "warn"
+        label = "Older than 24h"
+    else:
+        status = "bad"
+        label = "Older than 3 days"
+
+    if age_hours < 1:
+        age_text = f"{max(round(age.total_seconds() / 60), 1)} minutes old"
+    elif age_hours < 48:
+        age_text = f"{age_hours} hours old"
+    else:
+        age_text = f"{round(age.total_seconds() / 86400, 1)} days old"
+
+    return {
+        "status": status,
+        "label": label,
+        "age_hours": age_hours,
+        "age_text": age_text,
+    }
+
+
 def _get_file_count(directory, pattern):
     if not directory.exists():
         return 0
@@ -335,6 +371,22 @@ def _can_write_to_directory(directory):
         return True
     except OSError:
         return False
+
+
+def _get_path_status(label, directory, create_if_missing=False):
+    exists = directory.exists()
+    writable = False
+    if exists or create_if_missing:
+        writable = _can_write_to_directory(directory)
+        exists = directory.exists()
+    return {
+        "label": label,
+        "path": directory,
+        "exists": exists,
+        "writable": writable,
+        "size": _format_size(_get_directory_size(directory)) if exists else "0 B",
+        "ok": exists and writable,
+    }
 
 
 def _get_directory_size(directory):
@@ -358,6 +410,14 @@ def _format_size(size_bytes):
         size /= 1024
 
 
+def _format_admin_audit_value(value):
+    if value in (None, ""):
+        return "-"
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, indent=2, default=str, ensure_ascii=False)
+    return str(value)
+
+
 def _count_recent_log_lines(log_path, token, since_date=None):
     if not log_path.exists():
         return 0
@@ -373,6 +433,31 @@ def _count_recent_log_lines(log_path, token, since_date=None):
     except OSError:
         return 0
     return count
+
+
+def _get_latest_error_excerpt():
+    candidates = [
+        settings.LOG_BASE_DIR / "django_errors.log",
+        settings.LOG_BASE_DIR / "master" / "system_master.log",
+        settings.LOG_BASE_DIR / "services" / "scheduler.log",
+    ]
+    latest = None
+    for log_path in candidates:
+        if not log_path.exists():
+            continue
+        try:
+            with log_path.open("r", encoding="utf-8", errors="replace") as log_file:
+                for line in log_file:
+                    if "[ERROR]" not in line and "[CRITICAL]" not in line:
+                        continue
+                    latest = {
+                        "file": log_path.name,
+                        "path": log_path,
+                        "line": line.strip()[:500],
+                    }
+        except OSError:
+            continue
+    return latest
 
 
 def _count_unauthorized_attempts_since(start_at):
@@ -485,6 +570,28 @@ def _get_email_config_health():
     if not settings.EMAIL_HOST_PASSWORD:
         required_missing.append("EMAIL_HOST_PASSWORD")
 
+    connection_status = {
+        "checked": False,
+        "ok": False,
+        "message": "Skipped because required email settings are missing.",
+    }
+    if not required_missing:
+        try:
+            email_connection = get_connection(timeout=getattr(settings, "EMAIL_TIMEOUT", 10))
+            email_connection.open()
+            email_connection.close()
+            connection_status = {
+                "checked": True,
+                "ok": True,
+                "message": "SMTP connection opened successfully. No email was sent.",
+            }
+        except Exception as exc:
+            connection_status = {
+                "checked": True,
+                "ok": False,
+                "message": str(exc),
+            }
+
     return {
         "ok": not required_missing,
         "missing": required_missing,
@@ -498,6 +605,7 @@ def _get_email_config_health():
         "leave_desk_from_email": getattr(settings, "LEAVE_DESK_FROM_EMAIL", ""),
         "leave_record_email": getattr(settings, "LEAVE_RECORD_EMAIL", ""),
         "password_configured": bool(settings.EMAIL_HOST_PASSWORD),
+        "connection": connection_status,
     }
 
 
@@ -508,16 +616,29 @@ def _get_scheduler_health():
     if scheduler_log and task_log and task_log["modified_at"] > scheduler_log["modified_at"]:
         latest = task_log
 
+    stale = False
+    if latest:
+        stale = datetime.now() - latest["modified_at"] > timedelta(days=2)
+
     return {
-        "ok": bool(latest),
+        "ok": bool(latest) and not stale,
         "latest_log": latest,
         "service_log": scheduler_log,
         "task_log": task_log,
+        "stale": stale,
     }
 
 
 def _get_storage_health():
     usage = shutil.disk_usage(settings.BASE_DIR)
+    path_checks = [
+        _get_path_status("Runtime", settings.BASE_DIR / "runtime", create_if_missing=True),
+        _get_path_status("Logs", settings.LOG_BASE_DIR, create_if_missing=True),
+        _get_path_status("Backups", settings.BASE_DIR / "backups", create_if_missing=True),
+        _get_path_status("Media uploads", settings.MEDIA_ROOT, create_if_missing=True),
+        _get_path_status("Generated PDFs", settings.BASE_DIR / "generated_pdfs", create_if_missing=True),
+        _get_path_status("Static images", settings.BASE_DIR / "static" / "images", create_if_missing=False),
+    ]
     return {
         "base_dir": settings.BASE_DIR,
         "total": _format_size(usage.total),
@@ -528,6 +649,8 @@ def _get_storage_health():
         "logs_size": _format_size(_get_directory_size(settings.LOG_BASE_DIR)),
         "backups_size": _format_size(_get_directory_size(settings.BASE_DIR / "backups")),
         "generated_pdfs_size": _format_size(_get_directory_size(settings.BASE_DIR / "generated_pdfs")),
+        "path_checks": path_checks,
+        "paths_ok": all(item["ok"] for item in path_checks),
     }
 
 
@@ -972,17 +1095,18 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("username", "password1", "password2", "role", "must_change_password"),
+            "fields": ("username", "password1", "password2", "role"),
         }),
     )
 
     # ✅ STEP 2 → AFTER SAVE (SHOW FULL DETAILS)
-    fieldsets = UserAdmin.fieldsets + (
+    fieldsets = (
+        (None, {
+            "fields": ("username", "password", "role", "must_change_password"),
+        }),
+    ) + UserAdmin.fieldsets[1:] + (
         ("Employee Quick Actions", {
             "fields": ("employee_quick_actions",),
-        }),
-        ("Role Information", {
-            "fields": ("role", "must_change_password"),
         }),
         ("Audit reason", {
             "fields": ("change_reason",),
@@ -990,7 +1114,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     )
     readonly_fields = UserAdmin.readonly_fields + ("employee_quick_actions",)
 
-    list_display = ("username", "email", "role", "is_active", "must_change_password", "login_lock_status_display", "is_staff", "is_superuser", "archive_pdf_link")
+    list_display = ("username", "email", "role", "employee_id_display", "department_display", "welcome_status_display", "is_active", "must_change_password", "login_lock_status_display", "last_login_display", "is_staff", "is_superuser", "archive_pdf_link")
     search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
     
     
@@ -1119,6 +1243,53 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         return format_html('<a class="button" href="{}">Download PDF</a>', url)
 
     archive_pdf_link.short_description = "Archive PDF"
+
+    def employee_id_display(self, obj):
+        try:
+            return obj.profile.employee_id or "-"
+        except Profile.DoesNotExist:
+            return "-"
+
+    employee_id_display.short_description = "Employee ID"
+    employee_id_display.admin_order_field = "profile__employee_id"
+
+    def department_display(self, obj):
+        try:
+            return obj.profile.department or "-"
+        except Profile.DoesNotExist:
+            return "-"
+
+    department_display.short_description = "Department"
+    department_display.admin_order_field = "profile__department"
+
+    def last_login_display(self, obj):
+        if not obj.last_login:
+            return "-"
+        return localtime(obj.last_login).strftime("%d %b %Y, %I:%M %p")
+
+    last_login_display.short_description = "Last Login"
+    last_login_display.admin_order_field = "last_login"
+
+    def welcome_status_display(self, obj):
+        if getattr(obj, "role", None) != "EMPLOYEE":
+            return format_html('<span style="color:#64748b;font-weight:700;">{}</span>', "N/A")
+
+        try:
+            welcome_sent_at = obj.profile.welcome_sent_at
+        except Profile.DoesNotExist:
+            return format_html('<span style="color:#b91c1c;font-weight:700;">{}</span>', "No profile")
+
+        if welcome_sent_at:
+            sent_text = localtime(welcome_sent_at).strftime("%d %b %Y")
+            return format_html(
+                '<span title="Sent on {}" style="color:#047857;font-weight:700;">Sent</span>',
+                sent_text,
+            )
+
+        return format_html('<span style="color:#b45309;font-weight:700;">{}</span>', "Not sent")
+
+    welcome_status_display.short_description = "Welcome"
+    welcome_status_display.admin_order_field = "profile__welcome_sent_at"
 
     def login_lock_status_display(self, obj):
         portal = detect_user_portal(obj)
@@ -1586,7 +1757,16 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         )
         return None
 
-    def _render_bulk_user_status_confirmation(self, request, queryset, action_name, title, target_active, action_description=""):
+    def _render_bulk_user_status_confirmation(
+        self,
+        request,
+        queryset,
+        action_name,
+        title,
+        target_active,
+        action_description="",
+        show_email_option=False,
+    ):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
         form = BulkUserStatusActionForm()
         return TemplateResponse(
@@ -1600,11 +1780,12 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 "selected_ids": selected_ids,
                 "action_name": action_name,
                 "form": form,
-                "target_active": target_active,
-                "requires_confirmation": not target_active,
-                "action_description": action_description,
-            },
-        )
+                  "target_active": target_active,
+                  "requires_confirmation": not target_active,
+                  "show_email_option": show_email_option,
+                  "action_description": action_description,
+              },
+          )
 
     def _run_bulk_user_status_action(self, request, queryset, target_active):
         form = BulkUserStatusActionForm(request.POST)
@@ -1657,6 +1838,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return None
 
         reason = form.cleaned_data["action_reason"]
+        email_user_ids = set(request.POST.getlist("send_email_user_ids"))
         changed_count = 0
         skipped_count = 0
         email_sent_count = 0
@@ -1675,7 +1857,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             user.must_change_password = target_flag
             user.save(update_fields=["must_change_password"])
             changed_count += 1
-            if send_forced_password_email(user, event, triggered_by=request.user):
+            if str(user.pk) in email_user_ids and send_forced_password_email(user, event, triggered_by=request.user):
                 email_sent_count += 1
             _create_admin_audit_log(
                 request,
@@ -1724,11 +1906,12 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return self._render_bulk_user_status_confirmation(
                 request,
                 queryset,
-                "force_password_change_for_selected_users",
-                "Confirm force password change",
-                target_active=True,
-                action_description="This action will set must_change_password=True for selected HR/Employee users and email them.",
-            )
+                  "force_password_change_for_selected_users",
+                  "Confirm force password change",
+                  target_active=True,
+                  action_description="This action will set must_change_password=True for selected HR/Employee users. Email notification is optional.",
+                  show_email_option=True,
+              )
         return self._run_bulk_force_password_flag_action(request, queryset, target_flag=True)
 
     @admin.action(description="Clear forced password change for selected HR/Employees")
@@ -1737,11 +1920,12 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return self._render_bulk_user_status_confirmation(
                 request,
                 queryset,
-                "clear_forced_password_change_for_selected_users",
-                "Confirm clear forced password change",
-                target_active=True,
-                action_description="This action will set must_change_password=False for selected HR/Employee users and email them.",
-            )
+                  "clear_forced_password_change_for_selected_users",
+                  "Confirm clear forced password change",
+                  target_active=True,
+                  action_description="This action will set must_change_password=False for selected HR/Employee users. Email notification is optional.",
+                  show_email_option=True,
+              )
         return self._run_bulk_force_password_flag_action(request, queryset, target_flag=False)
 
     def _render_bulk_onboarding_confirmation(self, request, queryset):
@@ -3502,14 +3686,6 @@ class WorkFromHomeDayAdminForm(AdminReasonFormMixin, forms.ModelForm):
         fields = "__all__"
 
 
-class YearEndCarryForwardRunAdminForm(AdminReasonFormMixin, forms.ModelForm):
-    change_reason = admin_reason_field()
-
-    class Meta:
-        model = YearEndCarryForwardRun
-        fields = "__all__"
-
-
 class CommunicationAdminForm(AdminReasonFormMixin, forms.ModelForm):
     change_reason = admin_reason_field()
 
@@ -3708,84 +3884,6 @@ class AuditedAdminModelMixin:
                 action="DELETE",
             )
         super().delete_queryset(request, queryset)
-
-
-@login_required
-@never_cache
-@admin.register(YearEndCarryForwardRun)
-class YearEndCarryForwardRunAdmin(AuditedAdminModelMixin, admin.ModelAdmin):
-    form = YearEndCarryForwardRunAdminForm
-    audit_excluded_fields = {"id"}
-    list_display = ("year", "completed_at")
-    list_filter = ("completed_at",)
-    search_fields = ("year",)
-    ordering = ("-year",)
-    fields = ("year", "completed_at", "change_reason")
-    actions = ["run_selected_year_end_carry_forward"]
-
-    @admin.action(description="Run selected year-end carry forward")
-    def run_selected_year_end_carry_forward(self, request, queryset):
-        from App.services.year_end_service import run_year_end_carry_forward_if_due
-
-        selected_ids = list(queryset.values_list("pk", flat=True))
-        if not selected_ids:
-            self.message_user(request, "No year-end records selected.", level=messages.WARNING)
-            return None
-
-        if "confirm_run" not in request.POST:
-            context = {
-                **self.admin_site.each_context(request),
-                "title": "Confirm year-end carry forward",
-                "opts": self.model._meta,
-                "records": queryset.order_by("year"),
-                "selected_ids": selected_ids,
-                "action_name": "run_selected_year_end_carry_forward",
-            }
-            return TemplateResponse(request, "admin/year_end_carry_forward_confirm.html", context)
-
-        action_reason = (request.POST.get("action_reason") or "").strip()
-        if not action_reason:
-            self.message_user(request, "Audit reason is required before running year-end carry forward.", level=messages.ERROR)
-            return None
-
-        processed_years = []
-        skipped_years = []
-
-        for run_record in queryset.order_by("year"):
-            if run_record.completed_at:
-                skipped_years.append(str(run_record.year))
-                continue
-
-            did_run = run_year_end_carry_forward_if_due(today=date(run_record.year, 1, 1))
-            refreshed_record = YearEndCarryForwardRun.objects.get(pk=run_record.pk)
-
-            if did_run:
-                processed_years.append(str(run_record.year))
-                _create_admin_audit_log(
-                    request,
-                    refreshed_record,
-                    {"year_end_carry_forward": {"old": "pending", "new": "completed"}},
-                    action_reason,
-                    action="RUN",
-                )
-            else:
-                skipped_years.append(str(run_record.year))
-
-        if processed_years:
-            self.message_user(
-                request,
-                f"Year-end carry forward completed for: {', '.join(processed_years)}.",
-                level=messages.SUCCESS,
-            )
-
-        if skipped_years:
-            self.message_user(
-                request,
-                f"Skipped already completed or unavailable year(s): {', '.join(skipped_years)}.",
-                level=messages.WARNING,
-            )
-
-        return None
 
 
 @login_required
@@ -5362,7 +5460,7 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
     list_display = ("model_label", "object_repr", "action_label", "change_summary", "triggered_by_label", "changed_at", "reason")
     list_filter = ("model_label", "action", "updated_by", "changed_at")
     search_fields = ("model_label", "object_repr", "updated_by__username", "reason")
-    readonly_fields = ("model_label", "object_id", "object_repr", "action", "updated_by", "changed_at", "reason", "changes")
+    readonly_fields = ("model_label", "object_id", "object_repr", "action", "triggered_by_label", "changed_at", "reason", "readable_changes", "changes")
     action_labels = {
         "CREATE": "Record created",
         "UPDATE": "Record updated",
@@ -5435,6 +5533,46 @@ class BaseAdminAuditLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         if "terminal service" in reason.lower():
             return "Terminal"
         return "System"
+
+    @admin.display(description="Readable changes")
+    def readable_changes(self, obj):
+        if not obj.changes:
+            return "-"
+
+        rows = []
+        for key, value in obj.changes.items():
+            label = self.change_summary_labels.get(key, key.replace("_", " ").title())
+            if isinstance(value, dict) and ("old" in value or "new" in value):
+                rows.append((label, value.get("old", ""), value.get("new", "")))
+            elif isinstance(value, dict):
+                for child_key, child_value in value.items():
+                    child_label = f"{label} - {str(child_key).replace('_', ' ').title()}"
+                    if isinstance(child_value, dict) and ("old" in child_value or "new" in child_value):
+                        rows.append((child_label, child_value.get("old", ""), child_value.get("new", "")))
+                    else:
+                        rows.append((child_label, "", child_value))
+            else:
+                rows.append((label, "", value))
+
+        table_rows = "".join(
+            "<tr><th>{}</th><td><pre>{}</pre></td><td><pre>{}</pre></td></tr>".format(
+                conditional_escape(field),
+                conditional_escape(_format_admin_audit_value(old_value)),
+                conditional_escape(_format_admin_audit_value(new_value)),
+            )
+            for field, old_value, new_value in rows
+        )
+        return mark_safe(
+            '<table class="admin-readable-audit">'
+            "<thead><tr><th>Field</th><th>Old value</th><th>New value</th></tr></thead>"
+            f"<tbody>{table_rows}</tbody></table>"
+            "<style>"
+            ".admin-readable-audit{width:100%;border-collapse:collapse;margin-top:8px;}"
+            ".admin-readable-audit th,.admin-readable-audit td{border:1px solid var(--border-color,#ddd);padding:8px;vertical-align:top;}"
+            ".admin-readable-audit th{background:var(--darkened-bg,#f8f8f8);font-weight:800;text-align:left;}"
+            ".admin-readable-audit pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font-family:inherit;}"
+            "</style>"
+        )
 
 
 @login_required
@@ -5856,6 +5994,12 @@ class DashboardSummaryControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         today = localtime(now()).date()
         business_health = _get_business_health()
         latest_backup = _get_latest_file_info(settings.BASE_DIR / "backups", "backup_*.zip")
+        backup_age = _backup_age_health(latest_backup)
+        email_health = _get_email_config_health()
+        storage_health = _get_storage_health()
+        log_health = {
+            "latest_error": _get_latest_error_excerpt(),
+        }
         latest_email_failure = EmailDeliveryLog.objects.filter(status="failed").order_by("-created_at", "-id").first()
         startup_status = {
             "backup": get_backup_catchup_status(),
@@ -5892,6 +6036,10 @@ class DashboardSummaryControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "unread_admin_messages": self._admin_unread_messages(request.user),
             "maintenance_mode_enabled": is_maintenance_mode_enabled(),
             "latest_backup": latest_backup,
+            "backup_age": backup_age,
+            "email_health": email_health,
+            "storage_health": storage_health,
+            "log_health": log_health,
             "latest_email_failure": latest_email_failure,
             "latest_error_line": self._latest_error_line(),
             "scheduler_health": _get_scheduler_health(),
@@ -5914,6 +6062,44 @@ class DashboardSummaryControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
 @never_cache
 @admin.register(ReportExportControl)
 class ReportExportControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "preview-count/",
+                self.admin_site.admin_view(self.preview_count_view),
+                name="App_reportexportcontrol_preview_count",
+            ),
+        ]
+        return custom_urls + urls
+
+    def preview_count_view(self, request):
+        if not request.user.is_superuser:
+            return JsonResponse({"ok": False, "error": "Only superusers can preview admin reports."}, status=403)
+
+        from App.services.report_export_service import describe_period, get_report_row_count
+
+        form_data = request.GET.copy()
+        form_data.setdefault("reason", "Preview row count")
+        form_data.setdefault("export_format", "csv")
+        form = ReportExportForm(form_data)
+        if not form.is_valid():
+            return JsonResponse({"ok": False, "errors": form.errors}, status=400)
+
+        filters = form.cleaned_data
+        try:
+            row_count = get_report_row_count(filters)
+        except Exception as exc:
+            service_admin_logger.exception("REPORT_EXPORT_PREVIEW_FAILED")
+            return JsonResponse({"ok": False, "error": str(exc)}, status=500)
+
+        return JsonResponse({
+            "ok": True,
+            "row_count": row_count,
+            "period": describe_period(filters),
+            "large_pdf_warning": filters.get("export_format") == "pdf" and row_count > 500,
+        })
+
     def changelist_view(self, request, extra_context=None):
         if not request.user.is_superuser:
             self.message_user(request, "Only superusers can export admin reports.", level=messages.ERROR)
@@ -5956,6 +6142,8 @@ class ReportExportControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "title": "Report export center",
             "opts": self.model._meta,
             "form": form,
+            "report_type_labels": dict(ReportExportForm.REPORT_TYPES),
+            "format_labels": dict(ReportExportForm.EXPORT_FORMATS),
         }
         return TemplateResponse(request, "admin/report_export_center.html", context)
 
@@ -5989,6 +6177,7 @@ class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         backup_dir = settings.BASE_DIR / "backups"
         generated_pdf_dir = settings.BASE_DIR / "generated_pdfs"
         log_dir = settings.LOG_BASE_DIR
+        latest_backup = _get_latest_file_info(backup_dir, "backup_*.zip")
         today = localtime(now()).date()
         security_start_text = (request.GET.get("security_start") or "").strip()
         security_end_text = (request.GET.get("security_end") or "").strip()
@@ -6035,7 +6224,8 @@ class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
                 "exists": backup_dir.exists(),
                 "writable": _can_write_to_directory(backup_dir),
                 "count": _get_file_count(backup_dir, "backup_*.zip"),
-                "latest": _get_latest_file_info(backup_dir, "backup_*.zip"),
+                "latest": latest_backup,
+                "age": _backup_age_health(latest_backup),
             },
             "pdf_health": {
                 "directory": generated_pdf_dir,
@@ -6050,6 +6240,7 @@ class SystemHealthControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
                 "writable": _can_write_to_directory(log_dir),
                 "master": _get_latest_file_info(log_dir / "master", "system_master.log"),
                 "django_errors": _get_latest_file_info(log_dir, "django_errors.log"),
+                "latest_error": _get_latest_error_excerpt(),
             },
             "scheduler_health": _get_scheduler_health(),
             "maintenance_mode_enabled": is_maintenance_mode_enabled(),
@@ -6164,13 +6355,15 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
 
     def weekly_report_console_view(self, request):
         self._ensure_service_superuser(request)
-        from App.services.weekly_report_service import build_weekly_hr_report_context
+        from App.services.weekly_report_service import build_weekly_hr_report_context, _get_active_hr_emails
 
         initial_context = build_weekly_hr_report_context()
+        hr_recipients = _get_active_hr_emails()
         context = {
             **self.admin_site.each_context(request),
             "title": "Weekly report preview",
             "employees": initial_context.get("employee_filter_options", []),
+            "hr_recipients": hr_recipients,
             "preview_url": reverse("admin:app_serviceactioncontrol_weekly_report_preview"),
             "download_url": reverse("admin:app_serviceactioncontrol_weekly_report_download"),
             "email_url": reverse("admin:app_serviceactioncontrol_weekly_report_email"),
@@ -6199,6 +6392,13 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         self._ensure_service_superuser(request)
         from App.services.weekly_report_service import generate_weekly_hr_report_pdf_bytes
 
+        reason = (request.GET.get("reason") or "").strip()
+        confirmation = (request.GET.get("confirmation") or "").strip()
+        if not reason:
+            return HttpResponse("Reason is required before downloading weekly report PDF.", status=400)
+        if confirmation != "DOWNLOAD_WEEKLY_REPORT":
+            return HttpResponse("Type DOWNLOAD_WEEKLY_REPORT to download weekly report PDF.", status=400)
+
         try:
             context, _week = self._weekly_report_context_from_request(request)
         except ValueError as exc:
@@ -6206,6 +6406,17 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
 
         pdf_bytes = generate_weekly_hr_report_pdf_bytes(context=context)
         filename = f"weekly_hr_report_{context['period_start_iso']}_to_{context['period_end_iso']}.pdf"
+        _create_admin_audit_log(
+            request,
+            request.user,
+            {"service_action": {"old": None, "new": {
+                "action": "weekly_report_download",
+                "period": f"{context['period_start']} - {context['period_end']}",
+                "filename": filename,
+            }}},
+            reason,
+            action="SERVICE_WEEKLY_DL",
+        )
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         response["X-Content-Type-Options"] = "nosniff"
@@ -6224,12 +6435,15 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         if confirmation != "SEND_WEEKLY_REPORT":
             return JsonResponse({"success": False, "detail": "Type SEND_WEEKLY_REPORT to send weekly report."}, status=400)
 
-        from App.services.weekly_report_service import send_weekly_hr_report
+        from App.services.weekly_report_service import send_weekly_hr_report, _get_active_hr_emails
 
         try:
             context, week = self._weekly_report_context_from_request(request)
         except ValueError as exc:
             return JsonResponse({"success": False, "detail": str(exc)}, status=400)
+
+        if not _get_active_hr_emails():
+            return JsonResponse({"success": False, "detail": "No active HR users with email addresses were found."}, status=400)
 
         sent = send_weekly_hr_report(context=context, week=week)
         if not sent:
@@ -6240,7 +6454,7 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             request.user,
             {"service_action": {"old": None, "new": {"action": "weekly_report", "period": f"{context['period_start']} - {context['period_end']}"}}},
             reason,
-            action="SERVICE_WEEKLY_REPORT",
+            action="SERVICE_WEEKLY_SEND",
         )
         service_admin_logger.info("SERVICE_ADMIN | WEEKLY_REPORT | Sent by=%s | Reason=%s", request.user.username, reason)
         return JsonResponse({
@@ -6335,20 +6549,92 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
                         return redirect(request.path)
                     from App.services.year_end_service import run_year_end_carry_forward_if_due
 
-                    did_run = run_year_end_carry_forward_if_due()
+                    year_end_mode = request.POST.get("year_end_mode") or "current"
+                    selected_year = None
+                    run_date = None
+                    if year_end_mode == "specific":
+                        raw_year = (request.POST.get("year_end_year") or "").strip()
+                        if not raw_year.isdigit():
+                            self.message_user(request, "Enter a valid year for specific year-end run.", level=messages.ERROR)
+                            return redirect(request.path)
+                        selected_year = int(raw_year)
+                        if selected_year < 2000 or selected_year > 2100:
+                            self.message_user(request, "Year must be between 2000 and 2100.", level=messages.ERROR)
+                            return redirect(request.path)
+                        run_date = date(selected_year, 1, 1)
+
+                    did_run = run_year_end_carry_forward_if_due(today=run_date)
                     _create_admin_audit_log(
                         request,
                         request.user,
-                        {"service_action": {"old": None, "new": {"action": "year_end", "did_run": did_run}}},
+                        {
+                            "service_action": {
+                                "old": None,
+                                "new": {
+                                    "action": "year_end",
+                                    "mode": year_end_mode,
+                                    "year": selected_year or timezone.localdate().year,
+                                    "did_run": did_run,
+                                },
+                            }
+                        },
                         reason,
                         action="SERVICE_YEAR_END",
                     )
-                    service_admin_logger.info("SERVICE_ADMIN | YEAR_END | Run by=%s | DidRun=%s | Reason=%s", request.user.username, did_run, reason)
+                    service_admin_logger.info(
+                        "SERVICE_ADMIN | YEAR_END | Run by=%s | Mode=%s | Year=%s | DidRun=%s | Reason=%s",
+                        request.user.username,
+                        year_end_mode,
+                        selected_year or timezone.localdate().year,
+                        did_run,
+                        reason,
+                    )
                     self.message_user(
                         request,
                         "Year-end carry forward completed." if did_run else "Year-end carry forward skipped. Check status/logs.",
                         level=messages.SUCCESS if did_run else messages.WARNING,
                     )
+
+                elif service_action == "create_year_end_record":
+                    if confirmation != "CREATE_YEAR_END_RECORD":
+                        self.message_user(request, "Type CREATE_YEAR_END_RECORD to create a year-end record.", level=messages.ERROR)
+                        return redirect(request.path)
+
+                    from App.models import YearEndCarryForwardRun
+
+                    raw_year = (request.POST.get("record_year") or "").strip()
+                    if not raw_year.isdigit():
+                        self.message_user(request, "Enter a valid year to create.", level=messages.ERROR)
+                        return redirect(request.path)
+                    record_year = int(raw_year)
+                    if record_year < 2000 or record_year > 2100:
+                        self.message_user(request, "Year must be between 2000 and 2100.", level=messages.ERROR)
+                        return redirect(request.path)
+
+                    record, created = YearEndCarryForwardRun.objects.get_or_create(
+                        year=record_year,
+                        defaults={"completed_at": None},
+                    )
+                    _create_admin_audit_log(
+                        request,
+                        request.user,
+                        {
+                            "service_action": {
+                                "old": None,
+                                "new": {
+                                    "action": "create_year_end_record",
+                                    "year": record_year,
+                                    "created": created,
+                                },
+                            }
+                        },
+                        reason,
+                        action="YEAR_RECORD_CREATE",
+                    )
+                    if created:
+                        self.message_user(request, f"Pending year-end record created for {record.year}.", level=messages.SUCCESS)
+                    else:
+                        self.message_user(request, f"Year-end record for {record.year} already exists.", level=messages.WARNING)
 
                 else:
                     self.message_user(request, "Unknown service action.", level=messages.ERROR)
@@ -6374,6 +6660,7 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         from App.services.uptime_tracker import format_current_uptime, get_app_started_at
         from App.services.weekly_report_service import build_weekly_hr_report_context
         from App.services.year_end_service import get_year_end_carry_forward_status
+        from App.models import YearEndCarryForwardRun
 
         weekly_context = build_weekly_hr_report_context()
         startup_status = {
@@ -6381,6 +6668,21 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "weekly_report": get_weekly_report_catchup_status(),
             "year_end": get_year_end_catchup_status(),
         }
+        year_end_query = (request.GET.get("year_end_query") or "").strip()
+        year_end_status_filter = (request.GET.get("year_end_status") or "all").strip()
+        year_end_runs_qs = YearEndCarryForwardRun.objects.order_by("-year")
+        if year_end_query:
+            if year_end_query.isdigit():
+                year_end_runs_qs = year_end_runs_qs.filter(year=int(year_end_query))
+            else:
+                year_end_runs_qs = year_end_runs_qs.none()
+        if year_end_status_filter == "completed":
+            year_end_runs_qs = year_end_runs_qs.filter(completed_at__isnull=False)
+        elif year_end_status_filter == "pending":
+            year_end_runs_qs = year_end_runs_qs.filter(completed_at__isnull=True)
+
+        year_end_runs_paginator = Paginator(year_end_runs_qs, 10)
+        year_end_runs_page = year_end_runs_paginator.get_page(request.GET.get("year_end_page"))
         started_at = get_app_started_at()
         context = {
             **self.admin_site.each_context(request),
@@ -6392,6 +6694,9 @@ class ServiceActionControlAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             "startup_status": startup_status,
             "weekly_report_preview": weekly_context,
             "year_end_status": get_year_end_carry_forward_status(),
+            "year_end_runs": year_end_runs_page,
+            "year_end_query": year_end_query,
+            "year_end_status_filter": year_end_status_filter,
             "uptime_text": format_current_uptime(),
             "started_at": localtime(started_at) if started_at else None,
         }

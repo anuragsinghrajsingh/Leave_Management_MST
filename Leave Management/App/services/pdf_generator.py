@@ -238,8 +238,8 @@ def main():
     print("What do you want to do?")
     print("1. Generate weekly report PDF")
     print("2. Generate PDF from another HTML/template")
-    print("3. Exit")
-    choice = _safe_input("Choose option 1, 2, or 3: ")
+    print("0. Exit")
+    choice = _safe_input("Choose option 1, 2, or 0: ")
     if choice is None:
         return
 
@@ -249,7 +249,7 @@ def main():
     elif choice == "2":
         logger.info("PDF_GENERATOR | OPTION | Custom template selected.")
         _generate_custom_template_pdf()
-    elif choice == "3":
+    elif choice == "0":
         logger.info("PDF_GENERATOR | OPTION | Exit selected.")
         print("Exited. No PDF was generated.")
     else:

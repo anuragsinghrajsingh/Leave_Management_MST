@@ -100,10 +100,10 @@ def run_interactive_menu():
         status = "ENABLED" if is_maintenance_mode_enabled() else "DISABLED"
         print("\n--- MAINTENANCE MODE CONTROL ---")
         print(f"Current status: {status}")
-        print("\n[1] Enable maintenance mode")
-        print("[2] Disable maintenance mode")
-        print("[3] Show status")
-        print("[0] Exit")
+        print("\n1. Enable maintenance mode")
+        print("2. Disable maintenance mode")
+        print("3. Show status")
+        print("0. Exit")
 
         choice = input("\nChoose an option: ").strip()
 
