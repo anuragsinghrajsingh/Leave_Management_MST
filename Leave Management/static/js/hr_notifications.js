@@ -1233,7 +1233,6 @@
                 if (typeof window.armNotificationAudio === "function") {
                     window.armNotificationAudio();
                 }
-                showLocalBrowserNotification(latestNewNotification);
                 playNotificationTone(latestNewNotification.status_class || "", latestNewNotification.activity_label || "");
                 flashNotificationScreen(latestNewNotification.status_class || "");
             }

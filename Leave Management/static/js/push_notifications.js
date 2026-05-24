@@ -132,6 +132,23 @@
         });
     }
 
+    function subscribeBrowser() {
+        return state.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(state.config.publicKey),
+        });
+    }
+
+    function replaceSubscription(subscription) {
+        const unsubscribe = subscription && typeof subscription.unsubscribe === "function"
+            ? subscription.unsubscribe().catch(function () {})
+            : Promise.resolve();
+
+        return unsubscribe
+            .then(subscribeBrowser)
+            .then(saveSubscription);
+    }
+
     function enablePush() {
         if (!state.config || !state.registration) return;
 
@@ -142,14 +159,17 @@
                 return null;
             }
 
-            return state.registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(state.config.publicKey),
-            });
+            return subscribeBrowser();
         }).then(function (subscription) {
             if (!subscription) return null;
             showStatus("Saving this device...", false);
-            return saveSubscription(subscription);
+            return saveSubscription(subscription).then(function (result) {
+                if (result && result.needsResubscribe) {
+                    showStatus("Refreshing this device subscription...", false);
+                    return replaceSubscription(subscription);
+                }
+                return result;
+            });
         }).then(function (result) {
             if (!result) return;
             showStatus("Notifications enabled on this device.", false);
@@ -180,11 +200,21 @@
         }).then(function (registration) {
             if (!registration) return;
             state.registration = registration;
+            registration.update().catch(function () {});
             return registration.pushManager.getSubscription();
         }).then(function (subscription) {
             if (subscription) {
                 removeQuickButton();
-                saveSubscription(subscription).catch(function () {});
+                saveSubscription(subscription).then(function (result) {
+                    if (result && result.needsResubscribe) {
+                        return replaceSubscription(subscription);
+                    }
+                    return result;
+                }).catch(function () {});
+                return;
+            }
+            if (Notification.permission === "granted") {
+                enablePush();
                 return;
             }
             if (Notification.permission === "default") {

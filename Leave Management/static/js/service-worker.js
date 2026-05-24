@@ -1,3 +1,11 @@
+self.addEventListener("install", function (event) {
+    event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", function (event) {
+    event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", function (event) {
     let payload = {};
     if (event.data) {
@@ -23,23 +31,18 @@ self.addEventListener("push", function (event) {
 
     event.waitUntil(
         clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-            const hasOpenAppPage = clientList.some(function (client) {
+            clientList.forEach(function (client) {
                 try {
-                    return new URL(client.url).origin === self.location.origin;
+                    if (new URL(client.url).origin === self.location.origin) {
+                        client.postMessage({
+                            type: "lms-push-received",
+                            payload: payload,
+                        });
+                    }
                 } catch (error) {
-                    return false;
+                    // Ignore pages with invalid or inaccessible URLs.
                 }
             });
-
-            if (hasOpenAppPage) {
-                clientList.forEach(function (client) {
-                    client.postMessage({
-                        type: "lms-push-received",
-                        payload: payload,
-                    });
-                });
-                return null;
-            }
 
             return self.registration.showNotification(title, options);
         })

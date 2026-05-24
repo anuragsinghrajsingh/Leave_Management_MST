@@ -2499,6 +2499,14 @@ def push_subscribe(request):
     if not endpoint or not p256dh or not auth:
         return JsonResponse({"success": False, "error": "Incomplete push subscription."}, status=400)
 
+    existing_subscription = PushSubscription.objects.filter(endpoint=endpoint).first()
+    needs_resubscribe = bool(
+        existing_subscription and (
+            not existing_subscription.is_active
+            or bool(existing_subscription.last_error)
+        )
+    )
+
     subscription, created = PushSubscription.objects.update_or_create(
         endpoint=endpoint,
         defaults={
@@ -2516,6 +2524,7 @@ def push_subscribe(request):
         "success": True,
         "created": created,
         "subscriptionId": subscription.pk,
+        "needsResubscribe": needs_resubscribe,
     })
 
 
