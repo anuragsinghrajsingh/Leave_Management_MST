@@ -43,6 +43,7 @@ from App.services.forced_password_service import send_forced_password_email, use
 from App.services.login_lock_service import remember_failed_login_ip
 from App.services.login_lock_service import get_login_lock_status as get_combined_login_lock_status
 from App.services.push_notifications import send_push_to_user
+from App.services.background_tasks import enqueue_background_task
 
 security_logger = logging.getLogger("lms_security")
 
@@ -96,13 +97,15 @@ def queue_hr_leave_push(leave, action_label):
 
     for recipient in recipients:
         transaction.on_commit(
-            lambda recipient=recipient, title=title, body=body, url=url, leave_id=leave.pk: send_push_to_user(
+            lambda recipient=recipient, title=title, body=body, url=url, leave_id=leave.pk: enqueue_background_task(
+                send_push_to_user,
                 recipient,
                 title,
                 body,
                 url=url,
                 tag=f"leave-{leave_id}-hr",
                 kind="leave",
+                task_name="hr_leave_push",
             )
         )
 
@@ -112,13 +115,15 @@ def queue_employee_leave_push(leave, status_label):
     body = f"Your {leave.leave_type} leave for {_leave_push_date_text(leave)} was {status_label.lower()}."
     url = reverse("my_leave")
     transaction.on_commit(
-        lambda user=leave.user, title=title, body=body, url=url, leave_id=leave.pk, status=status_label.lower(): send_push_to_user(
+        lambda user=leave.user, title=title, body=body, url=url, leave_id=leave.pk, status=status_label.lower(): enqueue_background_task(
+            send_push_to_user,
             user,
             title,
             body,
             url=url,
             tag=f"leave-{leave_id}-{status}",
             kind=f"leave_{status}",
+            task_name="employee_leave_push",
         )
     )
 
@@ -142,13 +147,15 @@ def queue_communication_push(sender, *, recipient=None, audience_role="", messag
         if target_user.pk == sender.pk:
             continue
         transaction.on_commit(
-            lambda target_user=target_user, clean_title=clean_title, clean_body=clean_body, url=url, message_type=message_type: send_push_to_user(
+            lambda target_user=target_user, clean_title=clean_title, clean_body=clean_body, url=url, message_type=message_type: enqueue_background_task(
+                send_push_to_user,
                 target_user,
                 clean_title,
                 clean_body,
                 url=url,
                 tag=f"communication-{message_type.lower()}-{target_user.pk}",
                 kind="announcement" if message_type == "ANNOUNCEMENT" else "message",
+                task_name="communication_push",
             )
         )
 
@@ -3549,7 +3556,8 @@ def approve_leave(request, leave_id):
         'status_class': 'approved',
         'portal_link': portal_link
     }
-    send_branded_email(
+    enqueue_background_task(
+        send_branded_email,
         subject,
         'emails/notification.html',
         context,
@@ -3560,6 +3568,7 @@ def approve_leave(request, leave_id):
         related_user=leave.user,
         related_leave=leave,
         triggered_by=request.user,
+        task_name="leave_approved_email",
     )
 
     # =====================================
@@ -3718,7 +3727,8 @@ def reject_leave(request, leave_id):
         'status_class': 'rejected',
         'portal_link': portal_link
     }
-    send_branded_email(
+    enqueue_background_task(
+        send_branded_email,
         subject,
         'emails/notification.html',
         context,
@@ -3729,6 +3739,7 @@ def reject_leave(request, leave_id):
         related_user=leave.user,
         related_leave=leave,
         triggered_by=request.user,
+        task_name="leave_rejected_email",
     )
 
     # =====================================
@@ -4745,7 +4756,8 @@ def apply_leave(request):
                         'portal_link': portal_link
                     }
                     transaction.on_commit(
-                        lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email, leave_obj=leave_obj, user=user: send_branded_email(
+                        lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email, leave_obj=leave_obj, user=user: enqueue_background_task(
+                            send_branded_email,
                             subject,
                             'emails/notification.html',
                             context,
@@ -4756,6 +4768,7 @@ def apply_leave(request):
                             related_user=user,
                             related_leave=leave_obj,
                             triggered_by=user,
+                            task_name="leave_applied_email",
                         )
                     )
 
@@ -5019,7 +5032,8 @@ def apply_leave(request):
                     'portal_link': portal_link
                 }
                 transaction.on_commit(
-                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email, leave_obj=leave_obj, user=user: send_branded_email(
+                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=user.email, leave_obj=leave_obj, user=user: enqueue_background_task(
+                        send_branded_email,
                         subject,
                         'emails/notification.html',
                         context,
@@ -5030,6 +5044,7 @@ def apply_leave(request):
                         related_user=user,
                         related_leave=leave_obj,
                         triggered_by=user,
+                        task_name="leave_applied_email",
                     )
                 )
             
@@ -6017,7 +6032,8 @@ def edit_leave(request, leave_id):
                     'portal_link': portal_link
                 }
                 transaction.on_commit(
-                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email, leave=leave, actor=request.user: send_branded_email(
+                    lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email, leave=leave, actor=request.user: enqueue_background_task(
+                        send_branded_email,
                         subject,
                         'emails/notification.html',
                         context,
@@ -6028,6 +6044,7 @@ def edit_leave(request, leave_id):
                         related_user=actor,
                         related_leave=leave,
                         triggered_by=actor,
+                        task_name="leave_updated_email",
                     )
                 )
 
@@ -6208,7 +6225,8 @@ def edit_leave(request, leave_id):
                 'portal_link': portal_link
             }
             transaction.on_commit(
-                lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email, leave=leave, actor=request.user: send_branded_email(
+                lambda subject=subject, context=context, hr_emails=hr_emails, reply_to=request.user.email, leave=leave, actor=request.user: enqueue_background_task(
+                    send_branded_email,
                     subject,
                     'emails/notification.html',
                     context,
@@ -6219,6 +6237,7 @@ def edit_leave(request, leave_id):
                     related_user=actor,
                     related_leave=leave,
                     triggered_by=actor,
+                    task_name="leave_updated_email",
                 )
             )
 
