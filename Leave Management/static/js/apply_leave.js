@@ -1264,7 +1264,11 @@
                 const now = new Date();
                 let percent = 0;
 
-                if (endDate && endDate > startDate) {
+                if (now < startDate) {
+                    const totalDays = 30;
+                    const diff = (startDate - now) / (1000 * 60 * 60 * 24);
+                    percent = 100 - (diff * 100 / totalDays);
+                } else if (endDate && endDate > startDate) {
                     percent = ((now - startDate) / (endDate - startDate)) * 100;
                 } else {
                     const totalDays = 30;

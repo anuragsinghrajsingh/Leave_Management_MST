@@ -5477,61 +5477,6 @@ header .profile-dropdown,
     color: #64748b;
 }
 
-.chart-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 8px;
-    width: min(100%, 280px);
-    min-height: 176px;
-    margin-top: 8px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 14px 14px;
-    border-radius: 20px;
-    background:
-        radial-gradient(circle at top right, rgba(186, 230, 253, 0.18), transparent 28%),
-        linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(255,255,255,0.99));
-    border: 1px dashed rgba(148, 163, 184, 0.36);
-}
-
-.chart-empty-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.98));
-    color: #2563eb;
-    font-size: 24px;
-    font-weight: 700;
-}
-
-.chart-empty-state h4 {
-    margin: 0;
-    display: block;
-    width: 100%;
-    max-width: 180px;
-    font-size: 1rem;
-    line-height: 1.3;
-    letter-spacing: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    color: #0f172a;
-}
-
-.chart-empty-state p {
-    margin: 0;
-    max-width: 260px;
-    line-height: 1.6;
-    color: #64748b;
-    font-size: 13px;
-}
-
 @media (max-width: 760px) {
     .section-headline {
         align-items: flex-start;
@@ -9203,6 +9148,331 @@ body.profile-page .profile-page-shell .chart-card:nth-of-type(2) .section-badge
     box-shadow: 0 6px 14px rgba(217, 70, 239, 0.14) !important;
 }
 
+/* Final empty chart width lock: keep no-data cards close to the parent card width. */
+body.profile-page .profile-page-shell .chart-body.chart-body-empty {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-top: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-visual {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-empty-state {
+    display: grid !important;
+    width: calc(100% - 16px) !important;
+    min-width: calc(100% - 16px) !important;
+    max-width: calc(100% - 16px) !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+}
+
+body.profile-page .profile-page-shell .mobile-empty-space {
+    display: none !important;
+}
+
+body.profile-page .profile-page-shell .empty-copy-line {
+    display: block !important;
+}
+
+@media (max-width: 760px) {
+    body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-empty-state {
+        width: calc(100% - 8px) !important;
+        min-width: calc(100% - 8px) !important;
+        max-width: calc(100% - 8px) !important;
+    }
+
+    body.profile-page .profile-page-shell .desktop-empty-break {
+        display: none !important;
+    }
+
+    body.profile-page .profile-page-shell .mobile-empty-space {
+        display: inline !important;
+    }
+
+    body.profile-page .profile-page-shell .empty-copy-line {
+        display: inline !important;
+    }
+
+    body.profile-page .profile-page-shell .empty-copy-line + .empty-copy-line::before {
+        content: " " !important;
+    }
+}
+
+/* Final compact empty chart state. Replaces the older large card/orbit empty state. */
+body.profile-page .profile-page-shell .chart-body.chart-body-empty {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    place-items: start center !important;
+    justify-items: stretch !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-visual {
+    display: grid !important;
+    place-items: start center !important;
+    justify-items: stretch !important;
+    flex: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-visual > .chart-empty-state {
+    justify-self: stretch !important;
+    align-self: start !important;
+    inline-size: 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-legend {
+    display: none !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty canvas {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    max-width: 0 !important;
+    max-height: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    align-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 100% !important;
+    inline-size: 100% !important;
+    box-sizing: border-box !important;
+    min-height: 176px !important;
+    margin: 0 auto !important;
+    padding: 18px 16px !important;
+    border: 1px solid rgba(148, 163, 184, 0.22) !important;
+    border-radius: 16px !important;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)) !important;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06) !important;
+    text-align: center !important;
+    overflow: visible !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state::before,
+body.profile-page .profile-page-shell .chart-empty-visual,
+body.profile-page .profile-page-shell .chart-empty-orbit,
+body.profile-page .profile-page-shell .chart-empty-kicker,
+body.profile-page .profile-page-shell .chart-empty-copy {
+    display: none !important;
+    content: none !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-mark {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+    border: 1.5px dashed rgba(100, 116, 139, 0.42) !important;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.95), transparent 34%),
+        linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.78)) !important;
+    color: #64748b !important;
+    font-size: 0 !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+    box-shadow:
+        0 10px 18px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-mark::before,
+body.profile-page .profile-page-shell .chart-empty-mark::after {
+    content: "" !important;
+    position: absolute !important;
+    box-sizing: border-box !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-mark::before {
+    width: 22px !important;
+    height: 22px !important;
+    border: 2px solid currentColor !important;
+    border-radius: 7px !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-mark::after {
+    top: 12px !important;
+    left: 12px !important;
+    width: 20px !important;
+    height: 5px !important;
+    border-top: 2px solid currentColor !important;
+    box-shadow:
+        4px 7px 0 -1px currentColor,
+        10px 7px 0 -1px currentColor !important;
+    opacity: 0.78 !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state-short-half .chart-empty-mark {
+    border-color: rgba(249, 115, 22, 0.38) !important;
+    color: #9a3412 !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state-short-half .chart-empty-mark::before {
+    width: 23px !important;
+    height: 23px !important;
+    border-radius: 999px !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state-short-half .chart-empty-mark::after {
+    top: 15px !important;
+    left: 21px !important;
+    width: 8px !important;
+    height: 10px !important;
+    border-top: 0 !important;
+    border-left: 2px solid currentColor !important;
+    border-bottom: 2px solid currentColor !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transform-origin: left bottom !important;
+    transform: rotate(-45deg) !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state-short-half h4 {
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 34%, #7c3aed 58%, #f97316 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state-short-half p {
+    background: linear-gradient(90deg, #64748b 0%, #2563eb 34%, #0f766e 62%, #db2777 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state h4 {
+    display: block !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    background: linear-gradient(90deg, #0f766e 0%, #2563eb 46%, #7c3aed 74%, #db2777 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    font-size: 0.9rem !important;
+    line-height: 1.18 !important;
+    font-weight: 1000 !important;
+    text-align: center !important;
+    overflow-wrap: anywhere !important;
+}
+
+body.profile-page .profile-page-shell .chart-empty-state p {
+    display: block !important;
+    max-width: 210px !important;
+    margin: 0 !important;
+    background: linear-gradient(90deg, #475569 0%, #2563eb 42%, #0f766e 72%, #c2410c 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    overflow-wrap: anywhere !important;
+}
+
+@media (max-width: 760px) {
+    body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-visual {
+        min-height: 0 !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-state {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        inline-size: 100% !important;
+        min-height: 150px !important;
+        gap: 7px !important;
+        padding: 12px 9px !important;
+        border-radius: 14px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-mark {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 13px !important;
+        font-size: 0.62rem !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-mark::before {
+        width: 21px !important;
+        height: 21px !important;
+        border-radius: 6px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-mark::after {
+        top: 12px !important;
+        left: 11px !important;
+        width: 18px !important;
+        height: 4px !important;
+        box-shadow:
+            4px 6px 0 -1px currentColor,
+            9px 6px 0 -1px currentColor !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-state-short-half .chart-empty-mark::before {
+        width: 22px !important;
+        height: 22px !important;
+        border-radius: 999px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-state-short-half .chart-empty-mark::after {
+        top: 13px !important;
+        left: 19px !important;
+        width: 7px !important;
+        height: 9px !important;
+        box-shadow: none !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-state h4 {
+        font-size: 0.68rem !important;
+        line-height: 1.12 !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-empty-state p {
+        max-width: 140px !important;
+        font-size: 0.54rem !important;
+        line-height: 1.24 !important;
+    }
+}
+
 @media (max-width: 700px)
 {
     body.profile-page .profile-page-shell .leave-header
@@ -9383,5 +9653,119 @@ body.profile-page .profile-page-shell .legend-label
         font-size: 0.68rem !important;
         line-height: 1.12 !important;
         transform: translateY(13px) !important;
+    }
+}
+
+/* Absolute final empty chart width lock. */
+body.profile-page .profile-page-shell .chart-body.chart-body-empty {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-top: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-visual {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-empty-state {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 760px) {
+    body.profile-page .profile-page-shell .chart-body.chart-body-empty .chart-empty-state {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}
+
+/* Use the chart card itself as the empty state surface. */
+body.profile-page .profile-page-shell .chart-card.chart-card-empty {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(20, 184, 166, 0.12), transparent 30%),
+        radial-gradient(circle at 92% 18%, rgba(249, 115, 22, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.98)) !important;
+}
+
+body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-body.chart-body-empty {
+    display: grid !important;
+    width: 100% !important;
+    min-height: 176px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    place-items: center !important;
+}
+
+body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-body.chart-body-empty .chart-visual {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    place-items: center !important;
+}
+
+body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state {
+    display: grid !important;
+    justify-items: center !important;
+    align-content: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    text-align: center !important;
+}
+
+body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state h4 {
+    font-size: 1.12rem !important;
+    line-height: 1.08 !important;
+    font-weight: 1000 !important;
+}
+
+body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state-short-half h4 {
+    font-size: 1.18rem !important;
+    font-weight: 1000 !important;
+}
+
+body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state p {
+    max-width: none !important;
+}
+
+@media (max-width: 760px) {
+    body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-body.chart-body-empty {
+        min-height: 150px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state {
+        gap: 6px !important;
+        padding: 0 6px !important;
+    }
+
+    body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state h4,
+    body.profile-page .profile-page-shell .chart-card.chart-card-empty .chart-empty-state-short-half h4 {
+        font-size: 0.82rem !important;
+        line-height: 1.1 !important;
     }
 }

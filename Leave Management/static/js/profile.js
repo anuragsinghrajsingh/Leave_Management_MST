@@ -141,17 +141,22 @@ function getCSRFToken()
             });
         }
 
-        function renderChartEmptyState(canvas, title, body)
+        function renderChartEmptyState(canvas, title, body, options = {})
         {
             if (!canvas) return;
 
             canvas.style.display = "none";
 
             const chartBody = canvas.closest(".chart-body");
+            const chartCard = canvas.closest(".chart-card");
             const chartLegend = chartBody ? chartBody.querySelector(".chart-legend") : null;
 
             if (chartBody) {
                 chartBody.classList.add("chart-body-empty");
+            }
+
+            if (chartCard) {
+                chartCard.classList.add("chart-card-empty");
             }
 
             if (chartLegend) {
@@ -160,9 +165,9 @@ function getCSRFToken()
             }
 
             const empty = document.createElement("div");
-            empty.className = "chart-empty-state";
+            empty.className = `chart-empty-state ${options.variant ? `chart-empty-state-${options.variant}` : ""}`.trim();
             empty.innerHTML = `
-                <div class="chart-empty-icon">◌</div>
+                <span class="chart-empty-mark" aria-hidden="true"></span>
                 <h4>${title}</h4>
                 <p>${body}</p>
             `;
@@ -483,8 +488,13 @@ function getCSRFToken()
         {
             renderChartEmptyState(
                 leaveCtx,
-                "No leave activity yet",
-                "Full leave usage will appear here once earned, sick, or unpaid leave is utilized."
+                "No full leave used",
+                "Your full-day balance is untouched. Usage details will appear here after your first sick, earned, or unpaid leave.",
+                {
+                    variant: "full",
+                    icon: "Cal",
+                    kicker: "Clean full-leave record"
+                }
             );
         }
 
@@ -505,7 +515,12 @@ function getCSRFToken()
             renderChartEmptyState(
                 chartEl,
                 "No short or half leave used",
-                "Monthly short and half leave utilization will be shown here when used."
+                "<span class=\"empty-copy-line\">This month is clear. Short and half-day usage</span><span class=\"empty-copy-line\">will show here as soon as you use one.</span>",
+                {
+                    variant: "short-half",
+                    icon: "Time",
+                    kicker: "Fresh monthly allowance"
+                }
             );
         }
 

@@ -7023,6 +7023,12 @@ textarea:focus {
         inset 0 1px 0 rgba(255, 255, 255, 0.96);
 }
 
+@media (min-width: 769px) {
+    .modal-box.popup-edit-modal-box #edit-leave-template:not(.calendar-inline-edit-template) #edit-reason {
+        min-height: 124px;
+    }
+}
+
 .edit-time-output-shell {
     position: relative;
     border: 1.5px solid rgba(148, 163, 184, 0.24);
@@ -7597,7 +7603,7 @@ textarea:focus {
 }
 
 #edit-leave-template .edit-date-shell .date-grid {
-    row-gap: 0px;
+    row-gap: 2px;
 }
 
 #edit-leave-template .edit-date-shell .date-day.weekend {

@@ -12,7 +12,7 @@ let totalPages = 1;
 let direction = "next";
 let isPageLoaded = false;
 const INDIA_TIMEZONE = "Asia/Kolkata";
-const DASHBOARD_LIVE_REFRESH_INTERVAL_MS = 60000;
+const DASHBOARD_LIVE_REFRESH_INTERVAL_MS = 1000;
 let countdownTimers = [];
 
 function buildDashboardAjaxUrl(params = {}) {
@@ -54,7 +54,11 @@ function animateLeaveProgress() {
         const now = new Date();
         let percent = 0;
 
-        if (endDate && endDate > startDate) {
+        if (now < startDate) {
+            const totalDays = 30;
+            const diff = (startDate - now) / (1000 * 60 * 60 * 24);
+            percent = 100 - (diff * 100 / totalDays);
+        } else if (endDate && endDate > startDate) {
             percent = ((now - startDate) / (endDate - startDate)) * 100;
         } else {
             const totalDays = 30;
