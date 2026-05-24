@@ -6,7 +6,9 @@ requests
 whitenoise
 django-environ
 django-apscheduler
+django-q2
 psycopg2-binary
 gunicorn
 playwright
 pywebpush
+psutil

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import importlib.util
 import os
 import sys
 import environ
@@ -109,6 +110,9 @@ INSTALLED_APPS = [
     'django_apscheduler',
 ]
 
+if importlib.util.find_spec("django_q"):
+    INSTALLED_APPS.append("django_q")
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # 👈 Added for static files
@@ -131,6 +135,16 @@ ROOT_URLCONF = 'leave_management.urls'
 AUTH_USER_MODEL = 'App.CustomUser'
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+Q_CLUSTER = {
+    "name": "leave_management",
+    "workers": env.int("LMS_Q_WORKERS", default=2),
+    "timeout": env.int("LMS_Q_TIMEOUT", default=120),
+    "retry": env.int("LMS_Q_RETRY", default=300),
+    "queue_limit": env.int("LMS_Q_QUEUE_LIMIT", default=50),
+    "bulk": env.int("LMS_Q_BULK", default=10),
+    "orm": "default",
+}
 
 TEMPLATES = [
     {
