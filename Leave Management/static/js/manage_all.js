@@ -2926,6 +2926,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             return;
         }
 
+        if (typeof window.armNotificationAudio === "function")
+        {
+            window.armNotificationAudio();
+        }
+
         setPopupActionLoading(true);
 
         fetch(getLeaveActionUrl(approveLeaveUrlTemplate, leaveId), {
@@ -2966,6 +2971,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     return;
                 }
                 renderFlashMessages(payload.messages);
+                if (payload && payload.status && typeof window.playHrDecisionTone === "function")
+                {
+                    window.playHrDecisionTone(payload.status);
+                }
                 refreshEmployeeModalAfterAction(payload.employee_detail, "approved");
                 refreshHrNotificationsAfterDecision(leaveId);
             })
@@ -3010,6 +3019,11 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             return Promise.resolve();
         }
 
+        if (typeof window.armNotificationAudio === "function")
+        {
+            window.armNotificationAudio();
+        }
+
         setPopupActionLoading(true);
 
         return fetch(getLeaveActionUrl(rejectLeaveUrlTemplate, leaveId), {
@@ -3048,6 +3062,10 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                 {
                     renderFlashMessages(payload.messages);
                     return payload;
+                }
+                if (payload && payload.status && typeof window.playHrDecisionTone === "function")
+                {
+                    window.playHrDecisionTone(payload.status);
                 }
                 return payload;
             })

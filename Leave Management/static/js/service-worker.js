@@ -21,7 +21,29 @@ self.addEventListener("push", function (event) {
         renotify: true,
     };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(
+        clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+            const hasOpenAppPage = clientList.some(function (client) {
+                try {
+                    return new URL(client.url).origin === self.location.origin;
+                } catch (error) {
+                    return false;
+                }
+            });
+
+            if (hasOpenAppPage) {
+                clientList.forEach(function (client) {
+                    client.postMessage({
+                        type: "lms-push-received",
+                        payload: payload,
+                    });
+                });
+                return null;
+            }
+
+            return self.registration.showNotification(title, options);
+        })
+    );
 });
 
 self.addEventListener("notificationclick", function (event) {

@@ -131,6 +131,18 @@ function hydrateDayBlocks() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+        try {
+            const shouldPlayApplySuccessTone = window.sessionStorage.getItem("leave-apply-success-tone-pending") === "1";
+            if (shouldPlayApplySuccessTone) {
+                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
+                if (typeof window.playLeaveActionTone === "function") {
+                    window.playLeaveActionTone("apply");
+                }
+            }
+        } catch (error) {
+            // Ignore storage/audio failures.
+        }
+
         const tabs = Array.from(document.querySelectorAll(".status-tab"));
         const panels = Array.from(document.querySelectorAll(".leave-panel"));
         function formatRelativeLeaveAge(isoValue) {

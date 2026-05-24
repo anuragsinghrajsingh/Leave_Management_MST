@@ -4766,7 +4766,7 @@ def apply_leave(request):
 
             request.session.pop("apply_leave_form", None)
 
-            return _my_leave_response(request, status=400)
+            return _my_leave_response(request, redirect_url=reverse("my_leave"))
 
         # =====================================================
         # 🔵 FULL DAY LEAVE BLOCK

@@ -1450,6 +1450,94 @@
         }
         startLeaveTimelineStatus();
 
+        function getResponsePath(responseUrl) {
+            try {
+                return new URL(responseUrl || window.location.href, window.location.href).pathname;
+            } catch (error) {
+                return "";
+            }
+        }
+
+        function isMyLeavePath(responseUrl) {
+            return getResponsePath(responseUrl).replace(/\/+$/, "") === "/my_leave";
+        }
+
+        function setSubmitButtonState(button, state, text) {
+            if (!button) {
+                return;
+            }
+
+            if (!button.dataset.defaultText) {
+                button.dataset.defaultText = button.textContent.trim();
+            }
+
+            button.classList.toggle("is-processing", state === "processing");
+            button.classList.toggle("is-success", state === "success");
+
+            if (state === "processing") {
+                button.innerHTML = '<span class="submit-btn-label">' + (text || "Submitting") + '</span><span class="submit-btn-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span><span class="submit-btn-spinner" aria-hidden="true"></span>';
+            } else if (state === "success") {
+                button.textContent = text || "Leave applied - opening My Leave";
+            } else {
+                button.textContent = text || button.dataset.defaultText || "Submit Leave";
+            }
+        }
+
+        function resetSubmitButtonState(button) {
+            if (!button) {
+                return;
+            }
+
+            button.classList.remove("is-processing", "is-success");
+            button.textContent = button.dataset.defaultText || "Submit Leave";
+            button.disabled = false;
+        }
+
+        function redirectAfterApplyTone(targetUrl, submitButton) {
+            try {
+                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
+            } catch (error) {
+                // Ignore storage failures.
+            }
+
+            setSubmitButtonState(submitButton, "success", "Leave applied - opening My Leave");
+
+            if (typeof window.playLeaveActionTone === "function") {
+                window.playLeaveActionTone("apply");
+            }
+
+            window.setTimeout(() => {
+                window.location.href = targetUrl || "/my_leave/";
+            }, 1250);
+        }
+
+        function redirectAfterErrorTone(targetUrl) {
+            if (typeof window.playLeaveErrorTone === "function") {
+                window.playLeaveErrorTone();
+            }
+
+            window.setTimeout(() => {
+                if (targetUrl) {
+                    window.location.href = targetUrl;
+                } else {
+                    window.location.reload();
+                }
+            }, 420);
+        }
+
+        async function readApplyResponse(response) {
+            const contentType = response.headers.get("content-type") || "";
+
+            if (contentType.includes("application/json")) {
+                const payload = typeof window.parseJsonOrSessionExpired === "function"
+                    ? await window.parseJsonOrSessionExpired(response)
+                    : await response.json();
+                return { response, payload };
+            }
+
+            return { response, payload: null };
+        }
+
         form.addEventListener("submit", (event) => {
             clearAllInlineWarnings();
 
@@ -1515,11 +1603,56 @@
                 return;
             }
 
-            try {
-                window.sessionStorage.setItem("leave-apply-success-tone-pending", "1");
-            } catch (error) {
-                // Ignore storage failures.
+            event.preventDefault();
+
+            if (form.dataset.submitting === "true") {
+                return;
             }
+
+            form.dataset.submitting = "true";
+            const submitButton = event.submitter || form.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+            setSubmitButtonState(submitButton, "processing", "Submitting");
+
+            fetch(form.action || window.location.href, {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: new FormData(form),
+                credentials: "same-origin"
+            })
+                .then(readApplyResponse)
+                .then(({ response, payload }) => {
+                    if (payload?.sessionExpired) {
+                        if (typeof window.redirectAfterSessionExpired === "function") {
+                            window.redirectAfterSessionExpired(payload);
+                        }
+                        return;
+                    }
+
+                    if (payload?.success === true) {
+                        redirectAfterApplyTone(payload.redirect_url || response.url || "/my_leave/", submitButton);
+                        return;
+                    }
+
+                    if (!payload && isMyLeavePath(response.url)) {
+                        redirectAfterApplyTone(response.url, submitButton);
+                        return;
+                    }
+
+                    form.dataset.submitting = "";
+                    resetSubmitButtonState(submitButton);
+                    redirectAfterErrorTone(response.url || window.location.href);
+                })
+                .catch(() => {
+                    form.dataset.submitting = "";
+                    resetSubmitButtonState(submitButton);
+                    redirectAfterErrorTone(window.location.href);
+                });
         });
 
         try {

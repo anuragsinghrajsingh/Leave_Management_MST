@@ -1324,6 +1324,11 @@ const reasonPreviewModalAnimationMs = 400;
             return;
         }
 
+        if (typeof window.armNotificationAudio === "function")
+        {
+            window.armNotificationAudio();
+        }
+
         const leaveId = form.dataset.leaveId || "";
         const formData = new FormData(form);
 
@@ -1361,6 +1366,10 @@ const reasonPreviewModalAnimationMs = 400;
             .then(function (payload)
             {
                 renderFlashMessages(payload.messages);
+                if (payload && payload.status && typeof window.playHrDecisionTone === "function")
+                {
+                    window.playHrDecisionTone(payload.status);
+                }
                 closeReject();
                 refreshDashboardLiveSections();
                 window.dispatchEvent(new CustomEvent("hr-notifications:refresh", {

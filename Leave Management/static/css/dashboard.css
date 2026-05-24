@@ -4914,6 +4914,18 @@ body {
     font-weight: 1000 !important;
 }
 
+@media (min-width: 769px) {
+    .main-leave-card.recent .activity-card .activity-body .date-line {
+        font-size: 13px !important;
+    }
+
+    .main-leave-card.recent .activity-card .activity-body .date-line .arrow {
+        font-size: 17px !important;
+        padding-inline: 2px !important;
+        transform: scaleX(1.2) !important;
+    }
+}
+
 .recent .activity-card .applied-time,
 .recent .activity-card .activity-duration {
     font-size: 13px !important;

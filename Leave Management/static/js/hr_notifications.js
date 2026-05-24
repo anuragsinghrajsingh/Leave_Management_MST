@@ -94,8 +94,13 @@
         window.addEventListener(eventName, unlockNotificationAudio, { once: true, passive: true });
     });
 
-    function playNotificationTone(statusClass) {
+    window.armNotificationAudio = unlockNotificationAudio;
+
+    function playNotificationTone(statusClass, activityLabel) {
         if (!notificationAudioUnlocked) {
+            runWhenNotificationAudioReady(function () {
+                playNotificationTone(statusClass, activityLabel);
+            });
             return;
         }
 
@@ -105,31 +110,47 @@
             return;
         }
 
+        if (audioContext.state === "suspended") {
+            runWhenNotificationAudioReady(function () {
+                playNotificationTone(statusClass, activityLabel);
+            });
+            return;
+        }
+
         try {
             const now = audioContext.currentTime;
             const masterGain = audioContext.createGain();
+            const normalizedActivity = String(activityLabel || "").trim().toLowerCase();
             const bellLayers = statusClass === "approved"
                 ? [
-                    { frequency: 659, volume: 0.03, start: 0, duration: 0.5 },
-                    { frequency: 880, volume: 0.034, start: 0.16, duration: 0.58 },
-                    { frequency: 1175, volume: 0.026, start: 0.34, duration: 0.62 },
-                    { frequency: 1760, volume: 0.01, start: 0.38, duration: 0.42 },
+                    { frequency: 659, volume: 0.07, start: 0, duration: 0.34 },
+                    { frequency: 880, volume: 0.078, start: 0.18, duration: 0.38 },
+                    { frequency: 1175, volume: 0.066, start: 0.38, duration: 0.44 },
+                    { frequency: 1568, volume: 0.046, start: 0.58, duration: 0.5 },
+                    { frequency: 2093, volume: 0.024, start: 0.76, duration: 0.34 },
                 ]
                 : statusClass === "rejected"
                     ? [
-                        { frequency: 494, volume: 0.032, start: 0, duration: 0.66 },
-                        { frequency: 392, volume: 0.034, start: 0.2, duration: 0.78 },
-                        { frequency: 330, volume: 0.024, start: 0.44, duration: 0.7 },
-                        { frequency: 247, volume: 0.012, start: 0.5, duration: 0.56 },
+                        { frequency: 523, volume: 0.076, start: 0, duration: 0.42 },
+                        { frequency: 392, volume: 0.084, start: 0.24, duration: 0.5 },
+                        { frequency: 294, volume: 0.07, start: 0.52, duration: 0.54 },
+                        { frequency: 220, volume: 0.042, start: 0.78, duration: 0.48 },
                     ]
-                    : [
-                        { frequency: 740, volume: 0.036, start: 0, duration: 1.08 },
-                        { frequency: 1110, volume: 0.018, start: 0.01, duration: 0.86 },
-                        { frequency: 1495, volume: 0.012, start: 0.02, duration: 0.7 },
-                        { frequency: 932, volume: 0.014, start: 0.22, duration: 0.72 },
-                    ];
+                    : normalizedActivity === "updated"
+                        ? [
+                            { frequency: 784, volume: 0.076, start: 0, duration: 0.28 },
+                            { frequency: 622, volume: 0.064, start: 0.22, duration: 0.3 },
+                            { frequency: 988, volume: 0.074, start: 0.46, duration: 0.38 },
+                            { frequency: 1319, volume: 0.038, start: 0.68, duration: 0.3 },
+                        ]
+                        : [
+                            { frequency: 740, volume: 0.078, start: 0, duration: 0.34 },
+                            { frequency: 988, volume: 0.074, start: 0.2, duration: 0.38 },
+                            { frequency: 1245, volume: 0.058, start: 0.44, duration: 0.42 },
+                            { frequency: 932, volume: 0.038, start: 0.7, duration: 0.34 },
+                        ];
 
-            masterGain.gain.setValueAtTime(0.85, now);
+            masterGain.gain.setValueAtTime(1.6, now);
             masterGain.connect(audioContext.destination);
 
             bellLayers.forEach(function (layer) {
@@ -154,8 +175,84 @@
                 oscillator.start(startAt);
                 oscillator.stop(stopAt + 0.03);
             });
+
+            if (statusClass === "approved") {
+                window.setTimeout(function () { speakNotificationAlert("Approved", { pitch: 1.16, rate: 0.98 }); }, 190);
+            } else if (statusClass === "rejected") {
+                window.setTimeout(function () { speakNotificationAlert("Rejected", { pitch: 0.82, rate: 0.92 }); }, 210);
+            } else if (normalizedActivity === "updated") {
+                window.setTimeout(function () { speakNotificationAlert("Updated", { pitch: 1.04, rate: 0.9 }); }, 760);
+            } else {
+                window.setTimeout(function () { speakNotificationAlert("Applied", { pitch: 1.1, rate: 0.94 }); }, 620);
+            }
         } catch (error) {
             // Ignore audio failures silently.
+        }
+    }
+
+    function buildLocalBrowserNotification(item) {
+        const isEmployeeDecision = Boolean(item && item.target_panel);
+        const isHrPending = Boolean(item && item.employee_id) && !isEmployeeDecision;
+        const leaveType = String(item && item.leave_type || "Leave").trim();
+        const status = String(item && item.status || item && item.status_class || "").trim();
+        const schedule = String(item && item.schedule_text || "").trim();
+        const employeeName = String(item && item.display_name || item && item.username || "Employee").trim();
+
+        if (isEmployeeDecision) {
+            return {
+                title: String(item.headline_text || (leaveType + " Leave " + status)).trim(),
+                body: [
+                    schedule,
+                    item.reviewer_name ? ("Reviewed by " + item.reviewer_name) : "",
+                ].filter(Boolean).join(" | "),
+            };
+        }
+
+        if (isHrPending) {
+            return {
+                title: ((item.activity_label || "New") + " leave request").trim(),
+                body: [
+                    employeeName,
+                    leaveType + " leave",
+                    schedule,
+                ].filter(Boolean).join(" | "),
+            };
+        }
+
+        return {
+            title: "Leave Management",
+            body: String(item && item.display_name || item && item.created_at || "You have a new update.").trim(),
+        };
+    }
+
+    function showLocalBrowserNotification(item) {
+        if (!("Notification" in window) || Notification.permission !== "granted") {
+            return;
+        }
+
+        try {
+            const detail = buildLocalBrowserNotification(item || {});
+            const notification = new Notification(detail.title || "Leave Management", {
+                body: detail.body || "You have a new update.",
+                icon: "/static/images/ms-technology-logo.png",
+                badge: "/static/images/ms-technology-logo.png",
+                tag: "lms-bell-" + String(item && item.id || Date.now()),
+                renotify: true,
+                data: {
+                    url: item && item.target_url || "/",
+                },
+            });
+
+            notification.onclick = function () {
+                window.focus();
+                const targetUrl = notification.data && notification.data.url;
+                if (targetUrl) {
+                    window.location.href = targetUrl;
+                }
+                notification.close();
+            };
+        } catch (error) {
+            // Ignore local notification failures silently.
         }
     }
 
@@ -216,6 +313,8 @@
                 [760, 1900, 3040].forEach(function (delay) {
                     window.setTimeout(speakAnnouncementAlert, delay);
                 });
+            } else {
+                window.setTimeout(function () { speakNotificationAlert("Message", { pitch: 1.08, rate: 0.98 }); }, 170);
             }
         } catch (error) {
             // Ignore audio failures silently.
@@ -236,6 +335,26 @@
             message.volume = 1;
             message.rate = 0.94;
             message.pitch = 1.08;
+
+            speech.speak(message);
+        } catch (error) {
+            // Ignore speech failures silently.
+        }
+    }
+
+    function speakNotificationAlert(text, options) {
+        const speech = window.speechSynthesis;
+
+        if (!speech || typeof window.SpeechSynthesisUtterance !== "function") {
+            return;
+        }
+
+        try {
+            const settings = options || {};
+            const message = new SpeechSynthesisUtterance(text);
+            message.volume = 1;
+            message.rate = settings.rate || 0.96;
+            message.pitch = settings.pitch || 1;
 
             speech.speak(message);
         } catch (error) {
@@ -295,28 +414,58 @@
                 gain.connect(audioContext.destination);
                 noise.start(now);
                 noise.stop(now + duration);
+                window.setTimeout(function () {
+                    speakNotificationAlert("Deleted", { pitch: 0.92, rate: 0.94 });
+                }, 640);
                 return;
             }
 
             const toneMap = {
-                apply: [660, 880],
-                edit: [560, 740],
+                apply: [
+                    { frequency: 659, volume: 0.048, start: 0, duration: 0.18 },
+                    { frequency: 880, volume: 0.052, start: 0.12, duration: 0.22 },
+                    { frequency: 1319, volume: 0.034, start: 0.28, duration: 0.26 },
+                ],
+                edit: [
+                    { frequency: 740, volume: 0.076, start: 0, duration: 0.24 },
+                    { frequency: 587, volume: 0.064, start: 0.2, duration: 0.26 },
+                    { frequency: 988, volume: 0.072, start: 0.42, duration: 0.34 },
+                    { frequency: 1319, volume: 0.036, start: 0.62, duration: 0.28 },
+                ],
             };
-            const frequencies = toneMap[action] || toneMap.apply;
-            const oscillator = audioContext.createOscillator();
-            const gain = audioContext.createGain();
+            const layers = toneMap[action] || toneMap.apply;
+            const now = audioContext.currentTime;
+            const masterGain = audioContext.createGain();
 
-            oscillator.type = "sine";
-            oscillator.frequency.setValueAtTime(frequencies[0], audioContext.currentTime);
-            oscillator.frequency.linearRampToValueAtTime(frequencies[1], audioContext.currentTime + 0.18);
-            gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.04, audioContext.currentTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.24);
+            masterGain.gain.setValueAtTime(action === "edit" ? 1.55 : 1.15, now);
+            masterGain.connect(audioContext.destination);
 
-            oscillator.connect(gain);
-            gain.connect(audioContext.destination);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.24);
+            layers.forEach(function (layer) {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const startAt = now + layer.start;
+                const stopAt = startAt + layer.duration;
+
+                oscillator.type = action === "edit" ? "triangle" : "sine";
+                oscillator.frequency.setValueAtTime(layer.frequency, startAt);
+                oscillator.frequency.exponentialRampToValueAtTime(layer.frequency * (action === "edit" ? 0.996 : 1.006), stopAt);
+
+                gain.gain.setValueAtTime(0.0001, startAt);
+                gain.gain.exponentialRampToValueAtTime(layer.volume, startAt + 0.018);
+                gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+
+                oscillator.connect(gain);
+                gain.connect(masterGain);
+                oscillator.start(startAt);
+                oscillator.stop(stopAt + 0.03);
+            });
+
+            window.setTimeout(function () {
+                speakNotificationAlert(action === "edit" ? "Leave updated" : "Leave applied", {
+                    pitch: action === "edit" ? 1.04 : 1.12,
+                    rate: action === "edit" ? 0.9 : 0.96
+                });
+            }, action === "edit" ? 760 : 150);
         } catch (error) {
             // Ignore audio failures silently.
         }
@@ -365,6 +514,9 @@
                 oscillator.start(startAt);
                 oscillator.stop(stopAt + 0.03);
             });
+            window.setTimeout(function () {
+                speakNotificationAlert("Error", { pitch: 0.78, rate: 0.9 });
+            }, 520);
         } catch (error) {
             // Ignore audio failures silently.
         }
@@ -421,6 +573,27 @@
 
     window.playCommunicationTone = playCommunicationTone;
     window.playDataUpdateTone = playDataUpdateTone;
+    window.playHrDecisionTone = function (statusClass) {
+        const normalizedStatus = String(statusClass || "").trim().toLowerCase();
+        if (normalizedStatus === "approved" || normalizedStatus === "rejected") {
+            if (!notificationAudioUnlocked) {
+                runWhenNotificationAudioReady(function () {
+                    playNotificationTone(normalizedStatus);
+                });
+                return;
+            }
+
+            const audioContext = getNotificationAudioContext();
+            if (audioContext && audioContext.state === "suspended") {
+                runWhenNotificationAudioReady(function () {
+                    playNotificationTone(normalizedStatus);
+                });
+                return;
+            }
+
+            playNotificationTone(normalizedStatus);
+        }
+    };
     window.playLeaveErrorTone = playLeaveErrorTone;
     window.playLeaveActionTone = playLeaveActionTone;
 
@@ -913,6 +1086,11 @@
             const appendPage = settings.append === true;
             const hadFetchedOnce = hasFetchedOnce;
             const previousKnownIds = new Set(knownIds);
+            const previousSignatures = new Map(
+                latestNotifications.map(function (item) {
+                    return [String(item.id || ""), getNotificationSignature(item)];
+                })
+            );
 
             if (!appendPage && Number.isFinite(fetchId) && fetchId < latestHandledFetchId) {
                 return;
@@ -1017,7 +1195,9 @@
             });
             const newNotifications = notifications.filter(function (item) {
                 const itemId = String(item.id);
-                return !previousKnownIds.has(itemId) && item.is_new && !item.is_read;
+                const wasKnown = previousKnownIds.has(itemId);
+                const signatureChanged = wasKnown && previousSignatures.get(itemId) !== getNotificationSignature(item);
+                return (!wasKnown || signatureChanged) && item.is_new && !item.is_read;
             });
             serverReadIds = new Set(notifications.filter(function (item) {
                 return item.is_read;
@@ -1050,7 +1230,11 @@
 
             if (hadFetchedOnce && newNotifications.length) {
                 const latestNewNotification = newNotifications[0] || {};
-                playNotificationTone(latestNewNotification.status_class || "");
+                if (typeof window.armNotificationAudio === "function") {
+                    window.armNotificationAudio();
+                }
+                showLocalBrowserNotification(latestNewNotification);
+                playNotificationTone(latestNewNotification.status_class || "", latestNewNotification.activity_label || "");
                 flashNotificationScreen(latestNewNotification.status_class || "");
             }
         }
