@@ -137,8 +137,13 @@
 
     <div class="main-card" id="card">
         <div class="user-id-bar">
-            <div>ID: <span>{{ user.get_full_name|default:user.username|upper }}</span></div>
-            <div>EMP: <span>{{ user.profile.employee_id|default:"MST-GUEST" }}</span></div>
+            {% if request and request.user.is_authenticated %}
+                <div>ID: <span>{{ request.user.get_full_name|default:request.user.username|upper }}</span></div>
+                <div>EMP: <span>{{ request.user.profile.employee_id|default:"MST-GUEST" }}</span></div>
+            {% else %}
+                <div>ID: <span>SYSTEM USER</span></div>
+                <div>EMP: <span>MST-GUEST</span></div>
+            {% endif %}
         </div>
 
         <div class="brand-top">
@@ -165,7 +170,7 @@
         let greet = "GOOD EVENING";
         if (hour < 12) greet = "GOOD MORNING";
         else if (hour < 17) greet = "GOOD AFTERNOON";
-        document.getElementById('greeting-box').innerText = greet + ", {{ user.first_name|default:user.username|upper }}";
+        document.getElementById('greeting-box').innerText = greet + ", {% if request and request.user.is_authenticated %}{{ request.user.first_name|default:request.user.username|upper|escapejs }}{% else %}MS TECHNOLOGY{% endif %}";
 
         document.addEventListener('mousemove', e => {
             if (window.innerWidth < 768) return;
