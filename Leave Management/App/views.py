@@ -186,6 +186,11 @@ def get_leave_alert_recipients():
     return list(dict.fromkeys(email for email in recipients if email))
 
 
+def get_leave_decision_email_recipients(employee):
+    recipients = [getattr(employee, "email", ""), settings.LEAVE_RECORD_EMAIL]
+    return list(dict.fromkeys(email for email in recipients if email))
+
+
 def normalize_employee_phone(phone):
     phone = (phone or "").strip()
     if len(phone) > 25:
@@ -3558,9 +3563,9 @@ def approve_leave(request, leave_id):
         subject,
         'emails/notification.html',
         context,
-        leave.user.email,
-        reply_to=settings.LEAVE_RECORD_EMAIL or request.user.email,
-        from_email=settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        get_leave_decision_email_recipients(leave.user),
+        reply_to=request.user.email,
+        from_email=settings.LEAVE_DESK_FROM_EMAIL,
         email_type="leave_approved",
         related_user=leave.user,
         related_leave=leave,
@@ -3729,9 +3734,9 @@ def reject_leave(request, leave_id):
         subject,
         'emails/notification.html',
         context,
-        leave.user.email,
-        reply_to=settings.LEAVE_RECORD_EMAIL or request.user.email,
-        from_email=settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        get_leave_decision_email_recipients(leave.user),
+        reply_to=request.user.email,
+        from_email=settings.LEAVE_DESK_FROM_EMAIL,
         email_type="leave_rejected",
         related_user=leave.user,
         related_leave=leave,
