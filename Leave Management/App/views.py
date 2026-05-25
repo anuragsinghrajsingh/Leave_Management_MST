@@ -354,6 +354,7 @@ def store_apply_leave_form_state(request):
 
 def _apply_leave_response(request, status=400):
     if _is_ajax_request(request):
+        request.session.pop("apply_leave_form", None)
         return JsonResponse({
             "success": False,
             "redirect_url": reverse("apply_leave"),
