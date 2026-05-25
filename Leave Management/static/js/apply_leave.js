@@ -1466,6 +1466,10 @@
             return getResponsePath(responseUrl).replace(/\/+$/, "") === "/my_leave";
         }
 
+        function isApplyLeavePath(responseUrl) {
+            return getResponsePath(responseUrl).replace(/\/+$/, "") === "/apply_leave";
+        }
+
         function setSubmitButtonState(button, state, text) {
             if (!button) {
                 return;
@@ -1499,7 +1503,7 @@
 
         function redirectAfterApplyTone(targetUrl, submitButton) {
             try {
-                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
+                window.sessionStorage.setItem("leave-apply-success-tone-pending", "1");
             } catch (error) {
                 // Ignore storage failures.
             }
@@ -1513,6 +1517,18 @@
             window.setTimeout(() => {
                 window.location.href = targetUrl || "/my_leave/";
             }, 1250);
+        }
+
+        function storeApplyRedirectMessages(messages) {
+            if (!Array.isArray(messages) || messages.length === 0) {
+                return;
+            }
+
+            try {
+                window.sessionStorage.setItem("leave-apply-redirect-messages", JSON.stringify(messages));
+            } catch (error) {
+                // Ignore storage failures.
+            }
         }
 
         function redirectAfterErrorTone(targetUrl) {
@@ -1529,6 +1545,23 @@
             }, 420);
         }
 
+        function renderFetchedApplyLeavePage(html) {
+            if (!html) {
+                redirectAfterErrorTone(window.location.href);
+                return;
+            }
+
+            if (typeof window.playLeaveErrorTone === "function") {
+                window.playLeaveErrorTone();
+            }
+
+            window.setTimeout(() => {
+                document.open();
+                document.write(html);
+                document.close();
+            }, 420);
+        }
+
         async function readApplyResponse(response) {
             const contentType = response.headers.get("content-type") || "";
 
@@ -1539,7 +1572,7 @@
                 return { response, payload };
             }
 
-            return { response, payload: null };
+            return { response, payload: null, html: await response.text() };
         }
 
         form.addEventListener("submit", (event) => {
@@ -1630,7 +1663,7 @@
                 credentials: "same-origin"
             })
                 .then(readApplyResponse)
-                .then(({ response, payload }) => {
+                .then(({ response, payload, html }) => {
                     if (payload?.sessionExpired) {
                         if (typeof window.redirectAfterSessionExpired === "function") {
                             window.redirectAfterSessionExpired(payload);
@@ -1639,6 +1672,7 @@
                     }
 
                     if (payload?.success === true) {
+                        storeApplyRedirectMessages(payload.messages);
                         redirectAfterApplyTone(payload.redirect_url || response.url || "/my_leave/", submitButton);
                         return;
                     }
@@ -1650,6 +1684,10 @@
 
                     form.dataset.submitting = "";
                     resetSubmitButtonState(submitButton);
+                    if (!payload && isApplyLeavePath(response.url)) {
+                        renderFetchedApplyLeavePage(html);
+                        return;
+                    }
                     redirectAfterErrorTone(response.url || window.location.href);
                 })
                 .catch(() => {

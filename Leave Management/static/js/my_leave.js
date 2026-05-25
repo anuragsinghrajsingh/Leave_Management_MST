@@ -3244,6 +3244,34 @@ const exportWrapper = document.createElement("div");
             }, isError ? 6500 : 4200);
         });
     }
+    function showStoredApplyRedirectMessages()
+    {
+        let rawMessages = "";
+        try
+        {
+            rawMessages = window.sessionStorage.getItem("leave-apply-redirect-messages") || "";
+            window.sessionStorage.removeItem("leave-apply-redirect-messages");
+        }
+        catch (error)
+        {
+            return;
+        }
+
+        if (!rawMessages)
+        {
+            return;
+        }
+
+        try
+        {
+            showAjaxMessages(JSON.parse(rawMessages));
+        }
+        catch (error)
+        {
+            // Ignore malformed storage data.
+        }
+    }
+    showStoredApplyRedirectMessages();
     async function parseAjaxResponse(response)
     {
         if (typeof window.parseJsonOrSessionExpired === "function")

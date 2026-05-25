@@ -5091,7 +5091,7 @@ def apply_leave(request):
 
         # ✅ DELETE THE TEMPORARILY STORED FORM DATA FROM SESSION
         request.session.pop("apply_leave_form", None)
-        return redirect("my_leave")
+        return _my_leave_response(request, redirect_url=reverse("my_leave"))
 
     # =====================================================
     # 🔵 GET REQUEST
