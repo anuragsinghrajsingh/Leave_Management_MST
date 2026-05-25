@@ -2971,9 +2971,9 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     return;
                 }
                 renderFlashMessages(payload.messages);
-                if (payload && payload.status && typeof window.playHrDecisionTone === "function")
+                if (typeof window.playHrDecisionTone === "function")
                 {
-                    window.playHrDecisionTone(payload.status);
+                    window.playHrDecisionTone(payload && payload.status ? payload.status : "approved");
                 }
                 refreshEmployeeModalAfterAction(payload.employee_detail, "approved");
                 refreshHrNotificationsAfterDecision(leaveId);
@@ -3063,9 +3063,9 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
                     renderFlashMessages(payload.messages);
                     return payload;
                 }
-                if (payload && payload.status && typeof window.playHrDecisionTone === "function")
+                if (typeof window.playHrDecisionTone === "function")
                 {
-                    window.playHrDecisionTone(payload.status);
+                    window.playHrDecisionTone(payload && payload.status ? payload.status : "rejected");
                 }
                 return payload;
             })

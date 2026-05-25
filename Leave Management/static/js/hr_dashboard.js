@@ -1366,9 +1366,12 @@ const reasonPreviewModalAnimationMs = 400;
             .then(function (payload)
             {
                 renderFlashMessages(payload.messages);
-                if (payload && payload.status && typeof window.playHrDecisionTone === "function")
+                const fallbackDecisionStatus = form.id === "rejectForm" || String(form.action || "").includes("reject-leave")
+                    ? "rejected"
+                    : "approved";
+                if (typeof window.playHrDecisionTone === "function")
                 {
-                    window.playHrDecisionTone(payload.status);
+                    window.playHrDecisionTone(payload && payload.status ? payload.status : fallbackDecisionStatus);
                 }
                 closeReject();
                 refreshDashboardLiveSections();
