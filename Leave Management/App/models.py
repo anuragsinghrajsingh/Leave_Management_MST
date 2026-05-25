@@ -278,11 +278,18 @@ class LeaveBalanceAudit(models.Model):
         return f"{self.employee.username} balance updated by {actor}"
 
 
+def _truncate_for_field(value, max_length):
+    if value is None:
+        return value
+    value = str(value)
+    return value[:max_length]
+
+
 class AdminAuditLog(models.Model):
-    model_label = models.CharField(max_length=100)
-    object_id = models.CharField(max_length=100)
-    object_repr = models.CharField(max_length=255)
-    action = models.CharField(max_length=20, default="CHANGE")
+    model_label = models.CharField(max_length=500)
+    object_id = models.CharField(max_length=500)
+    object_repr = models.CharField(max_length=500)
+    action = models.CharField(max_length=500, default="CHANGE")
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -301,6 +308,13 @@ class AdminAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.model_label} {self.object_repr} {self.action.lower()}"
+
+    def save(self, *args, **kwargs):
+        self.model_label = _truncate_for_field(self.model_label, 500)
+        self.object_id = _truncate_for_field(self.object_id, 500)
+        self.object_repr = _truncate_for_field(self.object_repr, 500)
+        self.action = _truncate_for_field(self.action, 500)
+        super().save(*args, **kwargs)
 
 
 class UserAdminAudit(AdminAuditLog):
@@ -379,9 +393,9 @@ class EmailDeliveryLog(models.Model):
         ("failed", "Failed"),
     ]
 
-    email_type = models.CharField(max_length=80, db_index=True)
-    subject = models.CharField(max_length=255)
-    from_email = models.CharField(max_length=255, blank=True)
+    email_type = models.CharField(max_length=500, db_index=True)
+    subject = models.CharField(max_length=500)
+    from_email = models.CharField(max_length=500, blank=True)
     recipient = models.EmailField(db_index=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, db_index=True)
     error_message = models.TextField(blank=True)
@@ -416,6 +430,12 @@ class EmailDeliveryLog(models.Model):
 
     def __str__(self):
         return f"{self.recipient} - {self.subject} - {self.status}"
+
+    def save(self, *args, **kwargs):
+        self.email_type = _truncate_for_field(self.email_type, 500)
+        self.subject = _truncate_for_field(self.subject, 500)
+        self.from_email = _truncate_for_field(self.from_email, 500)
+        super().save(*args, **kwargs)
 
 
 class PushSubscription(models.Model):
