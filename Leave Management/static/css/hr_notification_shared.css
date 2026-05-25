@@ -691,7 +691,7 @@ body.hr-page .notification-time::before
     flex: 0 0 10px;
     border-radius: 999px;
     background:
-        url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='6.1' fill='none' stroke='%23ffffff' stroke-width='2.1'/><path d='M10 6.3v4l2.7 1.6' fill='none' stroke='%23ffffff' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'/></svg>\") center/7px 7px no-repeat,
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='6.1' fill='none' stroke='%23ffffff' stroke-width='2.1'/><path d='M10 6.3v4l2.7 1.6' fill='none' stroke='%23ffffff' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/7px 7px no-repeat,
         linear-gradient(135deg, #c7d2fe, #818cf8);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.88);
 }
