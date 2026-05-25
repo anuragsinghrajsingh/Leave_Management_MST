@@ -65,7 +65,7 @@ from .models import (
     WorkFromHomeDay,
 )
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django import forms
 from django.conf import settings
@@ -1066,11 +1066,43 @@ class CustomUserAdminForm(AdminReasonFormMixin, UserChangeForm):
         return cleaned_data
 
 # 🔹 Register CustomUser
+class CustomUserAdminCreationForm(UserCreationForm):
+    send_welcome_email = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Send welcome email",
+        help_text="Send the welcome package after employee profile details are saved.",
+    )
+    initial_sick_total = forms.FloatField(
+        required=False,
+        initial=12,
+        min_value=0,
+        label="Initial sick leave",
+    )
+    initial_earned_total = forms.FloatField(
+        required=False,
+        initial=15,
+        min_value=0,
+        label="Initial earned leave",
+    )
+    initial_unpaid = forms.FloatField(
+        required=False,
+        initial=0,
+        min_value=0,
+        label="Initial unpaid leave",
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = CustomUser
+        fields = ("username", "role")
+
+
 @login_required
 @never_cache
 @admin.register(CustomUser)
 class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     form = CustomUserAdminForm
+    add_form = CustomUserAdminCreationForm
     change_user_password_template = "admin/customuser_change_password.html"
 
     inlines = [ProfileInline]
@@ -1095,7 +1127,15 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("username", "password1", "password2", "role"),
+            "fields": (
+                "username",
+                "password1",
+                "password2",
+                "role",
+                "send_welcome_email",
+                ("initial_sick_total", "initial_earned_total"),
+                "initial_unpaid",
+            ),
         }),
     )
 
@@ -1139,7 +1179,10 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         return super().changeform_view(request, object_id, form_url, extra_context=extra_context)
 
     def response_add(self, request, obj, post_url_continue=None):
-        request.session["pending_employee_welcome_user_id"] = obj.pk
+        if getattr(request, "_send_welcome_email_after_user_create", True):
+            request.session["pending_employee_welcome_user_id"] = obj.pk
+        else:
+            request.session.pop("pending_employee_welcome_user_id", None)
         return super().response_add(request, obj, post_url_continue=post_url_continue)
     
     def get_form(self, request, obj=None, **kwargs):
@@ -2088,6 +2131,10 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     def save_model(self, request, obj, form, change):
         previous = CustomUser.objects.get(pk=obj.pk) if change and obj.pk else None
         super().save_model(request, obj, form, change)
+        if not change:
+            request._send_welcome_email_after_user_create = bool(form.cleaned_data.get("send_welcome_email"))
+            self._apply_initial_leave_balance(request, obj, form)
+
         if previous:
             field_names = [field.name for field in obj._meta.fields if field.name not in {"password", "last_login", "date_joined"}]
             _create_admin_audit_log(
@@ -2098,6 +2145,45 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             )
         elif obj.pk:
             self._log_create(request, obj, "Created from Django admin.")
+
+    def _apply_initial_leave_balance(self, request, user, form):
+        if user.role != "EMPLOYEE":
+            return
+
+        sick_total = float(form.cleaned_data.get("initial_sick_total") or 0)
+        earned_total = float(form.cleaned_data.get("initial_earned_total") or 0)
+        unpaid = float(form.cleaned_data.get("initial_unpaid") or 0)
+        total_balance = sick_total + earned_total
+
+        balance, _ = LeaveBalance.objects.get_or_create(user=user)
+        old_values = {
+            field_name: getattr(balance, field_name)
+            for field_name in LEAVE_BALANCE_AUDIT_FIELDS
+        }
+
+        balance.sick_total = sick_total
+        balance.sick_used = 0
+        balance.earned_total = earned_total
+        balance.earned_used = 0
+        balance.unpaid = unpaid
+        balance.total_leave_balance = total_balance
+        balance.total_leave_remaining = total_balance
+        balance.save()
+
+        changes = {
+            field_name: {"old": old_values.get(field_name), "new": getattr(balance, field_name)}
+            for field_name in LEAVE_BALANCE_AUDIT_FIELDS
+            if old_values.get(field_name) != getattr(balance, field_name)
+        }
+        if changes:
+            LeaveBalanceAudit.objects.create(
+                balance=balance,
+                employee=user,
+                updated_by=request.user,
+                reason="Initial balance set during user creation.",
+                changes=changes,
+            )
+            self.message_user(request, "Initial leave balance saved for employee.", level=messages.SUCCESS)
 
     def _send_pending_welcome_package(self, request, user):
         pending_user_id = request.session.get("pending_employee_welcome_user_id")
