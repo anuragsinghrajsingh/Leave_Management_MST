@@ -2,11 +2,20 @@ const myLeaveConfigElement = document.getElementById("my-leave-js-config");
 const myLeaveConfig = myLeaveConfigElement ? myLeaveConfigElement.dataset : {};
 const myLeaveCalendarDataUrl = myLeaveConfig.calendarDataUrl || "";
 const myLeaveUrl = myLeaveConfig.myLeaveUrl || "";
+const LEAVE_CALENDAR_CACHE_TTL_MS = 30 * 1000;
+const MY_LEAVE_BACKGROUND_REFRESH_MS = 30 * 1000;
 let cachedLeaveCalendarData = null;
+let cachedLeaveCalendarDataFetchedAt = 0;
 
 function invalidateLeaveCalendarCache()
 {
     cachedLeaveCalendarData = null;
+    cachedLeaveCalendarDataFetchedAt = 0;
+}
+
+function isLeaveCalendarCacheFresh()
+{
+    return cachedLeaveCalendarData && (Date.now() - cachedLeaveCalendarDataFetchedAt) < LEAVE_CALENDAR_CACHE_TTL_MS;
 }
 
 function buildInlineReasonMoreButton(reasonText, fullText) {
@@ -671,13 +680,14 @@ document.addEventListener("DOMContentLoaded", function () {
     function openLeaveCalendar() 
     {
         showLeaveCalendarSkeleton();
-        const calendarDataRequest = cachedLeaveCalendarData
+        const calendarDataRequest = isLeaveCalendarCacheFresh()
             ? Promise.resolve(cachedLeaveCalendarData)
             : fetch(myLeaveCalendarDataUrl)
             .then(res => typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json())
             .then(data => {
                 if (!data.sessionExpired) {
                     cachedLeaveCalendarData = data;
+                    cachedLeaveCalendarDataFetchedAt = Date.now();
                 }
                 return data;
             });
@@ -3053,6 +3063,7 @@ const exportWrapper = document.createElement("div");
     let myLeaveLiveCountsInitialized = false;
     let myLeaveRefreshInFlight = false;
     let myLeaveRefreshQueued = null;
+    let myLeaveLastBackgroundRefreshAt = Date.now();
     function getMyLeaveDecisionNotifications(notifications)
     {
         if (!Array.isArray(notifications))
@@ -3211,6 +3222,52 @@ const exportWrapper = document.createElement("div");
             }
         }
     }
+    function isMyLeaveBackgroundRefreshBlocked()
+    {
+        if (document.hidden)
+        {
+            return true;
+        }
+
+        const sharedModal = document.getElementById("modal");
+        const calendarDetail = document.getElementById("calendar-detail-overlay");
+        const sharedModalOpen = sharedModal && sharedModal.style.display !== "none" && (
+            sharedModal.classList.contains("is-open") ||
+            sharedModal.classList.contains("is-closing") ||
+            sharedModal.style.display === "flex"
+        );
+        const calendarDetailOpen = calendarDetail && calendarDetail.style.display === "flex";
+
+        return !!(sharedModalOpen || calendarDetailOpen || myLeaveRefreshInFlight);
+    }
+    function refreshMyLeaveLiveDataQuietly()
+    {
+        if (isMyLeaveBackgroundRefreshBlocked())
+        {
+            return;
+        }
+
+        myLeaveLastBackgroundRefreshAt = Date.now();
+        refreshMyLeaveLiveData({
+            activePanel: getActiveMyLeavePanelId(),
+            silent: true
+        });
+    }
+    window.setInterval(() =>
+    {
+        if (Date.now() - myLeaveLastBackgroundRefreshAt < MY_LEAVE_BACKGROUND_REFRESH_MS)
+        {
+            return;
+        }
+        refreshMyLeaveLiveDataQuietly();
+    }, MY_LEAVE_BACKGROUND_REFRESH_MS);
+    document.addEventListener("visibilitychange", () =>
+    {
+        if (!document.hidden && Date.now() - myLeaveLastBackgroundRefreshAt >= MY_LEAVE_BACKGROUND_REFRESH_MS)
+        {
+            refreshMyLeaveLiveDataQuietly();
+        }
+    });
     function ensureAjaxMessageHost()
     {
         let host = document.getElementById("ajax-message-stack");
