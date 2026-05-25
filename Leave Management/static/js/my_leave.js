@@ -4,6 +4,11 @@ const myLeaveCalendarDataUrl = myLeaveConfig.calendarDataUrl || "";
 const myLeaveUrl = myLeaveConfig.myLeaveUrl || "";
 let cachedLeaveCalendarData = null;
 
+function invalidateLeaveCalendarCache()
+{
+    cachedLeaveCalendarData = null;
+}
+
 function buildInlineReasonMoreButton(reasonText, fullText) {
     const moreBtn = document.createElement("button");
     moreBtn.type = "button";
@@ -1527,7 +1532,7 @@ const exportWrapper = document.createElement("div");
                     <button class="edit-btn" type="button" data-calendar-edit-leave> &#9998; Edit </button>
                     
                     <form method="post" action="/delete-leave/${safeLeaveId}/"
-                        data-confirm-submit="Delete this leave?">
+                        class="js-pending-delete-form" data-leave-id="${safeLeaveId}">
                         <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrfToken)}">
                         <button type="submit" class="delete-btn">&#128465; Delete</button>
                     </form>
@@ -1568,7 +1573,10 @@ const exportWrapper = document.createElement("div");
         openEditLeave(fakeButton, {
             inlineHost: content,
             calendarInline: true,
-            afterSuccessfulEdit: () => closeCalendarDetail()
+            afterSuccessfulEdit: () => {
+                closeCalendarDetail();
+                openLeaveCalendar();
+            }
         });
     }
     function getCSRFToken() 
@@ -3395,6 +3403,7 @@ const exportWrapper = document.createElement("div");
             {
                 window.playLeaveActionTone("edit");
             }
+            invalidateLeaveCalendarCache();
             await refreshMyLeaveLiveData({
                 activePanel: "pending-panel",
                 targetPanel: "pending-panel",
@@ -3455,6 +3464,7 @@ const exportWrapper = document.createElement("div");
             {
                 window.playLeaveActionTone("delete");
             }
+            invalidateLeaveCalendarCache();
             
             // Immediate UI update for the counts if available
             if (payload.live_counts) {
@@ -3465,6 +3475,11 @@ const exportWrapper = document.createElement("div");
             await refreshMyLeaveLiveData({
                 activePanel: "pending-panel"
             });
+            if (form.closest("#calendar-detail-content"))
+            {
+                closeCalendarDetail();
+                openLeaveCalendar();
+            }
         });
         document.addEventListener("invalid", (event) =>
         {
