@@ -830,8 +830,9 @@ def _snapshot_model_fields(obj, excluded_fields=None):
     }
 
 
-def admin_reason_field():
+def admin_reason_field(label="Audit reason"):
     return forms.CharField(
+        label=label,
         required=False,
         widget=forms.Textarea(attrs={"rows": 3}),
         help_text="Required when you change this record.",
@@ -848,7 +849,7 @@ class AdminReasonFormMixin:
 
 
 class ProfileInlineForm(AdminReasonFormMixin, forms.ModelForm):
-    change_reason = admin_reason_field()
+    change_reason = admin_reason_field("Profile audit reason")
 
     class Meta:
         model = Profile
@@ -1053,7 +1054,7 @@ CustomUser = get_user_model()
 
 
 class CustomUserAdminForm(AdminReasonFormMixin, UserChangeForm):
-    change_reason = admin_reason_field()
+    change_reason = admin_reason_field("User account audit reason")
 
     class Meta(UserChangeForm.Meta):
         model = CustomUser
@@ -1148,7 +1149,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         ("Employee Quick Actions", {
             "fields": ("employee_quick_actions",),
         }),
-        ("Audit reason", {
+        ("User account audit reason", {
             "fields": ("change_reason",),
         }),
     )
