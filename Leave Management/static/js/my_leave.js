@@ -2138,7 +2138,7 @@ const exportWrapper = document.createElement("div");
         };
         const companyHolidays = readMyLeaveJson("my-leave-company-holidays-json", []);
         const publicHolidays = readMyLeaveJson("my-leave-public-holidays-json", []);
-        const existingLeaves = readMyLeaveJson("my-leave-existing-leaves-json", []);
+        const getExistingLeaves = () => readMyLeaveJson("my-leave-existing-leaves-json", []);
         const parseDate = (value) =>
         {
             const parts = String(value || "").split("-");
@@ -2168,7 +2168,7 @@ const exportWrapper = document.createElement("div");
         const findLeaveForDate = (dateStr, { excludeCurrent = false, activeOnly = false } = {}) =>
         {
             const currentId = getCurrentEditLeaveId();
-            return existingLeaves
+            return getExistingLeaves()
                 .filter((leave) =>
                 {
                     const normalizedStatus = normalizeLeaveStatus(leave);
@@ -2516,6 +2516,14 @@ const exportWrapper = document.createElement("div");
                 <span class="leave-pill-name">${escapeHtml(leave.leave_type)}</span>
             </span>
         `;
+    }
+    function syncExistingLeavesJson(value)
+    {
+        const node = document.getElementById("my-leave-existing-leaves-json");
+        if (node && typeof value === "string")
+        {
+            node.value = value;
+        }
     }
     function buildPendingScheduleHtml(leave)
     {
@@ -3139,6 +3147,7 @@ const exportWrapper = document.createElement("div");
                 if (typeof window.redirectAfterSessionExpired === "function") window.redirectAfterSessionExpired(payload);
                 return;
             }
+            syncExistingLeavesJson(payload.existing_leaves_json);
             const activePanelId = options.activePanel || getActiveMyLeavePanelId();
             const summaryHost = document.querySelector("[data-my-leave-summary]");
             const statsHost = document.querySelector("[data-my-leave-stats]");

@@ -5455,6 +5455,7 @@ def my_leave(request):
                 "rejected": context["rejected_leaves"].count(),
             },
             "live_counts": live_counts,
+            "existing_leaves_json": context["existing_leaves_json"],
         })
 
     messages.success(request, "Updated latest leave information.")
