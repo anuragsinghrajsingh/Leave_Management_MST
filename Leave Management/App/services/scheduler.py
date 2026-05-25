@@ -61,6 +61,14 @@ SCHEDULER_JOB_DETAILS = [
         "effect": "Checks whether weekly HR report is missed and sends it if needed.",
     },
     {
+        "id": "public_holiday_sync",
+        "name": "Public holiday sync",
+        "schedule": "Monthly on day 1 at 03:00, plus once after scheduler starts",
+        "service_file": "public_holidays.py",
+        "function": "sync_public_holidays",
+        "effect": "Refreshes saved India public holidays without slowing user calendar requests.",
+    },
+    {
         "id": "scheduler_keepalive",
         "name": "Scheduler keep-alive",
         "schedule": "Every 6 hours",
@@ -74,6 +82,8 @@ def start_scheduler():
     logger.info("SCHEDULER | START | Preparing in-app background scheduler.")
     from App.services.year_end_service import run_year_end_carry_forward_if_due
     from App.services.startup_checks import check_and_run_missed_backup, check_and_run_missed_weekly_report
+    from App.services.background_tasks import enqueue_background_task
+    from App.services.public_holidays import sync_public_holidays
 
     scheduler = BackgroundScheduler()
     logger.info("SCHEDULER | JOBSTORE | Using in-memory job store.")
@@ -84,6 +94,8 @@ def start_scheduler():
         run_startup_catchup()
     except Exception as e:
         logger.error(f"SCHEDULER | Failed to run startup catch-up: {e}")
+
+    enqueue_background_task(sync_public_holidays, task_name="public_holiday_sync_startup")
 
     # Schedule the year-end carry forward at 1:00 AM every night
     scheduler.add_job(
@@ -121,6 +133,18 @@ def start_scheduler():
         replace_existing=True,
     )
     logger.info("SCHEDULER | JOB_ADDED | weekly_hr_report | Monday 09:00")
+
+    scheduler.add_job(
+        sync_public_holidays,
+        trigger="cron",
+        day=1,
+        hour=3,
+        minute=0,
+        id="public_holiday_sync",
+        max_instances=1,
+        replace_existing=True,
+    )
+    logger.info("SCHEDULER | JOB_ADDED | public_holiday_sync | Monthly day 1 03:00")
     
     # Add a sanity check job that runs every 6 hours just to confirm the scheduler is alive
     scheduler.add_job(
@@ -183,6 +207,7 @@ def _print_manual_run_note():
     print("- Weekly HR report: weekly_report_service.py")
     print("- Startup catch-up / missed backup / missed weekly report checks: startup_checks.py")
     print("- Year-end carry forward: year_end_service.py")
+    print("- Public holiday sync: public_holidays.py")
     print("- Scheduler keep-alive: scheduler.py only logs status; no manual run is needed.")
 
 

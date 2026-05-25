@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta
 from django.utils.timezone import localtime, localdate, now
 from django.utils import timezone
 from calendar import monthrange
-import os,json, requests
+import os,json
 import hashlib
 import logging
 import math
@@ -10,11 +10,11 @@ import re
 import uuid
 import secrets
 import time as time_module
-from ics import Calendar
 from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.shortcuts import render, redirect, get_object_or_404
 from App.utils.logger_utils import log_leave_action, log_profile_update
+from App.services.public_holidays import get_public_holidays
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
@@ -620,30 +620,6 @@ def _get_upcoming_company_holiday(today=None):
     today = today or localdate()
     return CompanyHoliday.objects.filter(date__gte=today).order_by("date").first()
 
-
-def _fallback_public_holidays(year):
-    """
-    Minimal fallback for fixed-date national holidays only.
-    This is not the full public holiday calendar.
-    Used only when the live Google holiday calendar cannot be fetched.
-    """
-    return [
-        {
-            "date": f"{year}-01-26",
-            "name": "Republic Day",
-            "type": "Public",
-        },
-        {
-            "date": f"{year}-08-15",
-            "name": "Independence Day",
-            "type": "Public",
-        },
-        {
-            "date": f"{year}-10-02",
-            "name": "Gandhi Jayanti",
-            "type": "Public",
-        },
-    ]
 
 def _serialize_leave_for_my_leave(leave):
     leave_type_class = (leave.leave_type or "").lower()
@@ -5191,11 +5167,6 @@ def apply_leave(request):
 @never_cache
 def leave_calendar_data(request):
 
-    HOLIDAY_CACHE_KEY = "public_holidays_india"
-    HOLIDAY_CACHE_TIMEOUT = 60 * 60 * 24 * 30  # 30 days
-
-    holidays = cache.get(HOLIDAY_CACHE_KEY)
-
     # 1️⃣ USER LEAVES
     leaves = Leave.objects.filter(user=request.user).select_related("reviewed_by")
     leave_data = [
@@ -5230,6 +5201,7 @@ def leave_calendar_data(request):
         }
         for holiday in company_holidays
     ]
+    holidays = get_public_holidays()
 
     # 2️⃣ COMPANY CLOSURES (MANUAL)
     # company_closures = CompanyClosure.objects.all()
@@ -5280,38 +5252,6 @@ def leave_calendar_data(request):
     # except Exception as e:
     #     print("Holiday fetch failed:", e)
 
-
-    if not holidays:
-        holidays = []
-        current_year = date.today().year
-        try:
-            res = requests.get(
-                "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics",
-                timeout=10
-            )
-            res.raise_for_status()
-
-            if "BEGIN:VCALENDAR" not in res.text:
-                raise ValueError("Holiday feed did not return calendar data.")
-
-            calendar = Calendar(res.text)
-
-            for event in calendar.events:
-                if event.begin.year == current_year:
-                    holidays.append({
-                        "date": event.begin.strftime("%Y-%m-%d"),
-                        "name": event.summary,
-                        "type": "Public"
-                    })
-
-            cache.set(HOLIDAY_CACHE_KEY, holidays, HOLIDAY_CACHE_TIMEOUT)
-
-        except Exception as e:
-            print("Holiday fetch failed:", e)
-
-        if not holidays:
-            holidays = _fallback_public_holidays(current_year)
-            cache.set(HOLIDAY_CACHE_KEY, holidays, HOLIDAY_CACHE_TIMEOUT)
 
     return JsonResponse({
         "leaves": leave_data,

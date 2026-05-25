@@ -40,3 +40,5 @@ backups/
 logs/
 **/backups/
 **/logs/
+runtime/public_holidays_india.json
+Leave Management/runtime/public_holidays_india.json

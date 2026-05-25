@@ -2,6 +2,7 @@ const myLeaveConfigElement = document.getElementById("my-leave-js-config");
 const myLeaveConfig = myLeaveConfigElement ? myLeaveConfigElement.dataset : {};
 const myLeaveCalendarDataUrl = myLeaveConfig.calendarDataUrl || "";
 const myLeaveUrl = myLeaveConfig.myLeaveUrl || "";
+let cachedLeaveCalendarData = null;
 
 function buildInlineReasonMoreButton(reasonText, fullText) {
     const moreBtn = document.createElement("button");
@@ -665,8 +666,18 @@ document.addEventListener("DOMContentLoaded", function () {
     function openLeaveCalendar() 
     {
         showLeaveCalendarSkeleton();
-        fetch(myLeaveCalendarDataUrl)
+        const calendarDataRequest = cachedLeaveCalendarData
+            ? Promise.resolve(cachedLeaveCalendarData)
+            : fetch(myLeaveCalendarDataUrl)
             .then(res => typeof window.parseJsonOrSessionExpired === "function" ? window.parseJsonOrSessionExpired(res) : res.json())
+            .then(data => {
+                if (!data.sessionExpired) {
+                    cachedLeaveCalendarData = data;
+                }
+                return data;
+            });
+
+        calendarDataRequest
             .then(data => 
             {
                 if (data.sessionExpired)
