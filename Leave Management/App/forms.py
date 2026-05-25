@@ -54,6 +54,22 @@ class UserProfileForm(forms.ModelForm):
 
 
 class CustomPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        password_fields = {
+            "old_password": "current-password",
+            "new_password1": "new-password",
+            "new_password2": "new-password",
+        }
+        for field_name, autocomplete in password_fields.items():
+            if field_name in self.fields:
+                self.fields[field_name].widget = forms.PasswordInput(
+                    attrs={
+                        "autocomplete": autocomplete,
+                        "class": self.fields[field_name].widget.attrs.get("class", ""),
+                    },
+                    render_value=False,
+                )
 
     def clean_new_password1(self):
         password = self.cleaned_data.get("new_password1")
