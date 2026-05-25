@@ -1086,6 +1086,9 @@
             const appendPage = settings.append === true;
             const hadFetchedOnce = hasFetchedOnce;
             const previousKnownIds = new Set(knownIds);
+            const previousUnreadCount = knownIds.filter(function (id) {
+                return !readIds.has(id);
+            }).length;
             const previousSignatures = new Map(
                 latestNotifications.map(function (item) {
                     return [String(item.id || ""), getNotificationSignature(item)];
@@ -1197,7 +1200,7 @@
                 const itemId = String(item.id);
                 const wasKnown = previousKnownIds.has(itemId);
                 const signatureChanged = wasKnown && previousSignatures.get(itemId) !== getNotificationSignature(item);
-                return (!wasKnown || signatureChanged) && item.is_new && !item.is_read;
+                return (!wasKnown || signatureChanged) && !item.is_read;
             });
             serverReadIds = new Set(notifications.filter(function (item) {
                 return item.is_read;
@@ -1222,14 +1225,19 @@
             updateTotal(ids.filter(function (id) {
                 return !readIds.has(id);
             }).length);
+            const nextUnreadCount = ids.filter(function (id) {
+                return !readIds.has(id);
+            }).length;
             updateNewIndicators();
             hasFetchedOnce = true;
             renderNotifications(notifications);
             broadcastNotificationState();
             dropdown.classList.add("is-hydrated");
 
-            if (hadFetchedOnce && newNotifications.length) {
-                const latestNewNotification = newNotifications[0] || {};
+            if (hadFetchedOnce && (newNotifications.length || nextUnreadCount > previousUnreadCount)) {
+                const latestNewNotification = newNotifications[0] || notifications.find(function (item) {
+                    return !item.is_read;
+                }) || {};
                 if (typeof window.armNotificationAudio === "function") {
                     window.armNotificationAudio();
                 }
