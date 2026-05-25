@@ -1466,10 +1466,6 @@
             return getResponsePath(responseUrl).replace(/\/+$/, "") === "/my_leave";
         }
 
-        function isApplyLeavePath(responseUrl) {
-            return getResponsePath(responseUrl).replace(/\/+$/, "") === "/apply_leave";
-        }
-
         function setSubmitButtonState(button, state, text) {
             if (!button) {
                 return;
@@ -1485,7 +1481,7 @@
             if (state === "processing") {
                 button.innerHTML = '<span class="submit-btn-label">' + (text || "Submitting") + '</span><span class="submit-btn-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span><span class="submit-btn-spinner" aria-hidden="true"></span>';
             } else if (state === "success") {
-                button.textContent = text || "Leave applied - opening My Leave";
+                button.textContent = text || "Opening My Leave";
             } else {
                 button.textContent = text || button.dataset.defaultText || "Submit Leave";
             }
@@ -1508,11 +1504,7 @@
                 // Ignore storage failures.
             }
 
-            setSubmitButtonState(submitButton, "success", "Leave applied - opening My Leave");
-
-            if (typeof window.playLeaveActionTone === "function") {
-                window.playLeaveActionTone("apply");
-            }
+            setSubmitButtonState(submitButton, "success", "Opening My Leave");
 
             window.setTimeout(() => {
                 window.location.href = targetUrl || "/my_leave/";
@@ -1531,6 +1523,65 @@
             }
         }
 
+        function dismissFlashMessage(flash) {
+            if (!flash || flash.dataset.closing === "true") {
+                return;
+            }
+            flash.dataset.closing = "true";
+            flash.classList.add("flash-exit");
+            window.setTimeout(() => flash.remove(), 220);
+        }
+
+        function ensureFlashHost() {
+            let host = document.getElementById("flash-messages");
+            if (host) {
+                return host;
+            }
+            host = document.createElement("div");
+            host.id = "flash-messages";
+            const main = document.querySelector("main");
+            if (main && main.parentNode) {
+                main.parentNode.insertBefore(host, main);
+            } else {
+                document.body.prepend(host);
+            }
+            return host;
+        }
+
+        function renderApplyMessages(messages) {
+            if (!Array.isArray(messages) || messages.length === 0) {
+                return;
+            }
+
+            const host = ensureFlashHost();
+            host.querySelectorAll("[data-flash]").forEach((flash) => flash.remove());
+
+            messages.forEach((message, index) => {
+                const item = document.createElement("div");
+                const tags = message.tags || "";
+                item.className = "flash" + (tags ? " flash-" + tags : "");
+                item.setAttribute("data-flash", "");
+                item.innerHTML = [
+                    '<span class="flash-accent" aria-hidden="true"></span>',
+                    '<span class="flash-icon" aria-hidden="true"></span>',
+                    '<div class="flash-copy">',
+                    '<strong class="flash-title"></strong>',
+                    '<p></p>',
+                    '</div>',
+                    '<button type="button" class="flash-dismiss" aria-label="Dismiss message">&times;</button>'
+                ].join("");
+                item.querySelector(".flash-title").textContent = message.title || "Update";
+                item.querySelector("p").textContent = message.text || "";
+                item.querySelector(".flash-dismiss").addEventListener("click", () => dismissFlashMessage(item));
+                host.appendChild(item);
+                window.setTimeout(() => dismissFlashMessage(item), 4200 + index * 250);
+            });
+
+            if (typeof window.playLeaveErrorTone === "function") {
+                window.playLeaveErrorTone();
+            }
+        }
+
         function redirectAfterErrorTone(targetUrl) {
             if (typeof window.playLeaveErrorTone === "function") {
                 window.playLeaveErrorTone();
@@ -1545,23 +1596,6 @@
             }, 420);
         }
 
-        function renderFetchedApplyLeavePage(html) {
-            if (!html) {
-                redirectAfterErrorTone(window.location.href);
-                return;
-            }
-
-            if (typeof window.playLeaveErrorTone === "function") {
-                window.playLeaveErrorTone();
-            }
-
-            window.setTimeout(() => {
-                document.open();
-                document.write(html);
-                document.close();
-            }, 420);
-        }
-
         async function readApplyResponse(response) {
             const contentType = response.headers.get("content-type") || "";
 
@@ -1572,7 +1606,7 @@
                 return { response, payload };
             }
 
-            return { response, payload: null, html: await response.text() };
+            return { response, payload: null };
         }
 
         form.addEventListener("submit", (event) => {
@@ -1663,7 +1697,7 @@
                 credentials: "same-origin"
             })
                 .then(readApplyResponse)
-                .then(({ response, payload, html }) => {
+                .then(({ response, payload }) => {
                     if (payload?.sessionExpired) {
                         if (typeof window.redirectAfterSessionExpired === "function") {
                             window.redirectAfterSessionExpired(payload);
@@ -1684,8 +1718,8 @@
 
                     form.dataset.submitting = "";
                     resetSubmitButtonState(submitButton);
-                    if (!payload && isApplyLeavePath(response.url)) {
-                        renderFetchedApplyLeavePage(html);
+                    if (payload?.messages) {
+                        renderApplyMessages(payload.messages);
                         return;
                     }
                     redirectAfterErrorTone(response.url || window.location.href);
@@ -1696,28 +1730,6 @@
                     redirectAfterErrorTone(window.location.href);
                 });
         });
-
-        try {
-            const shouldPlayApplySuccessTone = window.sessionStorage.getItem("leave-apply-success-tone-pending") === "1";
-            const successFlashText = Array.from(document.querySelectorAll(".flash-success"))
-                .map((flash) => flash.textContent || "")
-                .join(" ");
-            const hasApplySuccess = /leave\s+applied|applied\s+successfully|applied\s+range/i.test(successFlashText);
-
-            if (shouldPlayApplySuccessTone && hasApplySuccess) {
-                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
-                if (typeof window.playLeaveActionTone === "function") {
-                    window.playLeaveActionTone("apply");
-                }
-            } else if (shouldPlayApplySuccessTone && document.querySelector(".flash-error, .flash-warning")) {
-                window.sessionStorage.removeItem("leave-apply-success-tone-pending");
-                if (typeof window.playLeaveErrorTone === "function") {
-                    window.playLeaveErrorTone();
-                }
-            }
-        } catch (error) {
-            // Ignore storage/audio failures.
-        }
 
         const savedFromDatetime = fromDateTime.value ? new Date(fromDateTime.value) : null;
         const applyLeaveConfig = document.getElementById("apply-leave-js-config");

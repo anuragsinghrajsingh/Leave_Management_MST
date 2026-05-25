@@ -18,7 +18,7 @@ from App.utils.logger_utils import log_leave_action, log_profile_update
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
-from .models import AdminAuditLog, Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile, PushSubscription # , CompanyClosure, 
+from .models import AdminAuditLog, Communication, CommunicationRead, CommunicationSeen, CompanyHoliday, Leave, LeaveBalance, LeaveNotificationRead, LeaveNotificationSeen, Profile, PushSubscription # , CompanyClosure,
 from django.views.decorators.cache import never_cache
 from django.core.cache import cache
 from django.views.decorators.http import require_http_methods, require_POST
@@ -352,6 +352,17 @@ def store_apply_leave_form_state(request):
     request.session["apply_leave_form"] = safe_form_data
 
 
+def _apply_leave_response(request, status=400):
+    if _is_ajax_request(request):
+        return JsonResponse({
+            "success": False,
+            "redirect_url": reverse("apply_leave"),
+            "messages": _serialize_flash_messages(request),
+        }, status=status)
+
+    return redirect("apply_leave")
+
+
 def _profile_photo_filename(profile, extension, update_count=None):
     username = getattr(getattr(profile, "user", None), "username", "") or "employee"
     employee_id = getattr(profile, "employee_id", "") or "profile"
@@ -452,11 +463,11 @@ def send_branded_email(
 ):
     """Helper to send a branded HTML email with an embedded logo."""
     html_content = render_to_string(template_name, context)
-    
+
     # Ensure to_email is a list
     if isinstance(to_email, str):
         to_email = [to_email]
-        
+
     sender = f"HR Portal <{from_email or settings.DEFAULT_FROM_EMAIL}>"
     email = EmailMessage(
         subject=subject,
@@ -466,9 +477,9 @@ def send_branded_email(
     )
     if reply_to:
         email.reply_to = [reply_to]
-        
+
     email.content_subtype = "html"
-    
+
     # Attach the logo as a CID
     logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ms-technology-logo.png')
     if os.path.exists(logo_path):
@@ -478,7 +489,7 @@ def send_branded_email(
             img.add_header('Content-ID', '<logo_image>')
             img.add_header('Content-Disposition', 'inline', filename='logo.png')
             email.attach(img)
-            
+
     from App.services.email_delivery_log import record_email_delivery
     from App.utils.logger_utils import log_email_sent_by_email
     error_message = ""
@@ -726,7 +737,7 @@ def role_select(request):
 
         elif request.user.role == "HR":
             return redirect("hr_dashboard")
-        
+
         elif request.user.role == "Admin":
             return redirect("admin:index")
 
@@ -1418,7 +1429,7 @@ def hr_login(request):
             return blocked_response
 
         user = authenticate(request, username=username, password=password)
-        
+
         # 🔥 Security Hardening: Check if user exists, is HR, AND is active
         if user is not None and user.role == "HR" and user.is_active:
             _record_successful_login(request, "HR", user, username)
@@ -1477,8 +1488,8 @@ def hr_notifications(request):
         "next_offset": offset + len(notifications),
         "has_more": bool(limit and offset + len(notifications) < total_available),
     })
-    
-    
+
+
 def get_leave_type_class(leave_type):
     return {
         "Sick": "sick",
@@ -3061,7 +3072,7 @@ def employee_details(request):
     employees = User.objects.filter(role="EMPLOYEE", is_active=True).select_related("profile", "leavebalance").order_by("-date_joined", "-id")
 
     employee_cards = []
-    
+
     for employee in employees:
         try:
             profile = employee.profile
@@ -3105,12 +3116,12 @@ def employee_details(request):
         "employee_cards": employee_cards,
         "employee_total": User.objects.filter(role="EMPLOYEE").count(),
         "joined_this_month_total": User.objects.filter(
-            role="EMPLOYEE", 
-            date_joined__month=now().month, 
+            role="EMPLOYEE",
+            date_joined__month=now().month,
             date_joined__year=now().year
         ).count(),
         "joined_this_year_total": User.objects.filter(
-            role="EMPLOYEE", 
+            role="EMPLOYEE",
             date_joined__year=now().year
         ).count(),
         "form_values": form_values,
@@ -3644,7 +3655,7 @@ def reject_leave(request, leave_id):
             return JsonResponse({"detail": "Rejection reason must be 500 characters or fewer."}, status=400)
         messages.error(request, "Rejection reason must be 500 characters or fewer.")
         return redirect("hr_dashboard")
-        
+
     with transaction.atomic():
         leave = get_object_or_404(
             Leave.objects.select_for_update().select_related("user", "user__profile"),
@@ -3982,13 +3993,13 @@ def profile_view(request):
 
     profile_form = UserProfileForm(instance=profile)
     password_form = CustomPasswordChangeForm(request.user)
-    
+
     sick_remaining = balance.sick_total - balance.sick_used
     earned_remaining = balance.earned_total - balance.earned_used
     total_remaining = sick_remaining + earned_remaining
     total_used = balance.sick_used + balance.earned_used
-    
-        
+
+
     current_date = now()
     current_month = current_date.month
     current_year = current_date.year
@@ -4014,15 +4025,15 @@ def profile_view(request):
 
     short_hours_used = short_taken * 2
     half_hours_used = half_taken * 4
-    
-    
+
+
     fields = [ profile.phone, profile.address, profile.profile_photo, profile.department, profile.bio ]
 
     filled = sum(bool(field) for field in fields)
     completion_percentage = int((filled / len(fields)) * 100)
 
     if request.method == "POST":
-        
+
         if (request.content_type or "").startswith("application/json"):
 
             data = parse_json_request_body(request)
@@ -4133,10 +4144,10 @@ def profile_view(request):
 
                 user = password_form.save()
                 update_session_auth_hash(request, user)
-                
+
                 messages.success(request, "Password changed successfully.")
                 return redirect("profile")
-            
+
             else:
                 # store errors in session
                 request.session["password_errors"] = password_form.errors
@@ -4147,30 +4158,30 @@ def profile_view(request):
     if "password_errors" in request.session:
         password_form = CustomPasswordChangeForm(request.user)
         password_form._errors = request.session.pop("password_errors")
-    
+
     context = {
         "profile": profile,
         "balance": balance,
         "profile_form": profile_form,
         "password_form": password_form,
         "completion_percentage": completion_percentage,
-        
+
         "short_taken": short_taken,
         "short_remaining": short_remaining,
         "short_hours_used": short_hours_used,
-        
+
         "earned_remaining" : earned_remaining,
         "sick_remaining" : sick_remaining,
         "total_leave": balance.total_leave_balance,
         "total_leave_balance": balance.total_leave_balance,
         "total_leave_remaining": _remaining_from_balance(balance),
         "total_used" : total_used,
-        
+
 
         "half_taken": half_taken,
         "half_remaining": half_remaining,
         "half_hours_used": half_hours_used,
-        
+
         "total_remaining" : total_remaining
     }
     context.update(get_employee_notification_context(request.user))
@@ -4207,7 +4218,7 @@ def employee_login(request):
             if user.must_change_password:
                 return redirect("force_password_change")
             return redirect("employee_dashboard_loading_page")
-        
+
         else:
             failure_state = _register_login_failure(request, "EMPLOYEE", username)
             _set_login_error_message(
@@ -4353,7 +4364,7 @@ def dashboard(request):
 
             data.append({
                 "type": leave.leave_type,
-                
+
                 # ✅ FULL MONTH
                 "from_date": date_format(leave.from_date, format="DATE_FORMAT"),
                 "to_date": date_format(leave.to_date, format="DATE_FORMAT"),
@@ -4396,7 +4407,7 @@ def dashboard(request):
         leave.duration = (leave.to_date - leave.from_date).days + 1
 
     low_balance = _remaining_from_balance(balance) <= 32
-    
+
     context = {
         "recent_leaves": page_obj,
         "has_next": page_obj.has_next(),
@@ -4431,7 +4442,7 @@ def dashboard(request):
         "past_leaves": past_leaves,
         "last_short_leave": last_short_leave,
         "last_full_leave": last_full_leave,
-        
+
         "low_balance": low_balance,
     }
     context.update(get_employee_notification_context(request.user))
@@ -4458,13 +4469,13 @@ def apply_leave(request):
             )
             messages.error(request, "Invalid leave type.")
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         reason = request.POST.get("reason", "").strip()
         if len(reason) > LEAVE_REASON_MAX_LENGTH:
             messages.error(request, f"Leave reason must be {LEAVE_REASON_MAX_LENGTH} characters or fewer.")
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         user = request.user
         balance = LeaveBalance.objects.select_for_update().get(user=user)
@@ -4473,10 +4484,10 @@ def apply_leave(request):
         # 🔵 SHORT / HALF LEAVE BLOCK (Standalone)
         # =====================================================
         if leave_type in ["Short", "Half"]:
-            
+
             # ===== DAILY SHORT LIMIT =====
             if leave_type == "Short":
-                
+
                 startdate = request.POST.get("from_date")
 
                 existing_same_day = Leave.objects.filter( user=user, leave_type="Short", from_date=startdate, status__in=["Pending", "Approved"]).exists()
@@ -4484,40 +4495,40 @@ def apply_leave(request):
 
                 if existing_same_day:
                     messages.error(request, "Only one Short leave allowed per day.")
-                    
+
                     # ✅ STORE FORM DATA TEMPORARILY
                     store_apply_leave_form_state(request)
-                    return redirect("apply_leave")
-                
+                    return _apply_leave_response(request)
+
                 if short_half_same_day_check:
                     messages.error(request, "Only one either Short or Half leave allowed per day.")
-                    
+
                     # ✅ STORE FORM DATA TEMPORARILY
                     store_apply_leave_form_state(request)
-                    return redirect("apply_leave")
+                    return _apply_leave_response(request)
 
-            if leave_type == "Half":            
-                
+            if leave_type == "Half":
+
                 startdate = request.POST.get("from_date")
-                
+
                 existing_same_day = Leave.objects.filter( user=user, leave_type="Half", from_date=startdate, status__in=["Pending", "Approved"]).exists()
                 short_half_same_day_check = Leave.objects.filter( user=user, leave_type="Short", from_date=startdate, status__in=["Pending", "Approved"]).exists()
 
                 if existing_same_day:
                     messages.error(request, "Only one Half leave allowed per day.")
-                    
+
                     # ✅ STORE FORM DATA TEMPORARILY
                     store_apply_leave_form_state(request)
-                    return redirect("apply_leave")
-                
+                    return _apply_leave_response(request)
+
                 if short_half_same_day_check:
                     messages.error(request, "Only one either Short or Half leave allowed per day.")
-                    
+
                     # ✅ STORE FORM DATA TEMPORARILY
                     store_apply_leave_form_state(request)
-                    return redirect("apply_leave")  
-                
-            
+                    return _apply_leave_response(request)
+
+
             from_raw = request.POST.get("from_date")
             to_raw = request.POST.get("to_date_hidden")  # Hidden field to store the same date for validation
             reason = request.POST.get("reason", "").strip()
@@ -4527,39 +4538,39 @@ def apply_leave(request):
                 to_date = date.fromisoformat(to_raw)
             except (TypeError, ValueError):
                 messages.error(request, "Invalid date format.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             today = localdate()
-            
+
             if to_date < from_date:
                 messages.error(request, "Invalid date range: 'To date' cannot be earlier than 'From date'.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
-            
+                return _apply_leave_response(request)
+
             if from_date < today or to_date < today:
                 messages.error(request, "Leave date cannot be in the past.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             company_holiday = _get_blocking_company_holiday(from_date)
             if company_holiday:
                 messages.error(request, f"Leave cannot be applied only on company holiday: {company_holiday.name}.")
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             if to_date != from_date:
                 messages.error(request, "Invalid date range: Short/Half Day Leave should be on same date.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
 
             from_datetime_raw = request.POST.get("from_datetime")
@@ -4567,20 +4578,20 @@ def apply_leave(request):
 
             if not from_datetime_raw or not to_datetime_raw:
                 messages.error(request, "Invalid time selection.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             try:
                 start = _aware_datetime(datetime.fromisoformat(from_datetime_raw))
                 end = _aware_datetime(datetime.fromisoformat(to_datetime_raw))
             except ValueError:
                 messages.error(request, "Invalid datetime format.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             # STRICT BUSINESS HOURS
             start_hour = 10
@@ -4591,17 +4602,17 @@ def apply_leave(request):
             # Convert UTC to Django project timezone (IST)
             startt = timezone.localtime(start)
             endd = timezone.localtime(end)
-            
+
             # print(start)
-            
+
             if startt.hour < start_hour or startt.hour > end_hour:
                 messages.error(request, "Invalid start time.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
-            
-            
+                return _apply_leave_response(request)
+
+
             # 2 HOURS + 1 MIN RULE
             now = localtime()
             min_allowed = now + timedelta(hours=2, minutes=1)
@@ -4611,31 +4622,31 @@ def apply_leave(request):
                 if start < relaxed_min:
                     messages.error(request, "Must apply at least 2 hours before.")
                     messages.error(request, "7 minutes of grace period is also passed.")
-                    
+
                     # ✅ STORE FORM DATA TEMPORARILY
                     store_apply_leave_form_state(request)
-                    return redirect("apply_leave")
-                
-            
+                    return _apply_leave_response(request)
+
+
             # DURATION CHECK
             duration = 2 if leave_type == "Short" else 4
             expected_end = start + timedelta(hours=duration)
 
             if end != expected_end:
                 messages.error(request, "Invalid leave duration.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
-            
+                return _apply_leave_response(request)
+
             if end <= start:
                 messages.error(request, "Invalid time range.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
-            
-            
+                return _apply_leave_response(request)
+
+
             from_date = start.date()
 
             # ===== Monthly Limit =====
@@ -4645,7 +4656,7 @@ def apply_leave(request):
             #     from_date__month=from_date.month,
             #     from_date__year=from_date.year
             # )
-            
+
             month_leaves = Leave.objects.filter(
                 user=user,
                 leave_type__in=["Short", "Half"],
@@ -4653,43 +4664,43 @@ def apply_leave(request):
                 from_date__year=start.year,
                 status__in=["Pending", "Approved"]   # 🔥 Check for Only in Pending and Approved Leaves.
             )
-            
+
             short_count = month_leaves.filter(leave_type="Short").count()
             half_count = month_leaves.filter(leave_type="Half").count()
 
             if leave_type == "Short" and short_count >= 2:
                 messages.error(request, "Maximum 2 short leaves allowed per month.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             if leave_type == "Half" and half_count >= 1:
                 messages.error(request, "Only 1 half-day allowed per month.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")        
-            
+                return _apply_leave_response(request)
+
             # Checking working days in the selected range
             from App.services.leave_breakdown import calculate_leave_breakdown
-        
+
             breakdown = calculate_leave_breakdown(from_date, from_date)
             days = breakdown["working_days"]
 
             if days == 0:
                 messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")            
+                return _apply_leave_response(request)
 
             if days < 0:
                 messages.error(request, " ℹInvalid leave duration.")
-            
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")        
+                return _apply_leave_response(request)
 
             # ===== Overlap Check (Datetime) =====
             overlapping = Leave.objects.filter(
@@ -4702,10 +4713,10 @@ def apply_leave(request):
 
             if overlapping.exists():
                 messages.error(request, "Overlaps with existing leave.")
-                                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
 
             leave_value = 0.25 if leave_type == "Short" else 0.5
@@ -4725,10 +4736,10 @@ def apply_leave(request):
 
             else:
                 messages.error(request, "Not enough leave balance.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             balance.total_leave_remaining -= leave_value
 
@@ -4803,34 +4814,34 @@ def apply_leave(request):
             to_date = date.fromisoformat(to_raw)
         except (TypeError, ValueError):
             messages.error(request, "Invalid date format.")
-            
+
             # ✅ STORE FORM DATA TEMPORARILY
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         today = localdate()
 
         # -------- STEP 2: BASIC DATE VALIDATION --------
-        
+
         # ❌ Reverse Date Range check
         if from_date > to_date:
             messages.error(request, "From date cannot be after To date.")
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         # ❌ Backward date range check
         if from_date < today or to_date < today:
             messages.error(request, "Leave date cannot be in the past.")
-            
+
             # ✅ STORE FORM DATA TEMPORARILY
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         single_day_company_holiday = from_date == to_date and _get_blocking_company_holiday(from_date)
         if single_day_company_holiday:
             messages.error(request, f"Leave cannot be applied only on company holiday: {single_day_company_holiday.name}.")
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         from App.services.leave_breakdown import calculate_leave_breakdown, expand_full_day_leave_range
 
@@ -4860,22 +4871,22 @@ def apply_leave(request):
 
         if days == 0:
             messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
-            
+
             # ✅ STORE FORM DATA TEMPORARILY
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")            
+            return _apply_leave_response(request)
 
         if days < 0:
             messages.error(request, " ℹInvalid leave duration.")
-            
+
             # ✅ STORE FORM DATA TEMPORARILY
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
-        
-        
+            return _apply_leave_response(request)
+
+
         # Overlap check
         from App.services.overlap_service import get_overlap_details
-        
+
         overlaps = get_overlap_details(user=request.user, start_date=from_date, end_date=to_date)
 
         if overlaps:
@@ -4894,7 +4905,7 @@ def apply_leave(request):
 
             # ✅ STORE FORM DATA TEMPORARILY
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
 
         # -------- STEP 4: LOAD BALANCE --------
@@ -4906,30 +4917,30 @@ def apply_leave(request):
         earned_used = balance.earned_used
         unpaid = balance.unpaid
         total_leaves = balance.total_leave_remaining
-        
+
         days_before = (requested_from_date - today).days
-        
+
         if leave_type == "Sick":
 
             remaining = balance.sick_total - sick_used
-            
+
             current_time = localtime().time()
 
             # If applying sick leave for today
             if requested_from_date == today:
                 if current_time >= time(8, 0):
                     messages.error( request, "Sick leave cannot be applied after 8:00 AM for the same day.")
-                    
+
                     store_apply_leave_form_state(request)
-                    return redirect("apply_leave")
+                    return _apply_leave_response(request)
 
             # 🔒 BALANCE CHECK
             if days > remaining:
                 messages.error(request, "ℹ Insufficient 'Sick' Leave balance.")
-                
+
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             sick_used += days
             total_leaves -= days
@@ -4945,8 +4956,8 @@ def apply_leave(request):
 
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
-            
+                return _apply_leave_response(request)
+
             elif days_before < 15:
                 messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
                 messages.error(request, "ℹ Minimum advance period is 15 days.")
@@ -4954,7 +4965,7 @@ def apply_leave(request):
 
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
+                return _apply_leave_response(request)
 
             elif days_before >= 15 and days_before < 21:
                 messages.warning( request, f"ℹ ⚠ Early application: ")
@@ -4977,8 +4988,8 @@ def apply_leave(request):
 
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
-                return redirect("apply_leave")
-            
+                return _apply_leave_response(request)
+
             elif days_before >= 15 and days_before < 21:
                 messages.warning( request, f"ℹ⚠ Early application: ")
                 messages.warning( request, f"ℹYou are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
@@ -4994,20 +5005,20 @@ def apply_leave(request):
 
         else:
             messages.error(request, "Invalid leave type.")
-            
+
             # ✅ STORE FORM DATA TEMPORARILY
             store_apply_leave_form_state(request)
-            return redirect("apply_leave")
+            return _apply_leave_response(request)
 
         # -------- STEP 6: ATOMIC SAVE --------
         with transaction.atomic():
-            
+
             balance.sick_used = max(0, sick_used)
             balance.earned_used = max(0, earned_used)
             balance.unpaid = max(0, unpaid)
             balance.total_leave_remaining = max(0, total_leaves)
             balance.save()
-            
+
             leave_obj = Leave.objects.create(
                 user=user,
                 leave_type=leave_type,
@@ -5056,12 +5067,12 @@ def apply_leave(request):
                         task_name="leave_applied_email",
                     )
                 )
-            
+
         # -------- SUCCESS --------
         messages.success(request, f"'{leave_type}' Leave applied Successfully.")
-        
+
         messages.info(request, f"Total days: {breakdown['total_days']}")
-        
+
         if auto_added_dates:
             messages.info(request, "Auto-added bridge dates: " + ", ".join(current.strftime("%d %b %Y") for current in auto_added_dates))
             messages.info(request, f"Requested range {requested_from_date.strftime('%d %b')} â†’ {requested_to_date.strftime('%d %b')} was expanded and saved as {from_date.strftime('%d %b')} â†’ {to_date.strftime('%d %b')}.")
@@ -5101,7 +5112,7 @@ def apply_leave(request):
 
     balance = LeaveBalance.objects.get(user=request.user)
     today = date.today()
-    
+
     upcoming_leaves = Leave.objects.filter(
         user=request.user,
         from_date__gte=today,
@@ -5178,10 +5189,10 @@ def apply_leave(request):
 @login_required
 @never_cache
 def leave_calendar_data(request):
-    
+
     HOLIDAY_CACHE_KEY = "public_holidays_india"
     HOLIDAY_CACHE_TIMEOUT = 60 * 60 * 24 * 30  # 30 days
-    
+
     holidays = cache.get(HOLIDAY_CACHE_KEY)
 
     # 1️⃣ USER LEAVES
@@ -5246,12 +5257,12 @@ def leave_calendar_data(request):
     #             })
     # except Exception:
     #     pass  # fail silently (calendar still works)
-    
+
     # ===== GOOGLE PUBLIC HOLIDAYS (INDIA) =====
     # holidays = []
     # try:
     #     res = requests.get(
-    #         "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics", 
+    #         "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics",
     #          timeout=10)
 
     #     calendar = Calendar(res.text)
@@ -5267,8 +5278,8 @@ def leave_calendar_data(request):
 
     # except Exception as e:
     #     print("Holiday fetch failed:", e)
-        
-        
+
+
     if not holidays:
         holidays = []
         current_year = date.today().year
@@ -5312,7 +5323,7 @@ def _build_my_leave_context(request):
     filters = request.session.get("filters", {})
 
     def apply_filters(qs, status):
-        
+
         f = filters.get(status, {})
 
         leave_type = get_valid_leave_type(f.get("leave_type"))
@@ -5331,7 +5342,7 @@ def _build_my_leave_context(request):
         if month:
             year, m = map(int, month.split("-"))
             qs = qs.filter(from_date__year=year, from_date__month=m)
-            
+
         else:
             if from_date:
                 qs = qs.filter(from_date__gte=from_date)
@@ -5340,9 +5351,9 @@ def _build_my_leave_context(request):
 
         return qs
 
-    
+
     balance = get_object_or_404(LeaveBalance, user=request.user)
-    
+
     pending_leaves = apply_filters(Leave.objects.filter(user=request.user, status="Pending"),"Pending").order_by("-created_at")
 
     approved_leaves = apply_filters(
@@ -5406,7 +5417,7 @@ def _build_my_leave_context(request):
 
     sick_remaining = balance.sick_total - balance.sick_used
     earned_remaining = balance.earned_total - balance.earned_used
-    
+
     context = {
         'balance': balance,
 
@@ -5414,7 +5425,7 @@ def _build_my_leave_context(request):
         "earned_remaining": earned_remaining,
         "short_taken_month": short_taken,
         "half_taken_month": half_taken,
-        
+
         'pending_leaves': pending_leaves,
         'approved_leaves': approved_leaves,
         'rejected_leaves': rejected_leaves,
@@ -5556,8 +5567,8 @@ def apply_status_filter(request, status):
     }
 
     request.session["filters"] = filters
-    
-    messages.success(request, "Filter has been applied !")   
+
+    messages.success(request, "Filter has been applied !")
 
     return _my_leave_response(request, filter_status=status)
 
@@ -5576,7 +5587,7 @@ def clear_status_filter(request, status):
     filters = request.session.get("filters", {})
     filters.pop(status, None)
     request.session["filters"] = filters
-    
+
     messages.success(request, "All Filter has been cleared !")
     return _my_leave_response(request, filter_status=status)
 
@@ -5606,8 +5617,8 @@ def clear_status_filter_field(request, status, field):
         # Clean empty filter block
         if not any(filters[status].values()):
             filters.pop(status)
-            
-    messages.success(request, "Particular Filter has been clear !") 
+
+    messages.success(request, "Particular Filter has been clear !")
     request.session["filters"] = filters
     return _my_leave_response(request, filter_status=status)
 
@@ -5645,7 +5656,7 @@ def delete_leave(request, leave_id):
 
             messages.success( request, f"Deleted {leave.leave_type} Leave Successfully" )
             messages.info( request, f"Restored {leave_value} day(s) to {leave.deducted_from} balance." )
-            messages.info( request, f"Date: {leave.from_date.strftime('%d %b')} ({leave.from_datetime.strftime('%H:%M')} → {leave.to_datetime.strftime('%H:%M')})" )         
+            messages.info( request, f"Date: {leave.from_date.strftime('%d %b')} ({leave.from_datetime.strftime('%H:%M')} → {leave.to_datetime.strftime('%H:%M')})" )
 
             deleted_leave_id = leave.id
             log_leave_action(
@@ -5703,13 +5714,13 @@ def delete_leave(request, leave_id):
         queue_hr_leave_push(leave, "Leave deleted")
         leave.delete()
         reconcile_user_full_day_leave_bridges(request.user)
-        
+
         live_counts = {
             "pending": Leave.objects.filter(user=request.user, status="Pending").count(),
             "approved": Leave.objects.filter(user=request.user, status="Approved").count(),
             "rejected": Leave.objects.filter(user=request.user, status="Rejected").count(),
         }
-        
+
         return _my_leave_response(request, deleted_id=deleted_leave_id, live_counts=live_counts, pending_count=live_counts["pending"])
 
     return _my_leave_response(request, status=400)
@@ -5767,10 +5778,10 @@ def edit_leave(request, leave_id):
         if len(new_reason) > LEAVE_REASON_MAX_LENGTH:
             messages.error(request, f"Leave reason must be {LEAVE_REASON_MAX_LENGTH} characters or fewer.")
             return _my_leave_response(request, status=400)
-        
+
         old_from = leave.from_date
         old_to = leave.to_date
-        
+
     except Exception:
         messages.error(request, "Invalid input.")
         return _my_leave_response(request, status=400)
@@ -5813,7 +5824,7 @@ def edit_leave(request, leave_id):
     old_days = (leave.to_date - leave.from_date).days + 1
 
     if old_type in ["Short", "Half"]:
-        
+
         if leave.deducted_from == "Earned":
             earned_used -= old_value
             total_leaves += old_value
@@ -5877,7 +5888,7 @@ def edit_leave(request, leave_id):
         # Convert UTC to Django project timezone (IST)
         startt = timezone.localtime(start)
         endd = timezone.localtime(end)
-        
+
         if startt.hour < start_hour or startt.hour > end_hour:
             messages.error(request, "Invalid start time.")
             return _my_leave_response(request, status=400)
@@ -5908,34 +5919,34 @@ def edit_leave(request, leave_id):
 
         # DAILY LIMIT
         if new_type == "Short":
-            
+
             exists_same_day = Leave.objects.filter( user=request.user, leave_type="Short", from_date=new_from, status__in=["Pending", "Approved"] ).exclude(id=leave.id).exists()
             short_half_same_day_check = Leave.objects.filter( user=request.user, leave_type="Half", from_date=new_from, status__in=["Pending", "Approved"] ).exclude(id=leave.id).exists()
-            
+
             if exists_same_day:
                 messages.error(request, "Only one Short leave allowed per day.")
                 return _my_leave_response(request, status=400)
-            
+
             if short_half_same_day_check:
                 messages.error(request, "Only one either Short or Half leave allowed per day.")
                 return _my_leave_response(request, status=400)
 
-        if new_type == "Half":       
-                             
+        if new_type == "Half":
+
             existing_same_day = Leave.objects.filter( user=request.user, leave_type="Half", from_date=new_from, status__in=["Pending", "Approved"]).exclude(id=leave.id).exists()
             short_half_same_day_check = Leave.objects.filter( user=request.user, leave_type="Short", from_date=new_from, status__in=["Pending", "Approved"]).exclude(id=leave.id).exists()
 
             if existing_same_day:
                 messages.error(request, "Only one Half leave allowed per day.")
-                
+
                 return _my_leave_response(request, status=400)
-            
+
             if short_half_same_day_check:
                 messages.error(request, "Only one either Short or Half leave allowed per day.")
-                
+
                 return _my_leave_response(request, status=400)
-                
-                
+
+
         # MONTHLY LIMIT
         month_leaves = Leave.objects.filter(
             user=request.user,
@@ -5952,22 +5963,22 @@ def edit_leave(request, leave_id):
         if new_type == "Half" and month_leaves.filter(leave_type="Half").count() >= 1:
             messages.error(request, "Only 1 Half-day allowed per month.")
             return _my_leave_response(request, status=400)
-        
-        
-        
-        
+
+
+
+
         # Checking working days in the selected range
         from App.services.leave_breakdown import calculate_leave_breakdown
-    
+
         breakdown = calculate_leave_breakdown(new_from, new_to)
         days = breakdown["working_days"]
 
         if days == 0:
             messages.error(request, "Selected range contains only weekends/holidays. No working days to apply.")
-            return _my_leave_response(request, status=400)            
+            return _my_leave_response(request, status=400)
 
         if days < 0:
-            messages.error(request, " ℹInvalid leave duration.")    
+            messages.error(request, " ℹInvalid leave duration.")
             return _my_leave_response(request, status=400)
 
 
@@ -5983,8 +5994,8 @@ def edit_leave(request, leave_id):
         if overlapping.exists():
             messages.error(request, "Date/Time Overlaps with existing leave.")
             return _my_leave_response(request, status=409)
-        
-        
+
+
         leave_value = 0.25 if new_type == "Short" else 0.5
 
         # BALANCE CHECK
@@ -6059,7 +6070,7 @@ def edit_leave(request, leave_id):
 
         messages.success(request, f"Successfully updated leave from {old_type} → {new_type}")
         messages.success(request, f"Leave date: From {new_from.strftime('%d %b %Y')} → {new_to.strftime('%d %b %Y')} ({start.strftime('%H:%M')} → {end.strftime('%H:%M')})")
-        
+
         queue_hr_leave_push(leave, "Leave updated")
         return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
 
@@ -6125,7 +6136,7 @@ def edit_leave(request, leave_id):
             return _my_leave_response(request, status=400)
 
         remaining = balance.sick_total - sick_used
-        
+
         # 🔒 BALANCE CHECK
         if new_days > remaining:
             messages.error(request, "Insufficient Sick leave balance.")
@@ -6145,7 +6156,7 @@ def edit_leave(request, leave_id):
         if new_days > remaining:
             messages.error(request, "ℹ Insufficient earned leave balance.")
             return _my_leave_response(request, status=400)
-        
+
         if days_before < 15:
             messages.error(request, f"The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
             messages.error(request, "ℹ Minimum advance period is 15 days.")
@@ -6159,7 +6170,7 @@ def edit_leave(request, leave_id):
 
         elif days_before >= 21:
             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
-                
+
         earned_used += new_days
         total_leaves -= new_days
         deducted_from = "Earned"
@@ -6181,12 +6192,12 @@ def edit_leave(request, leave_id):
             messages.warning( request, "ℹ Admissible advance period is 21 days.")
 
         elif days_before >= 21:
-            messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )               
+            messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
 
-        # 🚫 NO LIMIT, NO DEDUCTION    
+        # 🚫 NO LIMIT, NO DEDUCTION
         unpaid += new_days
         deducted_from = "Unpaid"
-        
+
     else:
         messages.error(request, "Invalid leave type.")
         return _my_leave_response(request, status=400)
@@ -6251,7 +6262,7 @@ def edit_leave(request, leave_id):
             )
 
     messages.success(request, "ℹ Leave updated successfully.")
-    
+
     queue_hr_leave_push(leave, "Leave updated")
 
     if(new_type == "Sick" or new_type == "Earned" or new_type == "Unpaid"):
@@ -6275,7 +6286,7 @@ def edit_leave(request, leave_id):
             messages.info(request, f"Company holiday day(s) counted in this leave: {breakdown['company_holiday_days']}")
 
         messages.success(request, f"Working leave days: {breakdown['working_days']}, Full Day (10:00 am to 7:00 pm)")
-        
+
     return _my_leave_response(request, leave=_serialize_leave_for_my_leave(leave))
 
 
@@ -6284,7 +6295,7 @@ def edit_leave(request, leave_id):
 @never_cache
 @require_POST
 def logout_view(request):
-  
+
     # 🔹 Store role before logout
     # 🔹 Detect BEFORE logout
     is_admin = request.user.is_authenticated and request.user.is_superuser
@@ -6297,17 +6308,17 @@ def logout_view(request):
 
     # 🔥 Clear full session (extra safety)
     request.session.flush()
-    
+
     # print("ROLE:", role)
     # print("IS ADMIN:", is_admin)
-    
+
     print(role, " - Logged out Successfully")
 
     if is_admin or role == "Admin":
         request.session["admin_login_username"] = logout_username
         request.session["admin_logout_name"] = logout_name
         return redirect("admin_logout_loading_page")
-    
+
     elif role == "HR":
         request.session["hr_login_username"] = logout_username
         request.session["hr_logout_name"] = logout_name
@@ -6317,7 +6328,7 @@ def logout_view(request):
         request.session["employee_login_username"] = logout_username
         request.session["employee_logout_name"] = logout_name
         return redirect("employee_logout_loading_page")
-  
+
     else:
         return redirect("role_select")
 
