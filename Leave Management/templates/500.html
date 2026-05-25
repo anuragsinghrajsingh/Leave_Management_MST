@@ -132,8 +132,8 @@
 
     <div class="failure-card" id="card">
         <div class="user-id-bar">
-            <div>ID: <span>{{ user.get_full_name|default:user.username|upper }}</span></div>
-            <div>EMP: <span>{{ user.profile.employee_id|default:"MST-GUEST" }}</span></div>
+            <div>ID: <span>SYSTEM USER</span></div>
+            <div>EMP: <span>MST-GUEST</span></div>
         </div>
 
         <div class="brand-top">
@@ -160,7 +160,7 @@
         let greet = "GOOD EVENING";
         if (hour < 12) greet = "GOOD MORNING";
         else if (hour < 17) greet = "GOOD AFTERNOON";
-        document.getElementById('greeting-box').innerText = greet + ", {{ user.first_name|default:user.username|upper }}";
+        document.getElementById('greeting-box').innerText = greet + ", MS TECHNOLOGY";
 
         document.addEventListener('mousemove', e => {
             if (window.innerWidth < 768) return;
