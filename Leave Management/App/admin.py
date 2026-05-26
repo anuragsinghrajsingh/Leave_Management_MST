@@ -821,6 +821,28 @@ def _create_admin_audit_log(request, obj, changes, reason, action="CHANGE"):
     )
 
 
+def _reset_communication_read_seen_if_message_changed(request, obj, form, change):
+    if not change:
+        return
+
+    changed_notification_fields = {
+        "message_type",
+        "audience_role",
+        "recipient",
+        "title",
+        "body",
+    }.intersection(form.changed_data)
+    if not changed_notification_fields:
+        return
+
+    CommunicationRead.objects.filter(communication=obj).delete()
+    CommunicationSeen.objects.filter(communication=obj).delete()
+    messages.info(
+        request,
+        "Communication marked as new because message details changed.",
+    )
+
+
 def _snapshot_model_fields(obj, excluded_fields=None):
     excluded_fields = excluded_fields or {"id"}
     return {
@@ -1072,7 +1094,7 @@ class CustomUserAdminCreationForm(UserCreationForm):
         required=False,
         initial=True,
         label="Send welcome email",
-        help_text="Send the welcome package after employee profile details are saved.",
+        help_text="Send the welcome package after profile details are saved.",
     )
     initial_sick_total = forms.FloatField(
         required=False,
@@ -1988,7 +2010,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             },
         )
 
-    @admin.action(description="Resend onboarding email to selected employees")
+    @admin.action(description="Resend onboarding email to selected users")
     def resend_onboarding_email_to_selected_users(self, request, queryset):
         if not request.POST.get("confirm_bulk_onboarding_email"):
             return self._render_bulk_onboarding_confirmation(request, queryset)
@@ -2005,10 +2027,6 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         skipped_count = 0
 
         for user in queryset.order_by("username", "id"):
-            if user.role != "EMPLOYEE":
-                skipped_count += 1
-                continue
-
             result = send_employee_welcome_package(user, triggered_by=request.user, force_resend=True)
             if result.get("email_sent"):
                 sent_count += 1
@@ -2191,7 +2209,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         if not pending_user_id or str(pending_user_id) != str(user.pk):
             return
 
-        if user.role != "EMPLOYEE" or not user.email:
+        if not user.email:
             return
 
         try:
@@ -2205,7 +2223,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
         result = send_employee_welcome_package(user, triggered_by=request.user)
         if result.get("email_sent"):
-            self.message_user(request, "Welcome notification and email sent to the employee.", level=messages.SUCCESS)
+            self.message_user(request, "Welcome notification and email sent to the user.", level=messages.SUCCESS)
             request.session.pop("pending_employee_welcome_user_id", None)
         elif result.get("sent"):
             self.message_user(
@@ -3090,6 +3108,14 @@ class LeaveAdmin(DeleteAuditedAdminMixin, admin.ModelAdmin):
                 "reviewed_by",
             }
             changed_sensitive_fields = sorted(workflow_sensitive_fields.intersection(form.changed_data))
+            if changed_sensitive_fields:
+                LeaveNotificationRead.objects.filter(leave=obj).delete()
+                LeaveNotificationSeen.objects.filter(leave=obj).delete()
+                self.message_user(
+                    request,
+                    "Leave notification read/seen state was reset because important leave details changed.",
+                    level=messages.INFO,
+                )
             if "status" in changed_sensitive_fields:
                 request._admin_leave_recommended_workflow = "sync"
                 request._admin_leave_recommendation_reason = "Status changed manually, so sync/recalculate is recommended."
@@ -3994,6 +4020,10 @@ class CommunicationAdmin(AuditedAdminModelMixin, admin.ModelAdmin):
         "change_reason",
     )
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        _reset_communication_read_seen_if_message_changed(request, obj, form, change)
+
 
 class RoleCommunicationAdmin(AuditedAdminModelMixin, admin.ModelAdmin):
     form = CommunicationAdminForm
@@ -4012,6 +4042,10 @@ class RoleCommunicationAdmin(AuditedAdminModelMixin, admin.ModelAdmin):
         "created_at",
         "change_reason",
     )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        _reset_communication_read_seen_if_message_changed(request, obj, form, change)
 
 
 class EmployeeCommunicationAdmin(RoleCommunicationAdmin):
@@ -4035,8 +4069,28 @@ class HRCommunicationAdmin(RoleCommunicationAdmin):
 @login_required
 @never_cache
 @admin.register(AdminCommunicationCenter)
-class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
+class AdminCommunicationCenterAdmin(AuditedAdminModelMixin, admin.ModelAdmin):
+    form = CommunicationAdminForm
     change_list_template = "admin/admin_communication_center.html"
+    audit_excluded_fields = {"id", "created_at"}
+    list_display = ("id", "message_type", "title", "sender", "recipient", "audience_role", "created_at")
+    list_filter = ("message_type", "audience_role", "created_at")
+    search_fields = ("title", "body", "sender__username", "recipient__username")
+    readonly_fields = ("created_at",)
+    fields = (
+        "sender",
+        "recipient",
+        "message_type",
+        "audience_role",
+        "title",
+        "body",
+        "created_at",
+        "change_reason",
+    )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        _reset_communication_read_seen_if_message_changed(request, obj, form, change)
 
     def get_urls(self):
         urls = super().get_urls()
@@ -4084,7 +4138,10 @@ class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
             form = AdminCommunicationComposeForm()
 
         inbox = self._admin_inbox_queryset(request.user)[:25]
-        sent = Communication.objects.select_related("sender", "recipient").filter(sender=request.user).order_by("-created_at")[:25]
+        sent = list(Communication.objects.select_related("sender", "recipient").filter(sender=request.user).order_by("-created_at")[:25])
+        for communication in sent:
+            communication.admin_edit_url = reverse("admin:App_admincommunicationcenter_change", args=[communication.pk])
+            communication.admin_delete_url = reverse("admin:App_admincommunicationcenter_delete", args=[communication.pk])
         announcements = Communication.objects.select_related("sender", "recipient").filter(message_type="ANNOUNCEMENT").order_by("-created_at")[:25]
 
         context = {
@@ -4344,10 +4401,26 @@ class AdminCommunicationCenterAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return False
+        if obj is None:
+            return True
+        return request.user.is_superuser or obj.sender_id == request.user.id
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        if not request.user.is_superuser and getattr(request.user, "role", None) != "Admin":
+            return False
+        if obj is None:
+            return True
+        return request.user.is_superuser or obj.sender_id == request.user.id
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        if request.user.is_superuser:
+            return queryset
+        if getattr(request.user, "role", None) == "Admin":
+            return queryset.filter(sender=request.user)
+        return queryset.none()
 
 
 @login_required

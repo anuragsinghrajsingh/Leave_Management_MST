@@ -106,6 +106,23 @@
         );
     }
 
+    function getCommunicationSignature(item) {
+        return [
+            item.id,
+            item.type_class,
+            item.type_label,
+            item.title,
+            item.body_preview,
+            item.body_full,
+            item.created_at,
+            item.sender_name,
+            item.recipient_name,
+            item.audience_label,
+        ].map(function (value) {
+            return String(value ?? "");
+        }).join("|");
+    }
+
     function renderItems(items) {
         return items.map(function (item) {
             const avatar = item.photo_url
@@ -247,6 +264,7 @@
         let currentPage = role === "HR" ? "compose" : "announcement";
         let hasFetchedOnce = false;
         let feedbackTimer = null;
+        let latestCommunicationItems = [];
         const formDrafts = {
             ANNOUNCEMENT: { title: "", body: "", recipient: "" },
             DIRECT: { title: "", body: "", recipient: "" },
@@ -687,10 +705,16 @@
         function handlePayload(payload) {
             const items = Array.isArray(payload.items) ? payload.items : [];
             const previousKnownIds = new Set(knownIds);
+            const previousSignatures = new Map();
+            latestCommunicationItems.forEach(function (item) {
+                previousSignatures.set(String(item.id), getCommunicationSignature(item));
+            });
             const hadFetchedOnce = hasFetchedOnce;
             const newIncomingItems = items.filter(function (item) {
                 const itemId = String(item.id);
-                return !item.is_outgoing && item.is_new && !item.is_read && !previousKnownIds.has(itemId);
+                const wasKnown = previousKnownIds.has(itemId);
+                const signatureChanged = wasKnown && previousSignatures.get(itemId) !== getCommunicationSignature(item);
+                return !item.is_outgoing && item.is_new && !item.is_read && (!wasKnown || signatureChanged);
             });
             const nextIds = items
                 .filter(function (item) { return !item.is_outgoing; })
@@ -735,6 +759,7 @@
             filterRenderedItems();
             updateUnreadCount();
             updateNewBadge();
+            latestCommunicationItems = items.slice();
             dropdown.classList.add("is-hydrated");
             hasFetchedOnce = true;
 

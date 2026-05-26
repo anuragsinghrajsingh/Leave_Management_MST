@@ -39,11 +39,17 @@ def _employee_display_name(user):
     return user.get_full_name().strip() or user.username
 
 
-def _portal_url():
+def _portal_url(user=None):
     base_url = getattr(settings, "PORTAL_BASE_URL", "").rstrip("/")
+    role = getattr(user, "role", "EMPLOYEE")
+    route_name = {
+        "Admin": "admin_login",
+        "HR": "hr_login",
+        "EMPLOYEE": "employee_login",
+    }.get(role, "employee_login")
     if base_url:
-        return base_url + reverse("employee_login")
-    return reverse("employee_login")
+        return base_url + reverse(route_name)
+    return reverse(route_name)
 
 
 def _format_leave_value(value):
@@ -77,34 +83,48 @@ def _get_leave_summary(user):
 
 
 def _build_welcome_body(user, profile, leave_summary):
+    role = getattr(user, "role", "EMPLOYEE")
     employee_id = getattr(profile, "employee_id", "") or "your employee ID"
     department = getattr(profile, "department", "") or "your department"
     joining_date = getattr(profile, "date_of_joining", None)
     joining_text = joining_date.strftime("%d %b %Y") if joining_date else "your joining date"
+    portal_label = {
+        "Admin": "admin portal",
+        "HR": "HR portal",
+        "EMPLOYEE": "employee portal",
+    }.get(role, "portal")
 
-    return (
+    body = (
         f"Welcome to MS Technology, {_employee_display_name(user)}!\n\n"
-        "Your employee profile has been created successfully.\n\n"
+        "Your user profile has been created successfully.\n\n"
         f"Employee ID: {employee_id}\n"
         f"Department: {department}\n"
         f"Date of joining: {joining_text}\n\n"
+    )
+
+    if role == "EMPLOYEE":
+        body += (
         "Assigned leave:\n"
         f"Total leave: {leave_summary['total']} days\n"
         f"Sick leave: {leave_summary['sick_total']} days\n"
         f"Earned leave: {leave_summary['earned_total']} days\n"
         f"Current remaining balance: {leave_summary['remaining']} days\n\n"
-        "You can now log in to the employee portal. If your account is marked for first-login password change, "
+        )
+
+    body += (
+        f"You can now log in to the {portal_label}. If your account is marked for first-login password change, "
         "you will be asked to update your password before continuing."
     )
+    return body
 
 
 def send_employee_welcome_package(employee, triggered_by=None, force_resend=False):
     """
-    Sends the one-time welcome communication for a newly created employee.
+    Sends the one-time welcome communication for a newly created user.
     Returns a small result dict so callers can show a useful status message.
     """
-    if not employee or getattr(employee, "role", None) != "EMPLOYEE":
-        return {"sent": False, "email_sent": False, "skipped": True, "reason": "not_employee"}
+    if not employee:
+        return {"sent": False, "email_sent": False, "skipped": True, "reason": "missing_user"}
 
     try:
         profile = employee.profile
@@ -147,7 +167,13 @@ def send_employee_welcome_package(employee, triggered_by=None, force_resend=Fals
             "profile": profile,
             "leave_summary": leave_summary,
             "display_name": _employee_display_name(employee),
-            "portal_url": _portal_url(),
+            "portal_url": _portal_url(employee),
+            "portal_label": {
+                "Admin": "Admin Portal",
+                "HR": "HR Portal",
+                "EMPLOYEE": "Employee Portal",
+            }.get(getattr(employee, "role", "EMPLOYEE"), "Portal"),
+            "show_leave_summary": getattr(employee, "role", None) == "EMPLOYEE",
             "sent_at": localtime(now()),
             "logo_cid": WELCOME_LOGO_CID,
         }

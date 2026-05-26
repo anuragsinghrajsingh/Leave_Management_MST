@@ -14,6 +14,38 @@ document.addEventListener("DOMContentLoaded", function ()
     let lastHandledRole = userRole.value;
     let isSyncingRole = false;
 
+    const initialBalanceFields = [
+        document.getElementById("id_initial_sick_total"),
+        document.getElementById("id_initial_earned_total"),
+        document.getElementById("id_initial_unpaid"),
+    ].filter(Boolean);
+
+    function getFormRow(field)
+    {
+        return field.closest(".form-row") || field.closest(".form-group") || field.parentElement;
+    }
+
+    function updateInitialBalanceVisibility(roleValue)
+    {
+        const showInitialBalance = roleValue === "EMPLOYEE";
+        const rows = new Set();
+
+        initialBalanceFields.forEach(function (field)
+        {
+            field.disabled = !showInitialBalance;
+            const row = getFormRow(field);
+            if (row)
+            {
+                rows.add(row);
+            }
+        });
+
+        rows.forEach(function (row)
+        {
+            row.style.display = showInitialBalance ? "" : "none";
+        });
+    }
+
     function syncProfileRoles(roleValue)
     {
         profileRoles.forEach(function (field)
@@ -69,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function ()
         const roleValue = userRole.value;
         syncProfileRoles(roleValue);
         updateEmployeeIdForRole(roleValue);
+        updateInitialBalanceVisibility(roleValue);
         isSyncingRole = false;
     }
 
@@ -80,10 +113,12 @@ document.addEventListener("DOMContentLoaded", function ()
         syncUserRole(roleValue);
         syncProfileRoles(roleValue);
         updateEmployeeIdForRole(roleValue);
+        updateInitialBalanceVisibility(roleValue);
         isSyncingRole = false;
     }
 
     syncRoleFromUser();
+    updateInitialBalanceVisibility(userRole.value);
     userRole.addEventListener("change", syncRoleFromUser);
     profileRoles.forEach(function (field)
     {
