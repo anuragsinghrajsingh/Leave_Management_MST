@@ -29,6 +29,9 @@
     </fieldset>
 
     <h2>Selected users</h2>
+    {% if actionable_count == 0 %}
+      <p class="errornote">No selected users can be updated for this action.</p>
+    {% endif %}
     {% if show_email_option %}
       <p class="help">Choose which users should receive the email notification. Unchecked users are still updated, but no email is sent to them.</p>
       <table>
@@ -36,22 +39,26 @@
           <tr>
             <th>User</th>
             <th>Email</th>
+            <th>Current status</th>
+            <th>Action</th>
             <th>Send email</th>
           </tr>
         </thead>
         <tbody>
-          {% for user in users %}
+          {% for row in preview_rows %}
             <tr>
-              <td>{{ user.get_full_name|default:user.username }} - {{ user.username }}</td>
-              <td>{{ user.email|default:"No email" }}</td>
+              <td>{{ row.user.get_full_name|default:row.user.username }} - {{ row.user.username }}</td>
+              <td>{{ row.user.email|default:"No email" }}</td>
+              <td>{{ row.current_status }}</td>
+              <td>{{ row.action_label }}</td>
               <td>
-                {% if user.email %}
+                {% if row.email_enabled %}
                   <label>
-                    <input type="checkbox" name="send_email_user_ids" value="{{ user.pk }}">
+                    <input type="checkbox" name="send_email_user_ids" value="{{ row.user.pk }}" checked>
                     Send
                   </label>
                 {% else %}
-                  No email available
+                  -
                 {% endif %}
               </td>
             </tr>
@@ -59,15 +66,32 @@
         </tbody>
       </table>
     {% else %}
-      <ul>
-        {% for user in users %}
-          <li>{{ user.get_full_name|default:user.username }} - {{ user.username }} - {{ user.email|default:"No email" }}</li>
-        {% endfor %}
-      </ul>
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Current status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview_rows %}
+            <tr>
+              <td>{{ row.user.get_full_name|default:row.user.username }} - {{ row.user.username }}</td>
+              <td>{{ row.user.email|default:"No email" }}</td>
+              <td>{{ row.current_status }}</td>
+              <td>{{ row.action_label }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     {% endif %}
 
     <div class="submit-row">
-      <input type="submit" class="default" value="Confirm">
+      {% if actionable_count > 0 %}
+        <input type="submit" class="default" value="Confirm">
+      {% endif %}
       <a href="{% url 'admin:App_customuser_changelist' %}" class="button cancel-link">Cancel</a>
     </div>
   </form>

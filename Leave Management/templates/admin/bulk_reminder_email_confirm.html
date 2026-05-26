@@ -33,14 +33,45 @@
     </fieldset>
 
     <h2>Selected users</h2>
-    <ul>
-      {% for user in users %}
-        <li>{{ user.get_full_name|default:user.username }} — {{ user.username }} — {{ user.email|default:"No email" }} — {{ user.role }}</li>
-      {% endfor %}
-    </ul>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">User</th>
+          <th scope="col">Email</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview_rows %}
+          <tr>
+            <td>
+              {{ row.user.get_full_name|default:row.user.username }}
+              <br>
+              <span class="help">{{ row.user.username }} - {{ row.user.role }}</span>
+            </td>
+            <td>{{ row.email }}</td>
+            <td>
+              {% if row.can_queue %}
+                <strong>{{ row.action_label }}</strong>
+              {% else %}
+                {{ row.action_label }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="help">
+      Ready to queue: {{ ready_count }}. Will skip: {{ skipped_count }}.
+    </p>
 
     <div class="submit-row">
-      <input type="submit" class="default" value="Send reminder email">
+      {% if ready_count %}
+        <input type="submit" class="default" value="Send reminder email">
+      {% else %}
+        <p class="errornote">No selected users can receive reminder email.</p>
+      {% endif %}
       <a href="{% url 'admin:App_customuser_changelist' %}" class="button cancel-link">Cancel</a>
     </div>
   </form>

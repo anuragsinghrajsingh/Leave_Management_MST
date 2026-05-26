@@ -443,6 +443,8 @@ class AdminEmailJob(models.Model):
         ("onboarding", "Onboarding email"),
         ("force_password", "Force password email"),
         ("reminder", "Reminder email"),
+        ("login_lock", "Login lock email"),
+        ("login_unlock", "Login unlock email"),
     ]
 
     STATUS_CHOICES = [

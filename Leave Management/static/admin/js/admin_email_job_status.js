@@ -74,6 +74,8 @@
     function startPolling(root) {
         const url = root.getAttribute("data-admin-email-job-status-url");
         const pollMs = parseInt(root.getAttribute("data-admin-email-job-poll-ms") || "3000", 10);
+        const initialStatus = root.getAttribute("data-admin-email-job-initial-status") || "";
+        const reloadKey = "admin-email-job-final-reload:" + window.location.pathname;
         let stopped = false;
 
         function poll() {
@@ -95,6 +97,12 @@
                     updatePanel(root, data);
                     if (terminalStatuses.has(data.status)) {
                         stopped = true;
+                        if (!terminalStatuses.has(initialStatus) && window.sessionStorage.getItem(reloadKey) !== data.status) {
+                            window.sessionStorage.setItem(reloadKey, data.status);
+                            window.setTimeout(function () {
+                                window.location.reload();
+                            }, 800);
+                        }
                         return;
                     }
                     window.setTimeout(poll, pollMs);

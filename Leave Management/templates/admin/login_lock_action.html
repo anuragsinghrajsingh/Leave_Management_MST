@@ -74,6 +74,12 @@
           <th>Failed Attempts</th>
           <th>Remaining</th>
           <th>Expires At</th>
+          {% if mode == "lock" or mode == "unlock" %}
+            <th>Action</th>
+          {% endif %}
+          {% if mode == "lock" or mode == "unlock" %}
+            <th>Send Email</th>
+          {% endif %}
           {% if mode == "lock" %}
             <th><span id="login-lock-duration-heading">Default Minutes</span></th>
           {% endif %}
@@ -95,6 +101,22 @@
             <td>{{ row.failed_attempts }}</td>
             <td>{{ row.remaining }}</td>
             <td>{% if row.expires_at %}{{ row.expires_at|date:"M d, Y, h:i A" }}{% else %}-{% endif %}</td>
+            {% if mode == "lock" or mode == "unlock" %}
+              <td>{{ row.action_label }}</td>
+            {% endif %}
+            {% if mode == "lock" or mode == "unlock" %}
+              <td>
+                <label>
+                  <input
+                    type="checkbox"
+                    name="send_email_user_ids"
+                    value="{{ row.user.pk }}"
+                    {% if row.email_enabled %}checked{% else %}disabled{% endif %}
+                  >
+                  {% if row.email_enabled %}{{ row.user.email }}{% elif not row.user.email %}No email{% else %}-{% endif %}
+                </label>
+              </td>
+            {% endif %}
             {% if mode == "lock" %}
               <td>
                 <input
@@ -113,6 +135,9 @@
     </table>
 
     {% if mode == "lock" or mode == "unlock" %}
+      {% if actionable_count == 0 %}
+        <p class="errornote">No selected users can be updated for this action.</p>
+      {% endif %}
       <fieldset class="module aligned">
         {% if mode == "lock" %}
           <div class="form-row">
@@ -134,7 +159,9 @@
       {% if mode == "lock" %}
         <input type="submit" class="default" value="Confirm Lock">
       {% elif mode == "unlock" %}
-        <input type="submit" class="default" value="Confirm Unlock">
+        {% if actionable_count > 0 %}
+          <input type="submit" class="default" value="Confirm Unlock">
+        {% endif %}
       {% endif %}
       <a href="{% url 'admin:App_customuser_changelist' %}" class="button">Back</a>
       {% if mode == "lock" or mode == "unlock" %}

@@ -867,7 +867,7 @@ def _get_login_alert_recipients(portal, username):
     return unique_recipients
 
 
-def _send_login_security_alert(portal, username, ip_address, reason, attempts):
+def _send_login_security_alert(portal, username, ip_address, reason, attempts, lockout_seconds=0):
     alert_key = _login_cache_key("alert", portal, f"{reason}:{username}:{ip_address}")
     if not cache.add(alert_key, "sent", 60 * 30):
         return
@@ -885,13 +885,31 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts):
 
     account_user = _get_login_alert_account_user(portal, username)
     subject = f"Login security alert: {portal}"
+    lockout_seconds = int(lockout_seconds or 0)
+    retry_after = ""
+    lock_duration = ""
+    if reason == "lockout" and lockout_seconds > 0:
+        lock_duration = _format_retry_after(lockout_seconds).replace("after ", "")
+        retry_after = localtime(now() + timedelta(seconds=lockout_seconds)).strftime("%d/%m/%Y, %I:%M %p")
+
+    lockout_details = ""
+    if retry_after:
+        lockout_details = (
+            "\nYour login has been temporarily locked.\n\n"
+            f"Lock duration: {lock_duration}\n"
+            f"You can retry after: {retry_after}\n"
+        )
+
     message = (
+        "Login security alert\n\n"
         f"Portal: {portal}\n"
-        f"Username attempted: {username or '(blank)'}\n"
+        f"Username: {username or '(blank)'}\n"
         f"IP address: {ip_address}\n"
-        f"Reason: {reason}\n"
+        f"Reason: {'Too many wrong password attempts' if reason == 'lockout' else reason}\n"
         f"Attempts: {attempts}\n"
-        f"Time: {localtime(now()).strftime('%d %b %Y, %I:%M %p')}"
+        f"{lockout_details}\n"
+        f"Time: {localtime(now()).strftime('%d/%m/%Y, %I:%M %p')}\n\n"
+        "If this was not you, please contact HR/Admin immediately."
     )
     try:
         EmailMessage(
@@ -977,7 +995,7 @@ def _register_login_failure(request, portal, username):
             attempts,
             config["lockout"],
         )
-        _send_login_security_alert(portal, username, ip_address, "lockout", attempts)
+        _send_login_security_alert(portal, username, ip_address, "lockout", attempts, config["lockout"])
     elif ip_attempts >= LOGIN_BULK_IP_ALERT_ATTEMPTS:
         _send_login_security_alert(portal, username, ip_address, "bulk_failed_attempts", ip_attempts)
 

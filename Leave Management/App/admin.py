@@ -1665,9 +1665,68 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             })
         return rows
 
+    def _login_lock_preview_rows(self, users, mode):
+        rows = []
+        actionable_count = 0
+        for row in self._login_lock_rows(users):
+            status = row["status"]
+            if mode == "unlock":
+                is_actionable = bool(status.is_locked or status.failed_attempts)
+                if status.is_locked:
+                    action_label = "Will be unlocked"
+                elif status.failed_attempts:
+                    action_label = "Will clear failed attempts"
+                else:
+                    action_label = "No change needed"
+            else:
+                is_actionable = True
+                action_label = "Will update/extend lock" if status.is_locked else "Will be locked"
+
+            row["is_actionable"] = is_actionable
+            row["action_label"] = action_label
+            row["email_enabled"] = bool(is_actionable and row["user"].email)
+            actionable_count += 1 if is_actionable else 0
+            rows.append(row)
+        return rows, actionable_count
+
+    def _format_login_lock_duration(self, minutes):
+        minutes = max(int(minutes or 0), 1)
+        if minutes < 60:
+            return f"{minutes} minute{'s' if minutes != 1 else ''}"
+        hours = minutes // 60
+        remaining_minutes = minutes % 60
+        if remaining_minutes:
+            return f"{hours} hour{'s' if hours != 1 else ''} {remaining_minutes} minute{'s' if remaining_minutes != 1 else ''}"
+        return f"{hours} hour{'s' if hours != 1 else ''}"
+
+    def _queue_login_lock_email_job(self, *, request, users, job_type, subject, reason, item_metadata_by_user_id):
+        if not users:
+            return None
+        return create_admin_email_job(
+            job_type=job_type,
+            user_ids=[user.id for user in users],
+            created_by=request.user,
+            subject=subject,
+            reason=reason,
+            item_metadata_by_user_id=item_metadata_by_user_id,
+        )
+
+    def _login_lock_email_message(self, job, count):
+        if not count:
+            return " No email queued."
+        if not job:
+            return f" Email job queued: {count}."
+        job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
+        return format_html(' Email job queued: {}. <a href="{}">View status</a>.', count, job_url)
+
     def _render_login_lock_admin_page(self, request, queryset, *, action_name, title, mode, confirm_name=None):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
         users = list(queryset.order_by("username", "id"))
+        if mode in {"lock", "unlock"}:
+            rows, actionable_count = self._login_lock_preview_rows(users, mode)
+        else:
+            rows = self._login_lock_rows(users)
+            actionable_count = 0
         return TemplateResponse(
             request,
             "admin/login_lock_action.html",
@@ -1675,12 +1734,13 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 **self.admin_site.each_context(request),
                 "title": title,
                 "opts": self.model._meta,
-                "rows": self._login_lock_rows(users),
+                "rows": rows,
                 "selected_ids": selected_ids,
                 "action_name": action_name,
                 "mode": mode,
                 "confirm_name": confirm_name or "",
                 "form": LoginLockAdminActionForm(initial={"lock_mode": "default"}),
+                "actionable_count": actionable_count,
             },
         )
 
@@ -1736,8 +1796,11 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
         reason = form.cleaned_data["action_reason"]
         lock_mode = form.cleaned_data.get("lock_mode") or "default"
+        email_user_ids = set(request.POST.getlist("send_email_user_ids"))
         locked_count = 0
         skipped_count = 0
+        email_queued_users = []
+        item_metadata_by_user_id = {}
 
         for user in queryset.order_by("username", "id"):
             portal = detect_user_portal(user)
@@ -1757,6 +1820,14 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
             new_status = lock_user_login(user, minutes, portal=portal)
             locked_count += 1
+            if str(user.pk) in email_user_ids:
+                email_queued_users.append(user)
+                item_metadata_by_user_id[user.id] = {
+                    "portal": portal,
+                    "duration_minutes": minutes,
+                    "duration_text": self._format_login_lock_duration(minutes),
+                    "expires_at": localtime(new_status.expires_at).strftime("%d/%m/%Y, %I:%M %p") if new_status.expires_at else "",
+                }
             _create_admin_audit_log(
                 request,
                 user,
@@ -1781,9 +1852,23 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 action="LOGIN_LOCK",
             )
 
+        job = self._queue_login_lock_email_job(
+            request=request,
+            users=email_queued_users,
+            job_type="login_lock",
+            subject="Your portal login has been locked",
+            reason=reason,
+            item_metadata_by_user_id=item_metadata_by_user_id,
+        )
+
         self.message_user(
             request,
-            f"Login lock completed. Locked: {locked_count}. Skipped: {skipped_count}.",
+            format_html(
+                "Login lock completed. Locked: {}. Skipped: {}.{}",
+                locked_count,
+                skipped_count,
+                self._login_lock_email_message(job, len(email_queued_users)),
+            ),
             level=messages.SUCCESS if locked_count else messages.WARNING,
         )
         return None
@@ -1807,8 +1892,11 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return None
 
         reason = form.cleaned_data["action_reason"]
+        email_user_ids = set(request.POST.getlist("send_email_user_ids"))
         unlocked_count = 0
         already_unlocked_count = 0
+        email_queued_users = []
+        item_metadata_by_user_id = {}
 
         for user in queryset.order_by("username", "id"):
             portal = detect_user_portal(user)
@@ -1818,6 +1906,14 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 unlocked_count += 1
             else:
                 already_unlocked_count += 1
+            if str(user.pk) in email_user_ids:
+                email_queued_users.append(user)
+                item_metadata_by_user_id[user.id] = {
+                    "portal": portal,
+                    "unlocked_at": localtime(now()).strftime("%d/%m/%Y, %I:%M %p"),
+                    "was_locked": previous_status.is_locked,
+                    "failed_attempts": previous_status.failed_attempts,
+                }
             _create_admin_audit_log(
                 request,
                 user,
@@ -1843,9 +1939,23 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 action="LOGIN_UNLOCK",
             )
 
+        job = self._queue_login_lock_email_job(
+            request=request,
+            users=email_queued_users,
+            job_type="login_unlock",
+            subject="Your portal login has been unlocked",
+            reason=reason,
+            item_metadata_by_user_id=item_metadata_by_user_id,
+        )
+
         self.message_user(
             request,
-            f"Login unlock completed. Cleared: {unlocked_count}. Already clear: {already_unlocked_count}.",
+            format_html(
+                "Login unlock completed. Cleared: {}. Already clear: {}.{}",
+                unlocked_count,
+                already_unlocked_count,
+                self._login_lock_email_message(job, len(email_queued_users)),
+            ),
             level=messages.SUCCESS if unlocked_count else messages.WARNING,
         )
         return None
@@ -1861,6 +1971,44 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         show_email_option=False,
     ):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
+        users = list(queryset.order_by("username", "id"))
+        preview_rows = []
+        actionable_count = 0
+        for user in users:
+            if show_email_option:
+                allowed = user_can_be_forced_to_change_password(user)
+                current_matches_target = user.must_change_password == target_active
+                is_actionable = bool(allowed and not current_matches_target)
+                if not allowed:
+                    action_label = "Not allowed"
+                elif current_matches_target:
+                    action_label = "No change needed"
+                elif target_active:
+                    action_label = "Will be forced"
+                else:
+                    action_label = "Will be cleared"
+                current_status = "Forced" if user.must_change_password else "Not forced"
+            else:
+                current_matches_target = user.is_active == target_active
+                is_self_deactivate = bool(not target_active and user.pk == request.user.pk)
+                is_actionable = bool(not current_matches_target and not is_self_deactivate)
+                if is_self_deactivate:
+                    action_label = "Not allowed"
+                elif current_matches_target:
+                    action_label = "No change needed"
+                elif target_active:
+                    action_label = "Will be activated"
+                else:
+                    action_label = "Will be deactivated"
+                current_status = "Active" if user.is_active else "Inactive"
+            preview_rows.append({
+                "user": user,
+                "current_status": current_status,
+                "action_label": action_label,
+                "is_actionable": is_actionable,
+                "email_enabled": bool(show_email_option and is_actionable and user.email),
+            })
+            actionable_count += 1 if is_actionable else 0
         form = BulkUserStatusActionForm()
         return TemplateResponse(
             request,
@@ -1869,7 +2017,8 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 **self.admin_site.each_context(request),
                 "title": title,
                 "opts": self.model._meta,
-                "users": queryset.order_by("username", "id"),
+                "users": users,
+                "preview_rows": preview_rows,
                 "selected_ids": selected_ids,
                 "action_name": action_name,
                 "form": form,
@@ -1877,6 +2026,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                   "requires_confirmation": not target_active,
                   "show_email_option": show_email_option,
                   "action_description": action_description,
+                  "actionable_count": actionable_count,
               },
           )
 
@@ -1971,7 +2121,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 metadata={"event": event},
             )
 
-        email_text = f" Email job queued: {len(email_queued_users)}."
+        email_text = " No email queued."
         if job:
             job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
             email_text = format_html(' Email job queued: {}. <a href="{}">View status</a>.', len(email_queued_users), job_url)
@@ -2039,6 +2189,9 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
     def _render_bulk_onboarding_confirmation(self, request, queryset):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
+        preview_rows = self._build_bulk_onboarding_preview(queryset)
+        ready_count = sum(1 for row in preview_rows if row["can_queue"])
+        skipped_count = len(preview_rows) - ready_count
         return TemplateResponse(
             request,
             "admin/bulk_onboarding_email_confirm.html",
@@ -2046,12 +2199,72 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 **self.admin_site.each_context(request),
                 "title": "Confirm onboarding email resend",
                 "opts": self.model._meta,
-                "users": queryset.order_by("username", "id"),
+                "preview_rows": preview_rows,
+                "ready_count": ready_count,
+                "skipped_count": skipped_count,
                 "selected_ids": selected_ids,
                 "action_name": "resend_onboarding_email_to_selected_users",
                 "form": BulkUserOnboardingEmailForm(),
             },
         )
+
+    def _build_bulk_onboarding_preview(self, queryset):
+        users = list(queryset.select_related("profile").order_by("username", "id"))
+        sent_rows = EmailDeliveryLog.objects.filter(
+            related_user__in=users,
+            email_type="employee_welcome",
+            status="sent",
+        ).values("related_user_id").annotate(
+            sent_count=Count("id"),
+            last_sent_at=Max("created_at"),
+        )
+        sent_by_user_id = {
+            row["related_user_id"]: row
+            for row in sent_rows
+        }
+
+        preview_rows = []
+        for user in users:
+            profile = getattr(user, "profile", None)
+            has_profile = bool(profile)
+            has_email = bool(user.email)
+            sent_summary = sent_by_user_id.get(user.id, {})
+            sent_count = sent_summary.get("sent_count") or 0
+            last_sent_at = sent_summary.get("last_sent_at") or getattr(profile, "welcome_sent_at", None)
+
+            if sent_count and last_sent_at:
+                sent_date = localtime(last_sent_at).strftime("%d/%m/%Y")
+                previous_welcome = f"Sent - {sent_date} ({sent_count} {'time' if sent_count == 1 else 'times'})"
+            elif getattr(profile, "welcome_sent_at", None):
+                sent_date = localtime(profile.welcome_sent_at).strftime("%d/%m/%Y")
+                previous_welcome = f"Sent - {sent_date} (1 time)"
+            elif has_profile:
+                previous_welcome = "Not sent"
+            else:
+                previous_welcome = "N/A"
+
+            if not has_profile:
+                action_label = "Will be skipped - missing profile"
+                can_queue = False
+            elif not has_email:
+                action_label = "Will be skipped - missing email"
+                can_queue = False
+            elif sent_count or getattr(profile, "welcome_sent_at", None):
+                action_label = "Will resend onboarding email"
+                can_queue = True
+            else:
+                action_label = "Will queue onboarding email"
+                can_queue = True
+
+            preview_rows.append({
+                "user": user,
+                "email": user.email or "Missing",
+                "has_profile": has_profile,
+                "previous_welcome": previous_welcome,
+                "action_label": action_label,
+                "can_queue": can_queue,
+            })
+        return preview_rows
 
     @admin.action(description="Resend onboarding email to selected users")
     def resend_onboarding_email_to_selected_users(self, request, queryset):
@@ -2065,7 +2278,17 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return None
 
         reason = form.cleaned_data["action_reason"]
-        users = list(queryset.order_by("username", "id"))
+        preview_rows = self._build_bulk_onboarding_preview(queryset)
+        users = [row["user"] for row in preview_rows if row["can_queue"]]
+        skipped_count = len(preview_rows) - len(users)
+        if not users:
+            self.message_user(
+                request,
+                "No onboarding emails were queued because every selected user is missing an email or profile.",
+                level=messages.WARNING,
+            )
+            return None
+
         job = create_admin_email_job(
             job_type="onboarding",
             user_ids=[user.id for user in users],
@@ -2086,13 +2309,21 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
         self.message_user(
             request,
-            format_html('Onboarding email job queued for {} user(s). <a href="{}">View status</a>.', len(users), job_url),
+            format_html(
+                'Onboarding email job queued for {} user(s). Skipped {} user(s). <a href="{}">View status</a>.',
+                len(users),
+                skipped_count,
+                job_url,
+            ),
             level=messages.SUCCESS,
         )
         return None
 
     def _render_bulk_reminder_confirmation(self, request, queryset):
         selected_ids = self._selected_user_ids_from_request(request, queryset)
+        preview_rows = self._build_bulk_reminder_preview(queryset)
+        ready_count = sum(1 for row in preview_rows if row["can_queue"])
+        skipped_count = len(preview_rows) - ready_count
         return TemplateResponse(
             request,
             "admin/bulk_reminder_email_confirm.html",
@@ -2100,12 +2331,26 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 **self.admin_site.each_context(request),
                 "title": "Confirm bulk reminder email",
                 "opts": self.model._meta,
-                "users": queryset.order_by("username", "id"),
+                "preview_rows": preview_rows,
+                "ready_count": ready_count,
+                "skipped_count": skipped_count,
                 "selected_ids": selected_ids,
                 "action_name": "send_reminder_email_to_selected_users",
                 "form": BulkUserReminderEmailForm(),
             },
         )
+
+    def _build_bulk_reminder_preview(self, queryset):
+        preview_rows = []
+        for user in queryset.order_by("username", "id"):
+            has_email = bool(user.email)
+            preview_rows.append({
+                "user": user,
+                "email": user.email or "Missing",
+                "action_label": "Will queue reminder email" if has_email else "Will be skipped - missing email",
+                "can_queue": has_email,
+            })
+        return preview_rows
 
     def _send_admin_reminder_email(self, user, subject, message, actor):
         from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
@@ -2157,7 +2402,17 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         subject = form.cleaned_data["subject"]
         body = form.cleaned_data["message"]
         reason = form.cleaned_data["action_reason"]
-        users = list(queryset.order_by("username", "id"))
+        preview_rows = self._build_bulk_reminder_preview(queryset)
+        users = [row["user"] for row in preview_rows if row["can_queue"]]
+        skipped_count = len(preview_rows) - len(users)
+        if not users:
+            self.message_user(
+                request,
+                "No reminder emails were queued because every selected user is missing an email address.",
+                level=messages.WARNING,
+            )
+            return None
+
         job = create_admin_email_job(
             job_type="reminder",
             user_ids=[user.id for user in users],
@@ -2179,7 +2434,12 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
         self.message_user(
             request,
-            format_html('Reminder email job queued for {} user(s). <a href="{}">View status</a>.', len(users), job_url),
+            format_html(
+                'Reminder email job queued for {} user(s). Skipped {} user(s). <a href="{}">View status</a>.',
+                len(users),
+                skipped_count,
+                job_url,
+            ),
             level=messages.SUCCESS,
         )
         return None
@@ -5794,10 +6054,57 @@ class PushSubscriptionAdmin(admin.ModelAdmin):
     readonly_fields = ("user", "endpoint", "p256dh", "auth", "browser", "device_label", "created_at", "updated_at", "last_seen_at", "last_sent_at", "last_error")
     actions = ["deactivate_selected_subscriptions"]
 
+    def _selected_subscription_ids_from_request(self, request, queryset):
+        selected_ids = request.POST.getlist("_selected_action")
+        if selected_ids:
+            return selected_ids
+        return [str(item.pk) for item in queryset]
+
+    def _push_subscription_preview_rows(self, queryset):
+        rows = []
+        actionable_count = 0
+        for subscription in queryset.select_related("user").order_by("user__username", "id"):
+            is_actionable = subscription.is_active
+            rows.append({
+                "subscription": subscription,
+                "current_status": "Active" if subscription.is_active else "Inactive",
+                "action_label": "Will deactivate" if is_actionable else "No change needed",
+                "is_actionable": is_actionable,
+            })
+            actionable_count += 1 if is_actionable else 0
+        return rows, actionable_count
+
+    def _render_deactivate_push_confirmation(self, request, queryset):
+        selected_ids = self._selected_subscription_ids_from_request(request, queryset)
+        preview_rows, actionable_count = self._push_subscription_preview_rows(queryset)
+        return TemplateResponse(
+            request,
+            "admin/push_subscription_deactivate_confirm.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Confirm push subscription deactivation",
+                "opts": self.model._meta,
+                "preview_rows": preview_rows,
+                "actionable_count": actionable_count,
+                "skipped_count": len(preview_rows) - actionable_count,
+                "selected_ids": selected_ids,
+                "action_name": "deactivate_selected_subscriptions",
+            },
+        )
+
     @admin.action(description="Deactivate selected push subscriptions")
     def deactivate_selected_subscriptions(self, request, queryset):
-        updated = queryset.update(is_active=False)
-        self.message_user(request, f"Deactivated {updated} push subscription(s).", level=messages.SUCCESS)
+        if not request.POST.get("confirm_deactivate_push_subscriptions"):
+            return self._render_deactivate_push_confirmation(request, queryset)
+
+        active_queryset = queryset.filter(is_active=True)
+        updated = active_queryset.update(is_active=False)
+        skipped = queryset.count() - updated
+        self.message_user(
+            request,
+            f"Push subscription deactivation completed. Deactivated: {updated}. No change needed: {skipped}.",
+            level=messages.SUCCESS if updated else messages.WARNING,
+        )
 
 
 @login_required

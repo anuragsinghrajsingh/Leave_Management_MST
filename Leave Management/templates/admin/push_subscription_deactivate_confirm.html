@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action_name }}">
+    <input type="hidden" name="confirm_deactivate_push_subscriptions" value="1">
+    {% for subscription_id in selected_ids %}
+      <input type="hidden" name="_selected_action" value="{{ subscription_id }}">
+    {% endfor %}
+
+    <fieldset class="module aligned">
+      <h2>{{ title }}</h2>
+      <p>
+        Only active push subscriptions will be deactivated. Inactive subscriptions will not be changed.
+      </p>
+    </fieldset>
+
+    <h2>Selected subscriptions</h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">User</th>
+          <th scope="col">Browser</th>
+          <th scope="col">Device</th>
+          <th scope="col">Current status</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview_rows %}
+          <tr>
+            <td>
+              {{ row.subscription.user.get_full_name|default:row.subscription.user.username }}
+              <br>
+              <span class="help">{{ row.subscription.user.username }} - {{ row.subscription.user.role }}</span>
+            </td>
+            <td>{{ row.subscription.browser|default:"-" }}</td>
+            <td>{{ row.subscription.device_label|default:"-" }}</td>
+            <td>{{ row.current_status }}</td>
+            <td>
+              {% if row.is_actionable %}
+                <strong>{{ row.action_label }}</strong>
+              {% else %}
+                {{ row.action_label }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="help">
+      Will deactivate: {{ actionable_count }}. No change needed: {{ skipped_count }}.
+    </p>
+
+    <div class="submit-row">
+      {% if actionable_count %}
+        <input type="submit" class="default" value="Deactivate push subscriptions">
+      {% else %}
+        <p class="errornote">No selected push subscriptions are active.</p>
+      {% endif %}
+      <a href="{% url 'admin:App_pushsubscription_changelist' %}" class="button cancel-link">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
