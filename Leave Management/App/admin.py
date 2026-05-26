@@ -73,7 +73,7 @@ from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import EmailMessage, get_connection
 from django.db import connection, transaction
-from django.db.models import Q
+from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import path, reverse
 from django.http import HttpResponse, JsonResponse
@@ -1179,6 +1179,25 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
 
     list_display = ("username", "email", "role", "employee_id_display", "department_display", "welcome_status_display", "is_active", "must_change_password", "login_lock_status_display", "last_login_display", "is_staff", "is_superuser", "archive_pdf_link")
     search_fields = ("username", "email", "first_name", "last_name", "profile__employee_id")
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(
+            welcome_sent_count=Count(
+                "email_delivery_logs",
+                filter=Q(
+                    email_delivery_logs__email_type="employee_welcome",
+                    email_delivery_logs__status="sent",
+                ),
+            ),
+            last_welcome_sent_at=Max(
+                "email_delivery_logs__created_at",
+                filter=Q(
+                    email_delivery_logs__email_type="employee_welcome",
+                    email_delivery_logs__status="sent",
+                ),
+            ),
+        )
     
     
     # 🔥 Override the page to force follow the nextstep
@@ -1337,19 +1356,25 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     last_login_display.admin_order_field = "last_login"
 
     def welcome_status_display(self, obj):
-        if getattr(obj, "role", None) != "EMPLOYEE":
-            return format_html('<span style="color:#64748b;font-weight:700;">{}</span>', "N/A")
-
         try:
             welcome_sent_at = obj.profile.welcome_sent_at
         except Profile.DoesNotExist:
             return format_html('<span style="color:#b91c1c;font-weight:700;">{}</span>', "No profile")
 
-        if welcome_sent_at:
-            sent_text = localtime(welcome_sent_at).strftime("%d %b %Y")
+        sent_count = getattr(obj, "welcome_sent_count", 0) or 0
+        last_sent_at = getattr(obj, "last_welcome_sent_at", None)
+
+        if last_sent_at or welcome_sent_at:
+            sent_at = last_sent_at or welcome_sent_at
+            sent_text = localtime(sent_at).strftime("%d/%m/%Y")
+            count_text = sent_count if sent_count else 1
+            times_text = "time" if count_text == 1 else "times"
             return format_html(
-                '<span title="Sent on {}" style="color:#047857;font-weight:700;">Sent</span>',
+                '<span title="Sent on {}" style="color:#047857;font-weight:700;">Sent - {} ({} {})</span>',
                 sent_text,
+                sent_text,
+                count_text,
+                times_text,
             )
 
         return format_html('<span style="color:#b45309;font-weight:700;">{}</span>', "Not sent")
