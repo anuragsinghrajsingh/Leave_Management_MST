@@ -9,7 +9,7 @@ from django.db import close_old_connections
 
 
 logger = logging.getLogger("lms_background")
-_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="lms-bg")
+_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="lms-bg")
 _qcluster_status_cache = {"checked_at": 0.0, "active": False}
 _QCLUSTER_STATUS_TTL_SECONDS = 5
 

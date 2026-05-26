@@ -1,0 +1,55 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+{% if admin_email_job_status_url %}
+  <link rel="stylesheet" href="{% static 'admin/css/admin_email_job_status.css' %}">
+  <script src="{% static 'admin/js/admin_email_job_status.js' %}" defer></script>
+{% endif %}
+{% endblock %}
+
+{% block after_field_sets %}
+{{ block.super }}
+{% if admin_email_job_status_url %}
+<section
+  class="admin-email-job-live"
+  data-admin-email-job-status-url="{{ admin_email_job_status_url }}"
+  data-admin-email-job-poll-ms="3000"
+>
+  <div class="admin-email-job-live__header">
+    <div>
+      <h2>Live Delivery Status</h2>
+      <p data-admin-email-job-updated>Loading latest status...</p>
+    </div>
+    <span class="admin-email-job-live__badge" data-admin-email-job-status>Loading</span>
+  </div>
+
+  <div class="admin-email-job-live__stats">
+    <div><span data-admin-email-job-count="total_count">0</span><label>Total</label></div>
+    <div><span data-admin-email-job-count="queued_count">0</span><label>Queued</label></div>
+    <div><span data-admin-email-job-count="running_count">0</span><label>Running</label></div>
+    <div><span data-admin-email-job-count="sent_count">0</span><label>Sent</label></div>
+    <div><span data-admin-email-job-count="failed_count">0</span><label>Failed</label></div>
+    <div><span data-admin-email-job-count="skipped_count">0</span><label>Skipped</label></div>
+  </div>
+
+  <div class="admin-email-job-live__table-wrap">
+    <table class="admin-email-job-live__table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Message</th>
+          <th>Finished</th>
+        </tr>
+      </thead>
+      <tbody data-admin-email-job-items>
+        <tr><td colspan="5">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

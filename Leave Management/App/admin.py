@@ -5,6 +5,8 @@ from .models import (
     AdminAuditLog,
     AdminCommunicationAudit,
     AdminCommunicationCenter,
+    AdminEmailJob,
+    AdminEmailJobItem,
     AllCommunicationNotificationAudit,
     AnalyticsLogViewer,
     ApiLogViewer,
@@ -94,8 +96,8 @@ import re
 
 from App.services.employee_welcome_service import send_employee_welcome_package
 from App.services.email_delivery_log import record_email_delivery
+from App.services.admin_bulk_email_jobs import create_admin_email_job
 from App.services.forced_password_service import (
-    send_forced_password_email,
     send_password_reset_email,
     user_can_be_forced_to_change_password,
 )
@@ -1932,7 +1934,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         email_user_ids = set(request.POST.getlist("send_email_user_ids"))
         changed_count = 0
         skipped_count = 0
-        email_sent_count = 0
+        email_queued_users = []
         action_name = "FORCE_PASSWORD_CHANGE" if target_flag else "CLEAR_FORCE_PASSWORD_CHANGE"
         event = "forced" if target_flag else "cleared"
 
@@ -1948,8 +1950,8 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             user.must_change_password = target_flag
             user.save(update_fields=["must_change_password"])
             changed_count += 1
-            if str(user.pk) in email_user_ids and send_forced_password_email(user, event, triggered_by=request.user):
-                email_sent_count += 1
+            if str(user.pk) in email_user_ids:
+                email_queued_users.append(user)
             _create_admin_audit_log(
                 request,
                 user,
@@ -1958,9 +1960,25 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 action=action_name,
             )
 
+        job = None
+        if email_queued_users:
+            job = create_admin_email_job(
+                job_type="force_password",
+                user_ids=[user.id for user in email_queued_users],
+                created_by=request.user,
+                subject="Password change required" if target_flag else "Password change requirement removed",
+                reason=reason,
+                metadata={"event": event},
+            )
+
+        email_text = f" Email job queued: {len(email_queued_users)}."
+        if job:
+            job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
+            email_text = format_html(' Email job queued: {}. <a href="{}">View status</a>.', len(email_queued_users), job_url)
+
         self.message_user(
             request,
-            f"Password change flag updated. Changed: {changed_count}. Skipped: {skipped_count}. Email sent: {email_sent_count}.",
+            format_html("Password change flag updated. Changed: {}. Skipped: {}.{}", changed_count, skipped_count, email_text),
             level=messages.SUCCESS if changed_count else messages.WARNING,
         )
         return None
@@ -2047,34 +2065,29 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
             return None
 
         reason = form.cleaned_data["action_reason"]
-        sent_count = 0
-        failed_count = 0
-        skipped_count = 0
+        users = list(queryset.order_by("username", "id"))
+        job = create_admin_email_job(
+            job_type="onboarding",
+            user_ids=[user.id for user in users],
+            created_by=request.user,
+            subject="Welcome to MS Technology",
+            reason=reason,
+        )
 
-        for user in queryset.order_by("username", "id"):
-            result = send_employee_welcome_package(user, triggered_by=request.user, force_resend=True)
-            if result.get("email_sent"):
-                sent_count += 1
-                email_status = "sent"
-            elif result.get("sent"):
-                failed_count += 1
-                email_status = "communication_sent_email_failed"
-            else:
-                skipped_count += 1
-                email_status = result.get("reason") or "skipped"
-
+        for user in users:
             _create_admin_audit_log(
                 request,
                 user,
-                {"onboarding_email": {"old": None, "new": email_status}},
+                {"onboarding_email": {"old": None, "new": "queued", "job_id": job.id}},
                 reason,
                 action="BULK_ONBOARDING_EMAIL",
             )
 
+        job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
         self.message_user(
             request,
-            f"Onboarding resend finished. Email sent: {sent_count}. Failed: {failed_count}. Skipped: {skipped_count}.",
-            level=messages.SUCCESS if sent_count else messages.WARNING,
+            format_html('Onboarding email job queued for {} user(s). <a href="{}">View status</a>.', len(users), job_url),
+            level=messages.SUCCESS,
         )
         return None
 
@@ -2144,31 +2157,30 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         subject = form.cleaned_data["subject"]
         body = form.cleaned_data["message"]
         reason = form.cleaned_data["action_reason"]
-        sent_count = 0
-        failed_count = 0
-        skipped_count = 0
+        users = list(queryset.order_by("username", "id"))
+        job = create_admin_email_job(
+            job_type="reminder",
+            user_ids=[user.id for user in users],
+            created_by=request.user,
+            subject=subject,
+            message=body,
+            reason=reason,
+        )
 
-        for user in queryset.order_by("username", "id"):
-            result = self._send_admin_reminder_email(user, subject, body, request.user)
-            if result == "sent":
-                sent_count += 1
-            elif result == "failed":
-                failed_count += 1
-            else:
-                skipped_count += 1
-
+        for user in users:
             _create_admin_audit_log(
                 request,
                 user,
-                {"reminder_email": {"old": None, "new": result, "subject": subject}},
+                {"reminder_email": {"old": None, "new": "queued", "subject": subject, "job_id": job.id}},
                 reason,
                 action="BULK_REMINDER_EMAIL",
             )
 
+        job_url = reverse("admin:App_adminemailjob_change", args=[job.pk])
         self.message_user(
             request,
-            f"Reminder email finished. Sent: {sent_count}. Failed: {failed_count}. Skipped: {skipped_count}.",
-            level=messages.SUCCESS if sent_count else messages.WARNING,
+            format_html('Reminder email job queued for {} user(s). <a href="{}">View status</a>.', len(users), job_url),
+            level=messages.SUCCESS,
         )
         return None
 
@@ -5953,6 +5965,197 @@ class EmailDeliveryLogAdmin(ReadOnlyAuditAdminMixin, admin.ModelAdmin):
         if not obj.error_message:
             return "-"
         return obj.error_message[:80] + ("..." if len(obj.error_message) > 80 else "")
+
+
+class AdminEmailJobItemInline(admin.TabularInline):
+    model = AdminEmailJobItem
+    extra = 0
+    can_delete = False
+    fields = (
+        "user",
+        "recipient_email",
+        "status",
+        "status_message",
+        "error_message",
+        "started_at",
+        "finished_at",
+    )
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.is_staff
+
+
+@login_required
+@never_cache
+@admin.register(AdminEmailJob)
+class AdminEmailJobAdmin(admin.ModelAdmin):
+    change_form_template = "admin/admin_email_job_change_form.html"
+    list_display = (
+        "created_at",
+        "job_type",
+        "status",
+        "total_count",
+        "sent_count",
+        "failed_count",
+        "skipped_count",
+        "created_by",
+        "finished_at",
+    )
+    list_filter = ("status", "job_type", "created_at")
+    search_fields = ("subject", "created_by__username", "items__recipient_email", "items__user__username")
+    readonly_fields = (
+        "job_type",
+        "status",
+        "subject",
+        "message",
+        "reason",
+        "total_count",
+        "queued_count",
+        "running_count",
+        "sent_count",
+        "failed_count",
+        "skipped_count",
+        "created_by",
+        "created_at",
+        "started_at",
+        "finished_at",
+        "metadata",
+    )
+    fieldsets = (
+        ("Job summary", {
+            "fields": (
+                "job_type",
+                "status",
+                "total_count",
+                "queued_count",
+                "running_count",
+                "sent_count",
+                "failed_count",
+                "skipped_count",
+            ),
+        }),
+        ("Details", {
+            "fields": ("subject", "message", "reason", "created_by", "created_at", "started_at", "finished_at", "metadata"),
+        }),
+    )
+    inlines = (AdminEmailJobItemInline,)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("created_by")
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<path:object_id>/status/",
+                self.admin_site.admin_view(self.status_view),
+                name="App_adminemailjob_status",
+            ),
+        ]
+        return custom_urls + urls
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        if object_id:
+            extra_context["admin_email_job_status_url"] = reverse("admin:App_adminemailjob_status", args=[object_id])
+        return super().changeform_view(request, object_id, form_url, extra_context=extra_context)
+
+    def status_view(self, request, object_id):
+        job = get_object_or_404(self.get_queryset(request), pk=object_id)
+        items = []
+        for item in job.items.select_related("user").order_by("id"):
+            user = item.user
+            user_label = "-"
+            if user:
+                user_label = user.get_full_name().strip() or user.username
+            items.append({
+                "id": item.pk,
+                "user": user_label,
+                "username": user.username if user else "",
+                "email": item.recipient_email or getattr(user, "email", "") or "-",
+                "status": item.status,
+                "status_label": item.get_status_display(),
+                "message": item.status_message or item.error_message or "-",
+                "started_at": localtime(item.started_at).strftime("%d/%m/%Y %I:%M %p") if item.started_at else "-",
+                "finished_at": localtime(item.finished_at).strftime("%d/%m/%Y %I:%M %p") if item.finished_at else "-",
+            })
+
+        return JsonResponse({
+            "id": job.pk,
+            "job_type": job.get_job_type_display(),
+            "status": job.status,
+            "status_label": job.get_status_display(),
+            "total_count": job.total_count,
+            "queued_count": job.queued_count,
+            "running_count": job.running_count,
+            "sent_count": job.sent_count,
+            "failed_count": job.failed_count,
+            "skipped_count": job.skipped_count,
+            "created_at": localtime(job.created_at).strftime("%d/%m/%Y %I:%M %p") if job.created_at else "-",
+            "started_at": localtime(job.started_at).strftime("%d/%m/%Y %I:%M %p") if job.started_at else "-",
+            "finished_at": localtime(job.finished_at).strftime("%d/%m/%Y %I:%M %p") if job.finished_at else "-",
+            "items": items,
+        })
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.is_staff
+
+
+@login_required
+@never_cache
+@admin.register(AdminEmailJobItem)
+class AdminEmailJobItemAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "job", "user", "recipient_email", "status", "short_message", "finished_at")
+    list_filter = ("status", "job__job_type", "created_at")
+    search_fields = ("recipient_email", "user__username", "user__email", "status_message", "error_message")
+    readonly_fields = (
+        "job",
+        "user",
+        "recipient_email",
+        "status",
+        "status_message",
+        "error_message",
+        "started_at",
+        "finished_at",
+        "metadata",
+        "created_at",
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("job", "user")
+
+    def short_message(self, obj):
+        return (obj.status_message or obj.error_message or "-")[:120]
+
+    short_message.short_description = "Message"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.is_staff
 
 
 @login_required

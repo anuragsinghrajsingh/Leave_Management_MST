@@ -438,6 +438,128 @@ class EmailDeliveryLog(models.Model):
         super().save(*args, **kwargs)
 
 
+class AdminEmailJob(models.Model):
+    JOB_TYPE_CHOICES = [
+        ("onboarding", "Onboarding email"),
+        ("force_password", "Force password email"),
+        ("reminder", "Reminder email"),
+    ]
+
+    STATUS_CHOICES = [
+        ("queued", "Queued"),
+        ("running", "Running"),
+        ("completed", "Completed"),
+        ("completed_with_failures", "Completed with failures"),
+        ("failed", "Failed"),
+    ]
+
+    job_type = models.CharField(max_length=50, choices=JOB_TYPE_CHOICES, db_index=True)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="queued", db_index=True)
+    subject = models.CharField(max_length=500, blank=True)
+    message = models.TextField(blank=True)
+    reason = models.TextField(blank=True)
+    total_count = models.PositiveIntegerField(default=0)
+    queued_count = models.PositiveIntegerField(default=0)
+    running_count = models.PositiveIntegerField(default=0)
+    sent_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    skipped_count = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="created_admin_email_jobs",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    started_at = models.DateTimeField(blank=True, null=True)
+    finished_at = models.DateTimeField(blank=True, null=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "Admin email job"
+        verbose_name_plural = "Admin email jobs"
+
+    def __str__(self):
+        return f"{self.get_job_type_display()} #{self.pk or 'new'} - {self.get_status_display()}"
+
+    def refresh_counts(self, save=True):
+        counts = self.items.values("status").annotate(total=Count("id"))
+        by_status = {row["status"]: row["total"] for row in counts}
+        self.total_count = self.items.count()
+        self.queued_count = by_status.get("queued", 0)
+        self.running_count = by_status.get("running", 0)
+        self.sent_count = by_status.get("sent", 0)
+        self.failed_count = by_status.get("failed", 0)
+        self.skipped_count = by_status.get("skipped", 0)
+        if self.running_count:
+            self.status = "running"
+        elif self.queued_count:
+            self.status = "queued"
+        elif self.failed_count:
+            self.status = "completed_with_failures"
+        else:
+            self.status = "completed"
+        if save:
+            self.save(update_fields=[
+                "total_count",
+                "queued_count",
+                "running_count",
+                "sent_count",
+                "failed_count",
+                "skipped_count",
+                "status",
+            ])
+
+    def save(self, *args, **kwargs):
+        self.job_type = _truncate_for_field(self.job_type, 50)
+        self.status = _truncate_for_field(self.status, 50)
+        self.subject = _truncate_for_field(self.subject, 500)
+        super().save(*args, **kwargs)
+
+
+class AdminEmailJobItem(models.Model):
+    STATUS_CHOICES = [
+        ("queued", "Queued"),
+        ("running", "Running"),
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+        ("skipped", "Skipped"),
+    ]
+
+    job = models.ForeignKey(AdminEmailJob, on_delete=models.CASCADE, related_name="items")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="admin_email_job_items",
+    )
+    recipient_email = models.EmailField(blank=True)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="queued", db_index=True)
+    status_message = models.CharField(max_length=500, blank=True)
+    error_message = models.TextField(blank=True)
+    started_at = models.DateTimeField(blank=True, null=True)
+    finished_at = models.DateTimeField(blank=True, null=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Admin email job item"
+        verbose_name_plural = "Admin email job items"
+
+    def __str__(self):
+        user_label = self.user.username if self.user else self.recipient_email or "Unknown user"
+        return f"{user_label} - {self.get_status_display()}"
+
+    def save(self, *args, **kwargs):
+        self.status = _truncate_for_field(self.status, 50)
+        self.status_message = _truncate_for_field(self.status_message, 500)
+        super().save(*args, **kwargs)
+
+
 class PushSubscription(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
