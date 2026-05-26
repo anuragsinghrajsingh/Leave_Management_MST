@@ -1969,7 +1969,10 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
         target_active,
         action_description="",
         show_email_option=False,
+        requires_confirmation=None,
     ):
+        if requires_confirmation is None:
+            requires_confirmation = bool(not target_active and not show_email_option)
         selected_ids = self._selected_user_ids_from_request(request, queryset)
         users = list(queryset.order_by("username", "id"))
         preview_rows = []
@@ -2023,7 +2026,7 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 "action_name": action_name,
                 "form": form,
                   "target_active": target_active,
-                  "requires_confirmation": not target_active,
+                  "requires_confirmation": requires_confirmation,
                   "show_email_option": show_email_option,
                   "action_description": action_description,
                   "actionable_count": actionable_count,
@@ -2181,9 +2184,10 @@ class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
                 queryset,
                   "clear_forced_password_change_for_selected_users",
                   "Confirm clear forced password change",
-                  target_active=True,
+                  target_active=False,
                   action_description="This action will set must_change_password=False for selected HR/Employee users. Email notification is optional.",
                   show_email_option=True,
+                  requires_confirmation=False,
               )
         return self._run_bulk_force_password_flag_action(request, queryset, target_flag=False)
 

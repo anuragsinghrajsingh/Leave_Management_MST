@@ -148,9 +148,15 @@ def _send_force_password_item(job, item, user):
 
     event = (job.metadata or {}).get("event") or "forced"
     if send_forced_password_email(user, event, triggered_by=job.created_by):
-        _finish_item(item, "sent", "Force password email sent.")
+        if event == "cleared":
+            _finish_item(item, "sent", "Clear forced password email sent.")
+        else:
+            _finish_item(item, "sent", "Force password email sent.")
     else:
-        _finish_item(item, "failed", "Force password email failed.", error_message="Send function returned false.")
+        if event == "cleared":
+            _finish_item(item, "failed", "Clear forced password email failed.", error_message="Send function returned false.")
+        else:
+            _finish_item(item, "failed", "Force password email failed.", error_message="Send function returned false.")
 
 
 def _send_reminder_item(job, item, user):
