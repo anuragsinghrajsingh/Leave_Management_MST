@@ -141,8 +141,8 @@ Q_CLUSTER = {
     "workers": env.int("LMS_Q_WORKERS", default=2),
     "timeout": env.int("LMS_Q_TIMEOUT", default=120),
     "retry": env.int("LMS_Q_RETRY", default=300),
-    "queue_limit": env.int("LMS_Q_QUEUE_LIMIT", default=50),
-    "bulk": env.int("LMS_Q_BULK", default=10),
+    "queue_limit": env.int("LMS_Q_QUEUE_LIMIT", default=100),
+    "bulk": env.int("LMS_Q_BULK", default=20),
     "orm": "default",
 }
 

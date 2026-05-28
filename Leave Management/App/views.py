@@ -3559,7 +3559,12 @@ def approve_leave(request, leave_id):
         leave.rejected_at = None
         leave.reviewed_by = request.user
         leave.save(update_fields=["status", "approved_at", "rejected_at", "reviewed_by"])
-        log_leave_action(request.user, "APPROVE", leave.id, f"Employee: {leave.user.username}")
+        log_leave_action(
+            request.user,
+            "APPROVE",
+            leave.id,
+            f"Employee: {leave.user.username} | Type: {leave.leave_type} | Date: {leave.from_date} | Time: {localtime(leave.from_datetime).strftime('%H:%M')} to {localtime(leave.to_datetime).strftime('%H:%M')}",
+        )
         queue_employee_leave_push(leave, "Approved")
 
     # --- Notify Employee (Approved) ---
@@ -3725,7 +3730,12 @@ def reject_leave(request, leave_id):
         leave.approved_at = None
         leave.reviewed_by = request.user
         leave.save(update_fields=["status", "rejection_reason", "rejected_at", "approved_at", "reviewed_by"])
-        log_leave_action(request.user, "REJECT", leave.id, f"Employee: {leave.user.username} | Reason: {leave.rejection_reason}")
+        log_leave_action(
+            request.user,
+            "REJECT",
+            leave.id,
+            f"Employee: {leave.user.username} | Type: {leave.leave_type} | Date: {leave.from_date} | Time: {localtime(leave.from_datetime).strftime('%H:%M')} to {localtime(leave.to_datetime).strftime('%H:%M')} | Reason: {leave.rejection_reason}",
+        )
         queue_employee_leave_push(leave, "Rejected")
 
         if leave.leave_type in ["Sick", "Earned", "Unpaid"]:
@@ -4757,6 +4767,12 @@ def apply_leave(request):
                     status="Pending",
                     deducted_from=deducted_from
                 )
+                log_leave_action(
+                    request.user,
+                    "APPLY",
+                    leave_obj.id,
+                    f"Type: {leave_type} | Date: {from_date} | Time: {localtime(leave_obj.from_datetime).strftime('%H:%M')} to {localtime(leave_obj.to_datetime).strftime('%H:%M')} | Deducted From: {deducted_from}",
+                )
                 queue_hr_leave_push(leave_obj, "New leave request")
 
                 # --- Notify Managers (New Request) ---
@@ -5628,7 +5644,7 @@ def delete_leave(request, leave_id):
                 request.user,
                 "DELETE",
                 leave.id,
-                f"Type: {leave.leave_type} | Date: {leave.from_date} | Deducted From: {leave.deducted_from}",
+                f"Type: {leave.leave_type} | Date: {leave.from_date} | Time: {localtime(leave.from_datetime).strftime('%H:%M')} to {localtime(leave.to_datetime).strftime('%H:%M')} | Deducted From: {leave.deducted_from}",
             )
             queue_hr_leave_push(leave, "Leave deleted")
             leave.delete()
@@ -5998,7 +6014,12 @@ def edit_leave(request, leave_id):
             leave.no_of_times_updated = (leave.no_of_times_updated or 0) + 1
             refresh_pending_leave_notification(leave)
             leave.save()
-            log_leave_action(request.user, "EDIT", leave.id, f"Changes: {old_type} to {new_type} (Short/Half)")
+            log_leave_action(
+                request.user,
+                "EDIT",
+                leave.id,
+                f"Changes: {old_type} to {new_type} | Date: {new_from} | Time: {localtime(leave.from_datetime).strftime('%H:%M')} to {localtime(leave.to_datetime).strftime('%H:%M')} | Deducted From: {deducted_from}",
+            )
 
             # --- Notify Managers (Updated Request) ---
             hr_emails = get_leave_alert_recipients()

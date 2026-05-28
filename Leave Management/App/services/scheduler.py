@@ -164,6 +164,7 @@ def start_scheduler():
         scheduler.running,
         len(scheduler.get_jobs()),
     )
+    return scheduler
 
 
 def _safe_input(prompt):
