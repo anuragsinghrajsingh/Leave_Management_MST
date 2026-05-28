@@ -3350,12 +3350,12 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
         const scheduleText = String(item.schedule_text || "").trim();
         const activityLine = String(item.activity_line || "").trim();
         const leaveSymbolMap = {
-            earned: "&#9733;",
+            earned: "\u2605",
             sick: "+",
-            unpaid: "&#9673;",
-            short: "&#9684;",
-            half: "&#9681;",
-            default: "&#8226;"
+            unpaid: "\u25C9",
+            short: "\u25D4",
+            half: "\u25D1",
+            default: "\u2022"
         };
         const leaveSymbol = leaveSymbolMap[leaveTypeClass] || leaveSymbolMap.default;
 

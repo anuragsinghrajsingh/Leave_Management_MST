@@ -4909,7 +4909,7 @@ const exportWrapper = document.createElement("div");
         const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
         const leaveTypeOptions = myLeavePopupFilterTypes.map((type) =>
         {
-            return `<button type="button" class="popup-filter-leave-option custom-option" data-value="${escapeHtml(type.value)}" data-display-label="<span class=&quot;popup-filter-leave-value-symbol&quot; aria-hidden=&quot;true&quot;>${escapeHtml(type.symbol || "&#9679;")}</span><span class=&quot;popup-filter-leave-value-text&quot;>${escapeHtml(type.label)}</span>"><span class="popup-filter-leave-option-symbol" aria-hidden="true">${escapeHtml(type.symbol || "&#9679;")}</span><span class="option-title">${escapeHtml(type.label)}</span><span class="popup-filter-leave-option-check" aria-hidden="true">&#10003;</span></button>`;
+            return `<button type="button" class="popup-filter-leave-option custom-option" data-value="${escapeHtml(type.value)}" data-display-label="<span class=&quot;popup-filter-leave-value-symbol&quot; aria-hidden=&quot;true&quot;>${escapeHtml(type.symbol || "\u25CF")}</span><span class=&quot;popup-filter-leave-value-text&quot;>${escapeHtml(type.label)}</span>"><span class="popup-filter-leave-option-symbol" aria-hidden="true">${escapeHtml(type.symbol || "\u25CF")}</span><span class="option-title">${escapeHtml(type.label)}</span><span class="popup-filter-leave-option-check" aria-hidden="true">&#10003;</span></button>`;
         }).join("");
         const content = document.createElement("div");
         content.className = "popup-filter-modal-content";
