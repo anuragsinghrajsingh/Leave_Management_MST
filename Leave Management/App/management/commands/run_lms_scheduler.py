@@ -4,6 +4,7 @@ import threading
 from django.core.management.base import BaseCommand
 
 from App.services.scheduler import start_scheduler
+from App.services.uptime_tracker import record_app_startup
 
 
 class Command(BaseCommand):
@@ -19,6 +20,7 @@ class Command(BaseCommand):
         signal.signal(signal.SIGINT, request_stop)
 
         self.stdout.write(self.style.SUCCESS("Starting LMS scheduler process..."))
+        record_app_startup(force=True)
         scheduler = start_scheduler()
         self.stdout.write(self.style.SUCCESS("LMS scheduler is running. Press Ctrl+C to stop."))
 

@@ -48,12 +48,12 @@ def _is_managed_server_process():
     return bool(__import__("os").environ.get("RUN_MAIN") == "true")
 
 
-def record_app_startup():
-    if os.environ.get("LMS_SKIP_UPTIME_RECORD") == "1":
+def record_app_startup(force=False):
+    if os.environ.get("LMS_SKIP_UPTIME_RECORD") == "1" and not force:
         logger.info("UPTIME | STARTUP_RECORD | Skipped because LMS_SKIP_UPTIME_RECORD=1.")
         return
 
-    if not _is_managed_server_process():
+    if not force and not _is_managed_server_process():
         logger.info("UPTIME | STARTUP_RECORD | Skipped because process is not managed server process.")
         return
 
@@ -62,7 +62,11 @@ def record_app_startup():
         "started_at": timezone.now().isoformat(),
     }
     UPTIME_STATE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    logger.info("UPTIME | STARTUP_RECORD | Recorded app startup at %s.", payload["started_at"])
+    logger.info(
+        "UPTIME | STARTUP_RECORD | Recorded app startup at %s. | Force=%s",
+        payload["started_at"],
+        force,
+    )
 
 
 def get_app_started_at():
