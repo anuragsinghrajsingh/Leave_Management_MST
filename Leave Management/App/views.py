@@ -3542,7 +3542,7 @@ def approve_leave(request, leave_id):
 
     with transaction.atomic():
         leave = get_object_or_404(
-            Leave.objects.select_for_update().select_related("user", "user__profile"),
+            Leave.objects.select_for_update(of=("self",)).select_related("user", "user__profile"),
             id=leave_id,
         )
 
@@ -3663,7 +3663,7 @@ def reject_leave(request, leave_id):
 
     with transaction.atomic():
         leave = get_object_or_404(
-            Leave.objects.select_for_update().select_related("user", "user__profile"),
+            Leave.objects.select_for_update(of=("self",)).select_related("user", "user__profile"),
             id=leave_id,
         )
 
