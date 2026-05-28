@@ -3316,6 +3316,9 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
     {
         return (Array.isArray(notifications) ? notifications : []).map(function (item)
         {
+            const normalizedLeaveType = String(item.leave_type || "Leave")
+                .replace(/^&(?:#\d+|#x[0-9a-f]+|[a-z]+);\s*:?\s*/i, "")
+                .trim() || "Leave";
             const fallbackActivityLine = String(
                 item.activity_line || ((item.activity_label || "") + " " + (item.activity_text || item.created_at || "")).trim()
             );
@@ -3326,7 +3329,7 @@ const employeeData = JSON.parse(document.getElementById("employee-data").textCon
             return {
                 id: String(item.id || ""),
                 employee_id: String(item.employee_id || ""),
-                leave_type: String(item.leave_type || "Leave"),
+                leave_type: normalizedLeaveType,
                 leave_type_class: String(item.leave_type_class || "default"),
                 schedule_text: String(item.schedule_text || ""),
                 activity_label: String(item.activity_label || ""),
