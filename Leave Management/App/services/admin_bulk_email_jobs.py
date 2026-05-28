@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -14,6 +15,7 @@ from App.services.forced_password_service import send_forced_password_email
 
 
 logger = logging.getLogger("lms_background")
+STALE_ADMIN_EMAIL_JOB_MINUTES = 15
 
 
 def create_admin_email_job(*, job_type, user_ids, created_by, subject="", message="", reason="", metadata=None, item_metadata_by_user_id=None):
@@ -102,6 +104,59 @@ def process_admin_email_job(job_id):
         "finished_at",
     ])
     return True
+
+
+def recover_stuck_admin_email_jobs(stale_after_minutes=STALE_ADMIN_EMAIL_JOB_MINUTES):
+    cutoff = now() - timedelta(minutes=stale_after_minutes)
+    stale_items = list(
+        AdminEmailJobItem.objects
+        .select_related("job")
+        .filter(status="running", started_at__lt=cutoff)
+        .order_by("job_id", "id")
+    )
+    if not stale_items:
+        return {"jobs": 0, "items": 0}
+
+    job_ids = sorted({item.job_id for item in stale_items})
+    item_ids = [item.id for item in stale_items]
+
+    with transaction.atomic():
+        reset_count = AdminEmailJobItem.objects.filter(id__in=item_ids, status="running").update(
+            status="queued",
+            status_message="Retried after stale running state.",
+            error_message="",
+            started_at=None,
+            finished_at=None,
+        )
+
+        jobs = list(AdminEmailJob.objects.filter(id__in=job_ids).order_by("id"))
+        for job in jobs:
+            job.status = "queued"
+            job.finished_at = None
+            job.refresh_counts(save=False)
+            if job.running_count == 0 and job.queued_count > 0:
+                job.status = "queued"
+            job.save(update_fields=[
+                "total_count",
+                "queued_count",
+                "running_count",
+                "sent_count",
+                "failed_count",
+                "skipped_count",
+                "status",
+                "finished_at",
+            ])
+
+    for job_id in job_ids:
+        enqueue_background_task(process_admin_email_job, job_id, task_name="admin_email_job_recovery")
+
+    logger.warning(
+        "ADMIN_EMAIL_JOB_RECOVERY | jobs=%s | items=%s | stale_after_minutes=%s",
+        len(job_ids),
+        reset_count,
+        stale_after_minutes,
+    )
+    return {"jobs": len(job_ids), "items": reset_count}
 
 
 def _process_job_item(job, item):

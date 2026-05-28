@@ -69,6 +69,14 @@ SCHEDULER_JOB_DETAILS = [
         "effect": "Refreshes saved India public holidays without slowing user calendar requests.",
     },
     {
+        "id": "admin_email_job_recovery",
+        "name": "Admin email job recovery",
+        "schedule": "Every 5 minutes",
+        "service_file": "admin_bulk_email_jobs.py",
+        "function": "recover_stuck_admin_email_jobs",
+        "effect": "Retries admin email jobs stuck in running state after worker interruption.",
+    },
+    {
         "id": "scheduler_keepalive",
         "name": "Scheduler keep-alive",
         "schedule": "Every 6 hours",
@@ -84,6 +92,7 @@ def start_scheduler():
     from App.services.startup_checks import check_and_run_missed_backup, check_and_run_missed_weekly_report
     from App.services.background_tasks import enqueue_background_task
     from App.services.public_holidays import sync_public_holidays
+    from App.services.admin_bulk_email_jobs import recover_stuck_admin_email_jobs
 
     scheduler = BackgroundScheduler()
     logger.info("SCHEDULER | JOBSTORE | Using in-memory job store.")
@@ -145,6 +154,16 @@ def start_scheduler():
         replace_existing=True,
     )
     logger.info("SCHEDULER | JOB_ADDED | public_holiday_sync | Monthly day 1 03:00")
+
+    scheduler.add_job(
+        recover_stuck_admin_email_jobs,
+        trigger="interval",
+        minutes=5,
+        id="admin_email_job_recovery",
+        max_instances=1,
+        replace_existing=True,
+    )
+    logger.info("SCHEDULER | JOB_ADDED | admin_email_job_recovery | Every 5 minutes")
     
     # Add a sanity check job that runs every 6 hours just to confirm the scheduler is alive
     scheduler.add_job(
