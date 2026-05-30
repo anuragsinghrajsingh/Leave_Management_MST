@@ -58,8 +58,10 @@ def record_app_startup(force=False):
         return
 
     UPTIME_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    started_at = timezone.localtime(timezone.now())
     payload = {
-        "started_at": timezone.now().isoformat(),
+        "started_at": started_at.isoformat(),
+        "timezone": settings.TIME_ZONE,
     }
     UPTIME_STATE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     logger.info(
