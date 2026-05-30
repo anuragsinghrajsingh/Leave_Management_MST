@@ -68,8 +68,17 @@ def backup_postgres():
     ]
     
     get_master_logger().info("BACKUP | POSTGRES | Running pg_dump | Host=%s | Port=%s | Database=%s | RawBackup=%s", db_settings.get('HOST', 'localhost'), db_settings.get('PORT', '5432'), db_settings.get('NAME', ''), backup_path)
-    with open(backup_path, 'w') as f:
-        subprocess.run(cmd, stdout=f, env=env, check=True)
+    try:
+        with open(backup_path, 'w') as f:
+            subprocess.run(cmd, stdout=f, env=env, check=True)
+    except Exception:
+        if backup_path.exists():
+            try:
+                backup_path.unlink()
+                get_master_logger().warning("BACKUP | CLEANUP | Removed incomplete raw backup | File=%s", backup_path)
+            except Exception:
+                get_master_logger().exception("BACKUP | CLEANUP_FAILED | Could not remove incomplete raw backup | File=%s", backup_path)
+        raise
     
     return backup_path
 
