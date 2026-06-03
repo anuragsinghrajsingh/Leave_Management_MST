@@ -9,201 +9,398 @@
 
 <div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/Django-4.2+-092e20?style=flat-square&logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![UI](https://img.shields.io/badge/UI-Modern--Glass-cyan?style=flat-square)](https://github.com/anuragsinghrajsingh/Leave_Management_MST)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Django 4.2+](https://img.shields.io/badge/Django-4.2+-092e20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![UI Glassmorphism](https://img.shields.io/badge/UI-Modern--Glass-cyan?style=for-the-badge)](https://github.com/anuragsinghrajsingh/Leave_Management_MST)
 
 </div>
 
 ---
 
-<a id="table-of-contents"></a>
+## 📖 1. Project Overview
+
+The **Leave Management MST (Modern System Technologies)** Edition is an enterprise-grade, high-performance web platform designed to streamline workforce logistics, leave tracking, and communication. Built on top of a highly optimized Django core, this product eliminates legacy technical debt, reduces database locks, implements robust background task queues, and hosts a dedicated scheduler daemon to automate critical business operations.
+
+---
+
 ## 📑 2. Table of Contents
-[🔍 3. About MST Edition](#about-mst)  
-[🔄 4. MST Core Flow](#mst-flow)  
-[🚀 5. Advanced Features](#advanced-features)  
-[🛠️ 6. Tech Stack Details](#tech-stack-details)  
-[⚙️ 7. Architecture & Logic](#architecture-logic)  
-[📂 8. Project Structure](#project-structure)  
-[🏁 9. Getting Started](#getting-started)  
-[🔧 10. Configuration & Env](#configuration)  
-[🛡️ 11. Security Architecture](#security-architecture)  
-[🤝 12. Contribution Guidelines](#contribution-guidelines)  
-[❓ 13. FAQ](#faq)  
-[🔮 14. Roadmap](#roadmap)  
-[📜 15. License](#license)  
-[🙏 16. Acknowledgements](#acknowledgements)  
-[👤 17. Author](#author)
+1. [🔍 About MST Edition](#about-mst)
+2. [⚙️ System Architecture](#system-architecture)
+3. [🚀 Enterprise Features](#enterprise-features)
+4. [🔄 System Workflows & Lifecycle](#system-workflows)
+5. [📂 Directory Structure](#directory-structure)
+6. [🏁 Getting Started (Local Setup)](#getting-started)
+7. [🔧 Environment Configuration](#environment-configuration)
+8. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
+9. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
+10. [📜 License & Credits](#license)
 
 ---
 
 <a id="about-mst"></a>
 ## 🔍 3. About MST Edition
-The **Leave Management MST (Modern System Technologies)** Edition is a complete reimagining of workforce logistics. While maintaining the core reliability of the suite, the MST version focuses on **High-Performance rendering**, **Minimalist Architecture**, and a **Premium User Experience**.
 
-### Why MST?
-MST was built for organizations that demand speed and superior aesthetics. We have refactored the legacy core, removing over 30 redundant files to create a "Clean Core" system that is faster and easier to maintain.
+The MST Edition was engineered around a **"Clean Core"** philosophy—refactoring legacy structures, removing redundant assets, and separating critical business logic into isolated service files.
 
-### 👑 The MS Technology Vision
-This project is part of the **MS Technology** ecosystem, which focuses on three core pillars:
-1.  **Reliability**: Mission-critical logic that never fails during peak load. We ensure that every leave transaction is atomic and permanent.
-2.  **Aesthetics**: Premium, modern user interfaces that inspire confidence. We believe that professional tools should be beautiful and intuitive.
-3.  **Simplicity**: Stripping away complexity to focus on what matters. Our "Clean Core" philosophy ensures easy maintainability.
-
-### 🛡️ Engineering Excellence
-At **MS Technology**, we don't just write code; we engineer solutions:
-- **Scalability**: Designed to handle thousands of concurrent requests without latency.
-- **Security-First**: Every module is audited for CSRF, XSS, and SQL injection vulnerabilities.
-- **Performance**: Optimized SQL queries and cached assets for sub-200ms load times.
+### 👑 The MS Technology Pillars
+* **Reliability**: Fully atomic transactions, explicit database locking, and background recovery cron jobs guarantee data integrity under peak load.
+* **Aesthetics**: A premium modern design language featuring Glassmorphism, dynamic HSL colors, responsive layouts, and 300ms transition animations.
+* **Maintainability**: Clear division of concerns. Controllers (views) invoke atomic services rather than executing complex SQL queries directly.
 
 ---
 
-<a id="mst-flow"></a>
-## 🔄 4. MST Core Flow
-The MST workflow is optimized for speed and clarity, reducing "Administrative Click-Debt."
+<a id="system-architecture"></a>
+## ⚙️ 4. System Architecture
 
-### Phase 1: Initiation 🏗️
-Rapid deployment using a pre-configured service layer.
 ```mermaid
-graph LR
-    A[Clone MST] --> B[Clean Core Setup]
-    B --> C[Atomic Migration]
-    C --> D[Admin Initialization]
+flowchart TB
+    Client[Web Browsers / HTTPS] <--> Nginx[Nginx Reverse Proxy]
+    Nginx <--> Gunicorn[Gunicorn WSGI Server]
+    Gunicorn <--> Django[Django Core Application]
+    
+    subgraph Services [Asynchronous Processing Engine]
+        Django <--> QCluster[Django-Q Cluster / Worker Pool]
+        QCluster -- Fallback -- > ThreadPool[ThreadPoolExecutor max_workers=8]
+        LMS_Scheduler[LMS Scheduler Daemon] -- Cron Triggers --> Django
+    end
+
+    subgraph Database [Storage Layer]
+        Django <--> PostgreSQL[(PostgreSQL Database)]
+        PostgreSQL -- select_for_update of='self' --> Django
+    end
+
+    subgraph FileSystem [State & Backups]
+        LMS_Scheduler -- pg_dump --> ZIP[Compressed ZIP Backups]
+        Django -- Write --> Logs[System Logs & Startup State]
+    end
 ```
 
-### Phase 2: Onboarding 👥
-Seamless organizational setup with centralized entitlement profiles.
+### Stack Components
+* **Core Framework**: Django 4.2 LTS / Python 3.8+
+* **Primary Database**: PostgreSQL (configured with transaction pooling)
+* **Background Queue**: Django-Q (ORM broker) with `ThreadPoolExecutor` fallback
+* **Daemon Scheduler**: Dedicated Advanced Python Scheduler (APScheduler) process
+* **Web Server Proxy**: Nginx + Gunicorn (WSGI)
+* **Frontend**: Asynchronous JavaScript (Promises / AJAX), dynamic HSL variables
+
+---
+
+<a id="enterprise-features"></a>
+## 🚀 5. Enterprise Features
+
+### 1. Dedicated LMS Scheduler Daemon
+A standalone, foreground-safe scheduler CLI daemon command (`python manage.py run_lms_scheduler`) configured with signal handlers (`SIGTERM` / `SIGINT`) to ensure graceful shutdowns. It runs:
+* **Nightly Backups** (Daily at 02:00)
+* **Weekly HR Mission Control PDF Reports** (Monday at 09:00)
+* **India Public Holiday Sync** (Monthly on Day 1 at 03:00)
+* **Admin Email Job Auto-Recovery** (Every 5 minutes)
+* **Scheduler Keep-Alive Ping** (Every 6 hours)
+* **Startup Catch-up Routines** (checks for and runs missed nightly backups or weekly reports due to server downtime)
+
+### 2. High-Fidelity PDF Reporting Engine
+Extracts weekly HR attendance metrics and compiles a high-density, styled PDF attachment containing:
+* Total requests, approval rates, pending tasks, and rejected applications
+* Visual employee attendance tables and organizational health indicators
+* Headless Chromium rendering support for high-resolution document generation
+
+### 3. Asynchronous Email & Notification Cluster
+Processes bulk administrator emails (onboarding, password resetting, custom reminders, locks/unlocks) in parallel.
+* **ORM Job Queueing**: Jobs are split into `AdminEmailJob` and `AdminEmailJobItem` records.
+* **Auto-Recovery Cron**: In the event of a worker crash, a background cron scans for items in a `running` state for $> 15$ minutes, resets their state to `queued`, and re-triggers execution.
+
+### 4. Robust Leave Calculation Engine
+Supports five leave types, each validated with precise business rules:
+* **Short Leave**: Same-day, max 2 hours, working hours only (10:00 - 19:00), max 2/month, deducts 0.25 days.
+* **Half Leave**: Same-day, max 4 hours, working hours only, max 1/month, deducts 0.5 days.
+* **Full-Day Leaves (Sick, Earned, Unpaid)**: Spans multiple days, integrated with a **Work-From-Home (WFH) Bridge** and India Public Holiday calendar overrides to calculate exact leave deductions.
+
+### 5. PostgreSQL Deadlock Mitigation
+Critical transactional state changes (Approve, Reject, Apply, Delete) utilize Django's `select_for_update(of=("self",))` row-locking API. This locks only the target row inside the `Leave` table, allowing related `User` and `Profile` tables to remain readable, completely eliminating PostgreSQL lock contention and deadlock conditions.
+
+### 6. Automated Self-Healing Backups
+Integrates a python utility (`manage_backups.py`) executing `pg_dump` commands to build database archives.
+* **Zip Compression**: Dumps are automatically compressed, tagged with timestamps, and cleaned up using a retention policy.
+* **Failed Dump Cleanup**: If a backup fails, the utility intercepts the exception and deletes the temporary or incomplete `.sql` files to protect storage.
+
+---
+
+<a id="system-workflows"></a>
+## 🔄 6. System Workflows
+
+### Leave Application & Impact Validation Flow
 ```mermaid
-graph TD
-    A[HR Admin] --> B[Unified Department Map]
-    B --> C[High-Speed Staff Entry]
-    C --> D[Instant Quota Allocation]
+sequenceDiagram
+    participant User as Employee Portal
+    participant View as views.apply_leave
+    participant DB as PostgreSQL Database
+    participant Push as Notification Services
+
+    User->>View: Submit Leave Form (Dates/Times/Type)
+    View->>DB: Lock Leave Table
+    View->>View: Check overlap / Validate against holiday list
+    View->>View: Verify monthly limits (Short/Half)
+    View->>View: Compute exact balance deductions
+    alt Valid Request
+        View->>DB: Create Leave Record & Save
+        View->>Push: Enqueue HR Push notifications & Emails
+        View->>User: Success response (Refresh Grid)
+    else Invalid Request
+        View->>User: Error response (Modal Feedback)
+    end
 ```
 
-### Phase 3: The Daily Cycle 🗓️
-A high-integrity loop focused on real-time feedback.
-```mermaid
-graph TD
-    A[Employee] -- Submits --> B{Interception Logic}
-    B -- "Fail" --> C[Real-time Feedback]
-    B -- "Pass" --> D[Unified Hub]
-    D -- "Confirm" --> E[Atomic Update]
-```
-
 ---
 
-<a id="advanced-features"></a>
-## 🚀 5. Advanced Features
+<a id="directory-structure"></a>
+## 📂 7. Directory Structure
 
-### 📊 The Unified Hub
-A single, high-density dashboard that eliminates the need for multiple page navigations. Administrators can resolve the entire organization's requests from one screen.
-
-### 🛡️ Promise-Based Confirmation
-MST utilizes a unique JavaScript-driven modal engine. This ensures that every approval or rejection is a deliberate, context-aware action, preventing accidental data changes.
-
-### 🎨 MST Glass UI
-A premium design system featuring glassmorphism effects, dynamic HSL gradients, and 300ms micro-animations for a "liquid" user experience.
-
----
-
-<a id="tech-stack-details"></a>
-## 🛠️ 6. Tech Stack Details
-- **Backend Core**: Python 3.8+ / Django 4.2 LTS (Clean Core Architecture)
-- **Frontend Interactivity**: Asynchronous JavaScript (Promise-Based)
-- **Design System**: Master MST CSS (Glassmorphism & HSL-Dynamic)
-
----
-
-<a id="architecture-logic"></a>
-## ⚙️ 7. Architecture & Logic
-MST follows a **Service-Oriented Logic** pattern, where core business rules are isolated into reusable services, making the application extremely lightweight and secure.
-
----
-
-<a id="project-structure"></a>
-## 📂 8. Project Structure
 ```text
 ├── Leave Management/
-│   ├── App/            # 🧠 The Brain: Refactored Modern Logic
-│   ├── static/         # 🎨 The Skin: MST Design System
-│   └── templates/      # 🖼️ The View: High-Performance Layouts
+│   ├── App/
+│   │   ├── management/
+│   │   │   └── commands/
+│   │   │       └── run_lms_scheduler.py   # Dedicated Scheduler CLI Daemon
+│   │   ├── services/
+│   │   │   ├── scheduler.py               # APScheduler Core Configuration
+│   │   │   ├── startup_checks.py          # Missed task checks & startup routines
+│   │   │   ├── admin_bulk_email_jobs.py   # Async bulk mail & recovery logic
+│   │   │   ├── background_tasks.py        # Django-Q & ThreadPool task executor
+│   │   │   ├── uptime_tracker.py          # Localized uptime recording
+│   │   │   └── public_holidays.py         # Google Holiday Calendar synchronization
+│   │   ├── models.py                      # Core Database Schemas
+│   │   ├── admin.py                       # Custom Django Admin views & bulk actions
+│   │   └── views.py                       # Web View Controllers (Employee/HR/Portal)
+│   ├── leave_management/
+│   │   ├── settings.py                    # Django configuration (settings, Q_CLUSTER)
+│   │   └── urls.py                        # Central routing index
+│   ├── static/                            # Front-End design assets (CSS, JS)
+│   ├── templates/                         # HTML Templates (Glass UI components)
+│   └── manage_backups.py                  # Database Backup & Restore Utility
+├── backups/                               # PostgreSQL Compressed Backups (.zip)
+├── logs/                                  # System Runtime log files
+└── runtime/                               # Runtime state files (app_startup.json)
 ```
 
 ---
 
 <a id="getting-started"></a>
-## 🏁 9. Getting Started
-1. `git clone https://github.com/anuragsinghrajsingh/Leave_Management_MST.git`
-2. `pip install -r requirements.txt`
-3. `python manage.py migrate`
-4. `python manage.py runserver`
+## 🏁 8. Getting Started (Local Setup)
+
+### Prerequisites
+* Python 3.8 or higher
+* PostgreSQL 12+
+* Virtual Environment utility (`virtualenv`)
+
+### Setup Steps
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/anuragsinghrajsingh/Leave_Management_MST.git
+   cd Leave_Management_MST
+   ```
+
+2. **Initialize Virtual Environment**:
+   ```bash
+   python -m venv venv
+   # Windows:
+   venv\Scripts\activate
+   # Linux/macOS:
+   source venv/bin/activate
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Setup Environment variables**:
+   Create a `.env` file in the project root folder. Reference the [Configuration section](#environment-configuration) below.
+
+5. **Execute Database Migrations**:
+   ```bash
+   python "Leave Management/manage.py" migrate
+   ```
+
+6. **Create a Superuser**:
+   ```bash
+   python "Leave Management/manage.py" createsuperuser
+   ```
+
+7. **Start the Development Servers**:
+   Run the web server:
+   ```bash
+   python "Leave Management/manage.py" runserver
+   ```
+   Run the task queue (in a separate terminal):
+   ```bash
+   python "Leave Management/manage.py" qcluster
+   ```
+   Run the scheduler daemon (in a separate terminal):
+   ```bash
+   python "Leave Management/manage.py" run_lms_scheduler
+   ```
 
 ---
 
-<a id="configuration"></a>
-## 🔧 10. Configuration & Env
-The MST edition is optimized for environment-driven configuration.
+<a id="environment-configuration"></a>
+## 🔧 9. Environment Configuration
 
-### `.env` Setup
+The application uses an environment-driven configuration setup. Create a `.env` file in the root folder with the following variables:
+
 ```ini
-SECRET_KEY=mst_secure_key
-DEBUG=False
-ALLOWED_HOSTS=mst.yourdomain.com
-DATABASE_URL=postgres://mst_user:password@localhost/mst_db
+# Core Django Settings
+SECRET_KEY=your_secure_mst_secret_key
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost,yourdomain.com
+
+# Database Connection URL (PostgreSQL)
+DATABASE_URL=postgres://db_user:db_password@127.0.0.1:5432/db_name
+
+# Email SMTP Server Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+EMAIL_HOST_USER=notifications@yourdomain.com
+EMAIL_HOST_PASSWORD=your_app_specific_smtp_password
+DEFAULT_FROM_EMAIL=Leave Management <notifications@yourdomain.com>
+
+# System URLs
+PORTAL_BASE_URL=http://127.0.0.1:8000
+
+# Background Worker Settings
+LMS_Q_WORKERS=2
+LMS_Q_TIMEOUT=120
+LMS_Q_RETRY=300
+LMS_Q_QUEUE_LIMIT=100
+LMS_Q_BULK=20
+
+# Operational Triggers
+LMS_SKIP_UPTIME_RECORD=0
 ```
 
 ---
 
-<a id="security-architecture"></a>
-## 🛡️ 11. Security Architecture
-The MST Security model uses a **Logic Interceptor** pattern.
-- **Role Isolation**: Strictly enforced at the view layer via MST-specific decorators.
-- **CSRF Tokenization**: Every AJAX request is signed with a unique CSRF token to prevent cross-site scripting.
+<a id="production-deployment"></a>
+## 🛡️ 10. Production Deployment & Systemd Setup
+
+For highly reliable production deployments, all background workloads must be managed by the host OS as persistent system services (`systemd`).
+
+### 1. Gunicorn Web Server Service
+File: `/etc/systemd/system/gunicorn.service`
+```ini
+[Unit]
+Description=Gunicorn Web App Daemon
+After=network.target postgresql.service
+
+[Service]
+User=mstleave
+WorkingDirectory=/home/mstleave/Leave_Management_MST
+Environment="PATH=/home/mstleave/Leave_Management_MST/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mstleave/Leave_Management_MST/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 leave_management.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 2. Django-Q Background Worker Service
+File: `/etc/systemd/system/qcluster.service`
+```ini
+[Unit]
+Description=Django-Q Queue Cluster Daemon
+After=network.target postgresql.service
+
+[Service]
+User=mstleave
+WorkingDirectory=/home/mstleave/Leave_Management_MST
+Environment="PATH=/home/mstleave/Leave_Management_MST/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mstleave/Leave_Management_MST/venv/bin/python manage.py qcluster
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 3. LMS Scheduler Daemon Service
+File: `/etc/systemd/system/lms_scheduler.service`
+```ini
+[Unit]
+Description=LMS APScheduler Daemon Process
+After=network.target postgresql.service qcluster.service
+
+[Service]
+User=mstleave
+WorkingDirectory=/home/mstleave/Leave_Management_MST
+Environment="PATH=/home/mstleave/Leave_Management_MST/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mstleave/Leave_Management_MST/venv/bin/python manage.py run_lms_scheduler
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Service Administration Commands
+Execute these commands to register, start, and verify the background daemons:
+```bash
+# Reload systemd configuration
+sudo systemctl daemon-reload
+
+# Enable services to run on boot
+sudo systemctl enable gunicorn qcluster lms_scheduler
+
+# Start all components
+sudo systemctl start gunicorn qcluster lms_scheduler
+
+# Inspect service statuses
+sudo systemctl status gunicorn qcluster lms_scheduler
+```
 
 ---
 
-<a id="contribution-guidelines"></a>
-## 🤝 12. Contribution Guidelines
-1.  Focus on "Clean Core" maintenance.
-2.  No redundant file additions.
-3.  Ensure all UI changes follow the Glass UI tokens.
+<a id="operations-cheatsheet"></a>
+## 📈 11. Operations & Troubleshooting Cheatsheet
 
----
+### 1. Log Inspection Commands
+View the real-time logging output of your application components:
+```bash
+# View Gunicorn logs (HTTP layer)
+sudo journalctl -u gunicorn -n 100 -f --no-pager
 
-<a id="faq"></a>
-## ❓ 13. FAQ
-**Q: Why was the codebase reduced by 30 files?**
-A: To eliminate "Legacy Debt" and ensure the application only carries what it needs for maximum speed.
+# View Queue cluster logs (Background tasks)
+sudo journalctl -u qcluster -n 100 -f --no-pager
 
-**Q: Can I use this on mobile?**
-A: Yes, the MST Glass UI is fully responsive and optimized for mobile touch-targets.
+# View Scheduler logs (Cron tasks)
+sudo journalctl -u lms_scheduler -n 100 -f --no-pager
+```
 
----
+### 2. Live Database Maintenance
+Run manual database backups or restorations using the CLI:
+```bash
+# Run manual database backup
+python "Leave Management/manage_backups.py" --action backup
 
-<a id="roadmap"></a>
-## 🔮 14. Roadmap
-- [ ] **AI Decision Support**: Predicting approval trends.
-- [ ] **Dark Mode Auto-Switch**: Based on system time.
+# Restore database from a compressed backup zip
+python "Leave Management/manage_backups.py" --action restore --file backups/backup_prod_2026-05-31_02-00-00.zip
+```
+
+### 3. Debugging Missed Backups & Reports
+Check the status of missed cron tasks inside the Django shell:
+```bash
+python "Leave Management/manage.py" shell -c "from App.services.startup_checks import get_backup_catchup_status; print(get_backup_catchup_status())"
+```
+
+### 4. Verifying Django-Q Worker Process Counts
+```bash
+# Count active python qcluster processes
+pgrep -fc "manage.py qcluster"
+```
 
 ---
 
 <a id="license"></a>
-## 📜 15. License
-**Proprietary**. Part of the **MS Technology** suite.
+## 📜 12. License & Credits
 
----
-
-<a id="acknowledgements"></a>
-## 🙏 16. Acknowledgements
-Thanks to the MS Technology engineering team for the refactoring effort.
-
----
-
-<a id="author"></a>
-## 👤 17. Author
-**Anurag Singh Raj Singh** - [anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com)
-
----
-<div align="center">
-  <sub>Engineering the Future of Work. Powered by <b>MS Technology</b>.</sub>
-</div>
+* **License**: Proprietary - All Rights Reserved. Created as part of the **MS Technology** workforce productivity suite.
+* **Author**: Anurag Singh Raj Singh ([anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com))
+* **Copyright**: &copy; 2026 MS Technology. Engineering the Future of Work.
