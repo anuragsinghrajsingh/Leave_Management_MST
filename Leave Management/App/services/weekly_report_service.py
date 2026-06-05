@@ -252,7 +252,7 @@ def build_weekly_hr_report_context(week="current", start_day=None, end_day=None,
         "employee_filter_options": employee_filter_options,
         "system_health": system_health,
         "show_system_health": include_system_health,
-        "portal_link": settings.SITE_URL if hasattr(settings, 'SITE_URL') else "http://localhost:8000"
+        "portal_link": (getattr(settings, "PORTAL_BASE_URL", "") or "http://localhost:8000").rstrip("/")
     }
     logger.info(
         "WEEKLY_REPORT | CONTEXT | Totals | Requests=%s | Approved=%s | Pending=%s | Rejected=%s | Employees=%s",
