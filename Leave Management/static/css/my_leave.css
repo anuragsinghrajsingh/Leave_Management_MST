@@ -3589,10 +3589,33 @@ textarea:focus {
         grid-row: 2;
         width: auto;
         justify-self: end;
-        align-self: end;
+        align-self: center;
+        min-height: 30px;
+        padding: 0 10px 0 6px;
+        gap: 5px;
+        font-size: 0.72rem;
         margin-top: 0;
-        margin-bottom: 8px;
-        transform: translateY(6px);
+        margin-bottom: 2px;
+        transform: none;
+    }
+
+    .table-header .filter-btn-icon {
+        width: 15px;
+        height: 15px;
+    }
+
+    .table-header .filter-btn-icon::before {
+        top: 3px;
+        width: 8px;
+        height: 2px;
+        box-shadow: 0 4px 0 #2563eb, 0 8px 0 #2563eb;
+    }
+
+    .table-header .filter-btn-icon::after {
+        top: 1px;
+        width: 3px;
+        height: 3px;
+        box-shadow: -3px 4px 0 #2563eb, 3px 8px 0 #2563eb;
     }
 
     .card-summary-badge {

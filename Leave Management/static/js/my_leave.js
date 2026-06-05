@@ -2123,6 +2123,7 @@ const exportWrapper = document.createElement("div");
         {
             return;
         }
+        const isFilterDatePicker = shell.dataset.datePickerMode === "filter";
         const readMyLeaveJson = (id, fallback) =>
         {
             const node = document.getElementById(id);
@@ -2205,6 +2206,9 @@ const exportWrapper = document.createElement("div");
             if (companyHoliday) reasons.push(`${companyHoliday.is_optional ? "Optional" : "Company"} holiday: ${companyHoliday.name}`);
             if (visibleLeave) reasons.push(`${visibleLeave.status} leave: ${visibleLeave.type}`);
             if (blockingLeave && blockingLeave !== visibleLeave) reasons.push(`Blocked by ${blockingLeave.status} leave: ${blockingLeave.type}`);
+            const disabled = isFilterDatePicker
+                ? beforeMinimum
+                : beforeMinimum || isWeekend || !!companyHoliday || !!blockingLeave;
             return {
                 dateStr,
                 companyHoliday,
@@ -2215,7 +2219,7 @@ const exportWrapper = document.createElement("div");
                 isCurrentLeave: !!visibleLeave && String(visibleLeave.id || "") === getCurrentEditLeaveId(),
                 isWeekend,
                 beforeMinimum,
-                disabled: beforeMinimum || isWeekend || !!companyHoliday || !!blockingLeave,
+                disabled,
                 tooltip: reasons.join(" | "),
             };
         };
@@ -2252,6 +2256,15 @@ const exportWrapper = document.createElement("div");
         const getMinimum = () =>
         {
             const form = hiddenInput.form || shell.closest("form");
+            if (isFilterDatePicker)
+            {
+                if (hiddenInput.name === "to_date" && form)
+                {
+                    const fromDate = parseDate(form.querySelector('input[name="from_date"]')?.value || "");
+                    return fromDate ? new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate()) : null;
+                }
+                return null;
+            }
             if (hiddenInput.name === "from_date")
             {
                 return today();
@@ -2328,7 +2341,7 @@ const exportWrapper = document.createElement("div");
             grid.replaceChildren();
             if (prevButton)
             {
-                prevButton.disabled = !!minimum && viewDate.getFullYear() === minimum.getFullYear() && viewDate.getMonth() === minimum.getMonth();
+                prevButton.disabled = !isFilterDatePicker && !!minimum && viewDate.getFullYear() === minimum.getFullYear() && viewDate.getMonth() === minimum.getMonth();
             }
             for (let index = 0; index < firstDayIndex; index += 1)
             {
@@ -2359,7 +2372,7 @@ const exportWrapper = document.createElement("div");
                 button.classList.toggle("blocked-date", dateMeta.disabled);
                 button.classList.toggle("selected", !!effectiveSelected && date.getFullYear() === effectiveSelected.getFullYear() && date.getMonth() === effectiveSelected.getMonth() && date.getDate() === effectiveSelected.getDate());
                 button.classList.toggle("muted", !!dateMeta.beforeMinimum);
-                button.disabled = !!dateMeta.beforeMinimum;
+                button.disabled = isFilterDatePicker ? !!dateMeta.disabled : !!dateMeta.beforeMinimum;
                 if (dateMeta.disabled)
                 {
                     button.setAttribute("aria-disabled", "true");
@@ -4950,7 +4963,7 @@ const exportWrapper = document.createElement("div");
                     </label>
                     <label class="popup-filter-field">
                         <span class="popup-filter-field-heading"><span class="popup-filter-field-heading-badge">03</span><span class="popup-filter-field-heading-icon popup-filter-field-heading-icon-date" aria-hidden="true">&#128198;</span><span class="popup-filter-field-heading-text">From Date</span><span class="popup-filter-field-heading-line" aria-hidden="true"></span></span>
-                        <div class="popup-filter-shell popup-filter-date-shell custom-date-picker">
+                        <div class="popup-filter-shell popup-filter-date-shell custom-date-picker" data-date-picker-mode="filter">
                             <input type="hidden" name="from_date" value="${escapeHtml(current.from_date || "")}">
                             <div class="date-display"><div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false"><span class="date-value">dd-mm-yyyy</span><span class="date-icon" aria-hidden="true"></span></div></div>
                             <div class="date-menu" role="dialog" aria-label="From date calendar"><div class="date-menu-header"><button type="button" class="date-nav prev-month" aria-label="Previous month">&#8249;</button><div class="date-current"></div><button type="button" class="date-nav next-month" aria-label="Next month">&#8250;</button></div><div class="date-weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div><div class="date-grid"></div><div class="date-actions"><button type="button" class="date-action today-action">Today</button><button type="button" class="date-action clear-action">Clear</button></div></div>
@@ -4958,7 +4971,7 @@ const exportWrapper = document.createElement("div");
                     </label>
                     <label class="popup-filter-field">
                         <span class="popup-filter-field-heading"><span class="popup-filter-field-heading-badge">04</span><span class="popup-filter-field-heading-icon popup-filter-field-heading-icon-date" aria-hidden="true">&#128198;</span><span class="popup-filter-field-heading-text">To Date</span><span class="popup-filter-field-heading-line" aria-hidden="true"></span></span>
-                        <div class="popup-filter-shell popup-filter-date-shell custom-date-picker">
+                        <div class="popup-filter-shell popup-filter-date-shell custom-date-picker" data-date-picker-mode="filter">
                             <input type="hidden" name="to_date" value="${escapeHtml(current.to_date || "")}">
                             <div class="date-display"><div class="date-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false"><span class="date-value">dd-mm-yyyy</span><span class="date-icon" aria-hidden="true"></span></div></div>
                             <div class="date-menu" role="dialog" aria-label="To date calendar"><div class="date-menu-header"><button type="button" class="date-nav prev-month" aria-label="Previous month">&#8249;</button><div class="date-current"></div><button type="button" class="date-nav next-month" aria-label="Next month">&#8250;</button></div><div class="date-weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div><div class="date-grid"></div><div class="date-actions"><button type="button" class="date-action today-action">Today</button><button type="button" class="date-action clear-action">Clear</button></div></div>
