@@ -3590,12 +3590,14 @@ textarea:focus {
         width: auto;
         justify-self: end;
         align-self: center;
-        min-height: 30px;
+        height: 26px;
+        min-height: 26px;
+        max-height: 26px;
         padding: 0 10px 0 6px;
         gap: 5px;
         font-size: 0.72rem;
         margin-top: 0;
-        margin-bottom: 2px;
+        margin-bottom: 14px;
         transform: none;
     }
 
