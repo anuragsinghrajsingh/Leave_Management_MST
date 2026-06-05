@@ -1354,6 +1354,16 @@
                     </div>
                 {% endif %}
 
+                <div class="login-caps-toast" data-caps-toast hidden aria-live="polite">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 2 1 21h22L12 2Zm1 15h-2v-2h2v2Zm0-4h-2v-4h2v4Z"/>
+                    </svg>
+                    <div>
+                        <strong>Caps Lock On</strong>
+                        <span>Password may be entered incorrectly.</span>
+                    </div>
+                </div>
+
                 <div class="login-card__header">
                     <div class="login-card__header-icon" aria-hidden="true">
                         <svg viewBox="0 0 48 48" style="width: 48px; height: 48px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">
@@ -1446,10 +1456,6 @@
                             </span>
                             <span data-password-toggle-label>Show</span>
                         </button>
-                    </div>
-
-                    <div class="field-note">
-                        <span class="caps-warning" data-caps-warning hidden>Caps Lock appears to be on.</span>
                     </div>
 
                     <button type="submit" class="login-button">

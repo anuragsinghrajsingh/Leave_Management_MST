@@ -27,7 +27,8 @@
     });
 
     document.querySelectorAll(".login-form input[type='password']").forEach(function (input) {
-        const warning = input.closest(".login-form").querySelector("[data-caps-warning]");
+        const form = input.closest(".login-form");
+        const warning = form ? form.querySelector("[data-caps-warning]") : null;
         if (!warning) return;
 
         input.addEventListener("keyup", function (event) {
@@ -43,11 +44,8 @@
         });
     });
 
-    (function () {
-        const input = document.getElementById("hr-password");
-        if (!input) return;
-
-        const card = input.closest(".hr-login-card");
+    document.querySelectorAll("input[type='password']").forEach(function (input) {
+        const card = input.closest(".admin-login-card, .login-card, .hr-login-card");
         const toast = card ? card.querySelector("[data-caps-toast]") : null;
         if (!toast) return;
 
@@ -113,7 +111,7 @@
             isWatchingCaps = false;
             setCapsToast(false);
         });
-    }());
+    });
 
     document.querySelectorAll(".login-form, .hr-form").forEach(function (form) {
         const card = form.closest(".admin-login-card, .login-card, .hr-login-card");

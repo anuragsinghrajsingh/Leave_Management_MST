@@ -814,15 +814,6 @@
             stroke-linejoin: round;
         }
 
-        .admin-caps-note {
-            min-height: 0;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            font-size: 0.82rem;
-            color: #ffbd63;
-        }
-
         .admin-submit {
             display: inline-flex;
             align-items: center;
@@ -1345,6 +1336,16 @@
                             </div>
                         {% endif %}
 
+                        <div class="login-caps-toast" data-caps-toast hidden aria-live="polite">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 2 1 21h22L12 2Zm1 15h-2v-2h2v2Zm0-4h-2v-4h2v4Z"/>
+                            </svg>
+                            <div>
+                                <strong>Caps Lock On</strong>
+                                <span>Password may be entered incorrectly.</span>
+                            </div>
+                        </div>
+
                         <div class="admin-card-header">
                             <div class="admin-shield" aria-hidden="true">
                                  <svg viewBox="0 0 64 64" style="width: 64px; height: 64px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));">
@@ -1440,10 +1441,6 @@
                                     </span>
                                     <span data-password-toggle-label>Show</span>
                                 </button>
-                            </div>
-
-                            <div class="field-note admin-caps-note">
-                                <span class="caps-warning" data-caps-warning hidden>Caps Lock appears to be on.</span>
                             </div>
 
                             <button type="submit" class="login-button admin-submit">
