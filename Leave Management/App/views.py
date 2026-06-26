@@ -96,9 +96,9 @@ def _get_short_half_min_notice_minutes():
 
 def _get_short_half_grace_minutes():
     try:
-        return max(0, int(getattr(settings, "SHORT_HALF_LEAVE_GRACE_MINUTES", 0)))
+        return max(0, int(getattr(settings, "SHORT_HALF_LEAVE_GRACE_MINUTES", 5)))
     except (TypeError, ValueError):
-        return 0
+        return 5
 
 
 def _format_minutes_duration(minutes):
@@ -5509,6 +5509,7 @@ def _build_my_leave_context(request):
             }
             for leave in calendar_blocking_leaves
         ]),
+        "apply_leave_rule_config": _get_apply_leave_rule_config(),
     }
     context.update(get_employee_notification_context(request.user))
     context.update(get_communication_context(request.user))

@@ -740,6 +740,12 @@
     data-my-leave-url="{% url 'my_leave' %}"
     data-current-month="{% now 'Y-m' %}"
     data-today="{% now 'Y-m-d' %}"
+    data-short-half-min-notice-minutes="{{ apply_leave_rule_config.shortHalfMinNoticeMinutes }}"
+    data-short-half-grace-minutes="{{ apply_leave_rule_config.shortHalfGraceMinutes }}"
+    data-short-half-min-notice-label="{{ apply_leave_rule_config.shortHalfMinNoticeLabel }}"
+    data-short-half-grace-label="{{ apply_leave_rule_config.shortHalfGraceLabel }}"
+    data-sick-same-day-cutoff-time="{{ apply_leave_rule_config.sickSameDayCutoffTime }}"
+    data-sick-same-day-cutoff-label="{{ apply_leave_rule_config.sickSameDayCutoffLabel }}"
     hidden
 ></div>
 <script src="{% static 'js/my_leave.js' %}"></script>

@@ -7,6 +7,69 @@ const MY_LEAVE_BACKGROUND_REFRESH_MS = 30 * 1000;
 let cachedLeaveCalendarData = null;
 let cachedLeaveCalendarDataFetchedAt = 0;
 
+function readNonNegativeInt(value, fallback)
+{
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? fallback : Math.max(0, parsed);
+}
+
+function formatMinutesDuration(minutes)
+{
+    const safeMinutes = Math.max(0, parseInt(minutes, 10) || 0);
+    if (safeMinutes > 0 && safeMinutes % 60 === 0)
+    {
+        const hours = safeMinutes / 60;
+        return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    }
+    if (safeMinutes >= 60)
+    {
+        const hours = Math.floor(safeMinutes / 60);
+        const remainingMinutes = safeMinutes % 60;
+        const hourText = `${hours} ${hours === 1 ? "hour" : "hours"}`;
+        const minuteText = `${remainingMinutes} ${remainingMinutes === 1 ? "minute" : "minutes"}`;
+        return remainingMinutes ? `${hourText} ${minuteText}` : hourText;
+    }
+    return `${safeMinutes} ${safeMinutes === 1 ? "minute" : "minutes"}`;
+}
+
+const editShortHalfMinNoticeMinutes = readNonNegativeInt(myLeaveConfig.shortHalfMinNoticeMinutes, 15);
+const editShortHalfGraceMinutes = readNonNegativeInt(myLeaveConfig.shortHalfGraceMinutes, 5);
+const editShortHalfMinNoticeLabel = myLeaveConfig.shortHalfMinNoticeLabel || formatMinutesDuration(editShortHalfMinNoticeMinutes);
+const editShortHalfGraceLabel = myLeaveConfig.shortHalfGraceLabel || formatMinutesDuration(editShortHalfGraceMinutes);
+const editSickSameDayCutoffTime = myLeaveConfig.sickSameDayCutoffTime || "11:59";
+const editSickSameDayCutoffLabel = myLeaveConfig.sickSameDayCutoffLabel || "11:59 AM";
+
+function formatDateValue(date)
+{
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function parseRuleTime(value)
+{
+    const parts = String(value || "").split(":").map((part) => parseInt(part, 10));
+    if (parts.length < 2 || parts.some((part) => Number.isNaN(part)))
+    {
+        return { hour: 11, minute: 59 };
+    }
+    return {
+        hour: Math.min(Math.max(parts[0], 0), 23),
+        minute: Math.min(Math.max(parts[1], 0), 59)
+    };
+}
+
+function isSickSameDayCutoffPassedForDate(leaveType, fromDateValue)
+{
+    if (leaveType !== "Sick" || fromDateValue !== formatDateValue(new Date()))
+    {
+        return false;
+    }
+    const now = new Date();
+    const cutoff = parseRuleTime(editSickSameDayCutoffTime);
+    const cutoffDate = new Date(now);
+    cutoffDate.setHours(cutoff.hour, cutoff.minute + 1, 0, 0);
+    return now >= cutoffDate;
+}
+
 function invalidateLeaveCalendarCache()
 {
     cachedLeaveCalendarData = null;
@@ -3453,12 +3516,79 @@ const exportWrapper = document.createElement("div");
     {
         return `${String(status || "").toLowerCase()}-panel`;
     }
+    function validatePendingLeaveEditClient(form)
+    {
+        const leaveType = form.querySelector("#edit-leave-type")?.value || "";
+        const fromDate = form.querySelector("#edit-from")?.value || "";
+        const fromDatetime = form.querySelector("#edit_from_datetime")?.value || "";
+        const warning = document.getElementById("edit-time-warning");
+        const showEditValidationError = (message) =>
+        {
+            if (warning) warning.innerText = message;
+            showAjaxMessages([{ title: "Action needed", text: message, tags: "error" }]);
+        };
+
+        if (isSickSameDayCutoffPassedForDate(leaveType, fromDate))
+        {
+            showEditValidationError(`Sick leave cannot be applied after ${editSickSameDayCutoffLabel} for the same day.`);
+            return false;
+        }
+
+        if (leaveType !== "Short" && leaveType !== "Half")
+        {
+            return true;
+        }
+
+        if (!fromDatetime)
+        {
+            showEditValidationError("Please choose a valid time.");
+            return false;
+        }
+
+        if (fromDate !== formatDateValue(new Date()))
+        {
+            return true;
+        }
+
+        const start = new Date(fromDatetime);
+        if (Number.isNaN(start.getTime()))
+        {
+            showEditValidationError("Please choose a valid time.");
+            return false;
+        }
+
+        const now = new Date();
+        const minAllowed = new Date(now.getTime() + editShortHalfMinNoticeMinutes * 60 * 1000);
+        const relaxedMin = new Date(minAllowed.getTime() - editShortHalfGraceMinutes * 60 * 1000);
+        if (start < relaxedMin)
+        {
+            showEditValidationError(`You must apply at least ${editShortHalfMinNoticeLabel} before current time.`);
+            return false;
+        }
+
+        if (warning)
+        {
+            warning.innerText = editShortHalfGraceMinutes > 0 && start < minAllowed
+                ? `You are applying slightly late (within ${editShortHalfGraceLabel} grace period).`
+                : "";
+        }
+        return true;
+    }
+
     window.bindPendingLeaveEditAjax = function (form)
     {
         if (!form) return;
         form.onsubmit = async function (event)
         {
             event.preventDefault();
+            if (!validatePendingLeaveEditClient(form))
+            {
+                if (typeof window.playLeaveErrorTone === "function")
+                {
+                    window.playLeaveErrorTone();
+                }
+                return false;
+            }
             const shouldUpdate = typeof window.showThemeConfirm === "function"
                 ? await window.showThemeConfirm("Update this leave request?", {
                     title: "Confirm update",
@@ -4378,9 +4508,10 @@ const exportWrapper = document.createElement("div");
         // Handle Today's Date and Time
         if (selectedDate.getTime() === today.getTime())
         {
-            const minAllowed = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-            minHour = minAllowed.getHours();
-            minMinute = minAllowed.getMinutes();
+            const minAllowed = new Date(now.getTime() + editShortHalfMinNoticeMinutes * 60 * 1000);
+            const relaxedMin = new Date(minAllowed.getTime() - editShortHalfGraceMinutes * 60 * 1000);
+            minHour = relaxedMin.getHours();
+            minMinute = relaxedMin.getMinutes();
             if (minHour < startHour)
             {
                 minHour = startHour;
@@ -4388,7 +4519,7 @@ const exportWrapper = document.createElement("div");
             }
             // Handle Todays Date and Past Times
             
-            if ( minHour > endHour || minAllowed.toDateString() !== today.toDateString() )
+            if ( minHour > endHour || relaxedMin.toDateString() !== today.toDateString() )
             {
                 warning.innerText = "No valid time available for today.";
                 
@@ -4500,6 +4631,28 @@ const exportWrapper = document.createElement("div");
         const start = new Date(fromDate.value);
         start.setHours(parseInt(hourSelect.value));
         start.setMinutes(parseInt(minuteSelect.value));
+        if ((leaveType.value === "Short" || leaveType.value === "Half") && fromDate.value === formatDateValue(new Date()))
+        {
+            const warning = document.getElementById("edit-time-warning");
+            const now = new Date();
+            const minAllowed = new Date(now.getTime() + editShortHalfMinNoticeMinutes * 60 * 1000);
+            const relaxedMin = new Date(minAllowed.getTime() - editShortHalfGraceMinutes * 60 * 1000);
+            if (start < relaxedMin)
+            {
+                if (warning) warning.innerText = `You must apply at least ${editShortHalfMinNoticeLabel} before current time.`;
+                toTime.value = "";
+                fromHidden.value = "";
+                toHidden.value = "";
+                syncEditSubmitState(fromHidden.form);
+                return;
+            }
+            if (warning)
+            {
+                warning.innerText = editShortHalfGraceMinutes > 0 && start < minAllowed
+                    ? `You are applying slightly late (within ${editShortHalfGraceLabel} grace period).`
+                    : "";
+            }
+        }
         let duration = 0;
         if (leaveType.value === "Short") duration = 2;
         if (leaveType.value === "Half") duration = 4;
