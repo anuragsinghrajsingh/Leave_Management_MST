@@ -170,6 +170,51 @@ def queue_hr_leave_push(leave, action_label):
         )
 
 
+def queue_hr_leave_deleted_email(leave):
+    hr_emails = get_leave_alert_recipients()
+    if not hr_emails:
+        return
+
+    employee_name = leave.user.get_full_name().strip() or leave.user.username
+    portal_link = get_portal_link()
+    if leave.leave_type in ["Short", "Half"] and leave.from_datetime and leave.to_datetime:
+        date_range = (
+            f"{leave.from_date.strftime('%d %b %Y')} "
+            f"({localtime(leave.from_datetime).strftime('%I:%M %p')} -> "
+            f"{localtime(leave.to_datetime).strftime('%I:%M %p')})"
+        )
+    elif leave.from_date == leave.to_date:
+        date_range = leave.from_date.strftime("%d %b %Y")
+    else:
+        date_range = f"{leave.from_date.strftime('%d %b %Y')} -> {leave.to_date.strftime('%d %b %Y')}"
+
+    context = {
+        "title": "Leave Request Deleted",
+        "intro_text": f"{employee_name} has deleted a pending {leave.leave_type} leave request.",
+        "employee_name": employee_name,
+        "leave_type": leave.leave_type,
+        "date_range": date_range,
+        "reason": leave.reason,
+        "status_label": "Deleted",
+        "status_class": "rejected",
+        "portal_link": portal_link,
+    }
+    transaction.on_commit(
+        lambda subject=f"Leave Request DELETED: {employee_name}", context=context, hr_emails=hr_emails, reply_to=leave.user.email, actor=leave.user: enqueue_background_task(
+            send_branded_email,
+            subject,
+            "emails/notification.html",
+            context,
+            hr_emails,
+            reply_to=reply_to,
+            from_email=settings.LEAVE_DESK_FROM_EMAIL,
+            email_type="leave_deleted",
+            related_user=actor,
+            triggered_by=actor,
+            task_name="leave_deleted_email",
+        )
+    )
+
 def queue_employee_leave_push(leave, status_label):
     title = f"Leave {status_label.lower()}"
     body = f"Your {leave.leave_type} leave for {_leave_push_date_text(leave)} was {status_label.lower()}."
@@ -5713,6 +5758,7 @@ def delete_leave(request, leave_id):
                 f"Type: {leave.leave_type} | Date: {leave.from_date} | Time: {localtime(leave.from_datetime).strftime('%H:%M')} to {localtime(leave.to_datetime).strftime('%H:%M')} | Deducted From: {leave.deducted_from}",
             )
             queue_hr_leave_push(leave, "Leave deleted")
+            queue_hr_leave_deleted_email(leave)
             leave.delete()
             pending_count = Leave.objects.filter(user=request.user, status="Pending").count()
             return _my_leave_response(request, deleted_id=deleted_leave_id, pending_count=pending_count)
@@ -5759,6 +5805,7 @@ def delete_leave(request, leave_id):
         deleted_leave_id = leave.id
         log_leave_action(request.user, "DELETE", leave.id, f"Type: {leave.leave_type}")
         queue_hr_leave_push(leave, "Leave deleted")
+        queue_hr_leave_deleted_email(leave)
         leave.delete()
         reconcile_user_full_day_leave_bridges(request.user)
 
