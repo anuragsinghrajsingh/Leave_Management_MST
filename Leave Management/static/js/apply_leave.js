@@ -51,7 +51,7 @@
         const existingLeaveRanges = parseJsonScriptData("existing-leaves-data", []);
         const applyLeaveRuleConfig = parseJsonScriptData("apply-leave-rule-config", {});
         const shortHalfMinNoticeMinutes = readNonNegativeInt(applyLeaveRuleConfig.shortHalfMinNoticeMinutes, 15);
-        const shortHalfGraceMinutes = readNonNegativeInt(applyLeaveRuleConfig.shortHalfGraceMinutes, 0);
+        const shortHalfGraceMinutes = readNonNegativeInt(applyLeaveRuleConfig.shortHalfGraceMinutes, 5);
         const shortHalfMinNoticeLabel = applyLeaveRuleConfig.shortHalfMinNoticeLabel || formatMinutesDuration(shortHalfMinNoticeMinutes);
         const shortHalfGraceLabel = applyLeaveRuleConfig.shortHalfGraceLabel || formatMinutesDuration(shortHalfGraceMinutes);
         const sickSameDayCutoffTime = applyLeaveRuleConfig.sickSameDayCutoffTime || "11:59";
