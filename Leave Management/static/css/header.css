@@ -1198,6 +1198,18 @@ header .profile-dropdown .logout-btn::before
         height: 82px;
     }
 
+    header .profile-dropdown .logout-btn::before
+    {
+        content: "";
+        color: transparent;
+        font-size: 0;
+        background:
+            linear-gradient(#dc2626, #dc2626) center 4px / 2px 8px no-repeat,
+            radial-gradient(circle at 50% 58%, transparent 0 5px, #dc2626 5.3px 6.7px, transparent 7px),
+            linear-gradient(135deg, #fee2e2, #ffedd5);
+        border: 1px solid rgba(239, 68, 68, 0.28);
+    }
+
     .user-info p
     {
         font-size: 0.9rem;

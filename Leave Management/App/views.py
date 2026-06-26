@@ -87,6 +87,66 @@ def _aware_datetime(value):
     return timezone.make_aware(value) if timezone.is_naive(value) else value
 
 
+def _get_short_half_min_notice_minutes():
+    try:
+        return max(0, int(getattr(settings, "SHORT_HALF_LEAVE_MIN_NOTICE_MINUTES", 15)))
+    except (TypeError, ValueError):
+        return 15
+
+
+def _get_short_half_grace_minutes():
+    try:
+        return max(0, int(getattr(settings, "SHORT_HALF_LEAVE_GRACE_MINUTES", 0)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _format_minutes_duration(minutes):
+    minutes = max(0, int(minutes or 0))
+    if minutes and minutes % 60 == 0:
+        hours = minutes // 60
+        return f"{hours} hour" if hours == 1 else f"{hours} hours"
+    if minutes >= 60:
+        hours = minutes // 60
+        remaining_minutes = minutes % 60
+        hour_text = f"{hours} hour" if hours == 1 else f"{hours} hours"
+        minute_text = f"{remaining_minutes} minute" if remaining_minutes == 1 else f"{remaining_minutes} minutes"
+        return f"{hour_text} {minute_text}" if remaining_minutes else hour_text
+    return f"{minutes} minute" if minutes == 1 else f"{minutes} minutes"
+
+
+def _get_sick_leave_same_day_cutoff_time():
+    raw_value = getattr(settings, "SICK_LEAVE_SAME_DAY_CUTOFF_TIME", "11:59")
+    if isinstance(raw_value, time):
+        return raw_value
+    try:
+        return datetime.strptime(str(raw_value).strip(), "%H:%M").time()
+    except (TypeError, ValueError):
+        return time(11, 59)
+
+
+def _format_clock_time(value):
+    return value.strftime("%I:%M %p").lstrip("0")
+
+
+def _is_after_sick_leave_same_day_cutoff(current_time, cutoff_time):
+    return (current_time.hour, current_time.minute) > (cutoff_time.hour, cutoff_time.minute)
+
+
+def _get_apply_leave_rule_config():
+    min_notice_minutes = _get_short_half_min_notice_minutes()
+    grace_minutes = _get_short_half_grace_minutes()
+    sick_cutoff = _get_sick_leave_same_day_cutoff_time()
+    return {
+        "shortHalfMinNoticeMinutes": min_notice_minutes,
+        "shortHalfGraceMinutes": grace_minutes,
+        "shortHalfMinNoticeLabel": _format_minutes_duration(min_notice_minutes),
+        "shortHalfGraceLabel": _format_minutes_duration(grace_minutes),
+        "sickSameDayCutoffTime": sick_cutoff.strftime("%H:%M"),
+        "sickSameDayCutoffLabel": _format_clock_time(sick_cutoff),
+    }
+
+
 def queue_hr_leave_push(leave, action_label):
     User = get_user_model()
     employee_name = leave.user.get_full_name().strip() or leave.user.username
@@ -4623,15 +4683,18 @@ def apply_leave(request):
                 return _apply_leave_response(request)
 
 
-            # 2 HOURS + 1 MIN RULE
+            # Same-day Short/Half leave must respect the configured notice window.
             now = localtime()
-            min_allowed = now + timedelta(hours=2, minutes=1)
-            relaxed_min = min_allowed - timedelta(minutes=7)  # 7 minute grace period
+            min_notice_minutes = _get_short_half_min_notice_minutes()
+            grace_minutes = _get_short_half_grace_minutes()
+            min_allowed = now + timedelta(minutes=min_notice_minutes)
+            relaxed_min = min_allowed - timedelta(minutes=grace_minutes)
 
             if start.date() == today:
                 if start < relaxed_min:
-                    messages.error(request, "Must apply at least 2 hours before.")
-                    messages.error(request, "7 minutes of grace period is also passed.")
+                    messages.error(request, f"Must apply at least {_format_minutes_duration(min_notice_minutes)} before.")
+                    if grace_minutes:
+                        messages.error(request, f"{_format_minutes_duration(grace_minutes)} of grace period is also passed.")
 
                     # ✅ STORE FORM DATA TEMPORARILY
                     store_apply_leave_form_state(request)
@@ -4941,11 +5004,12 @@ def apply_leave(request):
             remaining = balance.sick_total - sick_used
 
             current_time = localtime().time()
+            sick_cutoff = _get_sick_leave_same_day_cutoff_time()
 
             # If applying sick leave for today
             if requested_from_date == today:
-                if current_time >= time(8, 0):
-                    messages.error( request, "Sick leave cannot be applied after 8:00 AM for the same day.")
+                if _is_after_sick_leave_same_day_cutoff(current_time, sick_cutoff):
+                    messages.error(request, f"Sick leave cannot be applied after {_format_clock_time(sick_cutoff)} for the same day.")
 
                     store_apply_leave_form_state(request)
                     return _apply_leave_response(request)
@@ -5194,6 +5258,7 @@ def apply_leave(request):
                 status__in=["Pending", "Approved", "Rejected"],
             ).order_by("from_date", "created_at", "id")
         ]),
+        "apply_leave_rule_config": _get_apply_leave_rule_config(),
     }
     context.update(get_employee_notification_context(request.user))
     context.update(get_communication_context(request.user))
@@ -5874,15 +5939,18 @@ def edit_leave(request, leave_id):
             messages.error(request, "Invalid start time.")
             return _my_leave_response(request, status=400)
 
-        # 2 HOURS + 1 MIN RULE
+        # Same-day Short/Half leave edits must respect the configured notice window.
         now = localtime()
-        min_allowed = now + timedelta(hours=2, minutes=1)
-        relaxed_min = min_allowed - timedelta(minutes=7)  # 7 minute grace period
+        min_notice_minutes = _get_short_half_min_notice_minutes()
+        grace_minutes = _get_short_half_grace_minutes()
+        min_allowed = now + timedelta(minutes=min_notice_minutes)
+        relaxed_min = min_allowed - timedelta(minutes=grace_minutes)
 
         if start.date() == today:
             if start < relaxed_min:
-                messages.error(request, "Must apply at least 2 hours before.")
-                messages.error(request, "7 minutes of grace period is also passed.")
+                messages.error(request, f"Must apply at least {_format_minutes_duration(min_notice_minutes)} before.")
+                if grace_minutes:
+                    messages.error(request, f"{_format_minutes_duration(grace_minutes)} of grace period is also passed.")
                 return _my_leave_response(request, status=400)
 
         # DURATION CHECK
@@ -6117,8 +6185,9 @@ def edit_leave(request, leave_id):
     # -------- SICK --------
     if new_type == "Sick":
 
-        if requested_new_from == today and localtime().time() >= time(8, 0):
-            messages.error(request, "Sick leave cannot be applied after 8:00 AM.")
+        sick_cutoff = _get_sick_leave_same_day_cutoff_time()
+        if requested_new_from == today and _is_after_sick_leave_same_day_cutoff(localtime().time(), sick_cutoff):
+            messages.error(request, f"Sick leave cannot be applied after {_format_clock_time(sick_cutoff)}.")
             return _my_leave_response(request, status=400)
 
         remaining = balance.sick_total - sick_used

@@ -21,9 +21,41 @@
             }
         }
 
+        function formatMinutesDuration(minutes)
+        {
+            const safeMinutes = Math.max(0, parseInt(minutes, 10) || 0);
+            if (safeMinutes > 0 && safeMinutes % 60 === 0)
+            {
+                const hours = safeMinutes / 60;
+                return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+            }
+            if (safeMinutes >= 60)
+            {
+                const hours = Math.floor(safeMinutes / 60);
+                const remainingMinutes = safeMinutes % 60;
+                const hourText = `${hours} ${hours === 1 ? "hour" : "hours"}`;
+                const minuteText = `${remainingMinutes} ${remainingMinutes === 1 ? "minute" : "minutes"}`;
+                return remainingMinutes ? `${hourText} ${minuteText}` : hourText;
+            }
+            return `${safeMinutes} ${safeMinutes === 1 ? "minute" : "minutes"}`;
+        }
+
+        function readNonNegativeInt(value, fallback)
+        {
+            const parsed = parseInt(value, 10);
+            return Number.isNaN(parsed) ? fallback : Math.max(0, parsed);
+        }
+
         const companyHolidayDates = parseJsonScriptData("company-holidays-data", []);
         const companyHolidayMap = new Map(companyHolidayDates.map((holiday) => [holiday.date, holiday]));
         const existingLeaveRanges = parseJsonScriptData("existing-leaves-data", []);
+        const applyLeaveRuleConfig = parseJsonScriptData("apply-leave-rule-config", {});
+        const shortHalfMinNoticeMinutes = readNonNegativeInt(applyLeaveRuleConfig.shortHalfMinNoticeMinutes, 15);
+        const shortHalfGraceMinutes = readNonNegativeInt(applyLeaveRuleConfig.shortHalfGraceMinutes, 0);
+        const shortHalfMinNoticeLabel = applyLeaveRuleConfig.shortHalfMinNoticeLabel || formatMinutesDuration(shortHalfMinNoticeMinutes);
+        const shortHalfGraceLabel = applyLeaveRuleConfig.shortHalfGraceLabel || formatMinutesDuration(shortHalfGraceMinutes);
+        const sickSameDayCutoffTime = applyLeaveRuleConfig.sickSameDayCutoffTime || "11:59";
+        const sickSameDayCutoffLabel = applyLeaveRuleConfig.sickSameDayCutoffLabel || "11:59 AM";
         const leaveType = document.getElementById("leaveType");
         const form = document.querySelector(".leave-form");
         const fromTimeBlock = document.getElementById("fromTimeBlock");
@@ -218,8 +250,8 @@
             let minMinute = 0;
 
             if (isToday) {
-                const minTime = new Date(now.getTime() + (2 * 60 + 2) * 60 * 1000);
-                const relaxedMin = new Date(minTime.getTime() - (7 * 60 * 1000));
+                const minTime = new Date(now.getTime() + shortHalfMinNoticeMinutes * 60 * 1000);
+                const relaxedMin = new Date(minTime.getTime() - shortHalfGraceMinutes * 60 * 1000);
 
                 minHour = relaxedMin.getHours();
                 minMinute = relaxedMin.getMinutes();
@@ -458,6 +490,29 @@
             const month = String(date.getMonth() + 1).padStart(2, "0");
             const year = date.getFullYear();
             return `${year}-${month}-${day}`;
+        }
+
+        function parseRuleTime(value) {
+            const parts = String(value || "").split(":").map((part) => parseInt(part, 10));
+            if (parts.length < 2 || parts.some((part) => Number.isNaN(part))) {
+                return { hour: 11, minute: 59 };
+            }
+            return {
+                hour: Math.min(Math.max(parts[0], 0), 23),
+                minute: Math.min(Math.max(parts[1], 0), 59)
+            };
+        }
+
+        function isSickSameDayCutoffPassed() {
+            if (leaveType.value !== "Sick" || fromDate.value !== formatValueDate(new Date())) {
+                return false;
+            }
+
+            const now = new Date();
+            const cutoff = parseRuleTime(sickSameDayCutoffTime);
+            const cutoffDate = new Date(now);
+            cutoffDate.setHours(cutoff.hour, cutoff.minute + 1, 0, 0);
+            return now >= cutoffDate;
         }
 
         function formatUpcomingDate(value, formatStyle = "long") {
@@ -726,11 +781,11 @@
             start.setHours(hour24, minute, 0, 0);
 
             if (fromDate.value === formatValueDate(now)) {
-                const minAllowed = new Date(now.getTime() + (2 * 60 + 1) * 60 * 1000);
-                const relaxedMin = new Date(minAllowed.getTime() - (7 * 60 * 1000));
+                const minAllowed = new Date(now.getTime() + shortHalfMinNoticeMinutes * 60 * 1000);
+                const relaxedMin = new Date(minAllowed.getTime() - shortHalfGraceMinutes * 60 * 1000);
 
                 if (start < relaxedMin) {
-                    showTimeWarning("You must apply at least 2 hours before current time.");
+                    showTimeWarning(`You must apply at least ${shortHalfMinNoticeLabel} before current time.`);
                     toTime.value = "";
                     fromDateTime.value = "";
                     toDateTime.value = "";
@@ -738,8 +793,8 @@
                     return;
                 }
 
-                if (start >= relaxedMin && start < minAllowed) {
-                    showTimeWarning("You are applying slightly late (within 7 minute grace period).");
+                if (shortHalfGraceMinutes > 0 && start >= relaxedMin && start < minAllowed) {
+                    showTimeWarning(`You are applying slightly late (within ${shortHalfGraceLabel} grace period).`);
                 } else {
                     showTimeWarning("");
                 }
@@ -1622,6 +1677,9 @@
             if (!fromDate.value) {
                 showInlineWarning("fromDate", "Please select a from date.");
                 hasError = true;
+            } else if (isSickSameDayCutoffPassed()) {
+                showInlineWarning("fromDate", `Sick leave cannot be applied after ${sickSameDayCutoffLabel} for the same day.`);
+                hasError = true;
             }
 
             if (!reason.value.trim()) {
@@ -1753,8 +1811,8 @@
             let minHour = 10;
             let minMinute = 0;
             if (isToday) {
-                const minTime = new Date(Date.now() + (2 * 60 + 2) * 60 * 1000);
-                const relaxedMin = new Date(minTime.getTime() - (7 * 60 * 1000));
+                const minTime = new Date(Date.now() + shortHalfMinNoticeMinutes * 60 * 1000);
+                const relaxedMin = new Date(minTime.getTime() - shortHalfGraceMinutes * 60 * 1000);
                 minHour = relaxedMin.getHours();
                 minMinute = relaxedMin.getMinutes();
                 if (minHour < 10) {
