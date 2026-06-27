@@ -605,7 +605,7 @@ def _get_email_config_health():
         "timeout": getattr(settings, "EMAIL_TIMEOUT", None),
         "default_from_email": settings.DEFAULT_FROM_EMAIL,
         "leave_desk_from_email": getattr(settings, "LEAVE_DESK_FROM_EMAIL", ""),
-        "leave_record_email": getattr(settings, "LEAVE_RECORD_EMAIL", ""),
+        "leave_record_emails": getattr(settings, "LEAVE_RECORD_EMAILS", ""),
         "password_configured": bool(settings.EMAIL_HOST_PASSWORD),
         "connection": connection_status,
     }

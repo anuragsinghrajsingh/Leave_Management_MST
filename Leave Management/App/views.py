@@ -280,8 +280,13 @@ def service_worker(request):
     return response
 
 
+def get_leave_record_emails():
+    raw_emails = getattr(settings, "LEAVE_RECORD_EMAILS", "")
+    return list(dict.fromkeys(email.strip() for email in raw_emails.split(",") if email.strip()))
+
+
 def get_leave_alert_recipients():
-    recipients = [settings.LEAVE_RECORD_EMAIL] if settings.LEAVE_RECORD_EMAIL else []
+    recipients = get_leave_record_emails()
     recipients.extend(
         get_user_model().objects
         .filter(role="HR", is_active=True)
@@ -292,7 +297,7 @@ def get_leave_alert_recipients():
 
 
 def get_leave_decision_email_recipients(employee):
-    recipients = [getattr(employee, "email", ""), settings.LEAVE_RECORD_EMAIL]
+    recipients = [getattr(employee, "email", ""), *get_leave_record_emails()]
     return list(dict.fromkeys(email for email in recipients if email))
 
 

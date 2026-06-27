@@ -461,8 +461,8 @@ def _send_leave_workflow_emails(leaves, actor, action_label, options):
             recipients.append(leave.user.email)
         if options.get("notify_hr"):
             recipients.extend(_hr_emails())
-        if options.get("record_email") and settings.LEAVE_RECORD_EMAIL:
-            recipients.append(settings.LEAVE_RECORD_EMAIL)
+        if options.get("record_email"):
+            recipients.extend(_leave_record_emails())
         recipients = list(dict.fromkeys([email for email in recipients if email]))
         if recipients:
             try:
@@ -488,7 +488,7 @@ def _send_leave_workflow_emails(leaves, actor, action_label, options):
                     recipients=recipients,
                     status="failed",
                     email_type=f"admin_leave_{action_label}",
-                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    from_email=f"HR Portal <{_leave_workflow_from_email()}>",
                     error_message=str(exc),
                     related_user=leave.user,
                     related_leave=leave,
@@ -510,7 +510,7 @@ def _send_leave_workflow_emails(leaves, actor, action_label, options):
                     recipients=recipients,
                     status="sent",
                     email_type=f"admin_leave_{action_label}",
-                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    from_email=f"HR Portal <{_leave_workflow_from_email()}>",
                     related_user=leave.user,
                     related_leave=leave,
                     triggered_by=actor,
@@ -528,8 +528,8 @@ def _send_delete_emails(email_snapshots, actor, options):
             recipients.append(employee_email)
         if options.get("notify_hr"):
             recipients.extend(_hr_emails())
-        if options.get("record_email") and settings.LEAVE_RECORD_EMAIL:
-            recipients.append(settings.LEAVE_RECORD_EMAIL)
+        if options.get("record_email"):
+            recipients.extend(_leave_record_emails())
         recipients = list(dict.fromkeys([email for email in recipients if email]))
         if recipients:
             try:
@@ -555,7 +555,7 @@ def _send_delete_emails(email_snapshots, actor, options):
                     recipients=recipients,
                     status="failed",
                     email_type="admin_leave_deleted",
-                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    from_email=f"HR Portal <{_leave_workflow_from_email()}>",
                     error_message=str(exc),
                     related_user=related_user,
                     triggered_by=actor,
@@ -577,7 +577,7 @@ def _send_delete_emails(email_snapshots, actor, options):
                     recipients=recipients,
                     status="sent",
                     email_type="admin_leave_deleted",
-                    from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+                    from_email=f"HR Portal <{_leave_workflow_from_email()}>",
                     related_user=related_user,
                     triggered_by=actor,
                     metadata={"leave_snapshot": snapshot},
@@ -609,12 +609,21 @@ def _send_admin_leave_email(recipients, subject, context):
     email = EmailMessage(
         subject=subject,
         body=html_content,
-        from_email=f"HR Portal <{settings.LEAVE_RECORD_EMAIL or settings.DEFAULT_FROM_EMAIL}>",
+        from_email=f"HR Portal <{_leave_workflow_from_email()}>",
         to=recipients,
     )
     email.content_subtype = "html"
     email.send(fail_silently=False)
 
+
+def _leave_record_emails():
+    raw_emails = getattr(settings, "LEAVE_RECORD_EMAILS", "")
+    return list(dict.fromkeys(email.strip() for email in raw_emails.split(",") if email.strip()))
+
+
+def _leave_workflow_from_email():
+    record_emails = _leave_record_emails()
+    return record_emails[0] if record_emails else settings.DEFAULT_FROM_EMAIL
 
 def _hr_emails():
     return list(
