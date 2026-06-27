@@ -77,6 +77,15 @@ def prompt_lookup():
         print("Lookup cannot be blank.")
 
 
+def _get_password_too_long_message(password):
+    from App.scripts.validators import get_password_input_max_length
+
+    max_length = get_password_input_max_length()
+    if password and len(password) > max_length:
+        return f"Password must be {max_length} characters or fewer."
+    return None
+
+
 def prompt_manual_password():
     while True:
         password = getpass.getpass("Enter new password (B=Back, 0=Exit): ")
@@ -86,6 +95,10 @@ def prompt_manual_password():
             return EXIT
         if not password:
             print("Password cannot be blank.")
+            continue
+        length_error = _get_password_too_long_message(password)
+        if length_error:
+            print(length_error)
             continue
 
         confirm = getpass.getpass("Confirm new password (B=Back, 0=Exit): ")
@@ -208,10 +221,12 @@ def display_user_details(user):
 
 def reset_password_only(user, password, reason):
     from App.models import AdminAuditLog
+    from App.scripts.validators import validate_password_input_max_length
 
     reason = (reason or "").strip()
     if not reason:
         raise ValueError("Audit reason is required before resetting a password.")
+    validate_password_input_max_length(password)
 
     user.set_password(password)
     user.save(update_fields=["password"])

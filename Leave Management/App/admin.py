@@ -67,13 +67,14 @@ from .models import (
     WorkFromHomeDay,
 )
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.contrib.auth.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django import forms
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import EmailMessage, get_connection
+from App.scripts.validators import get_password_input_max_length
 from django.db import connection, transaction
 from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404, render, redirect
@@ -1117,9 +1118,25 @@ class CustomUserAdminCreationForm(UserCreationForm):
         label="Initial unpaid leave",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        max_length = str(get_password_input_max_length())
+        for field_name in ("password1", "password2"):
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs["maxlength"] = max_length
+
     class Meta(UserCreationForm.Meta):
         model = CustomUser
         fields = ("username", "role")
+
+
+class CustomUserAdminPasswordChangeForm(AdminPasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        max_length = str(get_password_input_max_length())
+        for field_name in ("password1", "password2"):
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs["maxlength"] = max_length
 
 
 @login_required
@@ -1128,6 +1145,7 @@ class CustomUserAdminCreationForm(UserCreationForm):
 class CustomUserAdmin(DeleteAuditedAdminMixin, UserAdmin):
     form = CustomUserAdminForm
     add_form = CustomUserAdminCreationForm
+    password_change_form = CustomUserAdminPasswordChangeForm
     change_user_password_template = "admin/customuser_change_password.html"
 
     inlines = [ProfileInline]

@@ -272,7 +272,7 @@
                                         <label class="field">
                                             <span>Password</span>
                                             <div class="password-field-shell">
-                                                <input type="password" id="passwordField" name="password" required aria-invalid="{% if field_errors.password %}true{% else %}false{% endif %}">
+                                                <input type="password" id="passwordField" name="password" maxlength="{{ password_input_max_length|default:128 }}" required aria-invalid="{% if field_errors.password %}true{% else %}false{% endif %}">
                                                 <div class="password-field-actions">
                                                     <button type="button" class="password-action-btn" data-password-target="passwordField" data-password-reset title="Reset password"><span class="password-action-icon password-action-icon-reset" aria-hidden="true">×</span></button>
                                                     <button type="button" class="password-action-btn" data-password-target="passwordField" data-password-toggle aria-pressed="false" title="Show password"><span class="password-action-icon password-action-icon-eye" aria-hidden="true">👁️</span></button>
@@ -283,7 +283,7 @@
                                         <label class="field">
                                             <span>Confirm password</span>
                                             <div class="password-field-shell">
-                                                <input type="password" id="confirmPasswordField" name="confirm_password" required aria-invalid="{% if field_errors.confirm_password %}true{% else %}false{% endif %}">
+                                                <input type="password" id="confirmPasswordField" name="confirm_password" maxlength="{{ password_input_max_length|default:128 }}" required aria-invalid="{% if field_errors.confirm_password %}true{% else %}false{% endif %}">
                                                 <div class="password-field-actions">
                                                     <button type="button" class="password-action-btn" data-password-target="confirmPasswordField" data-password-reset title="Reset password"><span class="password-action-icon password-action-icon-reset" aria-hidden="true">×</span></button>
                                                     <button type="button" class="password-action-btn" data-password-target="confirmPasswordField" data-password-toggle aria-pressed="false" title="Show password"><span class="password-action-icon password-action-icon-eye" aria-hidden="true">👁️</span></button>

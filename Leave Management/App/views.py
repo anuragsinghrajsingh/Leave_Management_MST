@@ -44,6 +44,7 @@ from App.services.login_lock_service import remember_failed_login_ip
 from App.services.login_lock_service import get_login_lock_status as get_combined_login_lock_status
 from App.services.push_notifications import send_push_to_user
 from App.services.background_tasks import enqueue_background_task
+from App.scripts.validators import get_password_input_max_length, validate_password_input_max_length
 
 security_logger = logging.getLogger("lms_security")
 
@@ -1137,6 +1138,31 @@ def _login_blocked_response(request, portal, username, redirect_name):
     return redirect(redirect_name)
 
 
+def _reject_oversized_login_password(request, portal, username, password, redirect_name):
+    max_length = get_password_input_max_length()
+    if password is None or len(password) <= max_length:
+        return None
+
+    ip_address = _get_client_ip(request)
+    security_logger.warning(
+        "LOGIN_PASSWORD_TOO_LONG | portal=%s | username=%s | ip=%s | length=%s | limit=%s",
+        portal,
+        _safe_login_username(username) or "(blank)",
+        ip_address,
+        len(password),
+        max_length,
+    )
+    failure_state = _register_login_failure(request, portal, username)
+    _set_login_error_message(
+        request,
+        locked=bool(failure_state["lockout_seconds"]),
+        remaining_seconds=failure_state["lockout_seconds"],
+        attempts_remaining=failure_state["attempts_remaining"],
+    )
+    request.session[f"{portal.lower()}_login_username"] = username or ""
+    return redirect(redirect_name)
+
+
 def _record_successful_login(request, portal, user, username):
     ip_address = _get_client_ip(request)
     _clear_login_rate_state(portal, username, ip_address)
@@ -1538,6 +1564,10 @@ def hr_login(request):
         if blocked_response:
             return blocked_response
 
+        oversized_response = _reject_oversized_login_password(request, "HR", username, password, "hr_login_form")
+        if oversized_response:
+            return oversized_response
+
         user = authenticate(request, username=username, password=password)
 
         # 🔥 Security Hardening: Check if user exists, is HR, AND is active
@@ -1560,6 +1590,7 @@ def hr_login(request):
 
     context = {
         "prefill_username": request.session.pop("hr_login_username", ""),
+        "password_input_max_length": get_password_input_max_length(),
     }
     return render(request, "hr_login.html", context)
 
@@ -3106,6 +3137,12 @@ def employee_details(request):
         if password and confirm_password and password != confirm_password:
             add_field_error("confirm_password", "Password confirmation does not match.")
 
+        for field_name, field_password in (("password", password), ("confirm_password", confirm_password)):
+            try:
+                validate_password_input_max_length(field_password)
+            except ValidationError as exc:
+                add_field_error(field_name, exc.messages[0] if hasattr(exc, "messages") else str(exc))
+
         joining_date = None
         try:
             if form_values["date_of_joining"]:
@@ -3237,6 +3274,7 @@ def employee_details(request):
         "form_values": form_values,
         "field_errors": field_errors,
         "employee_id_preview": next_employee_id_preview,
+        "password_input_max_length": get_password_input_max_length(),
     }
     context.update(get_hr_notification_context(request.user))
     context.update(get_communication_context(request.user))
@@ -3995,6 +4033,10 @@ def admin_login(request):
         if blocked_response:
             return blocked_response
 
+        oversized_response = _reject_oversized_login_password(request, "ADMIN", username, password, "admin_login_form")
+        if oversized_response:
+            return oversized_response
+
         user = authenticate(request, username=username, password=password)
 
         if user and user.is_superuser:
@@ -4018,7 +4060,10 @@ def admin_login(request):
     response = render(
         request,
         "admin_login.html",
-        {"prefill_username": request.session.pop("admin_login_username", "")},
+        {
+            "prefill_username": request.session.pop("admin_login_username", ""),
+            "password_input_max_length": get_password_input_max_length(),
+        },
     )
 
     # 🔥 Prevent caching login page
@@ -4100,6 +4145,7 @@ def force_password_change(request):
             "password_errors": password_errors,
             "password_warning": password_warning,
             "portal_role": request.user.role,
+            "password_input_max_length": get_password_input_max_length(),
         },
     )
 
@@ -4329,6 +4375,10 @@ def employee_login(request):
         if blocked_response:
             return blocked_response
 
+        oversized_response = _reject_oversized_login_password(request, "EMPLOYEE", username, password, "employee_login_form")
+        if oversized_response:
+            return oversized_response
+
         user = authenticate(request, username=username, password=password)
 
         # 🔥 Security Hardening: Check if user exists, is EMPLOYEE, AND is active
@@ -4353,7 +4403,10 @@ def employee_login(request):
     return render(
         request,
         "employee_login.html",
-        {"prefill_username": request.session.pop("employee_login_username", "")},
+        {
+            "prefill_username": request.session.pop("employee_login_username", ""),
+            "password_input_max_length": get_password_input_max_length(),
+        },
     )
 
 

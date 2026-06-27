@@ -232,7 +232,12 @@ CACHES = {
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
+PASSWORD_INPUT_MAX_LENGTH = env.int("PASSWORD_INPUT_MAX_LENGTH", default=128)
+
 AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'App.scripts.validators.MaximumLengthPasswordValidator',
+    },
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },

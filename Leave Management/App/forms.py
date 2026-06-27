@@ -3,6 +3,7 @@ from .models import Profile
 from django.contrib.auth.forms import PasswordChangeForm
 import re, os
 from PIL import Image
+from App.scripts.validators import get_password_input_max_length, validate_password_input_max_length
 
 
 class UserProfileForm(forms.ModelForm):
@@ -67,12 +68,21 @@ class CustomPasswordChangeForm(PasswordChangeForm):
                     attrs={
                         "autocomplete": autocomplete,
                         "class": self.fields[field_name].widget.attrs.get("class", ""),
+                        "maxlength": str(get_password_input_max_length()),
                     },
                     render_value=False,
                 )
 
+    def clean_old_password(self):
+        password = self.cleaned_data.get("old_password")
+        validate_password_input_max_length(password)
+        return super().clean_old_password()
+
     def clean_new_password1(self):
         password = self.cleaned_data.get("new_password1")
+        if not password:
+            return password
+        validate_password_input_max_length(password)
 
         if len(password) < 8:
             raise forms.ValidationError("Password must be at least 8 characters.")
@@ -92,6 +102,7 @@ class CustomPasswordChangeForm(PasswordChangeForm):
     def clean_new_password2(self):
         password1 = self.cleaned_data.get("new_password1")
         password2 = self.cleaned_data.get("new_password2")
+        validate_password_input_max_length(password2)
 
         if password1 and password2 and password1 != password2:
             raise forms.ValidationError("Passwords do not match.")
