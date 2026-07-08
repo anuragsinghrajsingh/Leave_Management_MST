@@ -1,6 +1,131 @@
-# Leave Management Project Guide
+﻿# Leave Management Project Guide
 
 This guide is the working memory for the Leave Management project. It explains what the system does, how the major features work, how production is deployed, and how to troubleshoot the issues we have already seen.
+
+## 0. Current State Addendum - 2026-07-08
+
+This addendum records the current project state after the latest production updates. If any lower section conflicts with this addendum, trust this section first and then verify the source code.
+
+### 0.1 Current Production Shape
+
+```text
+Production path: /home/mstleave/Leave_Management_MST
+Public URL:      https://mstleave.mstlabs.in
+Database:        PostgreSQL
+Web service:     gunicorn
+Background jobs: qcluster
+Scheduler:       lms_scheduler
+Front layer:     nginx
+```
+
+Current worker/process shape:
+
+```text
+Gunicorn: 1 master + 3 workers
+qcluster: about 6 processes total, 2 configured task workers
+lms_scheduler: 1 scheduler process
+```
+
+### 0.2 Current Important Production Rules
+
+```text
+Do not overwrite production .env with .env.example.
+Always git fetch before git show.
+Run collectstatic only when static files change.
+Run migrate only when migrations/model schema change.
+Restart gunicorn for web/template/settings changes.
+Restart qcluster for background task changes.
+Restart lms_scheduler for scheduler/startup/backup/report/recovery changes.
+```
+
+### 0.3 Latest Feature/Behavior Updates
+
+```text
+Password max length / long-password DoS protection is active.
+Wrong password login lock counters are active.
+Leave timing rules are configurable from .env.
+Multiple leave record emails are supported through LEAVE_RECORD_EMAILS.
+Leave delete email behavior exists and should avoid FK links to deleted leave rows.
+Admin email job stale-running recovery runs every 5 minutes from lms_scheduler.
+Backup cleanup removes incomplete raw .sql files.
+Systemd PATH overrides include /usr/bin so pg_dump, psql, and xclip are available to services.
+Runtime startup file is for uptime display only.
+```
+
+### 0.4 Current Security Values To Verify
+
+```bash
+python manage.py shell -c "from django.conf import settings; print(settings.SESSION_COOKIE_SECURE, settings.SESSION_COOKIE_HTTPONLY, settings.SESSION_COOKIE_SAMESITE, settings.CSRF_COOKIE_SECURE)"
+```
+
+Expected:
+
+```text
+True True Lax True
+```
+
+Password max length:
+
+```bash
+python manage.py shell -c "from django.conf import settings; from App.scripts.validators import get_password_input_max_length; print(settings.PASSWORD_INPUT_MAX_LENGTH, get_password_input_max_length())"
+```
+
+Expected:
+
+```text
+128 128
+```
+
+### 0.5 Current Login Lock Limits
+
+```text
+Admin:    5 wrong attempts in 15 minutes -> 30 minute lockout
+HR:       5 wrong attempts in 15 minutes -> 15 minute lockout
+Employee: 5 wrong attempts in 15 minutes -> 15 minute lockout
+```
+
+### 0.6 Current Leave Timing Values
+
+```env
+SHORT_HALF_LEAVE_MIN_NOTICE_MINUTES=15
+SHORT_HALF_LEAVE_GRACE_MINUTES=5
+SICK_LEAVE_SAME_DAY_CUTOFF_TIME=11:59
+```
+
+Meaning:
+
+```text
+Short/Half leave uses 15 minute notice with 5 minute grace.
+Sick leave for today is allowed through 11:59 AM and blocked from 12:00 PM.
+```
+
+### 0.7 Documentation Maintenance Rule
+
+When adding a new feature, update docs in this order:
+
+```text
+README.md                       overview changes
+PROJECT_START_HERE.md           quick navigation/commands
+PROJECT_GUIDE.md                practical behavior/workflow
+PROJECT_DEPLOYMENT_GUIDE.md     production/deployment/env/service changes
+PROJECT_DEEP_DIVE_BOOK.md       current-state addendum/debug notes
+production_setup/README.md      secret/env generation changes
+```
+
+Use this record format:
+
+```text
+Feature:
+Files changed:
+User-facing behavior:
+Admin/HR/Employee impact:
+Environment variables:
+Migration needed: yes/no
+collectstatic needed: yes/no
+Services to restart:
+Verification command:
+Rollback note:
+```
 
 ## 1. Project Identity
 
@@ -3043,3 +3168,255 @@ qcluster has several processes; 6 is normal.
 runtime/app_startup.json is only uptime display.
 PATH override keeps venv first and adds /usr/bin for system tools.
 ```
+
+
+## 59. Detailed Workflow Cookbook
+
+Use this section when you need to understand a workflow from user action to production service.
+
+### 59.1 Employee Applies Leave
+
+```text
+Employee opens /apply_leave/
+-> frontend validates obvious date/time fields
+-> App/views.py apply_leave validates server-side rules
+-> App/models.py Leave.clean validates model-level Short/Half rules
+-> overlap and balance logic run
+-> Leave row is created as Pending
+-> HR notification/read/seen state is created/refreshed
+-> email/push side effects are queued or sent depending on helper path
+-> employee sees success or form error
+```
+
+Production owners:
+
+```text
+gunicorn for web request
+qcluster for queued side effects
+postgresql for Leave/LeaveBalance rows
+```
+
+Deploy impact:
+
+```text
+views.py/model/service change -> restart gunicorn
+static apply_leave.js change -> collectstatic and restart gunicorn
+model schema change -> migrate
+```
+
+### 59.2 Employee Edits Pending Leave
+
+```text
+Employee opens my_leave edit flow
+-> existing leave must belong to employee
+-> leave must still be Pending
+-> updated type/date/time/reason are validated
+-> same leave timing rules as apply should be enforced
+-> notification/read state can refresh so HR sees updated details
+-> update email/record behavior may run
+```
+
+Important rule:
+
+```text
+Edit flow must not be weaker than apply flow.
+If apply rule changes, check edit rule too.
+```
+
+### 59.3 Employee Deletes Pending Leave
+
+```text
+Employee deletes pending leave
+-> ownership and Pending status are checked
+-> details are copied before deletion
+-> row is deleted or workflow removes it
+-> HR/record email can be sent using copied snapshot details
+```
+
+Important design:
+
+```text
+Do not attach email log FK to deleted Leave row.
+Use copied details/snapshot metadata instead.
+```
+
+### 59.4 HR Approves Or Rejects Leave
+
+```text
+HR clicks approve/reject
+-> App/views.py checks HR role
+-> transaction starts
+-> Leave row is locked with select_for_update(of=("self",))
+-> status must still be Pending
+-> balance/reviewer fields update
+-> notification/email/push side effects run
+-> HR returns to dashboard/manage-all
+```
+
+Why `of=("self",)` matters:
+
+```text
+It locks only the Leave row.
+It avoids PostgreSQL error on nullable user__profile outer join.
+```
+
+### 59.5 Admin Bulk Email Job
+
+```text
+Admin selects users and action
+-> confirmation template previews recipients
+-> AdminEmailJob row is created
+-> AdminEmailJobItem rows are created
+-> qcluster processes process_admin_email_job(job.id)
+-> status page polls every few seconds
+-> lms_scheduler recovery checks stale running jobs every 5 minutes
+```
+
+Main files:
+
+```text
+App/admin.py
+App/services/admin_bulk_email_jobs.py
+templates/admin/*confirm.html
+templates/admin/admin_email_job_change_form.html
+static/admin/js/admin_email_job_status.js
+```
+
+Deploy impact:
+
+```text
+Python/admin/service change -> restart gunicorn and qcluster
+Recovery/scheduler change -> restart lms_scheduler
+static/admin JS change -> collectstatic
+migration/job model change -> migrate
+```
+
+### 59.6 Backup Runs Automatically
+
+```text
+lms_scheduler reaches 02:00
+-> check_and_run_missed_backup()
+-> get_backup_catchup_status() checks backups/*.zip for today
+-> if missing, manage_backups.run_backup()
+-> pg_dump creates raw .sql
+-> zip is created
+-> raw .sql is removed
+-> old backups cleanup runs
+```
+
+If it fails:
+
+```text
+Check pg_dump exists.
+Check lms_scheduler PATH includes /usr/bin.
+Check backups directory permissions.
+Check lms_scheduler logs.
+```
+
+### 59.7 Weekly HR Report
+
+```text
+lms_scheduler reaches Monday 09:00
+-> startup_checks/weekly report service checks whether report was already sent
+-> weekly_report_service builds context
+-> pdf_generator uses Playwright Chromium
+-> email is sent to active HR recipients
+-> marker file prevents duplicate weekly sends
+```
+
+Production dependency:
+
+```text
+Playwright Chromium must launch successfully.
+```
+
+### 59.8 Login Lock
+
+```text
+User enters wrong password
+-> App/views.py registers failure
+-> login_lock_service increments cache counters
+-> after 5 wrong attempts inside 15 minutes, temporary lock starts
+-> login form shows blocked/retry message
+-> admin/service console can manually lock/unlock
+```
+
+Limits:
+
+```text
+Admin -> 30 minute lock
+HR/Employee -> 15 minute lock
+```
+
+### 59.9 Password Max Length
+
+```text
+Browser maxlength stops normal input over 128 chars
+-> backend rejects oversized password before authenticate/hash where applicable
+-> Django password validator protects password setting/change flows
+```
+
+Main files:
+
+```text
+App/scripts/validators.py
+App/views.py
+App/forms.py
+App/admin.py
+App/services/user_password_reset_service.py
+templates/*login.html
+templates/auth/force_password_change.html
+templates/employee_details.html
+```
+
+## 60. Future Feature Implementation Checklist
+
+Before coding:
+
+```text
+Who uses it: Admin, HR, Employee, scheduler, qcluster, terminal?
+Does it create/change DB data?
+Does it need audit logs?
+Does it need email delivery logs?
+Does it need push notifications?
+Does it need read/seen reset?
+Does it need frontend static JS/CSS?
+Does it need a migration?
+Does it need production env variables?
+```
+
+After coding:
+
+```text
+Run syntax/check tests available locally.
+Update templates/static if needed.
+Update .env.example if env changed.
+Update docs.
+Prepare production commands.
+Prepare rollback note.
+```
+
+After production deploy:
+
+```text
+python manage.py check
+migrate if needed
+collectstatic if needed
+restart owning services
+check logs
+verify browser/admin action
+record deployment notes
+```
+
+## 61. Documentation Update Checklist By Feature Type
+
+| Feature type | Docs to update |
+|---|---|
+| New major user feature | README, PROJECT_GUIDE, PROJECT_START_HERE if commands/routes matter |
+| New admin operation | PROJECT_GUIDE admin section, PROJECT_DEEP_DIVE_BOOK current addendum |
+| New scheduler job | PROJECT_GUIDE scheduler section, PROJECT_DEPLOYMENT_GUIDE scheduler/service sections |
+| New background job | PROJECT_GUIDE background section, PROJECT_DEPLOYMENT_GUIDE qcluster sections |
+| New env variable | .env.example, README if common, PROJECT_DEPLOYMENT_GUIDE, production_setup README if secret-related |
+| New DB model/migration | PROJECT_GUIDE models/workflow, PROJECT_DEPLOYMENT_GUIDE deployment decision table |
+| New static JS/CSS behavior | PROJECT_GUIDE workflow, PROJECT_DEPLOYMENT_GUIDE collectstatic reminder |
+| New production incident fix | PROJECT_DEPLOYMENT_GUIDE problems/fixes section, PROJECT_START_HERE if common |

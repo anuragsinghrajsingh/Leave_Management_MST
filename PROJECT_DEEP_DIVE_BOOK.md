@@ -1,9 +1,201 @@
-﻿# [BOOK] Leave Management Deep Dive Book
+# [BOOK] Leave Management Deep Dive Book
 
 > [!NOTE]
 > This is the long-form debugging and learning book for the Leave Management project. It is separate from `PROJECT_GUIDE.md`.
 
 **Generated/updated:** `2026-06-03 17:52:53`
+
+## [CURRENT] Current State Addendum - 2026-07-08
+
+This deep dive book is very large and includes generated references from an earlier project snapshot. This addendum records the latest known current state. If a generated lower section conflicts with this addendum, verify the source code and trust this addendum first.
+
+### [CURRENT] Current Production Architecture
+
+```text
+nginx -> gunicorn -> Django -> PostgreSQL
+Django/qcluster -> background jobs
+lms_scheduler -> scheduled jobs and startup catch-up
+```
+
+Production services:
+
+```text
+nginx
+postgresql
+gunicorn
+qcluster
+lms_scheduler
+```
+
+Current worker/process shape:
+
+```text
+Gunicorn: 1 master + 3 workers
+qcluster: about 6 processes total, 2 real configured workers
+lms_scheduler: 1 dedicated process
+```
+
+### [CURRENT] Current Scheduler Jobs
+
+```text
+startup catch-up checks on scheduler start
+nightly backup daily 02:00
+year-end carry-forward check daily 01:00
+weekly HR report Monday 09:00
+public holiday sync monthly day 1 03:00
+admin email job recovery every 5 minutes
+scheduler keep-alive every 6 hours
+```
+
+### [CURRENT] Current Production Fixes Already Applied
+
+```text
+Dedicated lms_scheduler.service added.
+Gunicorn/qcluster/lms_scheduler PATH overrides include /usr/bin.
+pg_dump/psql are available for backup/restore.
+Backup cleanup removes incomplete raw .sql files.
+Runtime startup timestamps use local production time behavior.
+Leave approve/reject locks only the Leave row with select_for_update(of=("self",)).
+Notification symbol/entity rendering issue was fixed safely.
+Apply/edit leave timing rules are configurable.
+Multiple leave record emails are supported.
+Employee leave delete email behavior exists.
+Password max-length protection is deployed.
+```
+
+### [CURRENT] Current Security And Login Rules
+
+Password max length:
+
+```env
+PASSWORD_INPUT_MAX_LENGTH=128
+```
+
+Login lock limits:
+
+```text
+Admin:    5 wrong attempts in 15 minutes -> 30 minute lockout
+HR:       5 wrong attempts in 15 minutes -> 15 minute lockout
+Employee: 5 wrong attempts in 15 minutes -> 15 minute lockout
+```
+
+Production cookie security expected output:
+
+```text
+True True Lax True
+```
+
+Verification command:
+
+```bash
+python manage.py shell -c "from django.conf import settings; print(settings.SESSION_COOKIE_SECURE, settings.SESSION_COOKIE_HTTPONLY, settings.SESSION_COOKIE_SAMESITE, settings.CSRF_COOKIE_SECURE)"
+```
+
+### [CURRENT] Current Leave Timing Rules
+
+```env
+SHORT_HALF_LEAVE_MIN_NOTICE_MINUTES=15
+SHORT_HALF_LEAVE_GRACE_MINUTES=5
+SICK_LEAVE_SAME_DAY_CUTOFF_TIME=11:59
+```
+
+Meaning:
+
+```text
+Short/Half leave: 15 minute notice with 5 minute grace.
+Sick leave for today: allowed through 11:59 AM, blocked from 12:00 PM.
+```
+
+### [CURRENT] Current Record Email Setting
+
+```env
+LEAVE_RECORD_EMAILS=leave@mst-india.com
+```
+
+Multiple recipients are comma-separated.
+
+### [CURRENT] Current Documentation Ownership
+
+```text
+README.md                       public/current overview
+PROJECT_START_HERE.md           first file and quick memory
+PROJECT_GUIDE.md                practical behavior guide
+PROJECT_DEPLOYMENT_GUIDE.md     production/Linux/deployment guide
+PROJECT_DEEP_DIVE_BOOK.md       deep technical/debug reference
+production_setup/README.md      production secret generation guide
+```
+
+### [CURRENT] Future Feature Documentation Template
+
+When adding a new feature, add this information to the relevant docs:
+
+```text
+Feature name:
+Why added:
+User-facing behavior:
+Admin/HR/Employee impact:
+Files changed:
+Environment variables:
+Migration needed: yes/no
+collectstatic needed: yes/no
+Services to restart:
+Verification command:
+Known risks:
+Rollback note:
+```
+
+### [CURRENT] Most Important Production Lesson
+
+```text
+Do not deploy by memory.
+Classify changed files -> run required commands -> restart owning services -> check logs -> verify in browser/admin.
+```
+
+
+## [CURRENT] Current Incident And Debug Index - 2026-07-08
+
+Use this index for the production issues we have already seen and solved.
+
+| Incident/problem | What it really meant | Where to debug |
+|---|---|---|
+| Backup failed with `pg_dump` not found | systemd service PATH missed `/usr/bin` | `manage_backups.py`, `lms_scheduler`, `gunicorn` env |
+| 0 byte `.sql` backup files | failed/incomplete raw dump | backups folder, `manage_backups.py` cleanup |
+| Scheduler worked in dev but not production | production needed dedicated `lms_scheduler.service` | `scheduler.py`, `run_lms_scheduler.py`, systemd |
+| Public holiday sync logs after scheduler start | startup sync task was enqueued | `scheduler.py`, `public_holidays.py`, qcluster logs |
+| HR approval looked like session issue | real error was PostgreSQL `FOR UPDATE` nullable join | `approve_leave`, `reject_leave` |
+| Notification showed HTML entity code | escaped symbol was rendered as text | notification JS/template rendering |
+| Static UI fix did not show | `collectstatic` or browser cache missing | static source, `staticfiles`, nginx/browser |
+| Admin backup failed but terminal worked | Gunicorn PATH differed from terminal PATH | `systemctl show gunicorn -p Environment` |
+| qcluster shows 6 processes | normal for 2 configured workers plus guard/monitor/pusher | `settings.Q_CLUSTER`, qcluster status |
+| Direct IP DisallowedHost logs | bot/wrong-host request blocked correctly | gunicorn logs, `ALLOWED_HOSTS` |
+| Long password attack concern | max password input length added | `App/scripts/validators.py`, login templates, forms/admin |
+| Linux felt slow | extra terminal tools/accounts-daemon/swap needed checking | `uptime`, `free -h`, `ps`, system services |
+
+### [CURRENT] Debug Pattern For Any Future Incident
+
+```text
+1. Capture exact time and user action.
+2. Decide owner: gunicorn, qcluster, lms_scheduler, nginx, postgresql, or OS.
+3. Read that service log first.
+4. Search exact error in this book and code.
+5. Check if production has the expected file version.
+6. Fix smallest owning file/service.
+7. Run manage.py check.
+8. Restart owning service.
+9. Verify same failing action.
+10. Add incident notes to PROJECT_DEPLOYMENT_GUIDE.md.
+```
+
+### [CURRENT] Feature Documentation Pattern
+
+Every feature should be understandable at four levels:
+
+```text
+README.md: what the feature is.
+PROJECT_GUIDE.md: how users/admins use it.
+PROJECT_DEPLOYMENT_GUIDE.md: how to deploy/restart/verify it.
+PROJECT_DEEP_DIVE_BOOK.md: how to debug it deeply.
+```
 
 ## [INDEX] Start Here Index
 
@@ -119540,6 +119732,3 @@ When something feels slow:
 6. Move heavy work to qcluster if needed.
 7. Add pagination/aggregation if list is large.
 ```
-
-
-
