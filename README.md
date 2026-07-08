@@ -27,17 +27,21 @@ The **Leave Management MST (Modern System Technologies)** Edition is an enterpri
 ## 📑 2. Table of Contents
 1. [🔍 About MST Edition](#about-mst)
 2. [🗺️ Living Documentation Map](#documentation-map)
-3. [⚙️ System Architecture](#system-architecture)
+3. [⚙️ System Architecture & Process Shapes](#system-architecture)
 4. [🚀 Enterprise Features & Business Rules](#enterprise-features)
-5. [🔄 System Workflows & Lifecycle](#system-workflows)
-6. [📂 Directory Structure](#directory-structure)
-7. [🏁 Getting Started (Local Setup & Testing)](#getting-started)
-8. [🔧 Environment Configuration & Secrets](#environment-configuration)
-9. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
-10. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
-11. [🗺️ Complete Routing, Features & File Maps](#routing-feature-maps)
-12. [⚖️ Dev vs Production Reference Matrix](#dev-vs-prod)
-13. [📜 License & Credits](#license)
+5. [🛡️ Custom Middleware Stack & Request Lifecycle](#custom-middleware)
+6. [🛠️ Interactive CLI Administration Utilities](#cli-utilities)
+7. [📊 Built-in Report Export Engine](#report-engine)
+8. [⚓ Django Signals & Event Hooks](#signals-hooks)
+9. [🔄 System Workflows](#system-workflows)
+10. [📂 Directory Structure](#directory-structure)
+11. [🏁 Getting Started (Local Setup & Testing)](#getting-started)
+12. [🔧 Environment Configuration & Secrets](#environment-configuration)
+13. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
+14. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
+15. [🗺️ Complete Routing, Features & File Maps](#routing-feature-maps)
+16. [⚖️ Dev vs Production Reference Matrix](#dev-vs-prod)
+17. [📜 License & Credits](#license)
 
 ---
 
@@ -69,7 +73,7 @@ This repository is not just application code; it includes a complete operations 
 ---
 
 <a id="system-architecture"></a>
-## ⚙️ 5. System Architecture
+## ⚙️ 5. System Architecture & Process Shapes
 
 ```mermaid
 flowchart TB
@@ -146,10 +150,121 @@ Critical state transitions (Approve, Reject, Apply, Delete) utilize Django's `se
 ### 6. Uptime Tracking Service
 Saves app process startup time to `runtime/app_startup.json` for both Gunicorn web server and LMS scheduler processes separately. It handles checks via `uptime_tracker.py` and exposes system uptime on custom admin screens.
 
+### 7. Advanced Security & SHA-256 Hashed Login Lockouts
+Provides robust denial-of-service protection against password brute-forcing.
+* **Dual-Layer Tracking**: Failed attempts are tracked simultaneously by Username and IP address inside Django's cache layer.
+* **Cryptographic Cache Tokens**: Cache keys are generated using SHA-256 hashing to hide usernames and IP addresses in the cache database:
+  ```text
+  Cache Key = login_rate:{portal}:{kind}:{SHA-256(value)}
+  ```
+* **Lockout Configurations**:
+  * **Admin**: 5 failed attempts in 15 minutes $\rightarrow$ 30-minute lockout.
+  * **HR**: 5 failed attempts in 15 minutes $\rightarrow$ 15-minute lockout.
+  * **Employee**: 5 failed attempts in 15 minutes $\rightarrow$ 15-minute lockout.
+* **Self-Healing Unlock**: Administrators can manually release username and IP locks from the control panel.
+
+---
+
+<a id="custom-middleware"></a>
+## 🛡️ 7. Custom Middleware Stack & Request Lifecycle
+
+The application implements a series of custom middlewares to enforce security boundaries, track user telemetry, manage system maintenance, and correlate requests.
+
+```mermaid
+flowchart TD
+    Req[Incoming HTTP Request] --> Correlation[CorrelationIDMiddleware: Generates unique request ID]
+    Correlation --> Maintenance[MaintenanceModeMiddleware: Redirects to 503 if restoring DB]
+    Maintenance --> ForcedPwd[ForcedPasswordChangeMiddleware: Blocks routing if must_change_password=True]
+    ForcedPwd --> RoleRedirect[RoleAwareLoginRedirectMiddleware: Redirects expired sessions to specific portal]
+    RoleRedirect --> APILog[APILoggingMiddleware: Directs /api/ calls to dedicated logger]
+    APILog --> UserAnalytics[UserAnalyticsMiddleware: Logs user navigation & screen durations]
+    UserAnalytics --> View[Web View / Controller]
+```
+
+### Middleware Pipeline Descriptions:
+1. **`CorrelationIDMiddleware`**: Generates a unique UUID thread-local correlation ID (e.g., `LMS-XXXX`) for every request. Listens for `403 Forbidden` status codes and logs security violations to the `lms_security` logger.
+2. **`MaintenanceModeMiddleware`**: Detects if a restore is in progress. Blocks all normal traffic and redirects to a custom `maintenance.html` (503 Service Unavailable), allowing only administrative (`/admin/`, `/admin-login/`) paths and static assets.
+3. **`ForcedPasswordChangeMiddleware`**: If the user has the `must_change_password` flag enabled, they are restricted from accessing any routes other than `/force-password-change/` and logout pages.
+4. **`RoleAwareLoginRedirectMiddleware`**: Ensures expired or unauthorized user sessions are redirected back to their specific login gateways (e.g., `/employee-login/form/` vs `/hr-login/form/`), displaying a customized pre-filled session expiration notification.
+5. **`APILoggingMiddleware`**: Intercepts paths starting with `/api/` and routes performance metrics to the `lms_api` logging file.
+6. **`UserAnalyticsMiddleware`**: Measures user transitions between pages, calculating the exact time spent on screens and writing analytics telemetry to `lms_analytics`.
+7. **`SuppressNoiseFilter`**: Suppresses frequent background notification polling routes (e.g., `/api/hr-notifications/`, `/api/communications/seen/`) from polluting system log files.
+
+---
+
+<a id="cli-utilities"></a>
+## 🛠️ 8. Interactive CLI Administration Utilities
+
+The project includes built-in terminal consoles that developers and system administrators can execute directly:
+
+### 1. Interactive Maintenance Mode CLI
+Allows manual toggle of the application maintenance mode via file flags.
+* **Command**:
+  ```bash
+  python "Leave Management/App/services/maintenance_mode.py" [status|enable|disable]
+  ```
+* **Production Passphrase Confirmation**: In production, the utility requests a case-sensitive confirmation string before changing state:
+  * To enable: `PRODUCTION_ENABLE_MAINTENANCE`
+  * To disable: `PRODUCTION_DISABLE_MAINTENANCE`
+* **Log Output**: Toggles are audited inside the `lms_maintenance` log.
+
+### 2. Interactive Email Delivery Log Auditor
+Provides a command-line interface to search, audit, and inspect database records of system-sent emails.
+* **Command**:
+  ```bash
+  python "Leave Management/App/services/email_delivery_log.py"
+  ```
+* **Capabilities**: Support paging through logs, searching by recipient, filtering by status (sent/failed), and viewing error traces.
+
+---
+
+<a id="report-engine"></a>
+## 📊 9. Built-in Report Export Engine
+
+The project hosts a structured data reporting engine (`App/services/report_export_service.py`) that exports 16 report types:
+
+### Supported Reports:
+1. **`employee_master`**: Department groupings, profile cards, active statuses.
+2. **`leave_request`**: Applied, approved, rejected, and pending leave history.
+3. **`leave_balance`**: Remaining leave credits.
+4. **`leave_balance_audit`**: Audit trail of manual leave additions/subtractions.
+5. **`admin_audit`**: Action log of operations performed from the admin console.
+6. **`delete_audit`**: Trace of deleted users and removed leave requests.
+7. **`communication`**: Broadcast announcements and direct messages.
+8. **`communication_read_seen`**: Telemetry tracking read/seen statuses of messages.
+9. **`leave_notification_read_seen`**: Telemetry tracking leave status alerts.
+10. **`email_delivery`**: Delivery statuses, smtp errors, and target paths.
+11. **`holiday`**: Configuration dates and weekend calendars.
+12. **`wfh_rules`**: Work-from-home setups.
+13. **`year_end`**: Logs of carry-forward actions.
+14. **`service_audit`**: Database backup/restore audits.
+15. **`system_health_snapshot`**: Process uptime, db latency, average approval speeds.
+16. **`hr_summary`**: Weekly aggregate statistics.
+
+### Custom Filters & Formats:
+* **Formats**: Structured CSV or formatted PDF.
+* **Periods**: Custom range, Monthly, Quarterly, Six-Month, or Yearly.
+
+---
+
+<a id="signals-hooks"></a>
+## ⚓ 10. Django Signals & Event Hooks
+
+The system utilizes Django signals to automatically maintain state and write security logs:
+
+### 1. Database Creation Hook (`db_signals.py`)
+* Automatically creates a `LeaveBalance` and `Profile` record when a new `User` account is registered.
+* Synchronizes user roles between `User` and `Profile` tables on updates.
+
+### 2. Authentication Logging Hook (`logging_signals.py`)
+* **`user_logged_in`**: Writes a log on successful logins.
+* **`user_logged_out`**: Writes a log on logouts.
+* **`user_login_failed`**: Logs failed logins with raw attempted credentials (unmasked, per system audit specs) and the attacker's IP.
+
 ---
 
 <a id="system-workflows"></a>
-## 🔄 7. System Workflows
+## 🔄 11. System Workflows
 
 ### Leave Application & Impact Validation Flow
 ```mermaid
@@ -176,7 +291,7 @@ sequenceDiagram
 ---
 
 <a id="directory-structure"></a>
-## 📂 8. Directory Structure
+## 📂 12. Directory Structure
 
 ```text
 ├── Leave Management/
@@ -193,6 +308,7 @@ sequenceDiagram
 │   │   │   └── public_holidays.py         # Google Holiday Calendar synchronization
 │   │   ├── scripts/
 │   │   │   └── validators.py              # Max password validator rules
+│   │   ├── middleware.py                  # Security & session tracking middleware
 │   │   ├── models.py                      # Core Database Schemas
 │   │   ├── admin.py                       # Custom Django Admin views & bulk actions
 │   │   └── views.py                       # Web View Controllers (Employee/HR/Portal)
@@ -210,7 +326,7 @@ sequenceDiagram
 ---
 
 <a id="getting-started"></a>
-## 🏁 9. Getting Started (Local Setup & Testing)
+## 🏁 13. Getting Started (Local Setup & Testing)
 
 ### Prerequisites
 * Python 3.8 or higher
@@ -274,7 +390,7 @@ python "Leave Management/manage.py" test App.tests
 ---
 
 <a id="environment-configuration"></a>
-## 🔧 10. Environment Configuration & Secrets
+## 🔧 14. Environment Configuration & Secrets
 
 The application uses an environment-driven configuration setup. Create a `.env` file in the root folder with the following variables:
 
@@ -338,7 +454,7 @@ PASSWORD_INPUT_MAX_LENGTH=128
 ---
 
 <a id="production-deployment"></a>
-## 🛡️ 11. Production Deployment & Systemd Setup
+## 🛡️ 15. Production Deployment & Systemd Setup
 
 For production deployments, all background workloads must be managed by the host OS as persistent system services (`systemd`).
 
@@ -406,7 +522,7 @@ WantedBy=multi-user.target
 ---
 
 <a id="operations-cheatsheet"></a>
-## 📈 12. Operations & Troubleshooting Cheatsheet
+## 📈 16. Operations & Troubleshooting Cheatsheet
 
 ### 1. Log Inspection Commands
 View the real-time logging output of your application components:
@@ -454,7 +570,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="routing-feature-maps"></a>
-## 🗺️ 13. Complete Routing, Features & File Maps
+## 🗺️ 17. Complete Routing, Features & File Maps
 
 ### Detailed Feature Matrix
 
@@ -463,6 +579,7 @@ sudo systemctl show gunicorn -p Environment
 | Auths | Role selection and login loader screens | `App/views.py`, `static/js/login_form.js` | `gunicorn` |
 | Security | Multi-attempt IP/User Lockout | `App/services/login_lock_service.py` | `gunicorn` |
 | Security | Password input max length check | `App/scripts/validators.py` | `gunicorn` |
+| Middleware| correlation tracking & logs suppression | `App/middleware.py` | `gunicorn` |
 | Leave | Short/Half/Sick/Earned/Unpaid calculations | `App/views.py`, `App/models.py` | `gunicorn` |
 | HR Dashboard | Employee management & details panel | `templates/manage_all.html`, `App/views.py` | `gunicorn` |
 | Admin Emails | Job recovery & live progress tracker | `App/services/admin_bulk_email_jobs.py` | `qcluster` / `lms_scheduler` |
@@ -492,7 +609,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="dev-vs-prod"></a>
-## ⚖️ 14. Dev vs Production Reference Matrix
+## ⚖️ 18. Dev vs Production Reference Matrix
 
 | Area | Local Development | Production Environment |
 |---|---|---|
@@ -506,7 +623,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="license"></a>
-## 📜 15. License & Credits
+## 📜 19. License & Credits
 
 * **License**: Proprietary - All Rights Reserved. Created as part of the **MS Technology** workforce productivity suite.
 * **Author**: Anurag Singh Raj Singh ([anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com))
