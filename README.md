@@ -37,12 +37,13 @@ The **Leave Management MST (Modern System Technologies)** Edition is an enterpri
 10. [📂 Database Schema & Entity Relationships](#database-schema)
 11. [📂 Directory Structure](#directory-structure)
 12. [🏁 Getting Started (Local Setup & Testing)](#getting-started)
-13. [🔧 Environment Configuration & Secrets](#environment-configuration)
-14. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
-15. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
-16. [🗺️ Complete Routing, Features & File Maps](#routing-feature-maps)
-17. [⚖️ Dev vs Production Reference Matrix](#dev-vs-prod)
-18. [📜 License & Credits](#license)
+13. [🐳 Containerized Setup (Docker & Compose)](#docker-setup)
+14. [🔧 Environment Configuration & Secrets](#environment-configuration)
+15. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
+16. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
+17. [🗺️ Complete Routing, Features & File Maps](#routing-feature-maps)
+18. [⚖️ Dev vs Production Reference Matrix](#dev-vs-prod)
+19. [📜 License & Credits](#license)
 
 ---
 
@@ -512,8 +513,27 @@ python "Leave Management/manage.py" test App.tests
 
 ---
 
+<a id="docker-setup"></a>
+## 🐳 15. Containerized Setup (Docker & Compose)
+
+The Leave Management MST stack can be fully spun up using Docker. This ensures environment parity between development and staging environments.
+
+### Services Orchestrated:
+1. **`db`**: A PostgreSQL 15 database instance using `postgres:15-alpine`.
+2. **`web`**: The Django application containerized using `python:3.13-slim`. Runs `scripts/entrypoint.sh` which blocks until PostgreSQL is ready, applies migrations, runs `collectstatic`, and kicks off a Gunicorn WSGI process on port `8000`.
+3. **`nginx`**: An Nginx 1.25 instance acting as the reverse proxy. It terminates port `80` and maps routes to static/media volume folders or translates application routing to the Gunicorn upstream web node.
+
+### Quick Start:
+Ensure you have a configured `.env` file, then run:
+```bash
+cd "Leave Management"
+docker-compose up --build
+```
+
+---
+
 <a id="environment-configuration"></a>
-## 🔧 15. Environment Configuration & Secrets
+## 🔧 16. Environment Configuration & Secrets
 
 The application uses an environment-driven configuration setup. Create a `.env` file in the root folder with the following variables:
 
@@ -577,7 +597,7 @@ PASSWORD_INPUT_MAX_LENGTH=128
 ---
 
 <a id="production-deployment"></a>
-## 🛡️ 16. Production Deployment & Systemd Setup
+## 🛡️ 17. Production Deployment & Systemd Setup
 
 For production deployments, all background workloads must be managed by the host OS as persistent system services (`systemd`).
 
@@ -645,7 +665,7 @@ WantedBy=multi-user.target
 ---
 
 <a id="operations-cheatsheet"></a>
-## 📈 17. Operations & Troubleshooting Cheatsheet
+## 📈 18. Operations & Troubleshooting Cheatsheet
 
 ### 1. Log Inspection Commands
 View the real-time logging output of your application components:
@@ -664,10 +684,10 @@ sudo journalctl -u lms_scheduler -n 100 -f --no-pager
 Run manual database backups or restorations using the CLI:
 ```bash
 # Run manual database backup
-python manage_backups.py --action backup
+python manage_backups.py --backup
 
-# Restore database from a compressed backup zip
-python manage_backups.py --action restore --file backups/backup_prod_2026-07-08_02-00-00.zip
+# Restore database from a compressed backup zip (wizard)
+python manage_backups.py --restore
 ```
 
 ### 3. Debugging Missed Backups & Reports
@@ -693,7 +713,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="routing-feature-maps"></a>
-## 🗺️ 18. Complete Routing, Features & File Maps
+## 🗺️ 19. Complete Routing, Features & File Maps
 
 ### Detailed Feature Matrix
 
@@ -732,7 +752,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="dev-vs-prod"></a>
-## ⚖️ 19. Dev vs Production Reference Matrix
+## ⚖️ 20. Dev vs Production Reference Matrix
 
 | Area | Local Development | Production Environment |
 |---|---|---|
@@ -746,7 +766,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="license"></a>
-## 📜 20. License & Credits
+## 📜 21. License & Credits
 
 * **License**: Proprietary - All Rights Reserved. Created as part of the **MS Technology** workforce productivity suite.
 * **Author**: Anurag Singh Raj Singh ([anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com))
