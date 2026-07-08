@@ -33,15 +33,16 @@ The **Leave Management MST (Modern System Technologies)** Edition is an enterpri
 6. [🛠️ Interactive CLI Administration Utilities](#cli-utilities)
 7. [📊 Built-in Report Export Engine](#report-engine)
 8. [⚓ Django Signals & Event Hooks](#signals-hooks)
-9. [🔄 System Workflows](#system-workflows)
-10. [📂 Directory Structure](#directory-structure)
-11. [🏁 Getting Started (Local Setup & Testing)](#getting-started)
-12. [🔧 Environment Configuration & Secrets](#environment-configuration)
-13. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
-14. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
-15. [🗺️ Complete Routing, Features & File Maps](#routing-feature-maps)
-16. [⚖️ Dev vs Production Reference Matrix](#dev-vs-prod)
-17. [📜 License & Credits](#license)
+9. [🔄 Core System Flowcharts](#system-workflows)
+10. [📂 Database Schema & Entity Relationships](#database-schema)
+11. [📂 Directory Structure](#directory-structure)
+12. [🏁 Getting Started (Local Setup & Testing)](#getting-started)
+13. [🔧 Environment Configuration & Secrets](#environment-configuration)
+14. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
+15. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
+16. [🗺️ Complete Routing, Features & File Maps](#routing-feature-maps)
+17. [⚖️ Dev vs Production Reference Matrix](#dev-vs-prod)
+18. [📜 License & Credits](#license)
 
 ---
 
@@ -110,13 +111,17 @@ flowchart TB
 ## 🚀 6. Enterprise Features & Business Rules
 
 ### 1. Dedicated LMS Scheduler Daemon
-A standalone, foreground-safe scheduler CLI daemon command (`python manage.py run_lms_scheduler`) configured with signal handlers (`SIGTERM` / `SIGINT`) to ensure graceful shutdowns. It runs:
-* **Nightly Backups**: Daily at 02:00 (PostgreSQL `pg_dump` compressed into zip archives).
-* **Weekly HRsnap Report**: Mondays at 09:00 (high-fidelity PDF snap containing organization statistics).
-* **India Public Holiday Sync**: Monthly on Day 1 at 03:00 (Google Calendar integration).
-* **Admin Email Job Auto-Recovery**: Every 5 minutes (resets crashed/stale email items).
-* **Scheduler Keep-Alive**: Every 6 hours.
-* **Startup Catch-up Routines**: Checks for and runs missed nightly backups or weekly reports due to server downtime.
+A standalone, foreground-safe scheduler CLI daemon command (`python manage.py run_lms_scheduler`) configured with signal handlers (`SIGTERM` / `SIGINT`) to ensure graceful shutdowns. 
+
+```mermaid
+flowchart LR
+    LMS_Sched["run_lms_scheduler"] -->|"Cron Trigger"| BackupJob["Nightly Backup (02:00)"]
+    LMS_Sched -->|"Cron Trigger"| ReportJob["Weekly HR snap Report (Mon 09:00)"]
+    LMS_Sched -->|"Cron Trigger"| HolidaySync["Google Holiday Sync (Monthly 03:00)"]
+    LMS_Sched -->|"Cron Trigger"| RecoverJob["Admin Email Recovery (Every 5 min)"]
+    LMS_Sched -->|"Cron Trigger"| KeepAlive["Scheduler Keep-Alive (Every 6 hrs)"]
+    LMS_Sched -->|"Startup Hook"| CatchUp["Catch-up checks (missed runs during downtime)"]
+```
 
 ### 2. Detailed Leave Rules & Calculation Engine
 Calculates exact leave deductions spanning WFH bridges, public holidays, and weekend overrides.
@@ -152,7 +157,31 @@ Saves app process startup time to `runtime/app_startup.json` for both Gunicorn w
 
 ### 7. Advanced Security & SHA-256 Hashed Login Lockouts
 Provides robust denial-of-service protection against password brute-forcing.
-* **Dual-Layer Tracking**: Failed attempts are tracked simultaneously by Username and IP address inside Django's cache layer.
+
+```mermaid
+flowchart TD
+    LoginReq[Login Request Submitted] --> CheckManual{"Username locked manually?"}
+    CheckManual -->|Yes| ShowLock[Display Account Locked Error]
+    CheckManual -->|No| CheckWrong{"Username locked for wrong pwd?"}
+    
+    CheckWrong -->|Yes| ShowLock
+    CheckWrong -->|No| CheckIP{"IP locked for wrong pwd?"}
+    
+    CheckIP -->|Yes| ShowLock
+    CheckIP -->|No| ProcessAuth{Authenticate Credentials}
+    
+    ProcessAuth -->|Success| ResetCount[Reset failed counters in cache]
+    ProcessAuth -->|Failure| HashKeys[Generate SHA-256 cache key]
+    
+    HashKeys --> IncCount[Increment attempt counter]
+    IncCount --> Threshold{"Attempts >= 5 in 15min?"}
+    
+    Threshold -->|Yes| TriggerLock[Activate lockout timer in cache]
+    Threshold -->|No| ShowError[Display Wrong Password Error]
+    
+    TriggerLock --> ShowLock
+```
+
 * **Cryptographic Cache Tokens**: Cache keys are generated using SHA-256 hashing to hide usernames and IP addresses in the cache database:
   ```text
   Cache Key = login_rate:{portal}:{kind}:{SHA-256(value)}
@@ -161,7 +190,6 @@ Provides robust denial-of-service protection against password brute-forcing.
   * **Admin**: 5 failed attempts in 15 minutes $\rightarrow$ 30-minute lockout.
   * **HR**: 5 failed attempts in 15 minutes $\rightarrow$ 15-minute lockout.
   * **Employee**: 5 failed attempts in 15 minutes $\rightarrow$ 15-minute lockout.
-* **Self-Healing Unlock**: Administrators can manually release username and IP locks from the control panel.
 
 ---
 
@@ -214,7 +242,6 @@ Provides a command-line interface to search, audit, and inspect database records
   ```bash
   python "Leave Management/App/services/email_delivery_log.py"
   ```
-* **Capabilities**: Support paging through logs, searching by recipient, filtering by status (sent/failed), and viewing error traces.
 
 ---
 
@@ -241,10 +268,6 @@ The project hosts a structured data reporting engine (`App/services/report_expor
 15. **`system_health_snapshot`**: Process uptime, db latency, average approval speeds.
 16. **`hr_summary`**: Weekly aggregate statistics.
 
-### Custom Filters & Formats:
-* **Formats**: Structured CSV or formatted PDF.
-* **Periods**: Custom range, Monthly, Quarterly, Six-Month, or Yearly.
-
 ---
 
 <a id="signals-hooks"></a>
@@ -264,7 +287,7 @@ The system utilizes Django signals to automatically maintain state and write sec
 ---
 
 <a id="system-workflows"></a>
-## 🔄 11. System Workflows
+## 🔄 11. Core System Flowcharts
 
 ### Leave Application & Impact Validation Flow
 ```mermaid
@@ -290,8 +313,87 @@ sequenceDiagram
 
 ---
 
+<a id="database-schema"></a>
+## 📂 12. Database Schema & Entity Relationships
+
+The following entity-relationship diagram maps out the database architecture of the Leave Management system, showing user metadata, leaves tracking tables, bulk mailers, and logs:
+
+```mermaid
+erDiagram
+    CustomUser ||--|| Profile : has
+    CustomUser ||--|| LeaveBalance : owns
+    CustomUser ||--o{ Leave : applies
+    CustomUser ||--o{ AdminAuditLog : triggers
+    CustomUser ||--o{ EmailDeliveryLog : "related to (recipient)"
+    Leave ||--o{ LeaveBalanceAudit : "modifies balance"
+    AdminEmailJob ||--o{ AdminEmailJobItem : has
+    
+    CustomUser {
+        int id PK
+        string username
+        string email
+        string role "EMPLOYEE | HR"
+        boolean must_change_password
+    }
+    
+    Profile {
+        int id PK
+        int user_id FK
+        string department
+        string role
+        date date_of_joining
+        string profile_photo
+    }
+
+    LeaveBalance {
+        int id PK
+        int user_id FK
+        float sick_leave
+        float earned_leave
+        float unpaid_leave
+        float short_leave
+        float half_leave
+    }
+
+    Leave {
+        int id PK
+        int user_id FK
+        string leave_type "Short|Half|Sick|Earned|Unpaid"
+        date start_date
+        date end_date
+        string status "Pending|Approved|Rejected"
+        timestamp created_at
+    }
+
+    LeaveBalanceAudit {
+        int id PK
+        int leave_id FK
+        string action
+        float balance_before
+        float balance_after
+        timestamp timestamp
+    }
+
+    AdminEmailJob {
+        int id PK
+        string title
+        string status "queued|running|completed"
+        timestamp created_at
+    }
+
+    AdminEmailJobItem {
+        int id PK
+        int job_id FK
+        string recipient_email
+        string status "queued|running|sent|failed"
+        string error_message
+    }
+```
+
+---
+
 <a id="directory-structure"></a>
-## 📂 12. Directory Structure
+## 📂 13. Directory Structure
 
 ```text
 ├── Leave Management/
@@ -326,7 +428,7 @@ sequenceDiagram
 ---
 
 <a id="getting-started"></a>
-## 🏁 13. Getting Started (Local Setup & Testing)
+## 🏁 14. Getting Started (Local Setup & Testing)
 
 ### Prerequisites
 * Python 3.8 or higher
@@ -390,7 +492,7 @@ python "Leave Management/manage.py" test App.tests
 ---
 
 <a id="environment-configuration"></a>
-## 🔧 14. Environment Configuration & Secrets
+## 🔧 15. Environment Configuration & Secrets
 
 The application uses an environment-driven configuration setup. Create a `.env` file in the root folder with the following variables:
 
@@ -454,7 +556,7 @@ PASSWORD_INPUT_MAX_LENGTH=128
 ---
 
 <a id="production-deployment"></a>
-## 🛡️ 15. Production Deployment & Systemd Setup
+## 🛡️ 16. Production Deployment & Systemd Setup
 
 For production deployments, all background workloads must be managed by the host OS as persistent system services (`systemd`).
 
@@ -522,7 +624,7 @@ WantedBy=multi-user.target
 ---
 
 <a id="operations-cheatsheet"></a>
-## 📈 16. Operations & Troubleshooting Cheatsheet
+## 📈 17. Operations & Troubleshooting Cheatsheet
 
 ### 1. Log Inspection Commands
 View the real-time logging output of your application components:
@@ -570,7 +672,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="routing-feature-maps"></a>
-## 🗺️ 17. Complete Routing, Features & File Maps
+## 🗺️ 18. Complete Routing, Features & File Maps
 
 ### Detailed Feature Matrix
 
@@ -609,7 +711,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="dev-vs-prod"></a>
-## ⚖️ 18. Dev vs Production Reference Matrix
+## ⚖️ 19. Dev vs Production Reference Matrix
 
 | Area | Local Development | Production Environment |
 |---|---|---|
@@ -623,7 +725,7 @@ sudo systemctl show gunicorn -p Environment
 ---
 
 <a id="license"></a>
-## 📜 19. License & Credits
+## 📜 20. License & Credits
 
 * **License**: Proprietary - All Rights Reserved. Created as part of the **MS Technology** workforce productivity suite.
 * **Author**: Anurag Singh Raj Singh ([anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com))
