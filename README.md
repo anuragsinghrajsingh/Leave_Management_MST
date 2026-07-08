@@ -1,578 +1,406 @@
-# Leave Management MST
+# <div align="center">🌿 Leave Management MST</div>
+<p align="center">
+  <sub>A Product of <b>MS Technology</b></sub>
+</p>
 
-A production-ready Django leave management system for MS Technology. It handles employee leave requests, HR approval workflows, admin operations, communications, notifications, reports, backups, and production scheduling.
+<p align="center">
+  <strong>The Next-Gen, High-Performance Workforce Attendance Ecosystem.</strong>
+</p>
 
-This repository is not only the application code. It also contains living documentation for operating the production server safely.
+<div align="center">
 
-## Current Documentation Map
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Django 4.2+](https://img.shields.io/badge/Django-4.2+-092e20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![UI Glassmorphism](https://img.shields.io/badge/UI-Modern--Glass-cyan?style=for-the-badge)](https://github.com/anuragsinghrajsingh/Leave_Management_MST)
 
-Read these files in this order when you are unsure:
+</div>
 
-| File | Purpose |
-|---|---|
-| `PROJECT_START_HERE.md` | First file to open. Quick memory, command map, and where to go next. |
-| `PROJECT_GUIDE.md` | Practical feature guide: roles, workflows, services, admin tools, logs, common tasks. |
-| `PROJECT_DEPLOYMENT_GUIDE.md` | Full production deployment guide: Linux services, workers, nginx, static/media, backups, troubleshooting. |
-| `PROJECT_DEEP_DIVE_BOOK.md` | Long technical book with file/function references and deep debugging notes. |
-| `Leave Management/App/management/production_setup/README.md` | Secret/key generation helpers for production setup. |
+---
 
-If a new feature is added, update the relevant docs using the templates in `PROJECT_DEPLOYMENT_GUIDE.md` and `PROJECT_START_HERE.md`.
+## 📖 1. Project Overview
 
-## What The System Does
+The **Leave Management MST (Modern System Technologies)** Edition is an enterprise-grade, high-performance web platform designed to streamline workforce logistics, leave tracking, and communication. Built on top of a highly optimized Django core, this product eliminates legacy technical debt, reduces database locks, implements robust background task queues, and hosts a dedicated scheduler daemon to automate critical business operations.
 
-The system supports three main roles:
+---
 
-| Role | Main Work |
-|---|---|
-| Admin | Django admin, users, leaves, holidays, WFH days, logs, backups, reports, maintenance, email jobs, communication center. |
-| HR | HR dashboard, employee management, leave approval/rejection, reports, communications, notifications. |
-| Employee | Apply/edit/delete pending leaves, view balance, profile, communications, notifications, forced password change. |
+## 📑 2. Table of Contents
+1. [🔍 About MST Edition](#about-mst)
+2. [⚙️ System Architecture](#system-architecture)
+3. [🚀 Enterprise Features](#enterprise-features)
+4. [🔄 System Workflows & Lifecycle](#system-workflows)
+5. [📂 Directory Structure](#directory-structure)
+6. [🏁 Getting Started (Local Setup)](#getting-started)
+7. [🔧 Environment Configuration](#environment-configuration)
+8. [🛡️ Production Deployment & Systemd Setup](#production-deployment)
+9. [📈 Operations & Troubleshooting Cheatsheet](#operations-cheatsheet)
+10. [📜 License & Credits](#license)
 
-Core leave types:
+---
+
+<a id="about-mst"></a>
+## 🔍 3. About MST Edition
+
+The MST Edition was engineered around a **"Clean Core"** philosophy—refactoring legacy structures, removing redundant assets, and separating critical business logic into isolated service files.
+
+### 👑 The MS Technology Pillars
+* **Reliability**: Fully atomic transactions, explicit database locking, and background recovery cron jobs guarantee data integrity under peak load.
+* **Aesthetics**: A premium modern design language featuring Glassmorphism, dynamic HSL colors, responsive layouts, and 300ms transition animations.
+* **Maintainability**: Clear division of concerns. Controllers (views) invoke atomic services rather than executing complex SQL queries directly.
+
+---
+
+<a id="system-architecture"></a>
+## ⚙️ 4. System Architecture
+
+```mermaid
+flowchart TB
+    Client[Web Browsers / HTTPS] <--> Nginx[Nginx Reverse Proxy]
+    Nginx <--> Gunicorn[Gunicorn WSGI Server]
+    Gunicorn <--> Django[Django Core Application]
+    
+    subgraph Services [Asynchronous Processing Engine]
+        Django <--> QCluster[Django-Q Cluster / Worker Pool]
+        QCluster -- Fallback -- > ThreadPool[ThreadPoolExecutor max_workers=8]
+        LMS_Scheduler[LMS Scheduler Daemon] -- Cron Triggers --> Django
+    end
+
+    subgraph Database [Storage Layer]
+        Django <--> PostgreSQL[(PostgreSQL Database)]
+        PostgreSQL -- select_for_update of='self' --> Django
+    end
+
+    subgraph FileSystem [State & Backups]
+        LMS_Scheduler -- pg_dump --> ZIP[Compressed ZIP Backups]
+        Django -- Write --> Logs[System Logs & Startup State]
+    end
+```
+
+### Stack Components
+* **Core Framework**: Django 4.2 LTS / Python 3.8+
+* **Primary Database**: PostgreSQL (configured with transaction pooling)
+* **Background Queue**: Django-Q (ORM broker) with `ThreadPoolExecutor` fallback
+* **Daemon Scheduler**: Dedicated Advanced Python Scheduler (APScheduler) process
+* **Web Server Proxy**: Nginx + Gunicorn (WSGI)
+* **Frontend**: Asynchronous JavaScript (Promises / AJAX), dynamic HSL variables
+
+---
+
+<a id="enterprise-features"></a>
+## 🚀 5. Enterprise Features
+
+### 1. Dedicated LMS Scheduler Daemon
+A standalone, foreground-safe scheduler CLI daemon command (`python manage.py run_lms_scheduler`) configured with signal handlers (`SIGTERM` / `SIGINT`) to ensure graceful shutdowns. It runs:
+* **Nightly Backups** (Daily at 02:00)
+* **Weekly HR Mission Control PDF Reports** (Monday at 09:00)
+* **India Public Holiday Sync** (Monthly on Day 1 at 03:00)
+* **Admin Email Job Auto-Recovery** (Every 5 minutes)
+* **Scheduler Keep-Alive Ping** (Every 6 hours)
+* **Startup Catch-up Routines** (checks for and runs missed nightly backups or weekly reports due to server downtime)
+
+### 2. High-Fidelity PDF Reporting Engine
+Extracts weekly HR attendance metrics and compiles a high-density, styled PDF attachment containing:
+* Total requests, approval rates, pending tasks, and rejected applications
+* Visual employee attendance tables and organizational health indicators
+* Headless Chromium rendering support for high-resolution document generation
+
+### 3. Asynchronous Email & Notification Cluster
+Processes bulk administrator emails (onboarding, password resetting, custom reminders, locks/unlocks) in parallel.
+* **ORM Job Queueing**: Jobs are split into `AdminEmailJob` and `AdminEmailJobItem` records.
+* **Auto-Recovery Cron**: In the event of a worker crash, a background cron scans for items in a `running` state for $> 15$ minutes, resets their state to `queued`, and re-triggers execution.
+
+### 4. Robust Leave Calculation Engine
+Supports five leave types, each validated with precise business rules:
+* **Short Leave**: Same-day, max 2 hours, working hours only (10:00 - 19:00), max 2/month, deducts 0.25 days.
+* **Half Leave**: Same-day, max 4 hours, working hours only, max 1/month, deducts 0.5 days.
+* **Full-Day Leaves (Sick, Earned, Unpaid)**: Spans multiple days, integrated with a **Work-From-Home (WFH) Bridge** and India Public Holiday calendar overrides to calculate exact leave deductions.
+
+### 5. PostgreSQL Deadlock Mitigation
+Critical transactional state changes (Approve, Reject, Apply, Delete) utilize Django's `select_for_update(of=("self",))` row-locking API. This locks only the target row inside the `Leave` table, allowing related `User` and `Profile` tables to remain readable, completely eliminating PostgreSQL lock contention and deadlock conditions.
+
+### 6. Automated Self-Healing Backups
+Integrates a python utility (`manage_backups.py`) executing `pg_dump` commands to build database archives.
+* **Zip Compression**: Dumps are automatically compressed, tagged with timestamps, and cleaned up using a retention policy.
+* **Failed Dump Cleanup**: If a backup fails, the utility intercepts the exception and deletes the temporary or incomplete `.sql` files to protect storage.
+
+---
+
+<a id="system-workflows"></a>
+## 🔄 6. System Workflows
+
+### Leave Application & Impact Validation Flow
+```mermaid
+sequenceDiagram
+    participant User as Employee Portal
+    participant View as views.apply_leave
+    participant DB as PostgreSQL Database
+    participant Push as Notification Services
+
+    User->>View: Submit Leave Form (Dates/Times/Type)
+    View->>DB: Lock Leave Table
+    View->>View: Check overlap / Validate against holiday list
+    View->>View: Verify monthly limits (Short/Half)
+    View->>View: Compute exact balance deductions
+    alt Valid Request
+        View->>DB: Create Leave Record & Save
+        View->>Push: Enqueue HR Push notifications & Emails
+        View->>User: Success response (Refresh Grid)
+    else Invalid Request
+        View->>User: Error response (Modal Feedback)
+    end
+```
+
+---
+
+<a id="directory-structure"></a>
+## 📂 7. Directory Structure
 
 ```text
-Short
-Half
-Sick
-Earned
-Unpaid
+├── Leave Management/
+│   ├── App/
+│   │   ├── management/
+│   │   │   └── commands/
+│   │   │       └── run_lms_scheduler.py   # Dedicated Scheduler CLI Daemon
+│   │   ├── services/
+│   │   │   ├── scheduler.py               # APScheduler Core Configuration
+│   │   │   ├── startup_checks.py          # Missed task checks & startup routines
+│   │   │   ├── admin_bulk_email_jobs.py   # Async bulk mail & recovery logic
+│   │   │   ├── background_tasks.py        # Django-Q & ThreadPool task executor
+│   │   │   ├── uptime_tracker.py          # Localized uptime recording
+│   │   │   └── public_holidays.py         # Google Holiday Calendar synchronization
+│   │   ├── models.py                      # Core Database Schemas
+│   │   ├── admin.py                       # Custom Django Admin views & bulk actions
+│   │   └── views.py                       # Web View Controllers (Employee/HR/Portal)
+│   ├── leave_management/
+│   │   ├── settings.py                    # Django configuration (settings, Q_CLUSTER)
+│   │   └── urls.py                        # Central routing index
+│   ├── static/                            # Front-End design assets (CSS, JS)
+│   ├── templates/                         # HTML Templates (Glass UI components)
+│   └── manage_backups.py                  # Database Backup & Restore Utility
+├── backups/                               # PostgreSQL Compressed Backups (.zip)
+├── logs/                                  # System Runtime log files
+└── runtime/                               # Runtime state files (app_startup.json)
 ```
 
-Core request statuses:
+---
 
-```text
-Pending
-Approved
-Rejected
-```
+<a id="getting-started"></a>
+## 🏁 8. Getting Started (Local Setup)
 
-## Current Production Shape
+### Prerequisites
+* Python 3.8 or higher
+* PostgreSQL 12+
+* Virtual Environment utility (`virtualenv`)
 
-Production project directory:
+### Setup Steps
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/anuragsinghrajsingh/Leave_Management_MST.git
+   cd Leave_Management_MST
+   ```
 
-```text
-/home/mstleave/Leave_Management_MST
-```
+2. **Initialize Virtual Environment**:
+   ```bash
+   python -m venv venv
+   # Windows:
+   venv\Scripts\activate
+   # Linux/macOS:
+   source venv/bin/activate
+   ```
 
-Public portal:
+3. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```text
-https://mstleave.mstlabs.in
-```
+4. **Setup Environment variables**:
+   Create a `.env` file in the project root folder. Reference the [Configuration section](#environment-configuration) below.
 
-Important production services:
+5. **Execute Database Migrations**:
+   ```bash
+   python "Leave Management/manage.py" migrate
+   ```
 
-| Service | Purpose |
-|---|---|
-| `nginx` | HTTPS/front layer, static files, media files, reverse proxy. |
-| `gunicorn` | Django web app, admin, HR/employee pages, API endpoints. |
-| `postgresql` | Production database. |
-| `qcluster` | Django-Q background jobs, queued admin emails, async work. |
-| `lms_scheduler` | Dedicated scheduler for backups, reports, holiday sync, recovery jobs. |
+6. **Create a Superuser**:
+   ```bash
+   python "Leave Management/manage.py" createsuperuser
+   ```
 
-Current worker/process shape:
+7. **Start the Development Servers**:
+   Run the web server:
+   ```bash
+   python "Leave Management/manage.py" runserver
+   ```
+   Run the task queue (in a separate terminal):
+   ```bash
+   python "Leave Management/manage.py" qcluster
+   ```
+   Run the scheduler daemon (in a separate terminal):
+   ```bash
+   python "Leave Management/manage.py" run_lms_scheduler
+   ```
 
-```text
-Gunicorn: 1 master + 3 workers
-qcluster: about 6 processes total, with 2 configured task workers
-lms_scheduler: 1 scheduler process
-```
+---
 
-## GitHub Layout Vs Production Layout
+<a id="environment-configuration"></a>
+## 🔧 9. Environment Configuration
 
-GitHub stores the Django project inside:
+The application uses an environment-driven configuration setup. Create a `.env` file in the root folder with the following variables:
 
-```text
-Leave Management/
-```
+```ini
+# Core Django Settings
+SECRET_KEY=your_secure_mst_secret_key
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost,yourdomain.com
 
-Production stores the contents of that folder directly under:
+# Database Connection URL (PostgreSQL)
+DATABASE_URL=postgres://db_user:db_password@127.0.0.1:5432/db_name
 
-```text
-/home/mstleave/Leave_Management_MST/
-```
+# Email SMTP Server Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+EMAIL_HOST_USER=notifications@yourdomain.com
+EMAIL_HOST_PASSWORD=your_app_specific_smtp_password
+DEFAULT_FROM_EMAIL=Leave Management <notifications@yourdomain.com>
 
-Example mapping:
+# System URLs
+PORTAL_BASE_URL=http://127.0.0.1:8000
 
-```text
-GitHub:     Leave Management/App/views.py
-Production: App/views.py
-```
-
-That is why production updates often use:
-
-```bash
-git show origin/main:"Leave Management/App/views.py" > App/views.py
-```
-
-Do not blindly run `git pull` on production unless the production layout is intentionally changed to match the repository layout.
-
-## Major Features
-
-### Leave Workflow
-
-- Employee applies leave from the employee portal.
-- HR approves/rejects from HR pages.
-- Admin can perform controlled admin workflow actions.
-- PostgreSQL row locks protect approval/rejection against double processing.
-- Leave balances and audits are maintained.
-- Delete/edit flows send notifications and preserve audit context.
-
-### Leave Rules
-
-Short leave:
-
-```text
-Same day only
-Max 2 hours
-Working hours only: 10:00 AM to 7:00 PM
-Max 2 per month
-Deducts 0.25 day equivalent
-```
-
-Half leave:
-
-```text
-Same day only
-Max 4 hours
-Working hours only: 10:00 AM to 7:00 PM
-Max 1 per month
-Deducts 0.5 day equivalent
-```
-
-Full-day leaves:
-
-```text
-Sick
-Earned
-Unpaid
-```
-
-Full-day leaves can use WFH bridge, weekend, public holiday, and company holiday calculations.
-
-Current configurable timing rules:
-
-```env
-SHORT_HALF_LEAVE_MIN_NOTICE_MINUTES=15
-SHORT_HALF_LEAVE_GRACE_MINUTES=5
-SICK_LEAVE_SAME_DAY_CUTOFF_TIME=11:59
-```
-
-Meaning:
-
-```text
-Short/Half leave has 15 minute notice with 5 minute grace.
-Sick leave for today is allowed through 11:59 AM and blocked from 12:00 PM.
-```
-
-### Notifications And Communications
-
-- HR pending leave notifications.
-- Employee leave decision notifications.
-- Communication center for direct messages and announcements.
-- Read/seen state for communication and leave notifications.
-- Browser push notifications through service worker and VAPID keys.
-- HTTPS is required for production browser push notifications.
-
-### Email System
-
-Email types include:
-
-```text
-leave applied
-leave updated
-leave deleted
-leave approved/rejected
-welcome/onboarding
-forced password
-password reset
-reminder
-login lock/unlock
-weekly HR report
-backup failure alert
-```
-
-Important email, portal, and security settings:
-
-```env
-EMAIL_HOST=
-EMAIL_PORT=
-EMAIL_USE_TLS=
-EMAIL_USE_SSL=
-EMAIL_HOST_USER=
-EMAIL_HOST_PASSWORD=
-DEFAULT_FROM_EMAIL=
-LEAVE_DESK_FROM_EMAIL=
-LEAVE_RECORD_EMAILS=
-PORTAL_BASE_URL=
-ADMIN_EMAIL=
-DJANGO_CSRF_COOKIE_SECURE=True
-DJANGO_SESSION_COOKIE_SECURE=True
-```
-
-`LEAVE_RECORD_EMAILS` supports multiple comma-separated record recipients.
-
-Important Web Push settings:
-
-```env
-WEB_PUSH_VAPID_PUBLIC_KEY=
-WEB_PUSH_VAPID_PRIVATE_KEY=runtime/webpush_private_key.pem
-WEB_PUSH_VAPID_SUBJECT=mailto:admin@example.com
-```
-
-Important qcluster tuning settings:
-
-```env
+# Background Worker Settings
 LMS_Q_WORKERS=2
 LMS_Q_TIMEOUT=120
 LMS_Q_RETRY=300
 LMS_Q_QUEUE_LIMIT=100
 LMS_Q_BULK=20
+
+# Operational Triggers
+LMS_SKIP_UPTIME_RECORD=0
 ```
 
-### Admin Email Jobs
+---
 
-Bulk admin email jobs use database-backed tracking:
+<a id="production-deployment"></a>
+## 🛡️ 10. Production Deployment & Systemd Setup
 
-```text
-AdminEmailJob
-AdminEmailJobItem
+For highly reliable production deployments, all background workloads must be managed by the host OS as persistent system services (`systemd`).
+
+### 1. Gunicorn Web Server Service
+File: `/etc/systemd/system/gunicorn.service`
+```ini
+[Unit]
+Description=Gunicorn Web App Daemon
+After=network.target postgresql.service
+
+[Service]
+User=mstleave
+WorkingDirectory=/home/mstleave/Leave_Management_MST
+Environment="PATH=/home/mstleave/Leave_Management_MST/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mstleave/Leave_Management_MST/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 leave_management.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-Statuses are tracked per job and per recipient.
+### 2. Django-Q Background Worker Service
+File: `/etc/systemd/system/qcluster.service`
+```ini
+[Unit]
+Description=Django-Q Queue Cluster Daemon
+After=network.target postgresql.service
 
-The scheduler runs admin email recovery every 5 minutes to recover stale running jobs.
+[Service]
+User=mstleave
+WorkingDirectory=/home/mstleave/Leave_Management_MST
+Environment="PATH=/home/mstleave/Leave_Management_MST/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mstleave/Leave_Management_MST/venv/bin/python manage.py qcluster
+Restart=always
 
-### Backup And Restore
-
-Backups use:
-
-```text
-manage_backups.py
-pg_dump
-zip compression
+[Install]
+WantedBy=multi-user.target
 ```
 
-Valid production backups are `.zip` files in:
+### 3. LMS Scheduler Daemon Service
+File: `/etc/systemd/system/lms_scheduler.service`
+```ini
+[Unit]
+Description=LMS APScheduler Daemon Process
+After=network.target postgresql.service qcluster.service
 
-```text
-/home/mstleave/Leave_Management_MST/backups
+[Service]
+User=mstleave
+WorkingDirectory=/home/mstleave/Leave_Management_MST
+Environment="PATH=/home/mstleave/Leave_Management_MST/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mstleave/Leave_Management_MST/venv/bin/python manage.py run_lms_scheduler
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-Restore uses `psql` and must be done carefully during maintenance.
-Runtime/generated folders used by production:
-
-```text
-runtime/             startup state, Web Push private key path, public holiday cache
-backups/             compressed database backups and weekly report tracker
-logs/                application/service/security/email logs
-media/               uploaded profile/media files
-generated_pdfs/      weekly HR report PDFs
-generated_reports/   admin/report export files
-staticfiles/         collected production static files
-```
-
-### Scheduler
-
-The dedicated scheduler service runs:
-
+### Service Administration Commands
+Execute these commands to register, start, and verify the background daemons:
 ```bash
-python manage.py run_lms_scheduler
+# Reload systemd configuration
+sudo systemctl daemon-reload
+
+# Enable services to run on boot
+sudo systemctl enable gunicorn qcluster lms_scheduler
+
+# Start all components
+sudo systemctl start gunicorn qcluster lms_scheduler
+
+# Inspect service statuses
+sudo systemctl status gunicorn qcluster lms_scheduler
 ```
 
-Current scheduled jobs:
+---
 
-```text
-startup catch-up checks
-nightly backup at 02:00
-year-end carry forward check at 01:00
-weekly HR report Monday 09:00
-public holiday sync monthly day 1 at 03:00
-admin email job recovery every 5 minutes
-scheduler keep-alive every 6 hours
-```
+<a id="operations-cheatsheet"></a>
+## 📈 11. Operations & Troubleshooting Cheatsheet
 
-### Security Features
-
-- HTTPS production cookies.
-- CSRF trusted origins.
-- Wrong-password login lock counters.
-- Password max length protection against long-password DoS attempts.
-- Password complexity checks for password changes.
-- Role-based access for Admin, HR, and Employee.
-- Audit logs for admin/service actions.
-- Controlled admin confirmation screens.
-- No known user-controlled SQL/template/regex execution path from the current code review.
-
-Current login lock limits:
-
-```text
-Admin:    5 wrong attempts in 15 minutes -> 30 minute lockout
-HR:       5 wrong attempts in 15 minutes -> 15 minute lockout
-Employee: 5 wrong attempts in 15 minutes -> 15 minute lockout
-```
-
-Current password input max length:
-
-```env
-PASSWORD_INPUT_MAX_LENGTH=128
-```
-
-## Local Development Setup
-
-From the repository root on Windows/Linux/macOS:
-
+### 1. Log Inspection Commands
+View the real-time logging output of your application components:
 ```bash
-python -m venv venv
+# View Gunicorn logs (HTTP layer)
+sudo journalctl -u gunicorn -n 100 -f --no-pager
+
+# View Queue cluster logs (Background tasks)
+sudo journalctl -u qcluster -n 100 -f --no-pager
+
+# View Scheduler logs (Cron tasks)
+sudo journalctl -u lms_scheduler -n 100 -f --no-pager
 ```
 
-Activate on Windows PowerShell:
-
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-Activate on Linux/macOS:
-
+### 2. Live Database Maintenance
+Run manual database backups or restorations using the CLI:
 ```bash
-source venv/bin/activate
+# Run manual database backup
+python "Leave Management/manage_backups.py" --action backup
+
+# Restore database from a compressed backup zip
+python "Leave Management/manage_backups.py" --action restore --file backups/backup_prod_2026-05-31_02-00-00.zip
 ```
 
-Install dependencies:
-
+### 3. Debugging Missed Backups & Reports
+Check the status of missed cron tasks inside the Django shell:
 ```bash
-pip install -r "Leave Management/requirements.txt"
+python "Leave Management/manage.py" shell -c "from App.services.startup_checks import get_backup_catchup_status; print(get_backup_catchup_status())"
 ```
 
-Create `.env` inside `Leave Management/` using `Leave Management/.env.example` as reference.
-
-Run migrations:
-
+### 4. Verifying Django-Q Worker Process Counts
 ```bash
-python "Leave Management/manage.py" migrate
+# Count active python qcluster processes
+pgrep -fc "manage.py qcluster"
 ```
 
-Create superuser:
+---
 
-```bash
-python "Leave Management/manage.py" createsuperuser
-```
+<a id="license"></a>
+## 📜 12. License & Credits
 
-Run web server:
-
-```bash
-python "Leave Management/manage.py" runserver
-```
-
-Optional local qcluster:
-
-```bash
-python "Leave Management/manage.py" qcluster
-```
-
-Optional local scheduler:
-
-```bash
-python "Leave Management/manage.py" run_lms_scheduler
-```
-
-## Production Deployment Quick Path
-
-Use the detailed guide in `PROJECT_DEPLOYMENT_GUIDE.md`. The short version is:
-
-```bash
-cd ~/Leave_Management_MST
-source venv/bin/activate
-git fetch origin
-git show --name-only --pretty=format:"%h %s" origin/main
-python manage.py check
-```
-
-Copy changed files with `git show`, then run only what is needed:
-
-```bash
-python manage.py migrate        # only when migrations changed
-python manage.py collectstatic  # only when static files changed
-sudo systemctl restart gunicorn
-sudo systemctl restart qcluster        # if background code/settings changed
-sudo systemctl restart lms_scheduler   # if scheduler/startup/job code/settings changed
-```
-
-Check services:
-
-```bash
-sudo systemctl status gunicorn --no-pager
-sudo systemctl status qcluster --no-pager
-sudo systemctl status lms_scheduler --no-pager
-sudo systemctl status postgresql --no-pager
-sudo systemctl status nginx --no-pager
-```
-
-## Important Production Checks
-
-Django check:
-
-```bash
-python manage.py check
-```
-
-Cookie security:
-
-```bash
-python manage.py shell -c "from django.conf import settings; print(settings.SESSION_COOKIE_SECURE, settings.SESSION_COOKIE_HTTPONLY, settings.SESSION_COOKIE_SAMESITE, settings.CSRF_COOKIE_SECURE)"
-```
-
-Expected:
-
-```text
-True True Lax True
-```
-
-Password max length:
-
-```bash
-python manage.py shell -c "from django.conf import settings; from App.scripts.validators import get_password_input_max_length; print(settings.PASSWORD_INPUT_MAX_LENGTH, get_password_input_max_length())"
-```
-
-Expected:
-
-```text
-128 128
-```
-
-Backup check:
-
-```bash
-ls -lh ~/Leave_Management_MST/backups | tail -20
-python manage.py shell -c "from App.services.startup_checks import get_backup_catchup_status; print(get_backup_catchup_status())"
-```
-
-Service PATH check:
-
-```bash
-sudo systemctl show gunicorn -p Environment
-sudo systemctl show qcluster -p Environment
-sudo systemctl show lms_scheduler -p Environment
-```
-
-Expected PATH includes:
-
-```text
-/home/mstleave/Leave_Management_MST/venv/bin
-/usr/bin
-```
-
-## Dev Vs Production Reminder
-
-Development and production behave differently:
-
-| Area | Development | Production |
-|---|---|---|
-| Static files | Django reads source static files | Must run `collectstatic` |
-| Media files | Django can serve in DEBUG | nginx must serve `/media/` |
-| Notifications | localhost can work | HTTPS required |
-| Database | SQLite can be used | PostgreSQL is stricter |
-| Backups | local/simple | needs `pg_dump` and service PATH |
-| Scheduler | may appear in dev process | must run `lms_scheduler.service` |
-| Background jobs | fallback may hide issues | must run `qcluster.service` |
-| Reboot | manual restart | services must be enabled |
-
-## Keeping Documentation Updated
-
-Whenever you add a feature or fix production behavior, update docs in this order:
-
-```text
-README.md                       if the feature changes the public project overview
-PROJECT_START_HERE.md           if daily commands/navigation changed
-PROJECT_GUIDE.md                if workflow/feature behavior changed
-PROJECT_DEPLOYMENT_GUIDE.md     if deployment/services/env/static/migration behavior changed
-PROJECT_DEEP_DIVE_BOOK.md       if debugging/function reference needs current-state notes
-production_setup/README.md      if secret/env generation changed
-```
-
-Use the future-change template in `PROJECT_DEPLOYMENT_GUIDE.md` when documenting production changes.
-
-## License And Ownership
-
-Proprietary internal project for MS Technology. Keep secrets, database passwords, email passwords, and private keys out of git.
-
-## Detailed Feature Matrix
-
-| Area | What exists now | Main files | Production owner |
-|---|---|---|---|
-| Role selection and login | Admin, HR, Employee entry flows with loading screens | `App/views.py`, `templates/*login*.html`, `static/js/login_form.js` | `gunicorn` |
-| Login lock security | Wrong password counters, temporary locks, manual admin lock/unlock | `App/services/login_lock_service.py`, `App/views.py`, `App/admin.py` | `gunicorn`; optional email via `qcluster` |
-| Password protection | Complexity checks, forced change, max input length 128 | `App/scripts/validators.py`, `App/forms.py`, `App/views.py`, `App/admin.py` | `gunicorn` |
-| Employee leave apply | Short/Half/Sick/Earned/Unpaid rules and overlap checks | `App/views.py`, `App/models.py`, `templates/apply_leave.html`, `static/js/apply_leave.js` | `gunicorn` |
-| My Leave page | Filters, edit/delete pending leave, history display | `templates/my_leave.html`, `static/js/my_leave.js`, `App/views.py` | `gunicorn`; static needs `collectstatic` |
-| HR manage all | Employee cards, summaries, approvals, details | `templates/manage_all.html`, `static/js/manage_all.js`, `App/views.py` | `gunicorn`; static needs `collectstatic` |
-| HR approve/reject | PostgreSQL-safe leave row lock | `App/views.py` | `gunicorn`, PostgreSQL |
-| Admin panel | Users, leave, holidays, WFH, reports, logs, service actions | `App/admin.py`, `templates/admin/*` | `gunicorn` |
-| Admin bulk emails | Job/item tracking, live status, stale recovery | `App/services/admin_bulk_email_jobs.py`, `App/admin.py`, `static/admin/js/admin_email_job_status.js` | `gunicorn`, `qcluster`, `lms_scheduler` |
-| Communications | Direct messages, announcements, read/seen tracking | `App/models.py`, `App/views.py`, `static/js/communication_panel.js` | `gunicorn`, optional push/email |
-| Browser push | Service worker subscriptions and test pushes | `App/services/push_notifications.py`, `static/js/push_notifications.js`, `static/js/service-worker.js` | HTTPS, `gunicorn`, `qcluster` |
-| Weekly reports | HTML/PDF/email HR report | `App/services/weekly_report_service.py`, `App/services/pdf_generator.py` | `gunicorn`, `lms_scheduler`, Playwright |
-| Backups | PostgreSQL pg_dump to compressed zip | `manage_backups.py`, `App/services/startup_checks.py` | `lms_scheduler`, `gunicorn` admin action |
-| Restore | PostgreSQL restore through psql | `manage_backups.py`, `App/services/restore_db.py` | controlled terminal/admin maintenance |
-| Public holidays | Google calendar sync with cache/fallback | `App/services/public_holidays.py` | `qcluster`, `lms_scheduler` |
-| Uptime | App startup timestamp and display | `App/services/uptime_tracker.py`, `runtime/app_startup.json` | `gunicorn`, `lms_scheduler` |
-
-## Main URLs And Screens
-
-| URL/path | User | Purpose |
-|---|---|---|
-| `/` | All | Loading entry screen |
-| `/portal/` | All | Role selection |
-| `/employee-login/` and `/employee-login/form/` | Employee | Employee login loading/form |
-| `/hr-login/` and `/hr-login/form/` | HR | HR login loading/form |
-| `/admin-login/` and `/admin-login/form/` | Admin | Custom admin login loading/form |
-| `/dashboard/` | Employee | Employee dashboard |
-| `/apply_leave/` | Employee | Apply leave |
-| `/my_leave/` | Employee | View/filter/edit/delete own leaves |
-| `/profile/` | Logged-in users | Profile/password change |
-| `/force-password-change/` | HR/Employee | Required password update |
-| `/hr-dashboard/` | HR | HR dashboard |
-| `/manage-all/` | HR | Employee/leave management |
-| `/employees/` | HR | Employee creation/list management |
-| `/reports/` | HR | Reports and weekly snapshot |
-| `/admin/` | Admin | Django admin and service consoles |
-| `/service-worker.js` | Browser | Push notification service worker |
-
-## Important Files By Work Type
-
-When you want to change something, start with the likely owner:
-
-```text
-Login behavior                 -> App/views.py, App/services/login_lock_service.py, templates/*login.html
-Password rules                 -> App/scripts/validators.py, App/forms.py, App/admin.py, templates/auth/force_password_change.html
-Leave apply/edit/delete         -> App/views.py, App/models.py, static/js/apply_leave.js, static/js/my_leave.js
-HR approvals                   -> App/views.py, templates/manage_all.html, static/js/manage_all.js
-Admin actions                  -> App/admin.py, templates/admin/*
-Bulk admin emails              -> App/services/admin_bulk_email_jobs.py, static/admin/js/admin_email_job_status.js
-Background task fallback        -> App/services/background_tasks.py
-Scheduler jobs                 -> App/services/scheduler.py, App/management/commands/run_lms_scheduler.py
-Startup catch-up               -> App/services/startup_checks.py
-Backup/restore                 -> manage_backups.py, App/services/restore_db.py
-Weekly report/PDF              -> App/services/weekly_report_service.py, App/services/pdf_generator.py
-Push notifications             -> App/services/push_notifications.py, static/js/push_notifications.js, static/js/service-worker.js
-Production settings/env         -> leave_management/settings.py, .env, .env.example
-```
-
-## Add A New Feature Without Breaking Docs
-
-For every meaningful feature, record this in the relevant docs:
-
-```text
-Feature name:
-Who uses it: Admin / HR / Employee / background / scheduler
-Main files changed:
-New env variables:
-New migration: yes/no
-Static changed: yes/no
-Production commands needed:
-How to verify:
-Known risks:
-Rollback:
-```
-
-If the feature affects production deployment, update `PROJECT_DEPLOYMENT_GUIDE.md` first.
+* **License**: Proprietary - All Rights Reserved. Created as part of the **MS Technology** workforce productivity suite.
+* **Author**: Anurag Singh Raj Singh ([anuragsinghrajsingh@gmail.com](mailto:anuragsinghrajsingh@gmail.com))
+* **Copyright**: &copy; 2026 MS Technology. Engineering the Future of Work.
