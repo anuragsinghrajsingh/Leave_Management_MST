@@ -191,6 +191,15 @@ flowchart TD
   * **HR**: 5 failed attempts in 15 minutes $\rightarrow$ 15-minute lockout.
   * **Employee**: 5 failed attempts in 15 minutes $\rightarrow$ 15-minute lockout.
 
+### 8. Year-End Carry Forward Rules
+Executes the annual carry-forward loop for employee Earned Leaves.
+* **Database Row Locking**: Locks the `YearEndCarryForwardRun` tracking model and target `LeaveBalance` rows using `select_for_update()` inside a `transaction.atomic()` context to prevent double processing.
+* **Carry Quotas & Service Tenure**:
+  * Tenure $\le 3$ years: Allows a maximum carry-forward of **7.5** Earned Leaves.
+  * Tenure $> 3$ years: Allows a maximum carry-forward of **10.5** Earned Leaves.
+* **Reset Cycle**: Resets all used quotas (`earned_used = 0`, `sick_used = 0`) and populates the fresh allocation for the new calendar year.
+* **Protection Safeguard**: Specific calendar years (e.g., 2026) can be configured as protected skip years (`SKIP_YEAR_END_YEARS`) to prevent accidental manual runs.
+
 ---
 
 <a id="custom-middleware"></a>
@@ -242,6 +251,18 @@ Provides a command-line interface to search, audit, and inspect database records
   ```bash
   python "Leave Management/App/services/email_delivery_log.py"
   ```
+
+### 3. Interactive Year-End Carry Forward CLI
+Allows dry-running or executing the annual carry-forward loops directly from the server shell.
+* **Dry-Run Command** (Outputs pending balances, ignored HR profiles, and simulated carry outcomes):
+  ```bash
+  python "Leave Management/App/services/year_end_service.py" --dry-run
+  ```
+* **Execute Command**:
+  ```bash
+  python "Leave Management/App/services/year_end_service.py"
+  ```
+* **Production Passphrase Confirmation**: In production mode, requires confirmation string: `PRODUCTION_RUN_YEAR_END_CARRY_FORWARD`
 
 ---
 
