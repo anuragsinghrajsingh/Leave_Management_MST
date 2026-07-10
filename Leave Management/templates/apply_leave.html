@@ -277,7 +277,7 @@
                                 </div>
                             </section>
 
-                            <section class="form-panel">
+                            <section class="form-panel schedule-panel">
                                 <div class="panel-strip">
                                     <span class="panel-index">02</span>
                                     <span class="panel-title">Schedule Details</span>
@@ -405,6 +405,16 @@
                                 <div class="schedule-hint-row">
                                     <span id="timeWarning" class="time-warning"></span>
                                     <span id="typeHint">Dates only for regular leave</span>
+                                </div>
+                                <div class="schedule-preview-slot" id="schedulePreviewSlot" hidden>
+                                    <article class="schedule-preview-card" id="schedulePreviewCard" data-preview-tone="success">
+                                        <div class="schedule-preview-head">
+                                            <span class="schedule-preview-title">Leave Preview Details</span>
+                                            <button type="button" class="schedule-preview-open" id="openLeavePreviewDetails" aria-label="Open leave preview details">&#9974;</button>
+                                        </div>
+                                        <div class="schedule-preview-lines" id="schedulePreviewLines"></div>
+                                        <div class="schedule-preview-status" id="schedulePreviewStatus">Ready to submit</div>
+                                    </article>
                                 </div>
                             </section>
 
@@ -678,10 +688,59 @@
         </section>
     </section>
 
+    <div id="leavePreviewModal" class="apply-leave-modal apply-leave-modal-preview" aria-hidden="true">
+        <div class="apply-leave-modal-overlay" data-apply-modal-close></div>
+        <div class="apply-leave-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="leavePreviewModalTitle">
+            <div class="apply-leave-modal-header">
+                <div class="apply-leave-modal-heading">
+                    <h3 id="leavePreviewModalTitle">Leave Preview Details</h3>
+                    <span class="apply-leave-modal-heading-divider" aria-hidden="true"></span>
+                </div>
+                <button type="button" class="apply-leave-modal-close" data-apply-modal-close aria-label="Close leave preview">&times;</button>
+            </div>
+            <div class="apply-leave-modal-body">
+                <div class="apply-leave-modal-top-row">
+                    <span class="apply-leave-modal-chip" id="leavePreviewModalType">Leave</span>
+                    <span class="apply-leave-modal-chip apply-leave-modal-status" id="leavePreviewModalStatus">Ready to submit</span>
+                </div>
+                <div class="apply-leave-modal-rule" id="leavePreviewModalRule">Ready to submit.</div>
+                <div class="apply-leave-detail-grid" id="leavePreviewModalGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaveConfirmModal" class="apply-leave-modal apply-leave-modal-confirm" aria-hidden="true">
+        <div class="apply-leave-modal-overlay" data-apply-confirm-cancel></div>
+        <div class="apply-leave-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="leaveConfirmModalTitle">
+            <div class="apply-leave-modal-header">
+                <div class="apply-leave-modal-heading">
+                    <h3 id="leaveConfirmModalTitle">Confirm Leave Request</h3>
+                    <span class="apply-leave-modal-heading-divider" aria-hidden="true"></span>
+                </div>
+                <button type="button" class="apply-leave-modal-close" data-apply-confirm-cancel aria-label="Close confirmation">&times;</button>
+            </div>
+            <div class="apply-leave-modal-body">
+                <div class="apply-leave-modal-top-row">
+                    <span class="apply-leave-modal-chip" id="leaveConfirmModalType">Leave</span>
+                    <span class="apply-leave-modal-chip apply-leave-modal-status" id="leaveConfirmModalStatus">Ready to submit</span>
+                </div>
+                <div class="apply-leave-modal-rule" id="leaveConfirmModalRule">Ready to submit.</div>
+                <div class="apply-leave-detail-grid" id="leaveConfirmModalGrid"></div>
+                <div class="apply-leave-reason-card" id="leaveConfirmReasonCard">
+                    <span class="apply-leave-reason-label">Reason</span>
+                    <div id="leaveConfirmReasonText">-</div>
+                </div>
+            </div>
+            <div class="apply-leave-modal-actions">
+                <button type="button" class="apply-leave-cancel-btn" id="leaveConfirmCancel" data-apply-confirm-cancel>Cancel</button>
+                <button type="button" class="apply-leave-confirm-btn" id="leaveConfirmSubmit">Confirm &amp; Apply</button>
+            </div>
+        </div>
+    </div>
     {{ company_holidays_json|json_script:"company-holidays-data" }}
     {{ existing_leaves_json|json_script:"existing-leaves-data" }}
     {{ apply_leave_rule_config|json_script:"apply-leave-rule-config" }}
-    <div id="apply-leave-js-config" data-initial-leave-type="{{ form_data.leave_type|default:'' }}" hidden></div>
+    <div id="apply-leave-js-config" data-initial-leave-type="{{ form_data.leave_type|default:'' }}" data-preview-url="{% url 'apply_leave_preview' %}" hidden></div>
     <script src="{% static 'js/apply_leave.js' %}"></script>
 {% endblock %}
 

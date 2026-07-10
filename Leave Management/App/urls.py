@@ -67,6 +67,7 @@ urlpatterns = [
     path('employee-login/workspace/', views.employee_workspace_loading, name='employee_workspace_loading'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('apply_leave/', views.apply_leave, name='apply_leave'),
+    path('api/apply-leave/preview/', views.apply_leave_preview, name='apply_leave_preview'),
     path('my_leave/', views.my_leave, name='my_leave'),
     # path("leave-calendar/", views.leave_calendar, name="leave_calendar"),
     path("leave-calendar-data/", views.leave_calendar_data, name="leave_calendar_data"),

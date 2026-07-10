@@ -72,6 +72,8 @@ ALLOWED_LEAVE_TYPES = {choice[0] for choice in Leave.LEAVE_TYPES}
 ALLOWED_PROFILE_ID_ROLES = {choice[0] for choice in Profile.ROLE_CHOICES}
 ALLOWED_LEAVE_FILTER_STATUSES = {choice[0] for choice in Leave.STATUS}
 ALLOWED_LEAVE_FILTER_FIELDS = {"leave_type", "month", "date_range"}
+FULL_DAY_ADVANCE_MIN_DAYS = 15
+FULL_DAY_ADVANCE_ADMISSIBLE_DAYS = 21
 
 
 def get_portal_link():
@@ -145,6 +147,8 @@ def _get_apply_leave_rule_config():
         "shortHalfGraceLabel": _format_minutes_duration(grace_minutes),
         "sickSameDayCutoffTime": sick_cutoff.strftime("%H:%M"),
         "sickSameDayCutoffLabel": _format_clock_time(sick_cutoff),
+        "fullDayMinAdvanceDays": FULL_DAY_ADVANCE_MIN_DAYS,
+        "fullDayAdmissibleAdvanceDays": FULL_DAY_ADVANCE_ADMISSIBLE_DAYS,
     }
 
 
@@ -4623,6 +4627,409 @@ def dashboard(request):
 
     return render(request, "dashboard.html", context)
 
+
+
+def _format_preview_date(value):
+    if not value:
+        return "-"
+    return value.strftime("%d %b %Y")
+
+
+def _format_preview_range(start_date, end_date):
+    if not start_date or not end_date:
+        return "-"
+    if start_date == end_date:
+        return _format_preview_date(start_date)
+    return f"{start_date.strftime('%d %b')} to {end_date.strftime('%d %b %Y')}"
+
+
+def _pluralize_preview(value, singular, plural=None):
+    try:
+        number = float(value or 0)
+    except (TypeError, ValueError):
+        number = 0
+    label = singular if number == 1 else (plural or f"{singular}s")
+    display = int(number) if number == int(number) else number
+    return f"{display} {label}"
+
+
+def _preview_detail(label, value, tone="default"):
+    return {"label": label, "value": str(value or "-"), "tone": tone}
+
+
+def _preview_compact_row(left, right):
+    return {"left": str(left or "-"), "right": str(right or "-")}
+
+
+def _preview_payload(status, rule_message, details, compact_rows, *, title="Leave Preview Details", reason="", compact_visible=True):
+    status_map = {
+        "success": ("success", "Ready to submit", True),
+        "warning": ("warning", "Allowed with warning", True),
+        "blocked": ("blocked", "Fix required", False),
+    }
+    tone, status_label, can_submit = status_map.get(status, status_map["blocked"])
+    return {
+        "success": True,
+        "preview": {
+            "title": title,
+            "status": status,
+            "tone": tone,
+            "statusLabel": status_label,
+            "ruleMessage": rule_message,
+            "canSubmit": can_submit,
+            "reason": reason,
+            "details": details,
+            "compact": {
+                "visible": compact_visible,
+                "rows": compact_rows,
+                "statusLabel": status_label,
+                "tone": tone,
+            },
+        },
+    }
+
+
+def _blocked_preview(message, *, leave_type="Leave", reason="", compact_visible=False):
+    details = [
+        _preview_detail("Leave Type", leave_type or "Leave"),
+        _preview_detail("Rule Status", "Blocked", "blocked"),
+        _preview_detail("Problem", message, "blocked"),
+    ]
+    compact_rows = [
+        _preview_compact_row(message, "Fix required"),
+    ]
+    return _preview_payload(
+        "blocked",
+        message,
+        details,
+        compact_rows,
+        title="Cannot Submit Leave",
+        reason=reason,
+        compact_visible=compact_visible,
+    )
+
+
+def _get_apply_preview_reason(request):
+    return (request.POST.get("reason") or "").strip()
+
+
+def _build_full_day_leave_preview(request, leave_type, reason):
+    from App.services.leave_breakdown import calculate_leave_breakdown, expand_full_day_leave_range
+    from App.services.overlap_service import get_overlap_details
+
+    user = request.user
+    from_raw = request.POST.get("from_date")
+    to_raw = request.POST.get("to_date")
+
+    try:
+        requested_from_date = date.fromisoformat(from_raw)
+        requested_to_date = date.fromisoformat(to_raw)
+    except (TypeError, ValueError):
+        return _blocked_preview("Select valid From Date and To Date.", leave_type=leave_type, reason=reason)
+
+    compact_visible = True
+    today = localdate()
+
+    if requested_from_date > requested_to_date:
+        return _blocked_preview("From Date cannot be after To Date.", leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+
+    if requested_from_date < today or requested_to_date < today:
+        return _blocked_preview("Leave date cannot be in the past.", leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+
+    single_day_company_holiday = requested_from_date == requested_to_date and _get_blocking_company_holiday(requested_from_date)
+    if single_day_company_holiday:
+        return _blocked_preview(
+            f"Leave cannot be applied only on company holiday: {single_day_company_holiday.name}.",
+            leave_type=leave_type,
+            reason=reason,
+            compact_visible=compact_visible,
+        )
+
+    try:
+        balance = LeaveBalance.objects.get(user=user)
+    except LeaveBalance.DoesNotExist:
+        return _blocked_preview("Leave balance is missing for this user.", leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+
+    expanded_range = expand_full_day_leave_range(user=user, start_date=requested_from_date, end_date=requested_to_date)
+    final_from_date = expanded_range["start_date"]
+    final_to_date = expanded_range["end_date"]
+    auto_added_dates = expanded_range["auto_added_dates"]
+
+    breakdown = calculate_leave_breakdown(
+        final_from_date,
+        final_to_date,
+        requested_start_date=requested_from_date,
+        requested_end_date=requested_to_date,
+    )
+    working_days = breakdown["working_days"]
+    total_days = breakdown["total_days"]
+
+    if working_days == 0:
+        return _blocked_preview("Selected range contains only weekends/holidays.", leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+
+    overlaps = get_overlap_details(user=user, start_date=final_from_date, end_date=final_to_date)
+    if overlaps:
+        first_overlap = overlaps[0]
+        overlap_message = (
+            f"Overlaps with {first_overlap['leave_type']} leave "
+            f"({_format_preview_range(first_overlap['existing_from'], first_overlap['existing_to'])})."
+        )
+        return _blocked_preview(overlap_message, leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+
+    days_before = (requested_from_date - today).days
+    rule_status = "success"
+    rule_message = "Ready to submit."
+    deducted_from = leave_type
+    balance_message = "OK"
+
+    if leave_type == "Sick":
+        remaining = balance.sick_total - balance.sick_used
+        sick_cutoff = _get_sick_leave_same_day_cutoff_time()
+        if requested_from_date == today and _is_after_sick_leave_same_day_cutoff(localtime().time(), sick_cutoff):
+            return _blocked_preview(
+                f"Sick leave cannot be applied after {_format_clock_time(sick_cutoff)} for the same day.",
+                leave_type=leave_type,
+                reason=reason,
+                compact_visible=compact_visible,
+            )
+        if working_days > remaining:
+            return _blocked_preview("Insufficient Sick Leave balance.", leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+        rule_message = f"Sick leave rule OK. Same-day cutoff: {_format_clock_time(sick_cutoff)}."
+        deducted_from = "Sick"
+
+    elif leave_type == "Earned":
+        remaining = balance.earned_total - balance.earned_used
+        if working_days > remaining:
+            return _blocked_preview("Insufficient earned leave balance.", leave_type=leave_type, reason=reason, compact_visible=compact_visible)
+        if days_before < FULL_DAY_ADVANCE_MIN_DAYS:
+            return _blocked_preview(
+                f"{leave_type} leave needs at least {FULL_DAY_ADVANCE_MIN_DAYS} days advance.",
+                leave_type=leave_type,
+                reason=reason,
+                compact_visible=compact_visible,
+            )
+        if days_before < FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
+            rule_status = "warning"
+            rule_message = f"Allowed, but admissible advance is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} days. Current advance: {days_before} days."
+        else:
+            rule_message = f"Advance rule OK: {days_before} days ahead."
+        deducted_from = "Earned"
+
+    elif leave_type == "Unpaid":
+        if days_before < FULL_DAY_ADVANCE_MIN_DAYS:
+            return _blocked_preview(
+                f"{leave_type} leave needs at least {FULL_DAY_ADVANCE_MIN_DAYS} days advance.",
+                leave_type=leave_type,
+                reason=reason,
+                compact_visible=compact_visible,
+            )
+        if days_before < FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
+            rule_status = "warning"
+            rule_message = f"Allowed, but admissible advance is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} days. Current advance: {days_before} days."
+        else:
+            rule_message = f"Advance rule OK: {days_before} days ahead."
+        deducted_from = "Unpaid"
+        balance_message = "No balance deduction"
+
+    if rule_status == "success" and (auto_added_dates or breakdown["included_weekend_days"] > 0 or breakdown["included_wfh_days"] > 0):
+        rule_status = "warning"
+        rule_message = "Allowed with policy adjustments. Review final range before submitting."
+
+    auto_added_display = "None"
+    if auto_added_dates:
+        auto_added_display = ", ".join(current.strftime("%d %b") for current in auto_added_dates)
+
+    wfh_display = "Not applied"
+    if breakdown["included_wfh_days"] > 0:
+        wfh_display = f"Applied ({breakdown['included_wfh_days']} day(s))"
+
+    sandwich_display = "No"
+    if breakdown["included_weekend_days"] > 0:
+        sandwich_display = f"Yes ({breakdown['included_weekend_days']} weekend day(s))"
+
+    holiday_display = f"{breakdown['company_holiday_days']} skipped" if breakdown["company_holiday_days"] else "0 skipped"
+    weekend_display = f"{breakdown['weekend_days']} skipped" if breakdown["weekend_days"] else "0 skipped"
+    overlap_display = "No overlap"
+
+    details = [
+        _preview_detail("Leave Type", f"{leave_type} Leave"),
+        _preview_detail("Rule Status", "Allowed with warning" if rule_status == "warning" else "Ready", rule_status),
+        _preview_detail("Requested", _format_preview_range(requested_from_date, requested_to_date)),
+        _preview_detail("Final", _format_preview_range(final_from_date, final_to_date), "warning" if auto_added_dates else "default"),
+        _preview_detail("Working Days", _pluralize_preview(working_days, "working day")),
+        _preview_detail("Calendar Days", _pluralize_preview(total_days, "calendar day")),
+        _preview_detail("Weekend Skipped", weekend_display),
+        _preview_detail("Holiday Skipped", holiday_display),
+        _preview_detail("WFH Bridge", wfh_display, "warning" if breakdown["included_wfh_days"] else "default"),
+        _preview_detail("Sandwich", sandwich_display, "warning" if breakdown["included_weekend_days"] else "default"),
+        _preview_detail("Overlap", overlap_display, "success"),
+        _preview_detail("Balance", balance_message, "success" if balance_message == "OK" else "default"),
+        _preview_detail("Auto Added", auto_added_display, "warning" if auto_added_dates else "default"),
+        _preview_detail("Deducted From", deducted_from),
+    ]
+
+    compact_rows = [
+        _preview_compact_row(_pluralize_preview(working_days, "working day"), f"{leave_type} full-day leave"),
+        _preview_compact_row(overlap_display, f"Balance {balance_message}"),
+        _preview_compact_row(f"WFH bridge: {wfh_display}", f"Sandwich: {sandwich_display}"),
+        _preview_compact_row(f"Weekend skipped: {breakdown['weekend_days']}", f"Holiday skipped: {breakdown['company_holiday_days']}"),
+    ]
+    if auto_added_dates:
+        compact_rows.append(_preview_compact_row("Range will be auto-expanded", f"Added: {auto_added_display}"))
+    else:
+        compact_rows.append(_preview_compact_row("Final range unchanged", "No auto-added dates"))
+
+    return _preview_payload(rule_status, rule_message, details, compact_rows, reason=reason, compact_visible=compact_visible)
+
+
+def _build_time_leave_preview(request, leave_type, reason):
+    user = request.user
+    from_raw = request.POST.get("from_date")
+    to_raw = request.POST.get("to_date_hidden") or request.POST.get("to_date") or from_raw
+
+    try:
+        from_date = date.fromisoformat(from_raw)
+        to_date = date.fromisoformat(to_raw)
+    except (TypeError, ValueError):
+        return _blocked_preview("Select a valid date and time.", leave_type=leave_type, reason=reason)
+
+    today = localdate()
+    if to_date < from_date:
+        return _blocked_preview("To Date cannot be before From Date.", leave_type=leave_type, reason=reason)
+    if from_date < today or to_date < today:
+        return _blocked_preview("Leave date cannot be in the past.", leave_type=leave_type, reason=reason)
+
+    company_holiday = _get_blocking_company_holiday(from_date)
+    if company_holiday:
+        return _blocked_preview(f"Leave cannot be applied only on company holiday: {company_holiday.name}.", leave_type=leave_type, reason=reason)
+    if to_date != from_date:
+        return _blocked_preview("Short/Half leave must be on one date.", leave_type=leave_type, reason=reason)
+
+    same_day_time_leave = Leave.objects.filter(
+        user=user,
+        leave_type__in=["Short", "Half"],
+        from_date=from_date,
+        status__in=["Pending", "Approved"],
+    ).exists()
+    if same_day_time_leave:
+        return _blocked_preview("Only one Short or Half leave is allowed per day.", leave_type=leave_type, reason=reason)
+
+    from_datetime_raw = request.POST.get("from_datetime")
+    to_datetime_raw = request.POST.get("to_datetime")
+    if not from_datetime_raw or not to_datetime_raw:
+        return _blocked_preview("Choose a valid start time.", leave_type=leave_type, reason=reason)
+
+    try:
+        start = _aware_datetime(datetime.fromisoformat(from_datetime_raw))
+        end = _aware_datetime(datetime.fromisoformat(to_datetime_raw))
+    except ValueError:
+        return _blocked_preview("Invalid time selection.", leave_type=leave_type, reason=reason)
+
+    start_local = timezone.localtime(start)
+    end_local = timezone.localtime(end)
+    start_hour = 10
+    end_hour = 17 if leave_type == "Short" else 14
+    if start_local.hour < start_hour or start_local.hour > end_hour:
+        return _blocked_preview("Invalid start time.", leave_type=leave_type, reason=reason)
+
+    min_notice_minutes = _get_short_half_min_notice_minutes()
+    grace_minutes = _get_short_half_grace_minutes()
+    min_allowed = localtime() + timedelta(minutes=min_notice_minutes)
+    relaxed_min = min_allowed - timedelta(minutes=grace_minutes)
+    if start.date() == today and start < relaxed_min:
+        return _blocked_preview(
+            f"Must apply at least {_format_minutes_duration(min_notice_minutes)} before current time.",
+            leave_type=leave_type,
+            reason=reason,
+        )
+
+    duration_hours = 2 if leave_type == "Short" else 4
+    expected_end = start + timedelta(hours=duration_hours)
+    if end != expected_end or end <= start:
+        return _blocked_preview("Invalid leave duration.", leave_type=leave_type, reason=reason)
+
+    month_leaves = Leave.objects.filter(
+        user=user,
+        leave_type__in=["Short", "Half"],
+        from_date__month=start.month,
+        from_date__year=start.year,
+        status__in=["Pending", "Approved"],
+    )
+    if leave_type == "Short" and month_leaves.filter(leave_type="Short").count() >= 2:
+        return _blocked_preview("Maximum 2 short leaves allowed per month.", leave_type=leave_type, reason=reason)
+    if leave_type == "Half" and month_leaves.filter(leave_type="Half").count() >= 1:
+        return _blocked_preview("Only 1 half-day allowed per month.", leave_type=leave_type, reason=reason)
+
+    overlapping = Leave.objects.filter(
+        user=user,
+        leave_type__in=["Short", "Half"],
+        from_datetime__lt=end,
+        to_datetime__gt=start,
+        status__in=["Pending", "Approved"],
+    )
+    if overlapping.exists():
+        return _blocked_preview("Overlaps with existing time leave.", leave_type=leave_type, reason=reason)
+
+    try:
+        balance = LeaveBalance.objects.get(user=user)
+    except LeaveBalance.DoesNotExist:
+        return _blocked_preview("Leave balance is missing for this user.", leave_type=leave_type, reason=reason)
+
+    leave_value = 0.25 if leave_type == "Short" else 0.5
+    earned_remaining = balance.earned_total - balance.earned_used
+    sick_remaining = balance.sick_total - balance.sick_used
+    if earned_remaining >= leave_value:
+        deducted_from = "Earned"
+    elif sick_remaining >= leave_value:
+        deducted_from = "Sick"
+    else:
+        return _blocked_preview("Not enough leave balance.", leave_type=leave_type, reason=reason)
+
+    rule_status = "success"
+    rule_message = "Ready to submit."
+    if start.date() == today and grace_minutes > 0 and relaxed_min <= start < min_allowed:
+        rule_status = "warning"
+        rule_message = f"Allowed inside {_format_minutes_duration(grace_minutes)} grace period."
+
+    details = [
+        _preview_detail("Leave Type", f"{leave_type} Leave"),
+        _preview_detail("Rule Status", "Allowed with warning" if rule_status == "warning" else "Ready", rule_status),
+        _preview_detail("Date", _format_preview_date(from_date)),
+        _preview_detail("Time", f"{start_local.strftime('%I:%M %p').lstrip('0')} to {end_local.strftime('%I:%M %p').lstrip('0')}"),
+        _preview_detail("Duration", f"{duration_hours} hours"),
+        _preview_detail("Leave Value", f"{leave_value} day"),
+        _preview_detail("Deducted From", deducted_from),
+        _preview_detail("Balance", "OK", "success"),
+        _preview_detail("Overlap", "No overlap", "success"),
+        _preview_detail("Monthly Rule", "OK", "success"),
+        _preview_detail("Notice", rule_message, rule_status),
+        _preview_detail("Required Notice", _format_minutes_duration(min_notice_minutes)),
+    ]
+    compact_rows = [
+        _preview_compact_row(f"{duration_hours} hours", f"{leave_type} leave"),
+        _preview_compact_row("No overlap", "Balance OK"),
+        _preview_compact_row(f"Deducted from {deducted_from}", f"Value {leave_value} day"),
+    ]
+    return _preview_payload(rule_status, rule_message, details, compact_rows, reason=reason, compact_visible=False)
+
+
+@login_required
+@never_cache
+@require_POST
+def apply_leave_preview(request):
+    leave_type = get_valid_leave_type(request.POST.get("leave_type"))
+    reason = _get_apply_preview_reason(request)
+
+    if not leave_type:
+        return JsonResponse(_blocked_preview("Please select a leave type.", reason=reason))
+
+    if len(reason) > LEAVE_REASON_MAX_LENGTH:
+        return JsonResponse(_blocked_preview(f"Leave reason must be {LEAVE_REASON_MAX_LENGTH} characters or fewer.", leave_type=leave_type, reason=reason))
+
+    if leave_type in ["Short", "Half"]:
+        return JsonResponse(_build_time_leave_preview(request, leave_type, reason))
+
+    return JsonResponse(_build_full_day_leave_preview(request, leave_type, reason))
 
 @login_required
 @never_cache

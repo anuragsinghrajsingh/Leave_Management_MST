@@ -56,6 +56,10 @@
         const shortHalfGraceLabel = applyLeaveRuleConfig.shortHalfGraceLabel || formatMinutesDuration(shortHalfGraceMinutes);
         const sickSameDayCutoffTime = applyLeaveRuleConfig.sickSameDayCutoffTime || "11:59";
         const sickSameDayCutoffLabel = applyLeaveRuleConfig.sickSameDayCutoffLabel || "11:59 AM";
+        const fullDayMinAdvanceDays = readNonNegativeInt(applyLeaveRuleConfig.fullDayMinAdvanceDays, 15);
+        const fullDayAdmissibleAdvanceDays = readNonNegativeInt(applyLeaveRuleConfig.fullDayAdmissibleAdvanceDays, 21);
+        const applyLeaveJsConfig = document.getElementById("apply-leave-js-config");
+        const applyLeavePreviewUrl = applyLeaveJsConfig?.dataset.previewUrl || "";
         const leaveType = document.getElementById("leaveType");
         const form = document.querySelector(".leave-form");
         const fromTimeBlock = document.getElementById("fromTimeBlock");
@@ -74,6 +78,19 @@
         const reason = document.getElementById("reason");
         const typeHint = document.getElementById("typeHint");
         const timeWarning = document.getElementById("timeWarning");
+        const schedulePreviewSlot = document.getElementById("schedulePreviewSlot");
+        const schedulePreviewCard = document.getElementById("schedulePreviewCard");
+        const schedulePreviewLines = document.getElementById("schedulePreviewLines");
+        const schedulePreviewStatus = document.getElementById("schedulePreviewStatus");
+        const openLeavePreviewDetails = document.getElementById("openLeavePreviewDetails");
+        const leavePreviewModal = document.getElementById("leavePreviewModal");
+        const leaveConfirmModal = document.getElementById("leaveConfirmModal");
+        const leaveConfirmSubmit = document.getElementById("leaveConfirmSubmit");
+        const leaveConfirmCancel = document.getElementById("leaveConfirmCancel");
+        let latestLeavePreview = null;
+        let pendingConfirmSubmitButton = null;
+        let livePreviewTimer = null;
+        let livePreviewRequestId = 0;
         const leaveTypeDropdown = document.getElementById("leaveTypeDropdown");
         const leaveTypeTrigger = document.getElementById("leaveTypeTrigger");
         const leaveTypeMenu = document.getElementById("leaveTypeMenu");
@@ -186,21 +203,26 @@
             renderDatePicker(toDatePicker);
         }
 
-        function showTimeWarning(message = "") {
+        function showTimeWarning(message = "", forcedState = "") {
             if (!message) {
                 timeWarning.textContent = "";
-                timeWarning.classList.remove("visible", "is-warning", "is-soft-warning");
+                timeWarning.classList.remove("visible", "is-warning", "is-soft-warning", "is-success");
                 return;
             }
 
-            const state = message.includes("slightly late") ? "soft-warning" : "warning";
-            timeWarning.classList.remove("visible", "is-warning", "is-soft-warning");
+            const state = forcedState || (message.includes("slightly late") ? "soft-warning" : "warning");
+            timeWarning.classList.remove("visible", "is-warning", "is-soft-warning", "is-success");
             void timeWarning.offsetWidth;
             timeWarning.textContent = message;
             timeWarning.classList.add("visible");
-            timeWarning.classList.add(state === "soft-warning" ? "is-soft-warning" : "is-warning");
+            if (state === "success") {
+                timeWarning.classList.add("is-success");
+            } else if (state === "soft-warning") {
+                timeWarning.classList.add("is-soft-warning");
+            } else {
+                timeWarning.classList.add("is-warning");
+            }
         }
-
         function formatHourLabel(hour24) {
             return String(hour24 > 12 ? hour24 - 12 : hour24);
         }
@@ -349,6 +371,9 @@
 
             setTypeHint(getDefaultHintMessage());
             syncToDateLockState();
+            if (needsTime) {
+                clearSchedulePreview();
+            }
 
             if (!needsTime) {
                 toTime.value = "";
@@ -758,6 +783,7 @@
             datePickers.forEach(renderDatePicker);
             syncToDateLockState();
             repositionOpenDatePickers();
+            scheduleLivePreview();
         }
 
         function updateToTime() {
@@ -1664,7 +1690,255 @@
             return { response, payload: null };
         }
 
-        form.addEventListener("submit", (event) => {
+        function isFullDayLeave() {
+            return !!leaveType.value && !isTimeLeave();
+        }
+
+        function shouldShowCompactPreview() {
+            return isFullDayLeave() && !!fromDate.value && !!toDate.value;
+        }
+
+        function getCsrfToken() {
+            return form?.querySelector('input[name="csrfmiddlewaretoken"]')?.value || "";
+        }
+
+        function previewTone(preview) {
+            return preview?.tone || preview?.status || "blocked";
+        }
+
+        function clearSchedulePreview() {
+            latestLeavePreview = null;
+            if (schedulePreviewSlot) {
+                schedulePreviewSlot.hidden = true;
+            }
+            if (schedulePreviewLines) {
+                schedulePreviewLines.textContent = "";
+            }
+        }
+
+        function renderSchedulePreview(preview) {
+            if (!schedulePreviewSlot || !schedulePreviewCard || !schedulePreviewLines || !schedulePreviewStatus) {
+                return;
+            }
+
+            if (!preview?.compact?.visible || !shouldShowCompactPreview()) {
+                schedulePreviewSlot.hidden = true;
+                return;
+            }
+
+            schedulePreviewCard.dataset.previewTone = previewTone(preview);
+            schedulePreviewLines.textContent = "";
+            const rows = Array.isArray(preview.compact.rows) ? preview.compact.rows : [];
+            rows.slice(0, 5).forEach((row) => {
+                const line = document.createElement("div");
+                line.className = "schedule-preview-line";
+                const left = document.createElement("span");
+                left.textContent = row.left || "-";
+                const divider = document.createElement("i");
+                divider.className = "schedule-preview-divider";
+                divider.setAttribute("aria-hidden", "true");
+                const right = document.createElement("span");
+                right.textContent = row.right || "-";
+                line.append(left, divider, right);
+                schedulePreviewLines.appendChild(line);
+            });
+            schedulePreviewStatus.textContent = preview.compact.statusLabel || preview.statusLabel || "Ready to submit";
+            schedulePreviewSlot.hidden = false;
+        }
+
+        function applyRuleMessage(preview) {
+            if (isTimeLeave()) {
+                return;
+            }
+            if (!preview?.ruleMessage || !shouldShowCompactPreview()) {
+                showTimeWarning("");
+                return;
+            }
+            const tone = previewTone(preview);
+            showTimeWarning(preview.ruleMessage, tone === "blocked" ? "warning" : tone);
+        }
+
+        async function fetchLeavePreview() {
+            if (!applyLeavePreviewUrl) {
+                throw new Error("Preview URL missing");
+            }
+
+            const response = await fetch(applyLeavePreviewUrl, {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": getCsrfToken()
+                },
+                body: new FormData(form),
+                credentials: "same-origin"
+            });
+
+            const contentType = response.headers.get("content-type") || "";
+            if (!contentType.includes("application/json")) {
+                throw new Error("Preview response was not JSON");
+            }
+
+            const payload = typeof window.parseJsonOrSessionExpired === "function"
+                ? await window.parseJsonOrSessionExpired(response)
+                : await response.json();
+
+            if (payload?.sessionExpired) {
+                if (typeof window.redirectAfterSessionExpired === "function") {
+                    window.redirectAfterSessionExpired(payload);
+                }
+                throw new Error("Session expired");
+            }
+
+            return payload?.preview || null;
+        }
+
+        function scheduleLivePreview() {
+            window.clearTimeout(livePreviewTimer);
+            if (!shouldShowCompactPreview()) {
+                clearSchedulePreview();
+                if (!isTimeLeave()) {
+                    showTimeWarning("");
+                }
+                return;
+            }
+
+            livePreviewTimer = window.setTimeout(async () => {
+                const requestId = ++livePreviewRequestId;
+                try {
+                    const preview = await fetchLeavePreview();
+                    if (requestId !== livePreviewRequestId || !preview) {
+                        return;
+                    }
+                    latestLeavePreview = preview;
+                    renderSchedulePreview(preview);
+                    applyRuleMessage(preview);
+                } catch (error) {
+                    if (requestId === livePreviewRequestId) {
+                        clearSchedulePreview();
+                    }
+                }
+            }, 260);
+        }
+
+        function setModalTone(modal, preview) {
+            if (!modal) {
+                return;
+            }
+            modal.dataset.previewTone = previewTone(preview);
+        }
+
+        function buildDetailCard(detail) {
+            const card = document.createElement("div");
+            card.className = "apply-leave-detail-card";
+            card.dataset.tone = detail.tone || "default";
+            const label = document.createElement("span");
+            label.className = "apply-leave-detail-label";
+            label.textContent = detail.label || "Detail";
+            const value = document.createElement("div");
+            value.className = "apply-leave-detail-value";
+            value.textContent = detail.value || "-";
+            card.append(label, value);
+            return card;
+        }
+
+        function renderPreviewGrid(grid, preview) {
+            if (!grid) {
+                return;
+            }
+            grid.textContent = "";
+            const details = Array.isArray(preview?.details) ? preview.details : [];
+            details.forEach((detail) => {
+                grid.appendChild(buildDetailCard(detail));
+            });
+        }
+
+        function getPreviewLeaveType(preview) {
+            const typeDetail = (preview?.details || []).find((detail) => detail.label === "Leave Type");
+            return typeDetail?.value || (leaveType.value ? `${leaveType.value} Leave` : "Leave");
+        }
+
+        function fillPreviewModal(modal, preview, prefix) {
+            if (!modal || !preview) {
+                return;
+            }
+            setModalTone(modal, preview);
+            const title = document.getElementById(`${prefix}Title`);
+            const type = document.getElementById(`${prefix}Type`);
+            const status = document.getElementById(`${prefix}Status`);
+            const rule = document.getElementById(`${prefix}Rule`);
+            const grid = document.getElementById(`${prefix}Grid`);
+
+            if (title) {
+                title.textContent = preview.title || "Leave Preview Details";
+            }
+            if (type) {
+                type.textContent = getPreviewLeaveType(preview);
+            }
+            if (status) {
+                status.textContent = preview.statusLabel || "Ready to submit";
+                status.dataset.previewTone = previewTone(preview);
+            }
+            if (rule) {
+                rule.textContent = preview.ruleMessage || "Ready to submit.";
+            }
+            renderPreviewGrid(grid, preview);
+        }
+
+        function openApplyModal(modal) {
+            if (!modal) {
+                return;
+            }
+            modal.setAttribute("aria-hidden", "false");
+            document.documentElement.classList.add("modal-open");
+            document.body.classList.add("modal-open");
+        }
+
+        function closeApplyModal(modal) {
+            if (!modal) {
+                return;
+            }
+            modal.setAttribute("aria-hidden", "true");
+            if (!document.querySelector('.apply-leave-modal[aria-hidden="false"]')) {
+                document.documentElement.classList.remove("modal-open");
+                document.body.classList.remove("modal-open");
+            }
+        }
+
+        function openPreviewDetailsModal(preview) {
+            fillPreviewModal(leavePreviewModal, preview, "leavePreviewModal");
+            openApplyModal(leavePreviewModal);
+        }
+
+        function openConfirmModal(preview, submitButton) {
+            pendingConfirmSubmitButton = submitButton || form.querySelector('button[type="submit"]');
+            fillPreviewModal(leaveConfirmModal, preview, "leaveConfirmModal");
+            const reasonText = document.getElementById("leaveConfirmReasonText");
+            if (reasonText) {
+                reasonText.textContent = preview.reason || reason.value.trim() || "-";
+            }
+
+            if (leaveConfirmCancel) {
+                leaveConfirmCancel.hidden = !preview.canSubmit;
+            }
+            if (leaveConfirmSubmit) {
+                leaveConfirmSubmit.textContent = preview.canSubmit ? "Confirm & Apply" : "Close & Fix";
+                leaveConfirmSubmit.dataset.previewTone = previewTone(preview);
+            }
+            openApplyModal(leaveConfirmModal);
+            if (!preview.canSubmit && typeof window.playLeaveErrorTone === "function") {
+                window.playLeaveErrorTone();
+            }
+        }
+
+        function resetButtonAfterPreviewCheck(submitButton) {
+            if (!submitButton || form.dataset.submitting === "true") {
+                return;
+            }
+            submitButton.disabled = false;
+            resetSubmitButtonState(submitButton);
+        }
+        function validateApplyLeaveForm() {
             clearAllInlineWarnings();
 
             let hasError = false;
@@ -1717,29 +1991,21 @@
                     }
                     showInlineWarning("fromTime", "Please choose a valid time.");
                     hasError = true;
-                    event.preventDefault();
                 }
             } else if (!toDate.value) {
                 showInlineWarning("toDate", "Please select a to date.");
                 hasError = true;
             }
 
-            if (hasError) {
-                event.preventDefault();
-                if (typeof window.playLeaveErrorTone === "function") {
-                    window.playLeaveErrorTone();
-                }
-                return;
-            }
+            return !hasError;
+        }
 
-            event.preventDefault();
-
+        function submitApplyLeaveAjax(submitButton) {
             if (form.dataset.submitting === "true") {
                 return;
             }
 
             form.dataset.submitting = "true";
-            const submitButton = event.submitter || form.querySelector('button[type="submit"]');
             if (submitButton) {
                 submitButton.disabled = true;
             }
@@ -1787,8 +2053,80 @@
                     resetSubmitButtonState(submitButton);
                     redirectAfterErrorTone(window.location.href);
                 });
+        }
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            if (!validateApplyLeaveForm()) {
+                if (typeof window.playLeaveErrorTone === "function") {
+                    window.playLeaveErrorTone();
+                }
+                return;
+            }
+
+            if (form.dataset.submitting === "true") {
+                return;
+            }
+
+            const submitButton = event.submitter || form.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+            setSubmitButtonState(submitButton, "processing", "Checking");
+
+            fetchLeavePreview()
+                .then((preview) => {
+                    resetButtonAfterPreviewCheck(submitButton);
+                    if (!preview) {
+                        renderApplyMessages([{ tags: "error", title: "Action needed", text: "Could not prepare leave preview. Please try again." }]);
+                        return;
+                    }
+                    latestLeavePreview = preview;
+                    renderSchedulePreview(preview);
+                    applyRuleMessage(preview);
+                    openConfirmModal(preview, submitButton);
+                })
+                .catch(() => {
+                    resetButtonAfterPreviewCheck(submitButton);
+                    renderApplyMessages([{ tags: "error", title: "Action needed", text: "Could not prepare leave preview. Please try again." }]);
+                });
+        });
+        openLeavePreviewDetails?.addEventListener("click", () => {
+            if (latestLeavePreview) {
+                openPreviewDetailsModal(latestLeavePreview);
+            }
         });
 
+        leavePreviewModal?.querySelectorAll("[data-apply-modal-close]").forEach((button) => {
+            button.addEventListener("click", () => closeApplyModal(leavePreviewModal));
+        });
+
+        leaveConfirmModal?.querySelectorAll("[data-apply-confirm-cancel]").forEach((button) => {
+            button.addEventListener("click", () => closeApplyModal(leaveConfirmModal));
+        });
+
+        leaveConfirmSubmit?.addEventListener("click", () => {
+            if (!latestLeavePreview?.canSubmit) {
+                closeApplyModal(leaveConfirmModal);
+                return;
+            }
+            const submitButton = pendingConfirmSubmitButton || form.querySelector('button[type="submit"]');
+            closeApplyModal(leaveConfirmModal);
+            submitApplyLeaveAjax(submitButton);
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") {
+                return;
+            }
+            if (leaveConfirmModal?.getAttribute("aria-hidden") === "false") {
+                closeApplyModal(leaveConfirmModal);
+            }
+            if (leavePreviewModal?.getAttribute("aria-hidden") === "false") {
+                closeApplyModal(leavePreviewModal);
+            }
+        });
         const savedFromDatetime = fromDateTime.value ? new Date(fromDateTime.value) : null;
         const applyLeaveConfig = document.getElementById("apply-leave-js-config");
         const initialLeaveType = leaveType.value || (applyLeaveConfig ? applyLeaveConfig.dataset.initialLeaveType : "");
