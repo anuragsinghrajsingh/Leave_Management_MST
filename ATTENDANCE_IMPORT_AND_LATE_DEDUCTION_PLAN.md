@@ -16,6 +16,7 @@ The goal is to build this feature carefully, with full HR/admin control, because
 | HR approval before deduction | Decided |
 | Employee visibility | Decided |
 | Employee-specific schedule/flexibility grants | Decided |
+| Secure preview connector architecture | Decided |
 
 ## Project Progress
 
@@ -46,6 +47,9 @@ The goal is to build this feature carefully, with full HR/admin control, because
 | Add enterprise readiness expansion | Done |
 | Decide employee-specific attendance schedule/flexibility grants | Done |
 | Add total control final guardrails | Done |
+| Add secure preview connector architecture | Done |
+| Add notification orchestration specification | Done |
+| Add final deep scan enterprise additions | Done |
 
 ### Implementation
 
@@ -5895,3 +5899,1528 @@ Final rule:
 ```text
 No attendance data should affect leave balance, payroll impact, or employee record history without a traceable policy, source, actor, timestamp, and reason/audit path.
 ```
+
+## Secure Preview And Connector Architecture
+
+This section defines how the attendance system should be connected to the existing project safely.
+
+The goal is to build attendance as a feature-rich enterprise module without making the existing leave system fragile. Attendance should connect to leave, notification, report, WFH, holiday, and audit systems through controlled hooks/adapters instead of scattered direct edits.
+
+### Core Architecture Decision
+
+Attendance should be implemented as an isolated connector-style module.
+
+Preferred structure if safe for the current Django project:
+
+```text
+attendance/
+```
+
+Alternative structure if keeping everything inside the existing `App` is safer:
+
+```text
+App/attendance/
+App/attendance/adapters/
+App/attendance/services/
+App/attendance/views/
+App/attendance/tests/
+```
+
+Decision rule:
+
+```text
+Choose the structure that best fits the existing project with the least risk.
+Even if implemented inside App, attendance logic must remain isolated by folder/service boundaries.
+```
+
+### Why Connector Architecture Is Needed
+
+The attendance module will touch sensitive existing areas:
+
+```text
+employees
+leave balances
+leave records
+WFH rules
+holidays
+notifications
+emails
+reports
+audit logs
+scheduler/background jobs
+```
+
+If attendance logic directly edits all these systems from random views or templates, future maintenance becomes risky.
+
+Connector architecture gives control:
+
+```text
+attendance can be enabled or disabled safely
+leave system can continue working without attendance
+biometric sync can be added later without rewriting leave logic
+preview mode can run without balance impact
+adapters can be tested independently
+future removal is possible without breaking core leave workflows
+```
+
+### Secure Preview Mode
+
+The first implementation must start in secure preview mode.
+
+Preview mode allows:
+
+```text
+manual attendance entry
+CSV/Excel import preview
+attendance record validation
+late classification
+warning/count/exclusion display
+deduction preview generation
+employee attendance page preview
+HR/admin reports preview
+logs and audit preview
+```
+
+Preview mode must block:
+
+```text
+real LeaveBalance changes
+creation of approved late-deduction Leave records
+Unpaid/LOP payroll-impact changes
+automatic deduction application
+biometric auto-sync changes
+automatic payroll export
+```
+
+Preview mode is the safety layer for production testing.
+
+Rules:
+
+```text
+No leave balance changes while ATTENDANCE_PREVIEW_ONLY=True.
+No my_leave approved deduction rows while apply deductions are disabled.
+No automatic deduction while auto deduction flag is disabled.
+Every preview should clearly show that it is preview-only.
+HR/admin must see why Apply is disabled when preview mode is active.
+```
+
+### Feature Flags
+
+Attendance should be controlled by explicit feature flags.
+
+Suggested settings:
+
+```text
+ATTENDANCE_MODULE_ENABLED=True
+ATTENDANCE_PREVIEW_ONLY=True
+ATTENDANCE_ALLOW_APPLY_DEDUCTIONS=False
+ATTENDANCE_ALLOW_AUTO_DEDUCTION=False
+ATTENDANCE_ALLOW_BIOMETRIC_SYNC=False
+ATTENDANCE_ALLOW_PAYROLL_EXPORT=False
+ATTENDANCE_ALLOW_EMPLOYEE_PORTAL=True
+ATTENDANCE_ALLOW_HR_REPORTS=True
+ATTENDANCE_ALLOW_EMAIL_NOTIFICATIONS=False
+```
+
+Default safe production introduction:
+
+```text
+ATTENDANCE_MODULE_ENABLED=True
+ATTENDANCE_PREVIEW_ONLY=True
+ATTENDANCE_ALLOW_APPLY_DEDUCTIONS=False
+ATTENDANCE_ALLOW_AUTO_DEDUCTION=False
+ATTENDANCE_ALLOW_BIOMETRIC_SYNC=False
+```
+
+Safe disabled state:
+
+```text
+ATTENDANCE_MODULE_ENABLED=False
+```
+
+When disabled:
+
+```text
+attendance URLs should not be accessible except maybe admin archive/history if explicitly allowed
+attendance nav links should be hidden
+attendance scheduled jobs should not run
+attendance should not affect leave balances or records
+existing leave workflows must continue normally
+```
+
+### Connector / Adapter Layer
+
+Attendance must interact with existing systems through adapters.
+
+Required adapters:
+
+```text
+EmployeeResolver
+LeaveBalanceAdapter
+LeaveRecordAdapter
+HolidayWfhAdapter
+NotificationAdapter
+PermissionAdapter
+ReportAdapter
+AuditAdapter
+SchedulerAdapter
+AttachmentStorageAdapter
+```
+
+Optional future adapters:
+
+```text
+PayrollExportAdapter
+BiometricDeviceAdapter
+WebhookAdapter
+FeatureFlagAdapter
+```
+
+### Adapter Responsibilities
+
+#### EmployeeResolver
+
+Purpose:
+
+```text
+Find and validate employees from attendance identifiers.
+```
+
+Responsibilities:
+
+```text
+match by employee_code
+match by biometric_device_id
+match by email
+match by phone_number
+match by employee_name
+return exact/unmatched/ambiguous result
+never silently choose between ambiguous employees
+```
+
+#### LeaveBalanceAdapter
+
+Purpose:
+
+```text
+Apply or preview leave balance deductions safely.
+```
+
+Responsibilities:
+
+```text
+read Earned/Sick balances
+calculate Earned first, Sick second, Unpaid/LOP shortage
+support preview calculation without saving
+apply deduction only when feature flags allow
+use transactions and row locks during real apply
+return before/after balance details
+```
+
+Hard rule:
+
+```text
+Attendance services must not directly mutate LeaveBalance except through LeaveBalanceAdapter.
+```
+
+#### LeaveRecordAdapter
+
+Purpose:
+
+```text
+Create my_leave Approved history entries for applied late deductions.
+```
+
+Responsibilities:
+
+```text
+create approved Leave records only when apply is enabled
+use existing reason/detail field for explanation
+create separate rows for Earned/Sick/Unpaid split
+link created records back to deduction summary
+support preview-only explanation without saving records
+```
+
+Hard rule:
+
+```text
+No approved late-deduction Leave record should be created in preview-only mode.
+```
+
+#### HolidayWfhAdapter
+
+Purpose:
+
+```text
+Tell attendance classification whether a date should be excluded.
+```
+
+Responsibilities:
+
+```text
+check approved leave
+check short/half leave timing conflicts
+check WFH
+check company holiday
+check public holiday
+check weekend/non-working day
+return exclusion reason
+```
+
+#### NotificationAdapter
+
+Purpose:
+
+```text
+Create in-app and email notifications using existing project systems.
+```
+
+Responsibilities:
+
+```text
+respect admin notification configuration
+send employee notifications
+send HR/admin summaries
+log email delivery success/failure
+support digest later
+```
+
+#### PermissionAdapter
+
+Purpose:
+
+```text
+Keep role checks centralized.
+```
+
+Responsibilities:
+
+```text
+employee self-access only
+HR/admin attendance access
+admin-only policy/automation/reversal controls
+future maker-checker support
+feature flag enforcement
+```
+
+#### ReportAdapter
+
+Purpose:
+
+```text
+Reuse existing report/export patterns without mixing attendance into leave reports.
+```
+
+Responsibilities:
+
+```text
+build attendance reports
+export attendance data
+keep HR attendance reports separate from leave reports
+use existing report styling/helpers where appropriate
+```
+
+#### AuditAdapter
+
+Purpose:
+
+```text
+Create consistent audit entries for every high-impact attendance action.
+```
+
+Responsibilities:
+
+```text
+policy changes
+manual attendance edits
+imports
+duplicate decisions
+exceptions
+correction requests
+deduction preview/apply
+period locks/unlocks
+adjustments/reversals
+feature flag changes if stored in DB
+```
+
+#### SchedulerAdapter
+
+Purpose:
+
+```text
+Connect future automatic runs to the existing scheduler/background worker system.
+```
+
+Responsibilities:
+
+```text
+skip jobs when module disabled
+skip apply jobs when preview-only
+log job start/end/errors
+support auto apply clean records later
+```
+
+### Dependency Direction Rule
+
+Dependency direction must be one-way:
+
+```text
+attendance module -> adapters -> existing project systems
+existing leave workflow -> should not depend on attendance module
+```
+
+The leave system should not require attendance to be enabled.
+
+If attendance is disabled, these must still work:
+
+```text
+apply leave
+my_leave page
+HR dashboard
+leave approval/rejection
+leave reports
+WFH/holiday logic
+notifications unrelated to attendance
+```
+
+### Secure Preview Apply Flow
+
+Deduction apply should follow this safety gate:
+
+```text
+1. Generate preview.
+2. Show affected employee records.
+3. Show policy snapshot.
+4. Show Earned/Sick/Unpaid split.
+5. Check ATTENDANCE_MODULE_ENABLED.
+6. Check ATTENDANCE_PREVIEW_ONLY is False.
+7. Check ATTENDANCE_ALLOW_APPLY_DEDUCTIONS is True.
+8. Check user has permission.
+9. Check run is not already applied.
+10. Check period is not locked incorrectly.
+11. Apply through LeaveBalanceAdapter and LeaveRecordAdapter.
+12. Audit everything.
+```
+
+If any gate fails:
+
+```text
+show clear blocked reason
+make no balance changes
+make no leave record changes
+log blocked attempt if high-risk
+```
+
+### Safe Removal / Disable Plan
+
+If attendance needs to be removed or disabled later:
+
+```text
+1. Set ATTENDANCE_MODULE_ENABLED=False.
+2. Hide attendance navigation links.
+3. Disable attendance URLs or show module-disabled page.
+4. Stop attendance scheduler jobs.
+5. Keep historical attendance tables for audit/archive.
+6. Do not delete historical Leave records already created by applied deductions.
+7. Existing leave system remains functional.
+```
+
+Optional archive-only mode:
+
+```text
+ATTENDANCE_MODULE_ENABLED=False
+ATTENDANCE_ARCHIVE_VIEW_ENABLED=True
+```
+
+Archive mode can allow admin to view old attendance/deduction history without allowing new imports or deductions.
+
+### Connector Testing Requirements
+
+Tests should prove the connector boundaries work.
+
+Required tests:
+
+```text
+preview mode does not change LeaveBalance
+preview mode does not create Leave records
+apply blocked when ATTENDANCE_ALLOW_APPLY_DEDUCTIONS=False
+module disabled hides/blocks attendance routes
+leave workflows still work when attendance disabled
+LeaveBalanceAdapter applies Earned first, Sick second
+LeaveRecordAdapter creates approved rows only when allowed
+HolidayWfhAdapter excludes approved leave/WFH/holiday/weekend
+PermissionAdapter blocks employee access to other employees
+AuditAdapter logs high-risk actions
+```
+
+### Connector Acceptance Criteria
+
+The connector architecture is accepted only when:
+
+```text
+attendance has a clear module boundary
+feature flags can disable risky behavior
+preview-only mode is the default first release state
+real apply uses adapters, not scattered direct writes
+existing leave system works with attendance disabled
+all attendance-to-leave writes are auditable
+future biometric sync can plug into the same attendance record/service path
+```
+
+### Implementation Order Update
+
+Before building real deduction apply, implement in this order:
+
+```text
+1. Add feature flags/default settings.
+2. Add module boundary and adapter interfaces.
+3. Build preview-only attendance models/services.
+4. Build classification and deduction preview without leave writes.
+5. Build HR/admin preview UI.
+6. Build tests proving no balance/leave writes in preview mode.
+7. Build LeaveBalanceAdapter and LeaveRecordAdapter behind apply flags.
+8. Enable manual apply only after preview workflows are verified.
+9. Keep auto deduction disabled until later milestone.
+```
+
+### Final Connector Rule
+
+Attendance can connect to leave, but leave must not become dependent on attendance.
+
+Attendance is a controlled connector module:
+
+```text
+safe to preview
+safe to disable
+safe to audit
+safe to extend
+safe to remove from active navigation
+```
+
+## Attendance Notification Orchestration Specification
+
+Notifications for attendance must be handled as a first-class part of the system.
+
+The system should notify employees, HR, and admins for important attendance lifecycle events through in-app notifications and optionally email, based on admin configuration.
+
+### Notification Principles
+
+```text
+1. Important attendance changes should be visible in-app.
+2. Email should be configurable and not hard-coded for every event.
+3. Employees must be notified when something affects their attendance status, request status, or leave balance.
+4. HR/admin must be notified when something needs review or action.
+5. Admin must be notified for high-risk configuration, automation, and failure events.
+6. Notifications should not be duplicated unnecessarily.
+7. Notification delivery should be audited.
+8. Failed email delivery should not roll back attendance/deduction transactions unless explicitly required.
+```
+
+### Notification Channels
+
+Supported channels:
+
+```text
+in_app
+email
+future_push
+future_webhook
+```
+
+Version 1 should support:
+
+```text
+in_app
+email if existing project email system can be reused safely
+```
+
+Future channels can reuse the same notification event model/service.
+
+### Recipient Groups
+
+Recipient groups:
+
+```text
+employee
+HR users
+admin users
+reviewer/actor
+custom configured emails
+attendance managers
+payroll recipients future
+```
+
+Rules:
+
+```text
+Employee notifications must go only to the affected employee.
+HR/admin review notifications should go to configured attendance reviewers.
+Admin-only alerts should not be sent to ordinary employees.
+Custom email recipients should be configured, not hard-coded.
+```
+
+### Employee Notification Events
+
+Employees should receive notifications for:
+
+```text
+attendance record created for them
+attendance record corrected
+warning-only late recorded
+counted late mark recorded
+late mark allowed/excused
+deduction preview generated for them
+deduction applied to their leave balance
+Unpaid/LOP shortage applied
+negative balance applied
+correction/exception request submitted
+correction/exception request approved
+correction/exception request rejected
+correction/exception request cancelled
+attendance period locked with their applied deduction
+reversal/adjustment applied for their record
+employee-specific schedule/grant created
+employee-specific schedule/grant changed
+employee-specific schedule/grant ended
+```
+
+High-priority employee events:
+
+```text
+deduction applied
+Unpaid/LOP applied
+negative balance applied
+request approved/rejected
+reversal/adjustment applied
+```
+
+Default recommendation:
+
+```text
+High-priority employee events -> in-app + email if enabled.
+Warning-only and counted late -> in-app immediately, email configurable or digest.
+```
+
+### HR Notification Events
+
+HR users should receive notifications for:
+
+```text
+attendance import completed
+attendance import failed
+attendance import has unmatched rows
+attendance import has duplicate conflicts
+attendance import has invalid rows
+manual attendance entry created by another actor
+employee correction/exception request submitted
+employee request awaiting review beyond SLA
+late records needing review
+deduction preview generated
+deduction run ready to apply
+deduction apply completed
+deduction apply partially failed
+records blocked from auto deduction
+employee deduction hold created/released
+period lock/unlock requested
+reversal/adjustment requested or applied
+```
+
+Default recommendation:
+
+```text
+Action-required HR events -> in-app + email if enabled.
+Bulk summary events -> email summary/digest if enabled.
+```
+
+### Admin Notification Events
+
+Admins should receive notifications for high-risk and system-level events:
+
+```text
+policy created/changed/backdated
+policy overlap/conflict detected
+automation enabled/disabled
+auto deduction run completed
+auto deduction run failed
+auto deduction readiness check failed
+biometric sync failed future
+period locked/unlocked
+reversal/adjustment applied
+large bulk overwrite performed
+source trust setting changed
+feature flag changed if DB-backed
+email delivery failures above threshold
+scheduler/background job failure
+```
+
+Default recommendation:
+
+```text
+System/high-risk admin events -> in-app + email if enabled.
+Failures and policy conflicts should be high priority.
+```
+
+### Notification Configuration
+
+Admin should be able to configure attendance notifications.
+
+Suggested settings:
+
+```text
+enable attendance notifications: yes/no
+enable attendance emails: yes/no
+employee warning late notification: immediate/digest/off
+employee counted late notification: immediate/digest/off
+employee deduction preview notification: immediate/off
+employee deduction applied notification: immediate/off
+employee request decision notification: immediate/off
+HR import summary notification: immediate/digest/off
+HR unmatched/invalid row notification: immediate/off
+HR correction request notification: immediate/off
+HR deduction ready notification: immediate/off
+admin policy change notification: immediate/off
+admin automation failure notification: immediate/off
+admin high-risk action notification: immediate/off
+```
+
+Digest frequencies:
+
+```text
+daily
+weekly
+monthly future
+```
+
+Digest should support:
+
+```text
+employee late summary digest
+HR import/review summary digest
+admin system/failure summary digest
+```
+
+### Notification Templates
+
+Templates should be configurable later, with safe defaults first.
+
+Template types:
+
+```text
+employee_warning_late
+employee_counted_late
+employee_late_excused
+employee_deduction_preview
+employee_deduction_applied
+employee_lop_applied
+employee_request_approved
+employee_request_rejected
+employee_schedule_grant_changed
+hr_import_completed
+hr_import_errors
+hr_request_submitted
+hr_deduction_ready
+admin_policy_changed
+admin_auto_run_failed
+admin_high_risk_action
+```
+
+Template placeholders should be controlled:
+
+```text
+employee_name
+date
+check_in_time
+late_status
+period_start
+period_end
+counted_late_marks
+deduction_days
+earned_deducted
+sick_deducted
+unpaid_lop_amount
+request_status
+reviewer_name
+run_reference
+policy_name
+```
+
+Rules:
+
+```text
+Broken/custom template should fall back to a safe default.
+Template edits should be audited.
+Do not allow unsafe HTML/script injection in templates.
+```
+
+### Notification Payload Requirements
+
+Each notification should store enough context to open the right page.
+
+Common payload fields:
+
+```text
+notification_type
+recipient
+actor
+employee
+attendance_record
+deduction_run
+correction_request
+policy_version
+severity
+title
+message
+target_url
+created_at
+read_at
+email_status
+```
+
+Target URLs examples:
+
+```text
+employee attendance page with highlighted record
+employee my_leave approved section with highlighted deduction
+HR attendance management requests tab
+HR attendance management import batch preview
+HR attendance management deduction run detail
+admin policy settings history
+```
+
+### Notification Severity
+
+Severity levels:
+
+```text
+info
+success
+warning
+error
+critical
+action_required
+```
+
+Examples:
+
+```text
+warning-only late -> warning
+counted late -> warning
+deduction applied -> action_required or warning
+request approved -> success
+request rejected -> warning
+import failed -> error
+auto run failed -> critical
+policy conflict -> critical
+```
+
+### Deduplication Rules
+
+Avoid notification spam.
+
+Deduplication keys should include:
+
+```text
+notification_type
+recipient
+attendance_record or deduction_run or request id
+status/event version
+```
+
+Rules:
+
+```text
+Do not send duplicate notification for the same unchanged event.
+If event changes meaningfully, send a new notification.
+Bulk events can send one summary instead of hundreds of separate HR/admin emails.
+Employee-impact events may still be per employee.
+```
+
+### Notification Audit And Logs
+
+Every sent/attempted notification should be logged.
+
+Log fields:
+
+```text
+notification event
+recipient
+channel
+status: pending/sent/failed/skipped
+attempt_count
+last_attempt_at
+error_message
+related record/run/request
+created_by system/actor
+```
+
+Rules:
+
+```text
+Email failure should be visible in Logs tab.
+Failed email can be retried by admin if supported.
+In-app notification creation failure should be logged as application error.
+```
+
+### Notification And Transaction Safety
+
+Rules:
+
+```text
+Create important in-app notification after transaction commit where possible.
+Do not send email before database transaction commits.
+If email fails, do not roll back already-applied deduction.
+Record email failure and allow retry.
+```
+
+### Notification Adapter Requirement
+
+Attendance notification logic must go through NotificationAdapter.
+
+Hard rule:
+
+```text
+Views and deduction services should not directly send emails from random places.
+They should emit notification events through NotificationAdapter.
+```
+
+NotificationAdapter should:
+
+```text
+check module/notification flags
+check event configuration
+create in-app notification
+queue email using existing email system if enabled
+log status
+return delivery summary
+```
+
+### Example Employee Notifications
+
+Warning-only late:
+
+```text
+Title: Attendance Warning Recorded
+Message: Your check-in on 2026-07-10 at 10:22 AM is within the warning window and will not count for deduction.
+Target: Employee attendance page, highlighted date.
+```
+
+Counted late:
+
+```text
+Title: Late Mark Recorded
+Message: Your check-in on 2026-07-10 at 10:45 AM is counted as a late mark under the active attendance policy.
+Target: Employee attendance page.
+```
+
+Deduction applied:
+
+```text
+Title: Late Coming Deduction Applied
+Message: 0.5 day has been deducted for 3 counted late marks from 2026-07-01 to 2026-07-31. See My Leave approved records for details.
+Target: my_leave Approved section or employee attendance deduction detail.
+```
+
+Request approved:
+
+```text
+Title: Late Exception Approved
+Message: Your exception request for 2026-07-10 was approved. This late mark will not count for deduction.
+Target: Employee attendance request detail.
+```
+
+Request rejected:
+
+```text
+Title: Late Exception Rejected
+Message: Your exception request for 2026-07-10 was rejected. The record remains counted according to policy.
+Target: Employee attendance request detail.
+```
+
+### Example HR/Admin Notifications
+
+Import errors:
+
+```text
+Title: Attendance Import Needs Review
+Message: Import batch IMP-2026-07-001 has 12 unmatched rows and 4 duplicate conflicts.
+Target: Attendance Management -> Import tab.
+```
+
+Deduction ready:
+
+```text
+Title: Late Deduction Preview Ready
+Message: Monthly deduction preview for July 2026 is ready with 18 employees affected and 3 blocked records.
+Target: Attendance Management -> Deductions tab.
+```
+
+Auto run failed:
+
+```text
+Title: Attendance Auto Deduction Failed
+Message: Auto deduction for July 2026 failed because policy overlap was detected. No deductions were applied.
+Target: Attendance Management -> Logs tab.
+```
+
+### Notification Testing Requirements
+
+Required tests:
+
+```text
+employee receives in-app notification for counted late
+employee receives notification when deduction applied
+employee receives request approved/rejected notification
+HR receives notification for import errors
+HR receives correction request notification
+admin receives policy conflict/auto-run failure notification
+email disabled means no email queued
+email enabled queues expected email
+preview mode does not send deduction-applied notification
+duplicate events do not create duplicate notifications
+email failure is logged without rolling back deduction
+```
+
+### Notification Acceptance Criteria
+
+The notification system is accepted when:
+
+```text
+all major employee-impacting events create in-app notification
+email behavior is admin configurable
+HR/admin action-required events are visible
+notification target URLs open the correct page/tab/detail
+email send attempts are logged
+notification spam is controlled by deduplication/digest settings
+all notification sending goes through NotificationAdapter
+```
+
+
+## Final Deep Scan Enterprise Additions
+
+This section captures the final gaps found after another deep review for total-control enterprise readiness.
+
+These additions do not replace earlier decisions. They strengthen the implementation blueprint so edge cases do not get discovered too late.
+
+### 1. Organization Hierarchy And Manager Visibility
+
+Attendance decisions may involve reporting managers, HR, admins, and payroll teams.
+
+The system should be future-ready for organization hierarchy.
+
+Possible hierarchy fields/sources:
+
+```text
+reporting_manager
+department_head
+hr_partner
+location_admin
+payroll_owner
+```
+
+Manager visibility rules:
+
+```text
+Employee sees only own attendance.
+Manager can optionally see direct report attendance summaries if enabled.
+HR can see employees assigned to HR scope or all employees depending on project roles.
+Admin can see all.
+Payroll can see payroll-impact reports if payroll role is added later.
+```
+
+Approval routing can later use hierarchy:
+
+```text
+employee request -> reporting manager optional -> HR -> admin for high-risk cases
+```
+
+Version 1 rule:
+
+```text
+Do not block implementation on manager workflow unless the existing project already has manager roles.
+But data/services should not prevent manager-based approval later.
+```
+
+### 2. Employee Lifecycle And Eligibility Rules
+
+Attendance policy may differ by employee lifecycle state.
+
+Employee states to consider:
+
+```text
+new joiner
+probation
+confirmed employee
+contractor/intern
+notice period
+inactive employee
+terminated/resigned employee
+on long leave
+```
+
+Rules:
+
+```text
+Inactive employees should not receive new attendance imports unless explicitly allowed.
+Attendance imports for unknown/inactive employees should be flagged.
+Employee joining date should prevent attendance before joining date unless backfill is approved.
+Exit date should prevent attendance after exit date unless correction/backfill is approved.
+Policy assignment should be valid for employee lifecycle state.
+```
+
+Reports should be able to filter:
+
+```text
+active employees only
+inactive employees included
+employees with lifecycle exceptions
+```
+
+### 3. Attendance Regularization Request Types
+
+Correction/exception requests should be more specific than a generic request.
+
+Supported employee request types should include:
+
+```text
+missed check-in
+missed check-out
+wrong check-in time
+wrong check-out time
+late exception / allow late
+official duty / client visit
+field work
+travel delay approved by HR
+medical reason
+biometric issue
+work from home correction
+holiday/weekend correction
+other
+```
+
+Each request type may need different fields.
+
+Examples:
+
+```text
+Missed check-in -> requested check-in time required.
+Missed check-out -> requested check-out time required.
+Late exception -> reason required, time change optional.
+Official duty -> location/client/project details optional.
+Medical reason -> attachment optional/required by config.
+```
+
+Rules:
+
+```text
+Admin should be able to configure which request types are enabled.
+Request type should be shown in HR/admin review, reports, and notification templates.
+```
+
+### 4. Cutoff Dates, SLA, And Payroll Freeze Rules
+
+Enterprise control needs deadlines.
+
+Configurable cutoffs should include:
+
+```text
+employee correction request cutoff after attendance date
+HR/admin review cutoff before payroll close
+deduction preview generation cutoff
+payroll freeze date
+period lock date
+auto deduction run date/time
+```
+
+Examples:
+
+```text
+Employee can request correction within 3 days of attendance date.
+HR must review pending requests before monthly deduction apply.
+After payroll freeze, corrections require admin adjustment.
+```
+
+SLA tracking should show:
+
+```text
+request pending age
+requests nearing cutoff
+requests overdue
+HR/admin reviewer assigned
+escalation status
+```
+
+Rules:
+
+```text
+Cutoff violations should not silently disappear.
+They should show as blocked or require admin override with reason.
+```
+
+### 5. Location, Device, IP, And Geo Trust Foundation
+
+Future attendance may come from mobile/web/biometric sources where location or device matters.
+
+Future-ready fields:
+
+```text
+location_name
+site_id
+device_id
+device_trust_level
+ip_address
+geo_latitude
+geo_longitude
+geo_accuracy
+network_source
+```
+
+Possible controls:
+
+```text
+allowed office locations
+allowed IP ranges
+trusted biometric devices
+trusted upload sources
+mobile location required yes/no
+geo fence radius future
+```
+
+Rules:
+
+```text
+Version 1 does not need geofencing.
+But source/location/device metadata should be possible without redesign.
+Untrusted source/location should require review and should not auto-deduct.
+```
+
+### 6. Attendance Source Conflict Policy
+
+The plan already has source trust and duplicate handling, but final conflict policy should be explicit.
+
+Conflict examples:
+
+```text
+manual entry says 10:10, biometric says 10:45
+CSV says present, biometric says absent
+employee correction says 10:05, existing record says 11:00
+file upload changes already-reviewed record
+```
+
+Conflict resolution should show:
+
+```text
+current final value
+incoming value
+source priority
+who created each value
+when each value was created
+related request/import batch
+recommended action
+```
+
+Rules:
+
+```text
+Conflicts must not auto-apply deduction.
+HR/admin must resolve conflict or keep it blocked.
+Chosen final value must be audited.
+```
+
+### 7. Import Cancel, Rollback, And Quarantine
+
+Import safety should include more than duplicate detection.
+
+Import states should include:
+
+```text
+uploaded
+previewed
+quarantined
+finalized
+partially_finalized
+cancelled
+rolled_back
+failed
+```
+
+Quarantine should be used when:
+
+```text
+file has too many invalid rows
+file appears duplicated
+file has suspicious format
+file has unexpected columns
+file includes inactive/unknown employees
+file conflicts with locked period
+```
+
+Rollback rules:
+
+```text
+Before finalization: batch can be cancelled safely.
+After finalization but before deduction: rollback can void created attendance records if no downstream impact exists.
+After deduction: rollback must use adjustment/reversal flow, not delete records silently.
+```
+
+Audit must record:
+
+```text
+cancelled_by
+cancelled_at
+rollback_by
+rollback_at
+rollback_reason
+records affected
+downstream impact check
+```
+
+### 8. Service Console And Management Command Hooks
+
+The project already has management/operational command patterns. Attendance should provide safe service-console hooks for production operations.
+
+Possible management commands:
+
+```text
+attendance_health_check
+attendance_seed_default_policy
+attendance_import_file --preview-only
+attendance_recalculate_preview --period
+attendance_reconcile_period --period
+attendance_find_conflicts --period
+attendance_export_report --period
+attendance_send_digest --date
+attendance_unlock_period --period --reason
+attendance_apply_scheduled_runs --dry-run
+```
+
+Rules:
+
+```text
+Commands that can change data must support --dry-run where practical.
+Dangerous commands must require explicit confirmation arguments.
+Commands must log output and errors.
+Commands must respect feature flags.
+Commands must never bypass adapter safety gates.
+```
+
+Service console should show:
+
+```text
+attendance module enabled/disabled
+preview-only state
+pending import batches
+failed imports
+pending requests
+pending deduction previews
+last auto run
+policy conflicts
+scheduler readiness
+```
+
+### 9. Data Quality Score And Readiness Dashboard
+
+Enterprise systems benefit from a readiness score before deduction or payroll close.
+
+Data quality metrics:
+
+```text
+matched row percentage
+unmatched row count
+invalid row count
+duplicate conflict count
+missing check-in count
+missing check-out count
+pending correction request count
+late records needing review
+policy conflict count
+source trust warnings
+```
+
+Readiness levels:
+
+```text
+Ready
+Ready with warnings
+Needs review
+Blocked
+```
+
+Rules:
+
+```text
+Auto deduction requires Ready status.
+Manual apply can allow Ready with warnings if HR/admin confirms.
+Blocked status prevents apply until resolved or admin override is recorded.
+```
+
+### 10. Support And Investigation Tools
+
+HR/admin needs tools to answer “why did this happen?” quickly.
+
+Every attendance/deduction detail page should support investigation trail:
+
+```text
+raw import row
+matched employee method
+policy used
+employee-specific schedule used
+classification reason
+source conflict history
+exception/correction request history
+notification history
+leave deduction split
+leave record links
+audit trail
+```
+
+Suggested “Why?” panel:
+
+```text
+Why was this counted late?
+Why was this excluded?
+Why was this deduction amount calculated?
+Why was this record blocked from auto apply?
+```
+
+Rules:
+
+```text
+A reviewer should not need database access to explain a deduction.
+The UI should expose enough traceability for HR/admin support.
+```
+
+### 11. Large Organization Bulk Controls
+
+For large teams, HR/admin needs safe bulk controls.
+
+Bulk filters:
+
+```text
+department
+location
+shift
+manager
+employee group
+source
+status
+period
+policy version
+```
+
+Bulk operations:
+
+```text
+bulk mark allowed/excused
+bulk assign employee schedule
+bulk put deductions on hold
+bulk release deduction hold
+bulk export selected records
+bulk send reminders
+bulk resolve duplicate action when safe
+```
+
+Rules:
+
+```text
+Bulk operations must show affected count and sample rows.
+Bulk operations must require confirmation.
+High-risk bulk operations must require reason.
+Bulk operations must create parent audit plus per-record audit.
+```
+
+### 12. Employee Communication And Self-Service Clarity
+
+Employee pages should explain records clearly without exposing internal-only remarks.
+
+Employee-facing fields:
+
+```text
+status
+check-in/check-out
+policy timing used
+whether it counts for deduction
+request button if allowed
+request deadline
+request status
+public HR/admin remarks
+```
+
+Internal-only fields:
+
+```text
+admin risk notes
+source trust score
+internal investigation notes
+payroll processing comments
+private HR remarks
+```
+
+Rules:
+
+```text
+Keep internal HR/admin remarks separate from employee-visible text.
+Employee should see enough to understand what happened and how to request correction.
+```
+
+### 13. Report Certification And Sign-Off
+
+Before payroll or final monthly close, HR/admin may need to certify attendance reports.
+
+Certification fields:
+
+```text
+period
+certified_by
+certified_at
+certification_remarks
+report_snapshot
+exception_count at certification
+pending_count at certification
+```
+
+Rules:
+
+```text
+Certification should snapshot report totals.
+Changes after certification should require unlock/adjustment or recertification.
+```
+
+### 14. Final Deep Scan Status
+
+After this final scan, the plan covers:
+
+```text
+policy control
+employee-specific control
+manual/file/biometric source control
+preview safety
+adapter connector architecture
+notifications
+reports
+audit
+permissions
+enterprise governance
+operations/service console
+rollback and quarantine
+data quality readiness
+support investigation tools
+bulk controls
+employee communication clarity
+report certification
+```
+
+Remaining before coding is not more planning detail. It is implementation discovery:
+
+```text
+inspect existing user/profile fields
+inspect existing role/permission model
+inspect existing notification/email system
+inspect existing leave balance update logic
+inspect existing report/export helpers
+inspect existing service_console/management command patterns
+inspect existing WFH/holiday helpers
+choose module structure
+choose Version 1 implementation slice
+```
+
+If new requirements appear during implementation discovery, this plan should be updated before code is changed.
