@@ -78,6 +78,7 @@
         const reason = document.getElementById("reason");
         const typeHint = document.getElementById("typeHint");
         const timeWarning = document.getElementById("timeWarning");
+        const schedulePanel = document.querySelector(".schedule-panel");
         const schedulePreviewSlot = document.getElementById("schedulePreviewSlot");
         const schedulePreviewCard = document.getElementById("schedulePreviewCard");
         const schedulePreviewLines = document.getElementById("schedulePreviewLines");
@@ -178,8 +179,8 @@
 
         function getDefaultHintMessage() {
             return isTimeLeave()
-                ? "Time is required for Short and Half leave"
-                : "Dates only for regular leave";
+                ? "\u25F7 Short/Half | \u23F1 Time Required"
+                : "\u25C6 Regular Leave | \u25F7 Dates Only";
         }
 
         function syncToDateLockState() {
@@ -210,7 +211,7 @@
                 return;
             }
 
-            const state = forcedState || (message.includes("slightly late") ? "soft-warning" : "warning");
+            const state = forcedState || (message.includes("Allowed:") ? "soft-warning" : "warning");
             timeWarning.classList.remove("visible", "is-warning", "is-soft-warning", "is-success");
             void timeWarning.offsetWidth;
             timeWarning.textContent = message;
@@ -482,7 +483,7 @@
             const { isToday, startHour, endHour, minHour, minMinute, unavailable } = rules;
 
             if (unavailable) {
-                showTimeWarning("No valid time available for today.");
+                showTimeWarning("No slots left today.");
                 timeSelectDropdowns.forEach(buildTimeSelect);
                 return;
             }
@@ -811,7 +812,7 @@
                 const relaxedMin = new Date(minAllowed.getTime() - shortHalfGraceMinutes * 60 * 1000);
 
                 if (start < relaxedMin) {
-                    showTimeWarning(`You must apply at least ${shortHalfMinNoticeLabel} before current time.`);
+                    showTimeWarning(`Need ${shortHalfMinNoticeLabel} notice.`);
                     toTime.value = "";
                     fromDateTime.value = "";
                     toDateTime.value = "";
@@ -820,7 +821,7 @@
                 }
 
                 if (shortHalfGraceMinutes > 0 && start >= relaxedMin && start < minAllowed) {
-                    showTimeWarning(`You are applying slightly late (within ${shortHalfGraceLabel} grace period).`);
+                    showTimeWarning(`Allowed: ${shortHalfGraceLabel} grace.`, "soft-warning");
                 } else {
                     showTimeWarning("");
                 }
@@ -832,7 +833,7 @@
             const end = new Date(start.getTime() + duration * 60 * 60 * 1000);
 
             if (end.getHours() >= 19) {
-                showTimeWarning("Leave cannot extend beyond 7:00 PM.");
+                showTimeWarning("Ends after 7:00 PM.");
                 toTime.value = "";
                 fromDateTime.value = "";
                 toDateTime.value = "";
@@ -1488,12 +1489,14 @@
                 }
             }
             updateToTime();
+            scheduleLivePreview();
         });
         fromMinute.addEventListener("change", () => {
             if (!fromMinute.value) {
                 clearStoredTimeForCurrentType();
             }
             updateToTime();
+            scheduleLivePreview();
         });
         fromMeridiem.addEventListener("change", updateAMPM);
         fromHour.addEventListener("change", () => clearInlineWarning("fromTime"));
@@ -1706,11 +1709,18 @@
             return preview?.tone || preview?.status || "blocked";
         }
 
+        function isTimeLeaveLimitWarning(preview) {
+            return isTimeLeave()
+                && previewTone(preview) === "blocked"
+                && /limit reached/i.test(preview?.ruleMessage || "");
+        }
+
         function clearSchedulePreview() {
             latestLeavePreview = null;
             if (schedulePreviewSlot) {
                 schedulePreviewSlot.hidden = true;
             }
+            schedulePanel?.classList.remove("has-schedule-preview");
             if (schedulePreviewLines) {
                 schedulePreviewLines.textContent = "";
             }
@@ -1723,6 +1733,7 @@
 
             if (!preview?.compact?.visible || !shouldShowCompactPreview()) {
                 schedulePreviewSlot.hidden = true;
+                schedulePanel?.classList.remove("has-schedule-preview");
                 return;
             }
 
@@ -1744,6 +1755,7 @@
             });
             schedulePreviewStatus.textContent = preview.compact.statusLabel || preview.statusLabel || "Ready to submit";
             schedulePreviewSlot.hidden = false;
+            schedulePanel?.classList.add("has-schedule-preview");
         }
 
         function applyRuleMessage(preview) {
@@ -1755,7 +1767,8 @@
                 return;
             }
             const tone = previewTone(preview);
-            showTimeWarning(preview.ruleMessage, tone === "blocked" ? "warning" : tone);
+            const warningState = tone === "blocked" ? "warning" : (tone === "warning" ? "soft-warning" : tone);
+            showTimeWarning(preview.ruleMessage, warningState);
         }
 
         async function fetchLeavePreview() {
@@ -1799,7 +1812,26 @@
                 clearSchedulePreview();
                 if (!isTimeLeave()) {
                     showTimeWarning("");
+                    return;
                 }
+                if (!fromDate.value) {
+                    return;
+                }
+
+                livePreviewTimer = window.setTimeout(async () => {
+                    const requestId = ++livePreviewRequestId;
+                    try {
+                        const preview = await fetchLeavePreview();
+                        if (requestId !== livePreviewRequestId || !preview) {
+                            return;
+                        }
+                        if (isTimeLeaveLimitWarning(preview)) {
+                            showTimeWarning(preview.ruleMessage, "warning");
+                        }
+                    } catch (error) {
+                        // Time-leave preview is only used here for monthly-limit warnings.
+                    }
+                }, 260);
                 return;
             }
 
@@ -1828,17 +1860,67 @@
             modal.dataset.previewTone = previewTone(preview);
         }
 
+        function detailVisualMeta(detail) {
+            const label = String(detail?.label || "").toLowerCase();
+            const value = String(detail?.value || "").toLowerCase();
+            const tone = detail?.tone || "default";
+
+            if (tone === "blocked" || label.includes("problem") || value.includes("blocked") || value.includes("not enough") || value.includes("insufficient")) {
+                return { icon: "\u26A0", context: "danger" };
+            }
+            const hasPolicyApplied = value.includes("applied") && !value.includes("not applied");
+            if (tone === "warning" || value.includes("warning") || hasPolicyApplied || value.includes("limit")) {
+                return { icon: "\u26A0", context: "warning" };
+            }
+            if (tone === "success" || value === "ok" || value.includes("ready") || value.includes("no overlap")) {
+                return { icon: "\u2713", context: "success" };
+            }
+            if (label.includes("leave type")) {
+                return { icon: "\u25C6", context: "type" };
+            }
+            if (label.includes("rule") || label.includes("notice")) {
+                return { icon: "\u2139", context: "rule" };
+            }
+            if (label.includes("requested") || label.includes("final") || label.includes("date") || label.includes("time")) {
+                return { icon: "\u25F7", context: "date" };
+            }
+            if (label.includes("working") || label.includes("calendar") || label.includes("duration") || label.includes("value")) {
+                return { icon: "\u25A6", context: "count" };
+            }
+            if (label.includes("weekend") || label.includes("holiday") || label.includes("wfh") || label.includes("sandwich") || label.includes("auto")) {
+                return { icon: "\u21C4", context: "policy" };
+            }
+            if (label.includes("balance") || label.includes("deducted") || label.includes("unpaid") || label.includes("monthly")) {
+                return { icon: "\u2696", context: "balance" };
+            }
+            if (label.includes("overlap")) {
+                return { icon: "\u2713", context: "success" };
+            }
+            return { icon: "\u2022", context: "default" };
+        }
+
         function buildDetailCard(detail) {
             const card = document.createElement("div");
             card.className = "apply-leave-detail-card";
             card.dataset.tone = detail.tone || "default";
+            const visualMeta = detailVisualMeta(detail);
+            card.dataset.context = visualMeta.context;
+            const header = document.createElement("div");
+            header.className = "apply-leave-detail-header";
+            const icon = document.createElement("span");
+            icon.className = "apply-leave-detail-icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.textContent = visualMeta.icon;
             const label = document.createElement("span");
             label.className = "apply-leave-detail-label";
             label.textContent = detail.label || "Detail";
+            const divider = document.createElement("span");
+            divider.className = "apply-leave-detail-divider";
             const value = document.createElement("div");
             value.className = "apply-leave-detail-value";
             value.textContent = detail.value || "-";
-            card.append(label, value);
+            header.append(icon, label);
+            card.append(header, divider, value);
             return card;
         }
 
@@ -1858,6 +1940,26 @@
             return typeDetail?.value || (leaveType.value ? `${leaveType.value} Leave` : "Leave");
         }
 
+        function getPreviewLeaveKind(preview) {
+            const typeText = getPreviewLeaveType(preview).toLowerCase();
+            if (typeText.includes("sick")) {
+                return "sick";
+            }
+            if (typeText.includes("earned")) {
+                return "earned";
+            }
+            if (typeText.includes("unpaid")) {
+                return "unpaid";
+            }
+            if (typeText.includes("short")) {
+                return "short";
+            }
+            if (typeText.includes("half")) {
+                return "half";
+            }
+            return "default";
+        }
+
         function fillPreviewModal(modal, preview, prefix) {
             if (!modal || !preview) {
                 return;
@@ -1874,6 +1976,7 @@
             }
             if (type) {
                 type.textContent = getPreviewLeaveType(preview);
+                type.dataset.leaveType = getPreviewLeaveKind(preview);
             }
             if (status) {
                 status.textContent = preview.statusLabel || "Ready to submit";
@@ -1952,7 +2055,7 @@
                 showInlineWarning("fromDate", "Please select a from date.");
                 hasError = true;
             } else if (isSickSameDayCutoffPassed()) {
-                showInlineWarning("fromDate", `Sick leave cannot be applied after ${sickSameDayCutoffLabel} for the same day.`);
+                showInlineWarning("fromDate", `Sick cutoff passed: ${sickSameDayCutoffLabel}.`);
                 hasError = true;
             }
 
