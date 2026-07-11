@@ -165,10 +165,52 @@
             return leaveType.value === "Short" || leaveType.value === "Half";
         }
 
+        function renderTypeHintParts(parts) {
+            typeHint.replaceChildren();
+            parts.forEach((part) => {
+                const item = document.createElement("span");
+                if (part.separator) {
+                    item.className = "type-hint-separator";
+                    item.textContent = "|";
+                } else if (part.icon) {
+                    item.className = `type-hint-icon ${part.className || ""}`.trim();
+                    item.setAttribute("aria-hidden", "true");
+                    item.textContent = part.icon;
+                } else {
+                    item.textContent = part.text || "";
+                }
+                typeHint.appendChild(item);
+            });
+        }
+
+        function renderDefaultTypeHint() {
+            if (isTimeLeave()) {
+                renderTypeHintParts([
+                    { icon: "\u25F7", className: "type-hint-icon-time" },
+                    { text: "Short/Half" },
+                    { separator: true },
+                    { icon: "\u23F1", className: "type-hint-icon-clock" },
+                    { text: "Time Required" },
+                ]);
+                return;
+            }
+            renderTypeHintParts([
+                { icon: "\u2713", className: "type-hint-icon-leave" },
+                { text: "Regular Leave" },
+                { separator: true },
+                { icon: "\u25A3", className: "type-hint-icon-date" },
+                { text: "Dates Only" },
+            ]);
+        }
+
         function setTypeHint(message, state = "default") {
             typeHint.classList.remove("hint-animating", "is-warning", "is-soft-warning");
             void typeHint.offsetWidth;
-            typeHint.textContent = message;
+            if (state === "default" && message === getDefaultHintMessage()) {
+                renderDefaultTypeHint();
+            } else {
+                typeHint.textContent = message;
+            }
             if (state === "warning") {
                 typeHint.classList.add("is-warning");
             } else if (state === "soft-warning") {
@@ -179,8 +221,8 @@
 
         function getDefaultHintMessage() {
             return isTimeLeave()
-                ? "\u25F7 Short/Half | \u23F1 Time Required"
-                : "\u25C6 Regular Leave | \u25F7 Dates Only";
+                ? "Short/Half | Time Required"
+                : "Regular Leave | Dates Only";
         }
 
         function syncToDateLockState() {
@@ -1865,36 +1907,96 @@
             const value = String(detail?.value || "").toLowerCase();
             const tone = detail?.tone || "default";
 
-            if (tone === "blocked" || label.includes("problem") || value.includes("blocked") || value.includes("not enough") || value.includes("insufficient")) {
+            if (label.includes("problem")) {
+                return { icon: "\u26A0", context: "danger" };
+            }
+
+            if (label.includes("sick balance")) {
+                return { icon: "\u271A", context: tone === "warning" ? "warning" : "balance" };
+            }
+            if (label.includes("deducted")) {
+                return { icon: "\u21A7", context: "balance" };
+            }
+            if (label.includes("available balance")) {
+                return { icon: "\u20B9", context: "balance" };
+            }
+            if (label.includes("current")) {
+                return { icon: "\u25D0", context: "balance" };
+            }
+            if (label.includes("after leave")) {
+                return { icon: "\u25D1", context: "balance" };
+            }
+            if (label === "balance") {
+                return { icon: "\u2696", context: "balance" };
+            }
+            if (label.includes("overlap")) {
+                return { icon: "\u2298", context: value.includes("no overlap") ? "success" : "danger" };
+            }
+            if (label.includes("requested")) {
+                return { icon: "\u27A4", context: "date" };
+            }
+            if (label.includes("final")) {
+                return { icon: "\u2714", context: tone === "warning" ? "warning" : "date" };
+            }
+            if (label.includes("required notice")) {
+                return { icon: "\u23F3", context: "rule" };
+            }
+            if (label.includes("current notice") || label === "notice") {
+                return { icon: "\u23F1", context: tone === "warning" ? "warning" : "rule" };
+            }
+            if (label.includes("working")) {
+                return { icon: "\u2699", context: "count" };
+            }
+            if (label.includes("calendar")) {
+                return { icon: "\u25A3", context: "count" };
+            }
+            if (label.includes("weekend")) {
+                return { icon: "\u263C", context: "policy" };
+            }
+            if (label.includes("holiday") || label.includes("company holiday")) {
+                return { icon: "\u2605", context: tone === "blocked" ? "danger" : "policy" };
+            }
+            if (label.includes("wfh")) {
+                return { icon: "\u2302", context: tone === "warning" ? "warning" : "policy" };
+            }
+            if (label.includes("sandwich")) {
+                return { icon: "\u25EB", context: tone === "warning" ? "warning" : "policy" };
+            }
+            if (label.includes("auto")) {
+                return { icon: "\u2795", context: tone === "warning" ? "warning" : "policy" };
+            }
+            if (label.includes("monthly used before")) {
+                return { icon: "\u25F7", context: "count" };
+            }
+            if (label.includes("monthly used after")) {
+                return { icon: "\u25F4", context: tone === "warning" ? "warning" : "success" };
+            }
+            if (label.includes("leave value") || label.includes("duration")) {
+                return { icon: "\u25D2", context: "count" };
+            }
+
+            if (label.includes("leave type")) {
+                return { icon: "\u25C6", context: "type" };
+            }
+            if (label.includes("rule")) {
+                return { icon: "\u2139", context: "rule" };
+            }
+
+            if (tone === "blocked" || value.includes("blocked") || value.includes("not enough") || value.includes("insufficient")) {
                 return { icon: "\u26A0", context: "danger" };
             }
             const hasPolicyApplied = value.includes("applied") && !value.includes("not applied");
             if (tone === "warning" || value.includes("warning") || hasPolicyApplied || value.includes("limit")) {
-                return { icon: "\u26A0", context: "warning" };
+                return { icon: "\u26A1", context: "warning" };
             }
-            if (tone === "success" || value === "ok" || value.includes("ready") || value.includes("no overlap")) {
+            if (tone === "success" || value === "ok" || value.includes("ready")) {
                 return { icon: "\u2713", context: "success" };
             }
-            if (label.includes("leave type")) {
-                return { icon: "\u25C6", context: "type" };
+            if (label.includes("date") || label.includes("time")) {
+                return { icon: "\u25CC", context: "date" };
             }
-            if (label.includes("rule") || label.includes("notice")) {
-                return { icon: "\u2139", context: "rule" };
-            }
-            if (label.includes("requested") || label.includes("final") || label.includes("date") || label.includes("time")) {
-                return { icon: "\u25F7", context: "date" };
-            }
-            if (label.includes("working") || label.includes("calendar") || label.includes("duration") || label.includes("value")) {
-                return { icon: "\u25A6", context: "count" };
-            }
-            if (label.includes("weekend") || label.includes("holiday") || label.includes("wfh") || label.includes("sandwich") || label.includes("auto")) {
-                return { icon: "\u21C4", context: "policy" };
-            }
-            if (label.includes("balance") || label.includes("deducted") || label.includes("unpaid") || label.includes("monthly")) {
-                return { icon: "\u2696", context: "balance" };
-            }
-            if (label.includes("overlap")) {
-                return { icon: "\u2713", context: "success" };
+            if (label.includes("unpaid")) {
+                return { icon: "\u25C9", context: "balance" };
             }
             return { icon: "\u2022", context: "default" };
         }
@@ -1905,6 +2007,9 @@
             card.dataset.tone = detail.tone || "default";
             const visualMeta = detailVisualMeta(detail);
             card.dataset.context = visualMeta.context;
+            if (String(detail?.label || "").toLowerCase() === "problem") {
+                card.dataset.detailRole = "problem";
+            }
             const header = document.createElement("div");
             header.className = "apply-leave-detail-header";
             const icon = document.createElement("span");
@@ -1930,9 +2035,12 @@
             }
             grid.textContent = "";
             const details = Array.isArray(preview?.details) ? preview.details : [];
-            details.forEach((detail) => {
-                grid.appendChild(buildDetailCard(detail));
-            });
+            const hiddenDetailLabels = new Set(["leave type", "rule status"]);
+            details
+                .filter((detail) => !hiddenDetailLabels.has(String(detail?.label || "").toLowerCase()))
+                .forEach((detail) => {
+                    grid.appendChild(buildDetailCard(detail));
+                });
         }
 
         function getPreviewLeaveType(preview) {
@@ -1973,6 +2081,7 @@
 
             if (title) {
                 title.textContent = preview.title || "Leave Preview Details";
+                title.dataset.previewTone = previewTone(preview);
             }
             if (type) {
                 type.textContent = getPreviewLeaveType(preview);
