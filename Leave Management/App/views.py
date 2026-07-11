@@ -5897,35 +5897,28 @@ def apply_leave(request):
                 )
 
         # -------- SUCCESS --------
-        messages.success(request, f"'{leave_type}' Leave applied Successfully.")
+        messages.success(request, f"'{leave_type}'  Leave applied successfully.")
+        messages.success(request, f"Working leave days: {breakdown['working_days']}")
+        messages.success(request, f"Applied range: {from_date.strftime('%d %b')} -> {to_date.strftime('%d %b')}")
 
-        messages.info(request, f"Total days: {breakdown['total_days']}")
+        included_wfh_days = breakdown.get("included_wfh_days", 0)
+        included_weekend_days = breakdown.get("included_weekend_days", 0)
+        company_holiday_days = breakdown.get("company_holiday_days", 0)
 
-        if auto_added_dates:
-            messages.info(request, "Auto-added bridge dates: " + ", ".join(current.strftime("%d %b %Y") for current in auto_added_dates))
-            messages.info(request, f"Requested range {requested_from_date.strftime('%d %b')} â†’ {requested_to_date.strftime('%d %b')} was expanded and saved as {from_date.strftime('%d %b')} â†’ {to_date.strftime('%d %b')}.")
+        def counted_day_label(count):
+            return f"{count} {'day' if count == 1 else 'days'}"
 
-        messages.success(request, f"Applied range: {from_date.strftime('%d %b')} → {to_date.strftime('%d %b')}")
-
-        if False and auto_added_dates:
-            messages.info(request, "Auto-added bridge dates: " + ", ".join(current.strftime("%d %b %Y") for current in auto_added_dates))
-            messages.info(request, f"Requested range {requested_new_from.strftime('%d %b')} â†’ {requested_new_to.strftime('%d %b')} was expanded and saved as {new_from.strftime('%d %b')} â†’ {new_to.strftime('%d %b')}.")
-
-        if False and auto_added_dates:
-            messages.info(request, "Auto-added bridge dates: " + ", ".join(current.strftime("%d %b %Y") for current in auto_added_dates))
-
-        if breakdown["included_weekend_days"] > 0:
-            messages.info(request, f"Sandwich rule applied: {breakdown['included_weekend_days']} weekend day(s) counted as leave.")
-        elif breakdown["weekend_days"] > 0:
-            messages.info(request, f"Excluded weekend days: {breakdown['weekend_days']}")
-
-        if breakdown["included_wfh_days"] > 0:
-            messages.info(request, f"WFH rule applied: {breakdown['included_wfh_days']} {breakdown['work_from_home_weekday_label']} day(s) were automatically counted as leave.")
-
-        if breakdown["company_holiday_days"] > 0:
-            messages.info(request, f"Company holiday day(s) counted in this leave: {breakdown['company_holiday_days']}")
-
-        messages.success(request, f"Working leave days : {breakdown['working_days']}")
+        if included_wfh_days > 0 and included_weekend_days > 0:
+            counted_days = included_wfh_days + included_weekend_days
+            messages.info(request, f"WFH + weekend sandwich: {counted_day_label(counted_days)} counted.")
+        elif included_wfh_days > 0:
+            messages.info(request, f"WFH bridge: {counted_day_label(included_wfh_days)} counted.")
+        elif included_weekend_days > 0:
+            messages.info(request, f"Weekend sandwich: {counted_day_label(included_weekend_days)} counted.")
+        elif company_holiday_days > 0:
+            messages.info(request, f"Holiday counted: {counted_day_label(company_holiday_days)}.")
+        elif auto_added_dates:
+            messages.info(request, "Range adjusted by policy.")
 
 
         # ✅ DELETE THE TEMPORARILY STORED FORM DATA FROM SESSION
