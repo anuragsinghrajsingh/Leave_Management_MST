@@ -593,7 +593,7 @@ body {
     .hero-kicker {
         flex: 0 0 auto;
         white-space: nowrap;
-        transform: none;
+        transform: translateY(-24px);
     }
 
     .hero-kicker::after {
