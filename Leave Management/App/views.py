@@ -45,6 +45,13 @@ from App.services.login_lock_service import get_login_lock_status as get_combine
 from App.services.push_notifications import send_push_to_user
 from App.services.background_tasks import enqueue_background_task
 from App.scripts.validators import get_password_input_max_length, validate_password_input_max_length
+from App.services.user_identity import (
+    normalize_login_identifier,
+    normalize_username_value,
+    normalize_email_value,
+    get_canonical_login_username,
+    get_user_by_login_identifier,
+)
 
 security_logger = logging.getLogger("lms_security")
 
@@ -72,8 +79,8 @@ ALLOWED_LEAVE_TYPES = {choice[0] for choice in Leave.LEAVE_TYPES}
 ALLOWED_PROFILE_ID_ROLES = {choice[0] for choice in Profile.ROLE_CHOICES}
 ALLOWED_LEAVE_FILTER_STATUSES = {choice[0] for choice in Leave.STATUS}
 ALLOWED_LEAVE_FILTER_FIELDS = {"leave_type", "month", "date_range"}
-FULL_DAY_ADVANCE_MIN_DAYS = 15
-FULL_DAY_ADVANCE_ADMISSIBLE_DAYS = 21
+FULL_DAY_ADVANCE_MIN_DAYS = 0
+FULL_DAY_ADVANCE_ADMISSIBLE_DAYS = 7
 
 
 def get_portal_link():
@@ -342,6 +349,7 @@ def validate_plain_text_field(value, label, max_length):
 
 
 def validate_employee_username(username):
+    username = normalize_username_value(username)
     username = validate_plain_text_field(username, "Username", EMPLOYEE_USERNAME_MAX_LENGTH)
     if username and not EMPLOYEE_USERNAME_PATTERN.fullmatch(username):
         raise ValueError("Username can contain only letters, numbers, and @/./+/-/_ characters.")
@@ -881,7 +889,7 @@ def _get_login_rate_config(portal):
 
 
 def _safe_login_username(username):
-    return (username or "").strip()
+    return normalize_login_identifier(username)
 
 
 def _format_retry_after(seconds):
@@ -943,19 +951,9 @@ def _maybe_delay_failed_login(attempt_count):
 
 
 def _get_login_alert_account_user(portal, username):
-    username = _safe_login_username(username)
-    if not username:
-        return None
-
-    User = get_user_model()
-    queryset = User.objects.filter(username__iexact=username, is_active=True).exclude(email="")
-
-    if portal == "ADMIN":
-        return queryset.filter(is_superuser=True).first()
-    if portal == "HR":
-        return queryset.filter(role="HR").first()
-    if portal == "EMPLOYEE":
-        return queryset.filter(role="EMPLOYEE").first()
+    user = get_user_by_login_identifier(portal, username)
+    if user and user.email:
+        return user
     return None
 
 
@@ -1075,7 +1073,7 @@ def _send_login_security_alert(portal, username, ip_address, reason, attempts, l
 def _register_login_failure(request, portal, username):
     config = _get_login_rate_config(portal)
     ip_address = _get_client_ip(request)
-    username = _safe_login_username(username)
+    username = get_canonical_login_username(portal, username)
 
     user_attempts = _increment_login_counter(
         _login_cache_key("fail_user", portal, username),
@@ -1126,14 +1124,15 @@ def _register_login_failure(request, portal, username):
 
 def _login_blocked_response(request, portal, username, redirect_name):
     ip_address = _get_client_ip(request)
-    remaining = _get_login_lock_status(portal, username, ip_address)
+    lock_username = get_canonical_login_username(portal, username)
+    remaining = _get_login_lock_status(portal, lock_username, ip_address)
     if remaining <= 0:
         return None
 
     security_logger.warning(
         "LOGIN_BLOCKED | portal=%s | username=%s | ip=%s | remaining_seconds=%s",
         portal,
-        _safe_login_username(username) or "(blank)",
+        lock_username or "(blank)",
         ip_address,
         remaining,
     )
@@ -1169,7 +1168,8 @@ def _reject_oversized_login_password(request, portal, username, password, redire
 
 def _record_successful_login(request, portal, user, username):
     ip_address = _get_client_ip(request)
-    _clear_login_rate_state(portal, username, ip_address)
+    lock_username = get_canonical_login_username(portal, username)
+    _clear_login_rate_state(portal, lock_username, ip_address)
     security_logger.info(
         "LOGIN_SUCCESS | portal=%s | user_id=%s | username=%s | ip=%s",
         portal,
@@ -1561,7 +1561,7 @@ def hr_login(request):
         return redirect("hr_dashboard")
 
     if request.method == "POST":
-        username = request.POST.get("username")
+        username = normalize_login_identifier(request.POST.get("username"))
         password = request.POST.get("password")
 
         blocked_response = _login_blocked_response(request, "HR", username, "hr_login_form")
@@ -3048,10 +3048,10 @@ def employee_details(request):
 
     if request.method == "POST":
         form_values.update({
-            "username": request.POST.get("username", "").strip(),
+            "username": normalize_username_value(request.POST.get("username", "")),
             "first_name": request.POST.get("first_name", "").strip(),
             "last_name": request.POST.get("last_name", "").strip(),
-            "email": request.POST.get("email", "").strip(),
+            "email": normalize_email_value(request.POST.get("email", "")),
             "department": request.POST.get("department", "").strip(),
             "date_of_joining": request.POST.get("date_of_joining", "").strip(),
             "phone": request.POST.get("phone", "").strip(),
@@ -4030,7 +4030,7 @@ def admin_login(request):
         return redirect("admin:index")
 
     if request.method == "POST":
-        username = request.POST.get("username")
+        username = normalize_login_identifier(request.POST.get("username"))
         password = request.POST.get("password")
 
         blocked_response = _login_blocked_response(request, "ADMIN", username, "admin_login_form")
@@ -4372,7 +4372,7 @@ def employee_login(request):
         return redirect("dashboard")
 
     if request.method == "POST":
-        username = request.POST.get("username")
+        username = normalize_login_identifier(request.POST.get("username"))
         password = request.POST.get("password")
 
         blocked_response = _login_blocked_response(request, "EMPLOYEE", username, "employee_login_form")
@@ -5786,21 +5786,21 @@ def apply_leave(request):
                 store_apply_leave_form_state(request)
                 return _apply_leave_response(request)
 
-            elif days_before < 15:
-                messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
-                messages.error(request, "ℹ Minimum advance period is 15 days.")
-                messages.error(request, "ℹ Admissible advance period is 21 days.")
+            elif days_before < FULL_DAY_ADVANCE_MIN_DAYS:
+                messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than {FULL_DAY_ADVANCE_MIN_DAYS} day(s) in advance.")
+                messages.error(request, f"ℹ Minimum advance period is {FULL_DAY_ADVANCE_MIN_DAYS} day(s).")
+                messages.error(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
 
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
                 return _apply_leave_response(request)
 
-            elif days_before >= 15 and days_before < 21:
+            elif days_before >= FULL_DAY_ADVANCE_MIN_DAYS and days_before < FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
                 messages.warning( request, f"ℹ ⚠ Early application: ")
                 messages.warning( request, f"ℹ You are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
-                messages.warning( request, "ℹ Admissible advance period is 21 days.")
+                messages.warning(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
 
-            elif days_before >= 21:
+            elif days_before >= FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
                 messages.warning( request, f"ℹ You are applying '{leave_type} Leave' {days_before} day(s) in advance." )
 
             earned_used += days
@@ -5809,21 +5809,21 @@ def apply_leave(request):
 
         elif leave_type == "Unpaid":
 
-            if days_before < 15:
-                messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than 15 days in advance.")
-                messages.error(request, "ℹ Minimum advance period is 15 days.")
-                messages.error(request, "ℹ Admissible advance period is 21 days.")
+            if days_before < FULL_DAY_ADVANCE_MIN_DAYS:
+                messages.error(request, f"ℹ The '{leave_type} Leave' cannot be applied for less than {FULL_DAY_ADVANCE_MIN_DAYS} day(s) in advance.")
+                messages.error(request, f"ℹ Minimum advance period is {FULL_DAY_ADVANCE_MIN_DAYS} day(s).")
+                messages.error(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
 
                 # ✅ STORE FORM DATA TEMPORARILY
                 store_apply_leave_form_state(request)
                 return _apply_leave_response(request)
 
-            elif days_before >= 15 and days_before < 21:
+            elif days_before >= FULL_DAY_ADVANCE_MIN_DAYS and days_before < FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
                 messages.warning( request, f"ℹ⚠ Early application: ")
                 messages.warning( request, f"ℹYou are applying '{leave_type} Leave' only {days_before} day(s) in advance." )
-                messages.warning( request, "ℹ Admissible advance period is 21 days.")
+                messages.warning(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
 
-            elif days_before >= 21:
+            elif days_before >= FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
                 messages.warning( request, f"ℹ You are applying '{leave_type} Leave' {days_before} day(s) in advance." )
 
 
@@ -6956,18 +6956,18 @@ def edit_leave(request, leave_id):
             messages.error(request, "ℹ Insufficient earned leave balance.")
             return _my_leave_response(request, status=400)
 
-        if days_before < 15:
-            messages.error(request, f"The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
-            messages.error(request, "ℹ Minimum advance period is 15 days.")
-            messages.error(request, "ℹ Admissible advance period is 21 days.")
+        if days_before < FULL_DAY_ADVANCE_MIN_DAYS:
+            messages.error(request, f"The '{new_type} Leave' cannot be applied for less than {FULL_DAY_ADVANCE_MIN_DAYS} day(s) in advance.")
+            messages.error(request, f"ℹ Minimum advance period is {FULL_DAY_ADVANCE_MIN_DAYS} day(s).")
+            messages.error(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
             return _my_leave_response(request, status=400)
 
-        elif days_before >= 15 and days_before < 21:
+        elif days_before >= FULL_DAY_ADVANCE_MIN_DAYS and days_before < FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
             messages.warning( request, "ℹ ⚠ Early application")
             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
-            messages.warning( request, "ℹ Admissible advance period is 21 days.")
+            messages.warning(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
 
-        elif days_before >= 21:
+        elif days_before >= FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
 
         earned_used += new_days
@@ -6979,18 +6979,18 @@ def edit_leave(request, leave_id):
 
         days_before = (requested_new_from - today).days
 
-        if days_before < 15:
-            messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than 15 days in advance.")
-            messages.error(request, "ℹ Minimum advance period is 15 days.")
-            messages.error(request, "ℹ Admissible advance period is 21 days.")
+        if days_before < FULL_DAY_ADVANCE_MIN_DAYS:
+            messages.error(request, f"ℹ The '{new_type} Leave' cannot be applied for less than {FULL_DAY_ADVANCE_MIN_DAYS} day(s) in advance.")
+            messages.error(request, f"ℹ Minimum advance period is {FULL_DAY_ADVANCE_MIN_DAYS} day(s).")
+            messages.error(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
             return _my_leave_response(request, status=400)
 
-        elif days_before >= 15 and days_before < 21:
+        elif days_before >= FULL_DAY_ADVANCE_MIN_DAYS and days_before < FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
             messages.warning( request, "⚠ Early application")
             messages.warning( request, f"ℹ You are applying '{new_type} Leave' only {days_before} day(s) in advance." )
-            messages.warning( request, "ℹ Admissible advance period is 21 days.")
+            messages.warning(request, f"ℹ Admissible advance period is {FULL_DAY_ADVANCE_ADMISSIBLE_DAYS} day(s).")
 
-        elif days_before >= 21:
+        elif days_before >= FULL_DAY_ADVANCE_ADMISSIBLE_DAYS:
             messages.warning( request, f"ℹ You are applying '{new_type} Leave' {days_before} day(s) in advance." )
 
         # 🚫 NO LIMIT, NO DEDUCTION

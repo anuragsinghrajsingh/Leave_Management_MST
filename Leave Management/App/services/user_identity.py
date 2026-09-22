@@ -1,6 +1,5 @@
 import re
 
-
 def normalize_login_identifier(value):
     return re.sub(r"\s+", "", (value or "").strip()).casefold()
 
